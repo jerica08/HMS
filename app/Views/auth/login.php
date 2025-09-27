@@ -12,7 +12,7 @@
             font-family: 'Times New Roman', serif;
         }
         .button {
-            background-color: #3f87c6ff;
+            background-color: #24649cff;
             color: black;
             border: none;
             border-radius: 5px;

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Patient Management - HMS Doctor</title>
+        <link rel="stylesheet" href="assets/css/common.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <style>
+            .section-header {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+                padding-bottom: 1rem;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            .section-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 8px;
+                background: #3b82f6;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 1.2rem;
+            }
+            .status-admitted { background: #fef3c7; color: #92400e; }
+            .status-discharged { background: #dcfce7; color: #166534; }
+            .status-critical { background: #fecaca; color: #991b1b; }
+            .status-stable { background: #dbeafe; color: #1e40af; }
+            .status-emergency { background: #fed7cc; color: #c2410c; }
+            .search-filters {
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            .filter-row {
+                display: flex;
+                gap: 1rem;
+                align-items: end;
+                flex-wrap: wrap;
+            }
+            .filter-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+                min-width: 150px;
+            }
+            .filter-input {
+                padding: 0.5rem;
+                border: 1px solid #e2e8f0;
+                border-radius: 5px;
+                font-size: 0.9rem;
+            }
+            .patient-table {
+                background: white;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .table-header {
+                background: #f8fafc;
+                padding: 1rem;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .action-buttons {
+                display: flex;
+                gap: 0.5rem;
+                margin-top: 1rem;
+                flex-wrap: wrap;
+            }
+            .btn-small {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
+            .critical-alert {
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                border-left: 4px solid #ef4444;
+                border-radius: 8px;
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            .alert-header {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-weight: 600;
+                color: #991b1b;
+                margin-bottom: 0.5rem;
+            }
+            .alert-content {
+                color: #7f1d1d;
+                font-size: 0.9rem;
+            }
+            .quick-actions {
+                background: white;
+                border-radius: 8px;
+                padding: 1.5rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                margin-bottom: 2rem;
+            }
+            .actions-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin-top: 1rem;
+            }
+        </style>
+    </head>
+    <body class="doctor">
+        <!--Header-->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1><i class="fas fa-user-md"></i> Doctor</h1>                    
+                </div>
+               <div class="user-info">
+                    <div class="user-avatar">
+                        <?= strtoupper(substr(\App\Helpers\UserHelper::getDisplayName($currentUser ?? null), 0, 2)) ?>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">
+                            <?= \App\Helpers\UserHelper::getDisplayName($currentUser ?? null) ?>
+                        </div>
+                        <div style="font-size: 0.9rem;opacity:0.8">
+                            <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
+                        </div>
+                    </div>
+                    <a class="btn btn-secondary" href="<?= base_url('profile') ?>" style="margin-left:.5rem;">
+                        <i class="fas fa-user"></i> Profile
+                    </a>
+                    <button class="logout-btn" onclick="handleLogout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+        <!--Main Content-->
+        <div class="main-container">
+              <!--sidebar-->
+            <nav class="sidebar">
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                         <a href="<?= base_url('doctor/dashboard') ?>" class="nav-link">
+                            <i class="fas fa-tachometer-alt nav-icon"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                         <a href="<?= base_url('doctor/patients') ?>" class="nav-link active">
+                            <i class="fas fa-users nav-icon"></i>
+                            My Patients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="<?= base_url('doctor/appointments') ?>" class="nav-link">
+                            <i class="fas fa-calendar-alt nav-icon"></i>
+                            Appointments
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="<?= base_url('doctor/prescriptions') ?>" class="nav-link">
+                            <i class="fas fa-prescription-bottle nav-icon"></i>
+                            Prescriptions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="<?= base_url('doctor/lab-results') ?>" class="nav-link">
+                            <i class="fas fa-flask nav-icon"></i>
+                            Lab Results
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="<?= base_url('doctor/ehr') ?>" class="nav-link">
+                            <i class="fas fa-file-medical nav-icon"></i>
+                            Electronic Health Record
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="<?= base_url('doctor/my-schedule') ?>" class="nav-link">
+                            <i class="fas fa-clock nav-icon"></i>
+                            My Schedule
+                        </a>
+                    </li>
+                </ul>      
+            </nav>
+            <!--Main Content-->
+            <main class="content">
+                <h1 class="page-title">My Patient</h1>
+                <div class="page-actions">
+                    <button class="btn btn-success" id="scheduleAppointmentBtn">
+                        <i class="fas fa-plus"></i> Add New Patient
+                    </button>
+                </div><br>
+
+                <!--Dashboard overview cards-->
+                <div class="dashboard-overview">
+
+                    <!-- Today's Appointment Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Total Patients</h3>
+                                <p class="card-subtitle">Under your care</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- This Week Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue">
+                                <i class="fas fa-calendar-week"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Patient Type</h3>
+                                <p class="card-subtitle">Under your care</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue">0</div>
+                                <div class="metric-label">In-Patient</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green">0</div>
+                                <div class="metric-label">Out-Patient</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>            
+            </main>
+        </div>     
+        <script src="/js/logout.js"></script>
+    </body>
+</html>

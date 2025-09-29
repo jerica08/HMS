@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>IT Staff Dashboard - HMS</title>
+        <link rel="stylesheet" href="assets/css/common.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    </head>
+    <body class="it-theme">
+        <!--Header-->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1><i class="fas fa-calculator"></i> HMS - IT Staff</h1>
+                </div>
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <?= strtoupper(substr(\App\Helpers\UserHelper::getDisplayName($currentUser ?? null), 0, 2)) ?>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">
+                            <?= \App\Helpers\UserHelper::getDisplayName($currentUser ?? null) ?>
+                        </div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">
+                            <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
+                        </div>
+                    </div>
+                    <a class="btn btn-secondary" href="<?= base_url('profile') ?>" style="margin-left:.5rem;">
+                        <i class="fas fa-user"></i> Profile
+                    </a>
+                    <button class="logout-btn" onclick="handleLogout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <!--Sidebar-->
+             <nav class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="" class="nav-link active">
+                        <i class="fas fa-tachometer-alt nav-icon"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="" class="nav-link">
+                        <i class="fas fa-desktop-alt nav-icon"></i>
+                        System Monitoring
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="" class="nav-link">
+                        <i class="fas fa-shield-alt nav-icon"></i>
+                        Security Management
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="" class="nav-link">
+                        <i class="fas fa-database nav-icon"></i>
+                        Data Backups
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="" class="nav-link">
+                        <i class="fas fa-tools nav-icon"></i>
+                       System Maintenance
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="" class="nav-link">
+                        <i class="fas fa-headset nav-icon"></i>
+                       User Support
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="" class="nav-link">
+                        <i class="fas fa-network-wired nav-icon"></i>
+                        Network Status
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <!--Main Content-->
+        <main class="content">
+            <h1 class="page-title">It Staff Dashboard</h1>
+        
+            <!--Dashboard Overview Cards-->
+             <div class="dashboard-overview">              
+                <!--System Status-->
+                <div class="overview-card">
+                    <div class="card-header-modern">
+                        <div class="card-icon-modern blue">
+                            <i class="fas fa-server "></i>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title-modern">System Status</h3>
+                            <p class="card-subtitle">Overall System Health</p>
+                        </div>
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric">
+                            <div class="metric-value blue">0%</div>
+                            <div class="metric-label">Uptime</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value green">0</div>
+                            <div class="metric-label">Servers Online</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value orange">0</div>
+                            <div class="metric-label">Alert</div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <a href="#" class="action-btn primary">System Health</a>
+                        <a href="#" class="action-btn secondary">View Alerts</a>
+                    </div>
+                </div>
+                <!--Security Status-->
+                <div class="overview-card">
+                    <div class="card-header-modern">
+                        <div class="card-icon-modern blue">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title">Security Status</h3>
+                            <p class="card-subtitle">System security monitoring</p>
+                        </div>
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric">
+                            <div class="metric-value purple">0</div>
+                            <div class="metric-label">Active Users</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value green">0</div>
+                            <div class="metric-label">Failed Logins</div> 
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value red">0</div>
+                            <div class="metric-label">Breaches</div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <a href="#" class="action-btn warning">Security Audit</a>
+                        <a href="#" class="action-btn danger">Incident Response</a>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+        </div>
+        <script>
+        // Simple navigation functionality - removed preventDefault to allow page navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Allow navigation to proceed - don't prevent default
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Logout functionality
+        function handleLogout() {
+            if(confirm('Are you sure you want to logout?')) {
+                window.location.href = '<?= base_url('auth/logout') ?>';
+            }
+        }
+    </script>
+    </body>
+</html>

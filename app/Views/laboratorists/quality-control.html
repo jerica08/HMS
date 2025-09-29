@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laboratory - Quality Control - HMS</title>
+    <link rel="stylesheet" href="/assets/css/dashboard-common.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body class="lab-theme">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <h1><i class="fas fa-microscope"></i> HMS - Laboratory Staff</h1>
+        </div>
+        <div class="user-info">
+          <div class="user-avatar">LS</div>
+          <div>
+            <div style="font-weight: 600">Laboratory Staff</div>
+            <div style="font-size: 0.9rem; opacity: 0.8">Laboratorist</div>
+          </div>
+          <a class="btn btn-secondary" href="/profile" style="margin-left: 0.5rem">
+            <i class="fas fa-user"></i> Profile
+          </a>
+          <button class="logout-btn" onclick="handleLogout()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-container">
+      <!-- Sidebar -->
+      <nav class="sidebar">
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <i class="fas fa-tachometer-alt nav-icon"></i>
+              Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/laboratorist/test-request" class="nav-link">
+              <i class="fas fa-clipboard-list nav-icon"></i>
+              Test Request
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/laboratorist/sample-management" class="nav-link">
+              <i class="fas fa-vial nav-icon"></i>
+              Sample Management
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/laboratorist/test-results" class="nav-link">
+              <i class="fas fa-chart-line nav-icon"></i>
+              Test Results
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/laboratorist/equipment-status" class="nav-link">
+              <i class="fas fa-microscope nav-icon"></i>
+              Equipment Status
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link active">
+              <i class="fas fa-check-circle nav-icon"></i>
+              Quality Control
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/laboratorist/lab-reports" class="nav-link">
+              <i class="fas fa-file-alt nav-icon"></i>
+              Lab Reports
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="content">
+        <h1 class="page-title">Quality Control</h1>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+          <a href="#" class="btn btn-primary"><i class="fas fa-plus"></i> Add QC Run</a>
+          <a href="#" class="btn btn-secondary"><i class="fas fa-chart-area"></i> View Charts</a>
+          <a href="#" class="btn btn-secondary"><i class="fas fa-download"></i> Export QC Logs</a>
+        </div>
+
+        <!-- QC Overview Cards -->
+        <div class="dashboard-overview" style="margin-top: 1.5rem">
+          <div class="overview-card">
+            <div class="card-header-modern">
+              <div class="card-icon-modern blue"><i class="fas fa-vial"></i></div>
+              <div class="card-info">
+                <h3 class="card-title-modern">Runs Today</h3>
+                <p class="card-subtitle">Quality checks performed</p>
+              </div>
+            </div>
+            <div class="card-metrics">
+              <div class="metric">
+                <div class="metric-value green">8</div>
+                <div class="metric-label">Total</div>
+              </div>
+              <div class="metric">
+                <div class="metric-value blue">7</div>
+                <div class="metric-label">Passed</div>
+              </div>
+            </div>
+          </div>
+          <div class="overview-card">
+            <div class="card-header-modern">
+              <div class="card-icon-modern blue"><i class="fas fa-triangle-exclamation"></i></div>
+              <div class="card-info">
+                <h3 class="card-title-modern">Flags</h3>
+                <p class="card-subtitle">Rule violations</p>
+              </div>
+            </div>
+            <div class="card-metrics">
+              <div class="metric">
+                <div class="metric-value">1</div>
+                <div class="metric-label">Today</div>
+              </div>
+              <div class="metric">
+                <div class="metric-value purple">3</div>
+                <div class="metric-label">This Week</div>
+              </div>
+            </div>
+          </div>
+          <div class="overview-card">
+            <div class="card-header-modern">
+              <div class="card-icon-modern blue"><i class="fas fa-gauge-high"></i></div>
+              <div class="card-info">
+                <h3 class="card-title-modern">Stability</h3>
+                <p class="card-subtitle">Last 7 days</p>
+              </div>
+            </div>
+            <div class="card-metrics">
+              <div class="metric">
+                <div class="metric-value">96%</div>
+                <div class="metric-label">Within Range</div>
+              </div>
+              <div class="metric">
+                <div class="metric-value">4%</div>
+                <div class="metric-label">Outliers</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add QC Run Form -->
+        <div class="table-container">
+          <h3 style="margin-bottom: 1rem">Add QC Run</h3>
+          <form id="qc-form">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem">
+              <div>
+                <label for="assay" style="display:block; font-weight:600; margin-bottom: .5rem">Assay/Test</label>
+                <select id="assay" name="assay" style="width:100%; padding:.75rem; border:1px solid #e2e8f0; border-radius:8px" required>
+                  <option value="">Select assay</option>
+                  <option value="cbc">CBC</option>
+                  <option value="glucose">Glucose</option>
+                  <option value="electrolytes">Electrolytes</option>
+                </select>
+              </div>
+              <div>
+                <label for="level" style="display:block; font-weight:600; margin-bottom: .5rem">Control Level</label>
+                <select id="level" name="level" style="width:100%; padding:.75rem; border:1px solid #e2e8f0; border-radius:8px">
+                  <option value="normal">Normal</option>
+                  <option value="low">Low</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div>
+                <label for="lot" style="display:block; font-weight:600; margin-bottom: .5rem">Lot Number</label>
+                <input id="lot" name="lot" type="text" placeholder="e.g., LOT-2025-09A" style="width:100%; padding:.75rem; border:1px solid #e2e8f0; border-radius:8px" />
+              </div>
+              <div>
+                <label for="value" style="display:block; font-weight:600; margin-bottom: .5rem">Measured Value</label>
+                <input id="value" name="value" type="number" step="0.01" placeholder="e.g., 5.12" style="width:100%; padding:.75rem; border:1px solid #e2e8f0; border-radius:8px" required />
+              </div>
+              <div>
+                <label for="mean" style="display:block; font-weight:600; margin-bottom: .5rem">Mean</label>
+                <input id="mean" name="mean" type="number" step="0.01" placeholder="e.g., 5.00" style="width:100%; padding:.75rem; border:1px solid #e2e8f0; border-radius:8px" />
+              </div>
+              <div>
+                <label for="sd" style="display:block; font-weight:600; margin-bottom: .5rem">SD</label>
+                <input id="sd" name="sd" type="number" step="0.01" placeholder="e.g., 0.25" style="width:100%; padding:.75rem; border:1px solid #e2e8f0; border-radius:8px" />
+              </div>
+            </div>
+            <div style="margin-top: 1rem">
+              <label for="notes" style="display:block; font-weight:600; margin-bottom: .5rem">Notes</label>
+              <textarea id="notes" name="notes" rows="3" placeholder="Observations, corrective actions..." style="width:100%; padding:.75rem; border:1px solid #e2e8f0; border-radius:8px; resize: vertical"></textarea>
+            </div>
+            <div class="quick-actions" style="justify-content: flex-end; margin-top: 1rem">
+              <button type="reset" class="btn btn-secondary"><i class="fas fa-eraser"></i> Clear</button>
+              <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save QC Run</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- QC Runs Table -->
+        <div class="table-container" style="margin-top: 2rem">
+          <h3 style="margin-bottom: 1rem">Recent QC Runs</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date/Time</th>
+                <th>Assay</th>
+                <th>Level</th>
+                <th>Value</th>
+                <th>Mean</th>
+                <th>SD</th>
+                <th>Z-Score</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>2025-09-18 09:10</td>
+                <td>CBC</td>
+                <td>Normal</td>
+                <td>5.12</td>
+                <td>5.00</td>
+                <td>0.25</td>
+                <td>0.48</td>
+                <td><span class="badge badge-success">Within 2SD</span></td>
+                <td><a href="#" class="btn btn-secondary" style="padding:.3rem .8rem; font-size:.8rem">Details</a></td>
+              </tr>
+              <tr>
+                <td>2025-09-18 08:35</td>
+                <td>Glucose</td>
+                <td>High</td>
+                <td>130.8</td>
+                <td>120.0</td>
+                <td>5.0</td>
+                <td>2.16</td>
+                <td><span class="badge badge-danger">3-2s Rule</span></td>
+                <td><a href="#" class="btn btn-danger" style="padding:.3rem .8rem; font-size:.8rem">Flag</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      // Sidebar active state
+      document.querySelectorAll('.nav-link').forEach((link) => {
+        link.addEventListener('click', function () {
+          document.querySelectorAll('.nav-link').forEach((l) => l.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+
+      function handleLogout() {
+        if (confirm('Are you sure you want to logout?')) {
+          window.location.href = '/auth/logout';
+        }
+      }
+
+      document.getElementById('qc-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        alert('QC run saved (demo). Integrate with backend to persist and recalc metrics.');
+        this.reset();
+      });
+    </script>
+  </body>
+  </html>

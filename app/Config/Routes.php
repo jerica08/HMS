@@ -11,4 +11,5 @@ $routes->get('contact', 'Home::contact');
 
 //Authentication
 $routes->get('login', 'Auth::login');
+$routes->post('login', 'Auth::login');
 $routes->setAutoRoute(true);

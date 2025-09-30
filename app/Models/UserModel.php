@@ -43,4 +43,9 @@ class UserModel extends Model
                     ->join('staff', 'staff.staff_id = users.staff_id', 'left')
                     ->findAll();
     }
+    
+    public function getByEmail($email)
+    {
+    return $this->where('email', $email)->first();
+    }
 }

@@ -32,23 +32,23 @@ class StaffModel extends Model
 
     public function getFullName($staffId){
         $staff = this->find($staffId);
+        
         if ($staff) {
             return $staff['first_name'] . '' . $staff['last_name'];
         }
-
-        return null;
+   
     }
     
-    public function getStaffList(){
-        $staffList = $this->findAll();
-        
-        foreach ($staffList as &$s){
-            $s['full_name'] = $s['first_name']. '' . $s['last_name'];
-
-            return $staffList;
-        }
+    
+    public function getStaffWithUser($staffId)
+    {
+        return $this->select('staff.staff_id, staff.employee_id, staff.first_name, staff.last_name, staff.department, users.email, users.role')
+                    ->join('users', 'users.staff_id = staff.staff_id', 'left')
+                    ->where('staff.staff_id', $staffId)
+                    ->first();
     }
+}
 
    
     
-}
+

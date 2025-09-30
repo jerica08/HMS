@@ -15,18 +15,12 @@
                 <h1><i class="fas fa-pills"></i> HMS - Pharmacy</h1>
             </div>
             <div class="user-info">
-                <div class="user-avatar">
-                    <?= strtoupper(substr(\App\Helpers\UserHelper::getDisplayName($currentUser ?? null), 0, 2)) ?>
-                </div>
+                <div class="user-avatar">PH</div>
                 <div>
-                    <div style="font-weight: 600;">
-                        <?= \App\Helpers\UserHelper::getDisplayName($currentUser ?? null) ?>
-                    </div>
-                    <div style="font-size: 0.9rem; opacity: 0.8;">
-                        <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
-                    </div>
+                    <div style="font-weight: 600;">Pharmacist User</div>
+                    <div style="font-size: 0.9rem; opacity: 0.8;">Pharmacist</div>
                 </div>
-                <a class="btn btn-secondary" href="<?= base_url('profile') ?>" style="margin-left:.5rem;">
+                <a class="btn btn-secondary" href="../profile/index.html" style="margin-left:.5rem;">
                     <i class="fas fa-user"></i> Profile
                 </a>
                 <button class="logout-btn" onclick="handleLogout()">
@@ -40,19 +34,19 @@
         <nav class="sidebar">
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="#dashboard" class="nav-link active">
+                    <a href="dashboard.html" class="nav-link active">
                         <i class="fas fa-tachometer-alt nav-icon"></i>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#prescriptions" class="nav-link">
+                    <a href="prescription.html" class="nav-link">
                         <i class="fas fa-prescription nav-icon"></i>
                         Prescription
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#inventory" class="nav-link">
+                    <a href="inventory.html" class="nav-link">
                         <i class="fas fa-boxes nav-icon"></i>
                         Inventory Management
                     </a>
@@ -95,8 +89,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn primary">Process Priority</a>
-                        <a href="#" class="action-btn secondary">View Queue</a>
+                        <a href="prescription.html#priority" class="action-btn primary">Process Priority</a>
+                        <a href="prescription.html#queue" class="action-btn secondary">View Queue</a>
                     </div>
                 </div>
                 <!--Inventory Status-->
@@ -125,8 +119,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn warning">Check Low Stock</a>
-                        <a href="#" class="action-btn danger">Remove Expired</a>
+                        <a href="inventory.html#low-stock" class="action-btn warning">Check Low Stock</a>
+                        <a href="inventory.html#expired" class="action-btn danger">Remove Expired</a>
                     </div>
                 </div>
                 <!--Dispensed Today-->
@@ -155,8 +149,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn warning">Dispense Medication</a>
-                        <a href="#" class="action-btn danger">View History</a>
+                        <a href="prescription.html#dispense" class="action-btn warning">Dispense Medication</a>
+                        <a href="prescription.html#history" class="action-btn danger">View History</a>
                     </div>
                 </div>
                 <!--Drug Interaction-->
@@ -185,8 +179,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn warning">Review Critical</a>
-                        <a href="#" class="action-btn danger">Check All</a>
+                        <a href="prescription.html#interactions" class="action-btn warning">Review Critical</a>
+                        <a href="prescription.html#interactions" class="action-btn danger">Check All</a>
                     </div>
                 </div>
             </div>
@@ -251,19 +245,10 @@
                 </table>
             </div>
             <script>
-        // Simple navigation functionality - removed preventDefault to allow page navigation
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                // Allow navigation to proceed - don't prevent default
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        // Logout functionality
+        // Logout (demo)
         function handleLogout() {
-            if(confirm('Are you sure you want to logout?')) {
-                window.location.href = '<?= base_url('auth/logout') ?>';
+            if (confirm('Are you sure you want to logout?')) {
+                alert('Logged out (demo)');
             }
         }
     </script>

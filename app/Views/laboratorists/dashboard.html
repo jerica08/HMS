@@ -8,25 +8,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     </head>
     <body class="lab-theme">
-        <!--Header-->
         <header class="header">
             <div class="header-content">
                 <div class="logo">
-                    <h1><i class="fas fa-calculator"></i> HMS - Laboratory Staff</h1>
+                    <h1><i class="fas fa-microscope"></i> HMS - Laboratory Staff</h1>
                 </div>
                  <div class="user-info">
                 <div class="user-avatar">
-                    <?= strtoupper(substr(\App\Helpers\UserHelper::getDisplayName($currentUser ?? null), 0, 2)) ?>
+                    LS
                 </div>
                 <div>
                     <div style="font-weight: 600;">
-                        <?= \App\Helpers\UserHelper::getDisplayName($currentUser ?? null) ?>
+                        Laboratory Staff
                     </div>
                     <div style="font-size: 0.9rem; opacity: 0.8;">
-                        <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
+                        Laboratorist
                     </div>
                 </div>
-                <a class="btn btn-secondary" href="<?= base_url('profile') ?>" style="margin-left:.5rem;">
+                <a class="btn btn-secondary" href="../profile/index.html" style="margin-left:.5rem;">
                     <i class="fas fa-user"></i> Profile
                 </a>
                 <button class="logout-btn" onclick="handleLogout()">
@@ -42,25 +41,25 @@
               
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a href="" class="nav-link active">
+                        <a href="dashboard.html" class="nav-link active">
                             <i class="fas fa-tachometer-alt nav-icon"></i>
                             Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-link" onclick="showTestRequest()">
+                        <a href="test-request.html" class="nav-link">
                             <i class="fas fa-clipboard-list nav-icon"></i>
                            Test Request
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="" class="nav-link">
+                        <a href="sample-management.html" class="nav-link">
                             <i class="fas fa-vial nav-icon"></i>
                             Sample Management
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="" class="nav-link">
+                        <a href="test-result.html" class="nav-link">
                             <i class="fas fa-chart-line nav-icon"></i>
                           Test Results
                         </a>
@@ -100,8 +99,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn danger">Process Urgent</a>
-                        <a href="#" class="action-btn secondary">View all</a>
+                        <a href="test-request.html#urgent" class="action-btn danger">Process Urgent</a>
+                        <a href="test-request.html" class="action-btn secondary">View all</a>
                     </div>
                 </div>
                 <!--Sample Management-->
@@ -130,8 +129,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn primary">Log Sample</a>
-                        <a href="#" class="action-btn secondary">Track Status</a>
+                        <a href="sample-management.html#log" class="action-btn primary">Log Sample</a>
+                        <a href="sample-management.html#queue" class="action-btn secondary">Track Status</a>
                     </div>
                 </div>
                 <!--Result Ready-->
@@ -160,8 +159,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn danger">Review Critical</a>
-                        <a href="#" class="action-btn secondary">Send Results</a>
+                        <a href="test-result.html#critical" class="action-btn danger">Review Critical</a>
+                        <a href="test-result.html" class="action-btn secondary">Send Results</a>
                     </div>
                 </div>
                 <!--Equipment Status-->
@@ -190,8 +189,8 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn primary">Check Status</a>
-                        <a href="#" class="action-btn secondary">Scheduling Maintenance</a>
+                        <a href="sample-management.html#equipment" class="action-btn primary">Check Status</a>
+                        <a href="sample-management.html#maintenance" class="action-btn secondary">Scheduling Maintenance</a>
                     </div>
                 </div>
             </div>
@@ -348,20 +347,12 @@
             </main>
         </div>
     <script>
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                // Allow navigation to proceed - don't prevent default
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
+        // Navigation links go to separate static pages; no JS needed here.
 
         // Logout functionality
         function handleLogout() {
             if(confirm('Are you sure you want to logout?')) {
-                window.location.href = '<?= base_url('auth/logout') ?>';
+                alert('Logged out (demo)');
             }
         }
-        </script>
-    </body>
-</html>
+    </script>

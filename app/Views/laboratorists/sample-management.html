@@ -23,7 +23,7 @@
             <div style="font-weight: 600">Laboratory Staff</div>
             <div style="font-size: 0.9rem; opacity: 0.8">Laboratorist</div>
           </div>
-          <a class="btn btn-secondary" href="/profile" style="margin-left: 0.5rem">
+          <a class="btn btn-secondary" href="../profile/index.html" style="margin-left: 0.5rem">
             <i class="fas fa-user"></i> Profile
           </a>
           <button class="logout-btn" onclick="handleLogout()">
@@ -38,25 +38,25 @@
       <nav class="sidebar">
           <ul class="nav-menu">
               <li class="nav-item">
-                  <a href="#" class="nav-link">
+                  <a href="dashboard.html" class="nav-link">
                     <i class="fas fa-tachometer-alt nav-icon"></i>
                     Dashboard
                   </a>
               </li>
               <li class="nav-item">
-                  <a href="/laboratorist/test-request" class="nav-link">
+                  <a href="test-request.html" class="nav-link">
                     <i class="fas fa-clipboard-list nav-icon"></i>
                     Test Request
                   </a>
               </li>
               <li class="nav-item">
-                  <a href="#" class="nav-link active">
+                  <a href="sample-management.html" class="nav-link active">
                     <i class="fas fa-vial nav-icon"></i>
                     Sample Management
                   </a>
               </li>
               <li class="nav-item">
-                  <a href="#" class="nav-link">
+                  <a href="test-result.html" class="nav-link">
                     <i class="fas fa-chart-line nav-icon"></i>
                     Test Results
                   </a>
@@ -112,7 +112,7 @@
 
         <!-- Log/Receive Sample Form -->
         <div class="table-container" style="margin-top: 1.5rem">
-          <h3 style="margin-bottom: 1rem">Log New Sample</h3>
+          <h3 id="log" style="margin-bottom: 1rem">Log New Sample</h3>
           <form id="sample-form">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem">
               <div>
@@ -181,7 +181,7 @@
 
         <!-- Sample Queue Table -->
         <div class="table-container" style="margin-top: 2rem">
-          <h3 style="margin-bottom: 1rem">Sample Processing Queue</h3>
+          <h3 id="queue" style="margin-bottom: 1rem">Sample Processing Queue</h3>
           <table class="table">
             <thead>
               <tr>
@@ -249,9 +249,21 @@
 
       function handleLogout() {
         if (confirm('Are you sure you want to logout?')) {
-          window.location.href = '/auth/logout';
+          alert('Logged out (demo)');
         }
       }
+
+      // Demo submit behavior for sample form
+      (function(){
+        var f = document.getElementById('sample-form');
+        if (f) {
+          f.addEventListener('submit', function(e){
+            e.preventDefault();
+            alert('Sample logged (demo). Integrate with backend to save.');
+            f.reset();
+          });
+        }
+      })();
     </script>
   </body>
   </html>

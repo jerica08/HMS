@@ -6,6 +6,7 @@
     <title>Accountant Dashboard - HMS</title>
     <link rel="stylesheet" href="assets/css/common.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
 </head>
 <body class="accountant-theme">
     <!-- Header -->
@@ -16,17 +17,17 @@
             </div>
             <div class="user-info">
                 <div class="user-avatar">
-                    <?= strtoupper(substr(\App\Helpers\UserHelper::getDisplayName($currentUser ?? null), 0, 2)) ?>
+                    AC
                 </div>
                 <div>
                     <div style="font-weight: 600;">
-                        <?= \App\Helpers\UserHelper::getDisplayName($currentUser ?? null) ?>
+                        Accountant User
                     </div>
                     <div style="font-size: 0.9rem; opacity: 0.8;">
-                        <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
+                        Accountant
                     </div>
                 </div>
-                <a class="btn btn-secondary" href="<?= base_url('profile') ?>" style="margin-left:.5rem;">
+                <a class="btn btn-secondary" href="../profile/index.html" style="margin-left:.5rem;">
                     <i class="fas fa-user"></i> Profile
                 </a>
                 <button class="logout-btn" onclick="handleLogout()">
@@ -41,25 +42,25 @@
         <nav class="sidebar">
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="#dashboard" class="nav-link active">
+                    <a href="dashboard.html" class="nav-link active">
                         <i class="fas fa-tachometer-alt nav-icon"></i>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#billing" class="nav-link">
+                    <a href="billing.html" class="nav-link">
                         <i class="fas fa-file-invoice nav-icon"></i>
                         Patient Billing
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#payments" class="nav-link">
+                    <a href="payments.html" class="nav-link">
                         <i class="fas fa-credit-card nav-icon"></i>
                         Payment Processing
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#insurance" class="nav-link">
+                    <a href="insurance.html" class="nav-link">
                         <i class="fas fa-shield-alt nav-icon"></i>
                         Insurance Claims
                     </a>
@@ -69,10 +70,10 @@
         <!-- Main Content -->
         <main class="content">
             <h1 class="page-title">Accounting Dashboard</h1>
-
             <!-- Dashboard Overview Cards -->
             <div class="dashboard-overview">              
                 <!--Daily Revenue Card-->
+                
                 <div class="overview-card">
                     <div class="card-header-modern">
                         <div class="card-icon-modern blue">
@@ -98,18 +99,19 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn primary">View Details</a>
+                        <a href="payments.html" class="action-btn primary">View Details</a>
                         <a href="#" class="action-btn secondary">Generate Report</a>
                     </div>
                 </div>
                 <!--Billing Status-->
+                
                 <div class="overview-card">
                     <div class="card-header-modern">
                         <div class="card-icon">
                             <i class="fas fa-file-invoice"></i>
                         </div>
                         <div class="card-info">
-                            <h3 class="card-title">Billing Status</h3>
+                            <h3 class="card-title-modern">Billing Status</h3>
                             <p class="card-subtitle">Invoice processing</p>
                         </div>
                     </div>
@@ -120,7 +122,7 @@
                         </div>
                         <div class="metric">
                             <div class="metric-value green">0</div>
-                            <div class="metric-label">Pending</div> 
+                            <div class="metric-label">Pending</div>
                         </div>
                         <div class="metric">
                             <div class="metric-value red">0</div>
@@ -128,7 +130,7 @@
                         </div>
                     </div>
                     <div class="card-actions">
-                        <a href="#" class="action-btn warning">Process Pending</a>
+                        <a href="billing.html" class="action-btn warning">Process Pending</a>
                         <a href="#" class="action-btn danger">Resolve Disputes</a>
                     </div>
                 </div>
@@ -157,7 +159,7 @@
                             <td>Credit Card</td>
                             <td>INV-2025-1237</td>
                             <td><span class="badge badge-success">Processed</span></td>
-                            <td><a href="#" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Receipt</a></td>
+                            <td><a href="payments.html" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Receipt</a></td>
                         </tr>
                         <tr>
                             <td>09:08 AM</td>
@@ -166,7 +168,7 @@
                             <td>Cash</td>
                             <td>INV-2025-1238</td>
                             <td><span class="badge badge-success">Processed</span></td>
-                            <td><a href="#" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Receipt</a></td>
+                            <td><a href="payments.html" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Receipt</a></td>
                         </tr>
                         <tr>
                             <td>08:52 AM</td>
@@ -175,7 +177,7 @@
                             <td>Insurance</td>
                             <td>INV-2025-1239</td>
                             <td><span class="badge badge-warning">Pending</span></td>
-                            <td><a href="#" class="btn btn-warning" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Verify</a></td>
+                            <td><a href="insurance.html" class="btn btn-warning" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Verify</a></td>
                         </tr>
                         <tr>
                             <td>08:45 AM</td>
@@ -204,8 +206,8 @@
 
         // Logout functionality
         function handleLogout() {
-            if(confirm('Are you sure you want to logout?')) {
-                window.location.href = '<?= base_url('auth/logout') ?>';
+            if (confirm('Are you sure you want to logout?')) {
+                alert('Logged out');
             }
         }
     </script>

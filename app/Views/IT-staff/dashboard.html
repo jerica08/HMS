@@ -15,18 +15,12 @@
                     <h1><i class="fas fa-calculator"></i> HMS - IT Staff</h1>
                 </div>
                 <div class="user-info">
-                    <div class="user-avatar">
-                        <?= strtoupper(substr(\App\Helpers\UserHelper::getDisplayName($currentUser ?? null), 0, 2)) ?>
-                    </div>
+                    <div class="user-avatar">IT</div>
                     <div>
-                        <div style="font-weight: 600;">
-                            <?= \App\Helpers\UserHelper::getDisplayName($currentUser ?? null) ?>
-                        </div>
-                        <div style="font-size: 0.9rem; opacity: 0.8;">
-                            <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
-                        </div>
+                        <div style="font-weight: 600;">IT Staff User</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">IT Staff</div>
                     </div>
-                    <a class="btn btn-secondary" href="<?= base_url('profile') ?>" style="margin-left:.5rem;">
+                    <a class="btn btn-secondary" href="../profile/index.html" style="margin-left:.5rem;">
                         <i class="fas fa-user"></i> Profile
                     </a>
                     <button class="logout-btn" onclick="handleLogout()">
@@ -41,19 +35,19 @@
              <nav class="sidebar">
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="" class="nav-link active">
+                    <a href="dashboard.html" class="nav-link active">
                         <i class="fas fa-tachometer-alt nav-icon"></i>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="" class="nav-link">
+                    <a href="maintenance.html" class="nav-link">
                         <i class="fas fa-desktop-alt nav-icon"></i>
-                        System Maintenace
+                        System Maintenance
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="" class="nav-link">
+                    <a href="security.html" class="nav-link">
                         <i class="fas fa-shield-alt nav-icon"></i>
                         Security Management
                     </a>
@@ -64,70 +58,71 @@
         <main class="content">
             <h1 class="page-title">It Staff Dashboard</h1>
         
-            <!--Dashboard Overview Cards-->
-             <div class="dashboard-overview">              
-                <!--System Status-->
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern blue">
-                            <i class="fas fa-server "></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">System Status</h3>
-                            <p class="card-subtitle">Overall System Health</p>
-                        </div>
+        <div class="dashboard-overview">              
+            <!--System Status-->
+            
+            <div class="overview-card">
+                <div class="card-header-modern">
+                    <div class="card-icon-modern blue">
+                        <i class="fas fa-server "></i>
                     </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue">0%</div>
-                            <div class="metric-label">Uptime</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value green">0</div>
-                            <div class="metric-label">Servers Online</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value orange">0</div>
-                            <div class="metric-label">Alert</div>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <a href="#" class="action-btn primary">System Health</a>
-                        <a href="#" class="action-btn secondary">View Alerts</a>
+                    <div class="card-info">
+                        <h3 class="card-title-modern">System Status</h3>
+                        <p class="card-subtitle">Overall System Health</p>
                     </div>
                 </div>
-                <!--Security Status-->
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern blue">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title">Security Status</h3>
-                            <p class="card-subtitle">System security monitoring</p>
-                        </div>
+                <div class="card-metrics">
+                    <div class="metric">
+                        <div class="metric-value blue">0%</div>
+                        <div class="metric-label">Uptime</div>
                     </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value purple">0</div>
-                            <div class="metric-label">Active Users</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value green">0</div>
-                            <div class="metric-label">Failed Logins</div> 
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value red">0</div>
-                            <div class="metric-label">Breaches</div>
-                        </div>
+                    <div class="metric">
+                        <div class="metric-value green">0</div>
+                        <div class="metric-label">Servers Online</div>
                     </div>
-                    <div class="card-actions">
-                        <a href="#" class="action-btn warning">Security Audit</a>
-                        <a href="#" class="action-btn danger">Incident Response</a>
+                    <div class="metric">
+                        <div class="metric-value orange">0</div>
+                        <div class="metric-label">Alert</div>
                     </div>
                 </div>
-
+                <div class="card-actions">
+                    <a href="#" class="action-btn primary">System Health</a>
+                    <a href="#" class="action-btn secondary">View Alerts</a>
+                </div>
             </div>
+            <!--Security Status-->
+            
+            <div class="overview-card">
+                <div class="card-header-modern">
+                    <div class="card-icon-modern blue">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="card-info">
+                        <h3 class="card-title">Security Status</h3>
+                        <p class="card-subtitle">System security monitoring</p>
+                    </div>
+                </div>
+                <div class="card-metrics">
+                    <div class="metric">
+                        <div class="metric-value purple">0</div>
+                        <div class="metric-label">Active Users</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value green">0</div>
+                        <div class="metric-label">Failed Logins</div> 
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value red">0</div>
+                        <div class="metric-label">Breaches</div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <a href="#" class="action-btn warning">Security Audit</a>
+                    <a href="#" class="action-btn danger">Incident Response</a>
+                </div>
+            </div>
+
+        </div>
         </main>
         </div>
         <script>
@@ -143,7 +138,7 @@
         // Logout functionality
         function handleLogout() {
             if(confirm('Are you sure you want to logout?')) {
-                window.location.href = '<?= base_url('auth/logout') ?>';
+                alert('Logged out (demo)');
             }
         }
     </script>

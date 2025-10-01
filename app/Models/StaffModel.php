@@ -6,11 +6,10 @@ use CodeIgniter\Model;
 
 class StaffModel extends Model
 {
-    protected $table            = 'staff';
-    protected $primaryKey       = 'staff_id';
+    protected $table      = 'staff';
+    protected $primaryKey = 'staff_id';
     
-   
-    protected $allowedFields    = [
+    protected $allowedFields = [
         'employee_id',
         'first_name',
         'last_name',
@@ -20,26 +19,28 @@ class StaffModel extends Model
         'email',
         'address',
         'department',
+        'designation',
         'role',
         'date_joined',
-
     ];
-
 
     protected $useTimestamps = true;
     protected $createdField  = 'date_joined';
-    protected $updatedField = '';
+    protected $updatedField  = '';
 
-    public function getFullName($staffId){
-        $staff = this->find($staffId);
+   
+    public function getFullName($staffId)
+    {
+        $staff = $this->find($staffId);
         
         if ($staff) {
-            return $staff['first_name'] . '' . $staff['last_name'];
+            return $staff['first_name'] . ' ' . $staff['last_name'];
         }
-   
+        
+        return null;
     }
     
-    
+   
     public function getStaffWithUser($staffId)
     {
         return $this->select('staff.staff_id, staff.employee_id, staff.first_name, staff.last_name, staff.department, users.email, users.role')

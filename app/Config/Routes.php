@@ -5,18 +5,38 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
+
+// Main Routes
 $routes->get('/', 'Home::index');
 $routes->get('about', 'Home::about');
 $routes->get('contact', 'Home::contact');
 
-//Authentication
+// Authentication Routes
 $routes->get('login', 'Auth::login');
 $routes->post('login', 'Auth::login');
 $routes->get('logout', 'Auth::logout');
 
-// Admin Routes
+// Admin Dashboard Routes
 $routes->get('admin/dashboard', 'Admin::dashboard');
-$routes->get('admin/staff-management', 'Admin::staffManagement');
-
 $routes->get('admin/users', 'Admin::users');
+
+// Staff Management Routes
+$routes->group('admin', function($routes) {
+    // Staff listing and management
+    $routes->get('staff-management', 'Admin::staffManagement');
+    
+    // Staff CRUD operations
+    $routes->get('add-staff', 'Admin::addStaff');
+    $routes->post('add-staff', 'Admin::addStaff');
+    $routes->post('staff/create', 'Admin::addStaff');
+    $routes->get('staff/api', 'Admin::getStaffAPI');
+    
+    // Individual staff operations
+    $routes->get('edit-staff/(:num)', 'Admin::editStaff/$1');
+    $routes->post('edit-staff/(:num)', 'Admin::editStaff/$1');
+    $routes->get('delete-staff/(:num)', 'Admin::deleteStaff/$1');
+    $routes->get('view-staff/(:num)', 'Admin::viewStaff/$1');
+});
+
+// Enable auto-routing for backward compatibility
 $routes->setAutoRoute(true);

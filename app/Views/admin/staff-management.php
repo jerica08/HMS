@@ -4,8 +4,8 @@
      <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Management - HMS Admin</title>
-    <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/users.css">
+    <link rel="stylesheet" href="<?= base_url('app/Views/admin/assets/css/common.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('app/Views/admin/assets/css/users.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .staff-grid {
@@ -350,7 +350,7 @@
                       </a>
                   </li>
                   <li class="nav-item">
-                      <a href="<?= base_url('admin/staff') ?>" class="nav-link active">
+                      <a href="<?= base_url('admin/staff-management') ?>" class="nav-link active">
                           <i class="fas fa-user-tie nav-icon"></i>
                           Staff Management
                       </a>
@@ -804,31 +804,44 @@
                         if (e.target === addStaffModal) closeAddStaffModal();
                     });
 
-                    // Submit via AJAX to keep page smooth
+                    /**
+                     * Handle staff form submission via AJAX
+                     */
                     const addStaffForm = document.getElementById('addStaffForm');
+                    
                     // Fallback binding in case inline onclick is blocked by CSP
                     document.getElementById('openAddStaffBtn')?.addEventListener('click', openAddStaffModal);
+                    
+                    // Form submission handler
                     addStaffForm?.addEventListener('submit', async (e) => {
                         e.preventDefault();
                         const form = e.target;
                         const action = form.getAttribute('action');
-
                         const formData = new FormData(form);
+                        
                         try {
+                            // Send AJAX request
                             const res = await fetch(action, {
                                 method: 'POST',
                                 headers: {
                                     'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
                                 },
                                 body: formData
                             });
+                            
                             const data = await res.json();
+                            
                             if (res.ok && data?.status === 'success') {
-                                // Basic feedback; in future, refresh list/cards
+                                // Success handling
                                 alert('Staff member created successfully');
                                 form.reset();
                                 closeAddStaffModal();
+                                
+                                // Refresh the staff table to show new entry
+                                loadStaffTable();
                             } else {
+                                // Error handling with formatted message
                                 const errs = data?.errors ? Object.values(data.errors).join('\n- ') : null;
                                 const msg = data?.message || 'Failed to create staff';
                                 alert(errs ? `${msg}:\n- ${errs}` : msg);
@@ -844,7 +857,7 @@
                         const tbody = document.getElementById('staffTableBody');
                         if (!tbody) return;
                         try {
-                            const res = await fetch('<?= base_url('admin/staff/api') ?>', { headers: { 'Accept': 'application/json' } });
+                            const res = await fetch('<?= base_url('admin/staff/api') ?>', { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
                             if (!res.ok) throw new Error('Failed to load staff');
                             const staff = await res.json();
                             const doctors = Array.isArray(staff) ? staff.filter(s => (s.role ?? '').toLowerCase() === 'doctor') : [];
@@ -986,8 +999,6 @@
                         }
                     });
                 </script>
-
-                <script src="<?= base_url('js/logout.js') ?>"></script>
 
             </main>
         </div>

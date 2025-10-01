@@ -16,8 +16,7 @@ $routes->get('logout', 'Auth::logout');
 
 // Admin Routes
 $routes->get('admin/dashboard', 'Admin::dashboard');
+$routes->get('admin/staff-management', 'Admin::staffManagement');
+
 $routes->get('admin/users', 'Admin::users');
-
-
-
 $routes->setAutoRoute(true);

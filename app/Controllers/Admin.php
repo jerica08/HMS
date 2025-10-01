@@ -3,13 +3,19 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
-use CodeIgniter\HTTP\ResponseInterface;
 
 class Admin extends BaseController
 {
+    protected $db;
+    protected $builder;
+
     public function __construct()
     {
-        // Check if user is logged in and has admin role
+        // DB Connection
+        $this->db = \Config\Database::connect();
+        $this->builder = $this->db->table('staff');
+
+        // Session check for admin
         $session = session();
         if (!$session->get('isLoggedIn') || $session->get('role') !== 'admin') {
             redirect()->to(base_url('/login'))->send();
@@ -17,6 +23,7 @@ class Admin extends BaseController
         }
     }
 
+    // Admin dashboard
     public function dashboard()
     {
         $session = session();
@@ -33,11 +40,10 @@ class Admin extends BaseController
         return view('admin/dashboard', $data);
     }
 
+    // Manage users
     public function users()
     {
-        $db = \Config\Database::connect();
-        $builder = $db->table('users');
-        $users = $builder->get()->getResultArray();
+        $users = $this->db->table('users')->get()->getResultArray();
         
         $data = [
             'title' => 'Manage Users',
@@ -45,5 +51,18 @@ class Admin extends BaseController
         ];
         
         return view('admin/users', $data);
+    }
+
+    // Staff management
+    public function staffManagement()
+    {
+        $staff = $this->builder->get()->getResultArray();
+
+        $data = [
+            'title' => 'Staff Management',
+            'staff' => $staff
+        ];
+
+        return view('admin/staff-management', $data);
     }
 }

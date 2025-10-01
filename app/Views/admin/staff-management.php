@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Management - HMS Admin</title>
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="/assets/css/users.css">
+    <link rel="stylesheet" href="assets/css/users.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .staff-grid {

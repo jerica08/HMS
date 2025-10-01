@@ -12,5 +12,12 @@ $routes->get('contact', 'Home::contact');
 //Authentication
 $routes->get('login', 'Auth::login');
 $routes->post('login', 'Auth::login');
-$routes->setAutoRoute(true);
+$routes->get('logout', 'Auth::logout');
 
+// Admin Routes
+$routes->get('admin/dashboard', 'Admin::dashboard');
+$routes->get('admin/users', 'Admin::users');
+
+
+
+$routes->setAutoRoute(true);

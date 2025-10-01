@@ -101,34 +101,46 @@
                             <h3 class="mb-0">Login</h3>
                         </div>
                         <div class="card-body p-4">
-                            <form action="" method="post">
-                                <input type="hidden" name="" value="" />
+                            <?php if (session()->getFlashdata('error')): ?>
+                                <div class="alert alert-danger" role="alert">
+                                    <?= session()->getFlashdata('error') ?>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <form action="<?= base_url('/login') ?>" method="post">
+                                <?= csrf_field() ?>
                                 
                                 <div class="mb-3">
                                     <label for="email" class="form-label">Email Address</label>
-                                    <input type="email" 
-                                           class="form-control" 
-                                           id="email" 
-                                           name="email" 
-                                           value="" 
+                                    <input type="email"
+                                           class="form-control <?= isset($validation) && $validation->hasError('email') ? 'is-invalid' : '' ?>"
+                                           id="email"
+                                           name="email"
+                                           value="<?= old('email') ?>"
                                            placeholder="Enter your email address"
-                                           required>                                  
-                                        <div class="text-danger small mt-1">                                         
-                                        </div>                                  
+                                           autocomplete="username"
+                                           required>
+                                    <?php if (isset($validation) && $validation->hasError('email')): ?>
+                                        <div class="invalid-feedback">
+                                            <?= $validation->getError('email') ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
 
                                 <div class="mb-4">
                                     <label for="password" class="form-label">Password</label>
-                                    <input type="password" 
-                                           class="form-control" 
-                                           id="password" 
-                                           name="password" 
+                                    <input type="password"
+                                           class="form-control <?= isset($validation) && $validation->hasError('password') ? 'is-invalid' : '' ?>"
+                                           id="password"
+                                           name="password"
                                            placeholder="Enter your password"
+                                           autocomplete="current-password"
                                            required>
-                                    
-                                        <div class="text-danger small mt-1">
-                                           
-                                        </div>                                   
+                                    <?php if (isset($validation) && $validation->hasError('password')): ?>
+                                        <div class="invalid-feedback">
+                                            <?= $validation->getError('password') ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="d-grid mb-3">
                                     <button type="submit" class="btn btn-primary">Log In</button>
@@ -136,7 +148,7 @@
                             </form>
                         </div>
                     </div>
-                </div>
+                </div>`
             </div>
         </div>
     </main>

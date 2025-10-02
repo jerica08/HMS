@@ -57,3 +57,5 @@ $paths = new Paths();
 require $paths->systemDirectory . '/Boot.php';
 
 exit(Boot::bootWeb($paths));
+
+$_SERVER['CI_ENVIRONMENT'] = 'development';

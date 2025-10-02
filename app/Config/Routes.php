@@ -36,6 +36,9 @@ $routes->group('admin', function($routes) {
     $routes->post('edit-staff/(:num)', 'Admin::editStaff/$1');
     $routes->get('delete-staff/(:num)', 'Admin::deleteStaff/$1');
     $routes->get('view-staff/(:num)', 'Admin::viewStaff/$1');
+
+    //Users Management
+    $routes->get('user-management', 'Admin::userManagement');
 });
 
 // Enable auto-routing for backward compatibility

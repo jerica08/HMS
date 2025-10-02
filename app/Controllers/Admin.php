@@ -208,4 +208,29 @@ class Admin extends BaseController
         ];
         return view('admin/view-staff', $data);
     }
+    
+    /**
+     * User management page - displays all users with their staff details
+     */
+    public function userManagement() {
+        $userModel = new \App\Models\UserModel();
+        $users = $userModel->getAllUsersWithStaff();
+        $session = session();
+        
+        // Get current user data for the header display
+        $currentUser = [
+            'user_id'   => $session->get('user_id'),
+            'staff_id'  => $session->get('staff_id'),
+            'email'     => $session->get('email'),
+            'role'      => $session->get('role')
+        ];
+        
+        $data = [
+            'title' => 'User Management',
+            'users' => $users,
+            'currentUser' => $currentUser
+        ];
+
+        return view('admin/user-management', $data);
+    }
 }

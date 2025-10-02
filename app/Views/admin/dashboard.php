@@ -113,10 +113,10 @@
                         <?= \App\Helpers\UserHelper::getDisplayRole($user ?? null) ?>
                     </div>
                 </div>
-                <button class="logout-btn" onclick="handleLogout()">
+                <a href="<?= base_url('admin/logout') ?>" class="logout-btn">
                     <i class="fas fa-sign-out-alt"></i>
                     Logout
-                </button>
+                </a>
             </div>
         </div>
     </header>
@@ -281,13 +281,4 @@
             </div>
         </main>
     </div>
-
-    <script>
-        function handleLogout() {
-            if (confirm('Are you sure you want to logout?')) {
-                window.location.href = '<?= base_url('/admin/logout') ?>';
-            }
-        }
-    </script>
-</body>
 </html>

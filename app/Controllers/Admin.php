@@ -233,4 +233,11 @@ class Admin extends BaseController
 
         return view('admin/user-management', $data);
     }
+
+    public function logout()
+    {
+        $session = session();
+        $session->destroy();
+        return redirect()->to(base_url('/login'));
+    }
 }

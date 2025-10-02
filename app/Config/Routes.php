@@ -14,7 +14,7 @@ $routes->get('contact', 'Home::contact');
 // Authentication Routes
 $routes->get('login', 'Auth::login');
 $routes->post('login', 'Auth::login');
-$routes->get('logout', 'Auth::logout');
+$routes->get('admin/logout', 'Admin::logout');
 
 // Admin Dashboard Routes
 $routes->get('admin/dashboard', 'Admin::dashboard');

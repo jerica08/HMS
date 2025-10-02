@@ -329,10 +329,10 @@
                         <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
                     </div>
                 </div>
-                <button class="logout-btn" onclick="handleLogout()">
+                <a href="<?= base_url('admin/logout') ?>" class="logout-btn">
                     <i class="fas fa-sign-out-alt"></i>
                     Logout
-                </button>
+                </a>
             </div>
         </div>
     </header>

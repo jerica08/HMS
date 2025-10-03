@@ -52,7 +52,7 @@
                             <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('/') ?>"><button class="button"> Home</button></a></li>
                             <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('login')?>"><button class="button"> Log-In</button></a></li>                
                             <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('about') ?>"><button class="button"> About Us</button></a></li>
-                            <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('contact') ?>"><button class="button"> Contact Us</button></a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('contact') ?>"><button class="button-active"> Contact Us</button></a></li>
                         </ul>
                     </div>
                 </nav>

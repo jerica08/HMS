@@ -351,7 +351,7 @@
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value blue">0</div>
+                                <div class="metric-value blue"><? esc($total_staff) ?></div>
                             </div>
                         </div>
                     </div>
@@ -506,8 +506,8 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div>
-                            <div class="section-title">Doctors Directory</div>
-                            <div style="color:#6b7280;font-size:0.9rem;">All registered doctors</div>
+                            <div class="section-title">Staffs Directory</div>
+                            <div style="color:#6b7280;font-size:0.9rem;">All registered staffs</div>
                         </div>
                     </div>
 

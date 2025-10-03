@@ -39,6 +39,7 @@ $routes->group('admin', function($routes) {
 
     //Users Management
     $routes->get('user-management', 'Admin::userManagement');
+    $routes->post('users/saveUser', 'Admin::saveUser');
 });
 
 // Enable auto-routing for backward compatibility

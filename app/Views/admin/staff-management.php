@@ -236,7 +236,7 @@
         .hms-modal-overlay.active { display: flex; }
         .hms-modal {
             width: 100%;
-            max-width: 560px;
+            max-width: 96vw; /* ensure it fits within viewport width */
             background: #ffffff;
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
@@ -251,7 +251,14 @@
             visibility: visible !important;
             pointer-events: auto !important;
             min-height: 120px;
+            max-height: 90vh; /* keep within viewport height */
+            overflow: auto; /* scroll content if too tall */
+            box-sizing: border-box;
             outline: 1px solid rgba(79,70,229,0.25); /* debug outline */
+        }
+        /* On larger screens, allow a comfortably wider modal while still fitting */
+        @media (min-width: 1024px) {
+            .hms-modal { max-width: 900px; }
         }
         .hms-modal-header {
             display: flex;
@@ -306,6 +313,10 @@
             gap: 0.75rem; 
         }
         .form-grid .full { grid-column: 1 / -1; }
+        /* Stack fields on small screens to avoid overflow */
+        @media (max-width: 640px) {
+            .form-grid { grid-template-columns: 1fr; }
+        }
         .btn-small {
             padding: 0.5rem 1rem;
             font-size: 0.8rem;

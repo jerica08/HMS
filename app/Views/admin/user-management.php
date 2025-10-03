@@ -126,7 +126,8 @@
                                     <td><?= esc($user['updated_at'] ?? 'Never') ?></td>
                                     <td>
                                         <button class="btn btn-edit" onclick="editUser(<?= esc($user['user_id']) ?>)">Edit</button>
-                                        <button class="btn btn-delete" onclick="deleteUser(<?= esc($user['user_id']) ?>)">Delete</button>
+                                       <button class="btn btn-delete" onclick="if(confirm('Are you sure you want to delete this user?')) { window.location.href='<?= base_url('admin/users/delete/') ?>'+<?= esc($user['user_id']) ?>; }">Delete</button>
+
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

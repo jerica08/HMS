@@ -272,6 +272,24 @@ class Admin extends BaseController
         }
         return $this->response->setStatusCode(404)->setJSON(['error', 'Staff not found']);
     }
+
+    public function getUsers(){
+        $userModel = new UserModel();
+        $users = $userModel->getAllUsersWithStaff();
+        return $this->response->setJSON($users);
+    }
+
+    public function deleteUser($id = null)
+{
+    $userModel = new UserModel();
+    if ($id && $userModel->delete($id)) {
+        session()->setFlashdata('success', 'User deleted successfully!');
+    } else {
+        session()->setFlashdata('error', 'Failed to delete user.');
+    }
+    return redirect()->to(base_url('admin/user-management'));
+}
+    
     public function logout()
     {
         $session = session();

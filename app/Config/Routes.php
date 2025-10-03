@@ -50,5 +50,7 @@ $routes->group('admin', function($routes) {
 
 });
 
-// Enable auto-routing for backward compatibility
+// Doctor Routes
+$routes->get('doctor/dashboard', 'Doctor::dashboard');
+
 $routes->setAutoRoute(true);

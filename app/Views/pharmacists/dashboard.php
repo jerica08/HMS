@@ -9,54 +9,10 @@
 </head>
 <body class="pharmacy-theme">
     <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <h1><i class="fas fa-pills"></i> HMS - Pharmacy</h1>
-            </div>
-            <div class="user-info">
-                <div class="user-avatar">PH</div>
-                <div>
-                    <div style="font-weight: 600;">Pharmacist User</div>
-                    <div style="font-size: 0.9rem; opacity: 0.8;">Pharmacist</div>
-                </div>
-                <a class="btn btn-secondary" href="../profile/index.html" style="margin-left:.5rem;">
-                    <i class="fas fa-user"></i> Profile
-                </a>
-                <button class="logout-btn" onclick="handleLogout()">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </div>
-        </div>
-    </header>
+    <?php include APPPATH . 'Views/template/header.php'; ?>
     <div class="main-container">
         <!-- Sidebar -->
-        <nav class="sidebar">
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="dashboard.html" class="nav-link active">
-                        <i class="fas fa-tachometer-alt nav-icon"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="prescription.html" class="nav-link">
-                        <i class="fas fa-prescription nav-icon"></i>
-                        Prescription
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="inventory.html" class="nav-link">
-                        <i class="fas fa-boxes nav-icon"></i>
-                        Inventory Management
-                    </a>
-                </li>
-                
-                
-                
-                
-            </ul>
-        </nav>
+        <?php include APPPATH . 'Views/pharmacists/components/sidebar.html'; ?>
         <!--Main Content-->
         <main class="content">
             <h1 class="page-title">Pharmacy Dashboard</h1>

@@ -3,8 +3,6 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
-use App\Models\UserModel;
-use App\Models\StaffModel;
 
 class Admin extends BaseController
 {
@@ -71,8 +69,7 @@ class Admin extends BaseController
 
         $data = [
             'title' => 'Staff Management',
-            'staff' => $staff,
-            'total_staff' => count($staff),
+            'staff' => $staff
         ];
 
         return view('admin/staff-management', $data);
@@ -216,84 +213,24 @@ class Admin extends BaseController
      * User management page - displays all users with their staff details
      */
     public function userManagement() {
-        $userModel = new UserModel();
-        $staffModel = new StaffModel();
-
-        $data =[
-            'users' => $userModel->getAllUsersWithStaff(),
-            'staff' => $staffModel->getStaffWithoutUsers(),
-            'stats' => [
-                'total_users' => count($userModel->getAllUsersWithStaff()),
-            ],
+        $userModel = new \App\Models\UserModel();
+        $users = $userModel->getAllUsersWithStaff();
+        $session = session();
+        
+        // Get current user data for the header display
+        $currentUser = [
+            'user_id'   => $session->get('user_id'),
+            'staff_id'  => $session->get('staff_id'),
+            'email'     => $session->get('email'),
+            'role'      => $session->get('role')
+        ];
+        
+        $data = [
+            'title' => 'User Management',
+            'users' => $users,
+            'currentUser' => $currentUser
         ];
 
         return view('admin/user-management', $data);
-    }
-    public function saveUser(){
-        $userModel = new UserModel();
-        $staffModel = new StaffModel();
-
-        $rules = [
-            'staff_id' => 'required|integer',
-            'username' => 'required|min_length[3]|max_length[50]',
-            'password' => 'required|min_length[6]',
-            'confirm_password' => 'required|matches[password]',
-            'role' => 'required|in_list[admin,doctor,nurse,receptionist,laboratorist,pharmacist,accountant,it_staff]',
-        ];
-
-        if(!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-
-        $staff = $staffModel->find($this->request->getPost('staff_id'));
-        if (!$staff){
-            return redirect()->back()->withInput()->with('error', 'Invalid staff selected');
-        }
-        $data = [
-            'staff_id' => $this->request->getPost('staff_id'),
-            'username' => $this->request->getPost('username'),
-            'email' => $staff['email'], // Assuming email from staff
-            'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'role' => $this->request->getPost('role'),
-        ];
-
-        if ($userModel->insert($data)) {
-            return redirect()->to('admin/user-management')->with('success', 'User added successfully.');
-        } else{
-            return redirect()->back()->withInput()->with('error', 'Failed to add user');
-        }
-    }
-
-    public function getStaff($id){
-        $staffModel = new StaffModel();
-        $staff = $staffModel->find($id);
-        if ($staff){
-            return $this->response->setJSON($staff);
-        }
-        return $this->response->setStatusCode(404)->setJSON(['error', 'Staff not found']);
-    }
-
-    public function getUsers(){
-        $userModel = new UserModel();
-        $users = $userModel->getAllUsersWithStaff();
-        return $this->response->setJSON($users);
-    }
-
-    public function deleteUser($id = null)
-{
-    $userModel = new UserModel();
-    if ($id && $userModel->delete($id)) {
-        session()->setFlashdata('success', 'User deleted successfully!');
-    } else {
-        session()->setFlashdata('error', 'Failed to delete user.');
-    }
-    return redirect()->to(base_url('admin/user-management'));
-}
-    
-    public function logout()
-    {
-        $session = session();
-        $session->destroy();
-        return redirect()->to(base_url('/login'));
     }
 }

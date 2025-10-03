@@ -48,20 +48,8 @@ class StaffModel extends Model
                     ->where('staff.staff_id', $staffId)
                     ->first();
     }
-
-   
-    public function getStaffWithoutUsers()
-    {
-        $userStaffIds = $this->db->table('users')->select('staff_id')->get()->getResultArray();
-        $userStaffIds = array_column($userStaffIds, 'staff_id');
-
-        if (!empty($userStaffIds)) {
-            return $this->whereNotIn('staff_id', $userStaffIds)->findAll();
-        } else {
-            return $this->findAll();
-        }
-    }
 }
+
    
     
 

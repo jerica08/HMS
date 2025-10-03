@@ -14,7 +14,7 @@ $routes->get('contact', 'Home::contact');
 // Authentication Routes
 $routes->get('login', 'Auth::login');
 $routes->post('login', 'Auth::login');
-$routes->get('admin/logout', 'Admin::logout');
+$routes->get('logout', 'Auth::logout');
 
 // Admin Dashboard Routes
 $routes->get('admin/dashboard', 'Admin::dashboard');
@@ -39,8 +39,10 @@ $routes->group('admin', function($routes) {
 
 //Users Management
     $routes->get('user-management', 'Admin::userManagement');
+
     $routes->post('users/saveUser', 'Admin::saveUser');
     $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
+
 
 });
 

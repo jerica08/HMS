@@ -57,10 +57,6 @@ class CreateUsersTable extends Migration
                 'type'    => 'DATETIME',
                 'null'    => true,
             ],
-            'updated_at' => [
-                'type'    => 'DATETIME',
-                'null'    => true,
-            ],
         ]);
         $this->forge->addKey('user_id', true);
         $this->forge->createTable('users');

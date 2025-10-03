@@ -14,7 +14,7 @@ $routes->get('contact', 'Home::contact');
 // Authentication Routes
 $routes->get('login', 'Auth::login');
 $routes->post('login', 'Auth::login');
-$routes->get('logout', 'Auth::logout');
+$routes->get('admin/logout', 'Admin::logout');
 
 // Admin Dashboard Routes
 $routes->get('admin/dashboard', 'Admin::dashboard');
@@ -39,12 +39,11 @@ $routes->group('admin', function($routes) {
 
 //Users Management
     $routes->get('user-management', 'Admin::userManagement');
-
     $routes->post('users/saveUser', 'Admin::saveUser');
+  
     $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
-
 
 });
 
-
+// Enable auto-routing for backward compatibility
 $routes->setAutoRoute(true);

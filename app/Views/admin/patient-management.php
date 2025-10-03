@@ -4,8 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Patient Management - HMS Admin</title>
-        <link rel="stylesheet" href="assets/css/common.css">
-        <link rel="stylesheet" href="/assets/css/users.css">
+        <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
         <style>
             .patient-grid {
@@ -182,106 +181,12 @@
             }
         </style>
     </head>
-    <body class="admin">
-
-        <header class="header">
-            <div class="header-content">
-                <div class="logo">
-                    <h1><i class="fas fa-hospital"></i> Administrator</h1>                    
-                </div>
-                <div class="user-info">
-                    <div href="" class="fas fa-avatar" href=""></div>
-                    <div>
-                        <div style="font-weight: 600;">
-                            <?= \App\Helpers\UserHelper::getDisplayName($currentUser ?? null) ?>
-                        </div>
-                        <div style="font-size: 0.9rem;opacity:0.8">
-                            <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
-                        </div>
-                    </div>
-                    <button class="logout-btn" onclick="handleLogout()">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Logout
-                    </button>
-                </div>
-            </div>
-        </header>
-        <!--Main Content-->
-        <div class="main-container">
-                <!--sidebar-->
-                <nav class="sidebar">
-                
-                <ul class="nav-menu">
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/dashboard') ?>" class="nav-link">
-                            <i class="fas fa-tachometer-alt nav-icon"></i>
-                            Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/staff') ?>" class="nav-link">
-                            <i class="fas fa-user-tie nav-icon"></i>
-                            Staff Management
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/users') ?>" class="nav-link">
-                            <i class="fas fa-users nav-icon"></i>
-                            User Management
-                        </a>
-                    </li>
-                     <li class="nav-item">
-                      <a href="<?= base_url('admin/patient') ?>" class="nav-link">
-                          <i class="fas fa-user-injured nav-icon"></i>
-                          Patient Management
-                      </a>
-                  </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/resource') ?>" class="nav-link">
-                            <i class="fas fa-hospital nav-icon"></i>
-                            Resource Management
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/financial') ?>" class="nav-link">
-                            <i class="fas fa-dollar-sign nav-icon"></i>
-                            Financial Management
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/communication') ?>" class="nav-link">
-                            <i class="fas fa-comments nav-icon"></i>
-                            Communication
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/analytics') ?>" class="nav-link">
-                            <i class="fas fa-chart-bar nav-icon"></i>
-                            Analytics & Reports
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/systemSettings') ?>" class="nav-link">
-                            <i class="fas fa-cogs nav-icon"></i>
-                            System Settings
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/securityAccess') ?>" class="nav-link">
-                            <i class="fas fa-shield-alt nav-icon"></i>
-                            Security & Access
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('admin/auditLogs') ?>" class="nav-link">
-                            <i class="fas fa-clipboard-list nav-icon"></i>
-                            Audit Logs
-                        </a>
-                    </li>
-                </ul>          
-                 </nav>
+<?php include APPPATH . 'Views/template/header.php'; ?>
+    
+    
         
-            <!--Main Content-->
+        <div class="main-container">
+               <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>      
             <main class="content">
                 <h1 class="page-title"> Patient Management</h1>
 

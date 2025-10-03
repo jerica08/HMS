@@ -43,6 +43,10 @@ $routes->group('admin', function($routes) {
   
     $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
 
+
+    //Patient Management
+    $routes->get('patient-management', 'Admin::patientManagement');
+
 });
 
 // Enable auto-routing for backward compatibility

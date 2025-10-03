@@ -1,3 +1,4 @@
+
 <?php
 
 use CodeIgniter\Router\RouteCollection;
@@ -40,7 +41,6 @@ $routes->group('admin', function($routes) {
 //Users Management
     $routes->get('user-management', 'Admin::userManagement');
     $routes->post('users/saveUser', 'Admin::saveUser');
-  
     $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
 
 

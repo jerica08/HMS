@@ -158,10 +158,100 @@
                     </tbody>
                 </table>
             </div>
+    <script>
+function deleteUser(id) {
+    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+        // Create a form to submit GET request to the delete route
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = '<?= base_url('admin/users/delete/') ?>' + id;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
 
     
 
          
+
+<!-- Add User Modal -->
+<div id="addUserModal" class="modal" style="display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgb(0,0,0); background-color: rgba(0,0,0,0.4);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+        <span class="close" onclick="closeAddUserModal()" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        <h2>Add New User</h2>
+        <form id="addUserForm" action="<?= base_url('admin/users/saveUser') ?>" method="post">
+            <?= csrf_field() ?>
+            <div style="margin-bottom: 15px;">
+                <label for="staff_id">Select Staff:</label>
+                <select name="staff_id" id="staff_id" required style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <option value="">Choose Staff</option>
+                    <?php if (!empty($staff) && is_array($staff)): ?>
+                        <?php foreach ($staff as $s): ?>
+                            <option value="<?= esc($s['staff_id']) ?>"><?= esc($s['first_name'] . ' ' . $s['last_name'] . ' (' . $s['employee_id'] . ')') ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="username">Username:</label>
+                <input type="text" name="username" id="username" required style="width: 100%; padding: 8px; margin-top: 5px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="password">Password:</label>
+                <input type="password" name="password" id="password" required style="width: 100%; padding: 8px; margin-top: 5px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="confirm_password">Confirm Password:</label>
+                <input type="password" name="confirm_password" id="confirm_password" required style="width: 100%; padding: 8px; margin-top: 5px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="role">Role:</label>
+                <select name="role" id="role" required style="width: 100%; padding: 8px; margin-top: 5px;">
+                    <option value="">Select Role</option>
+                    <option value="admin">Admin</option>
+                    <option value="doctor">Doctor</option>
+                    <option value="nurse">Nurse</option>
+                    <option value="receptionist">Receptionist</option>
+                    <option value="laboratorist">Laboratorist</option>
+                    <option value="pharmacist">Pharmacist</option>
+                    <option value="accountant">Accountant</option>
+                    <option value="it_staff">IT Staff</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Add User</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'block';
+}
+
+function closeAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'none';
+}
+
+function deleteUser(id) {
+    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+        // Create a form to submit GET request to the delete route
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = '<?= base_url('admin/users/delete/') ?>' + id;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('addUserModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
 
 </body>
 </html>

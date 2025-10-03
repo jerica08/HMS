@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - HMS</title>
     <link rel="stylesheet" href="/assets/css/common.css">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .dashboard-overview {
@@ -36,12 +37,8 @@
         .card-icon-modern.green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         .card-icon-modern.purple { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
         .card-icon-modern.red { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-        .card-metrics {
-            flex: 1;
-        }
-        .metric {
-            text-align: right;
-        }
+        .card-metrics { flex: 1; }
+        .metric { text-align: right; }
         .metric-value {
             font-size: 2rem;
             font-weight: bold;
@@ -69,9 +66,7 @@
             padding: 1rem 0;
             border-bottom: 1px solid #f3f4f6;
         }
-        .activity-item:last-child {
-            border-bottom: none;
-        }
+        .activity-item:last-child { border-bottom: none; }
         .activity-icon {
             width: 40px;
             height: 40px;
@@ -82,9 +77,7 @@
             justify-content: center;
             color: #0284c7;
         }
-        .activity-content {
-            flex: 1;
-        }
+        .activity-content { flex: 1; }
         .activity-title {
             font-weight: 500;
             color: #1f2937;
@@ -96,103 +89,11 @@
         }
     </style>
 </head>
-<body class="admin">
 
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <h1><i class="fas fa-hospital"></i> Administrator</h1>
-            </div>
-            <div class="user-info">
-                <div class="fas fa-user-circle"></div>
-                <div>
-                    <div style="font-weight: 600;">
-                        <?= \App\Helpers\UserHelper::getDisplayName($user ?? null) ?>
-                    </div>
-                    <div style="font-size: 0.9rem;opacity:0.8">
-                        <?= \App\Helpers\UserHelper::getDisplayRole($user ?? null) ?>
-                    </div>
-                </div>
-                <a href="<?= base_url('admin/logout') ?>" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Logout
-                </a>
-            </div>
-        </div>
-    </header>
+    <?php include APPPATH . 'Views/template/header.php'; ?>
 
     <div class="main-container">
-        <nav class="sidebar">
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/dashboard') ?>" class="nav-link active">
-                        <i class="fas fa-tachometer-alt nav-icon"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/staff-management') ?>" class="nav-link">
-                        <i class="fas fa-user-tie nav-icon"></i>
-                        Staff Management
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/users') ?>" class="nav-link">
-                        <i class="fas fa-users nav-icon"></i>
-                        User Management
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/patient') ?>" class="nav-link">
-                        <i class="fas fa-user-injured nav-icon"></i>
-                        Patient Management
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/resource') ?>" class="nav-link">
-                        <i class="fas fa-hospital nav-icon"></i>
-                        Resource Management
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/financial') ?>" class="nav-link">
-                        <i class="fas fa-dollar-sign nav-icon"></i>
-                        Financial Management
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/communication') ?>" class="nav-link">
-                        <i class="fas fa-comments nav-icon"></i>
-                        Communication
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/analytics') ?>" class="nav-link">
-                        <i class="fas fa-chart-bar nav-icon"></i>
-                        Analytics & Reports
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/systemSettings') ?>" class="nav-link">
-                        <i class="fas fa-cogs nav-icon"></i>
-                        System Settings
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/securityAccess') ?>" class="nav-link">
-                        <i class="fas fa-shield-alt nav-icon"></i>
-                        Security & Access
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/auditLogs') ?>" class="nav-link">
-                        <i class="fas fa-clipboard-list nav-icon"></i>
-                        Audit Logs
-                    </a>
-                </li>
-            </ul>
-        </nav>
-
+        <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>
         <main class="content">
             <h1 class="page-title">Dashboard</h1>
             <p class="text-muted">Welcome to the Hospital Management System</p>
@@ -281,4 +182,6 @@
             </div>
         </main>
     </div>
+
+</body>
 </html>

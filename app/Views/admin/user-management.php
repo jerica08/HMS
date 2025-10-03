@@ -9,52 +9,11 @@
 </head>
 <body class="admin">
 
-    <header class="header">
-        <div class="header-content">
-            <div class="logo" role="banner">
-                <h1><i class="fas fa-hospital" aria-hidden="true"></i> Administrator</h1>
-            </div>
-            <div class="user-info" role="region" aria-label="Current User Info">
-                <div class="fas fa-avatar" aria-hidden="true"></div>
-                <div>
-                    <div style="font-weight: 600;">
-                        <?= \App\Helpers\UserHelper::getDisplayName($currentUser ?? null) ?>
-                    </div>
-                    <div style="font-size: 0.9rem; opacity: 0.8;">
-                        <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
-                    </div>
-                </div>
-                <button class="logout-btn" onclick="handleLogout()" aria-label="Logout">
-                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout
-                </button>
-            </div>
-        </div>
-    </header>
+    <?php include APPPATH . 'Views/template/header.php'; ?>
 
     <div class="main-container">
-        <nav class="sidebar" role="navigation" aria-label="Main Navigation">
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/dashboard') ?>" class="nav-link" aria-current="false">
-                        <i class="fas fa-tachometer-alt nav-icon" aria-hidden="true"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/staff') ?>" class="nav-link" aria-current="false">
-                        <i class="fas fa-user-tie nav-icon" aria-hidden="true"></i>
-                        Staff Management
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= base_url('admin/users') ?>" class="nav-link active" aria-current="page">
-                        <i class="fas fa-users nav-icon" aria-hidden="true"></i>
-                        User Management
-                    </a>
-                </li>
-                <!-- ... Other nav items ... -->
-            </ul>
-        </nav>
+        <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>
+
 
         <main class="content" role="main">
             <h1 class="page-title">User Management</h1>
@@ -202,14 +161,7 @@
 
     
 
-            <script src="<?= base_url('js/session-manager.js') ?>"></script>
-            <script src="<?= base_url('js/utils.js') ?>"></script>
-            <script src="<?= base_url('js/edit-user.js') ?>"></script>
-            <script src="<?= base_url('js/delete-user.js') ?>"></script>
-            <script src="<?= base_url('js/user-management.js') ?>"></script>
-            <script src="<?= base_url('js/logout.js') ?>"></script>
-        </main>
-    </div>
+         
 
 </body>
 </html>

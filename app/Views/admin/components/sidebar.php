@@ -19,7 +19,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="<?= base_url('admin/patient-management') ?>" class="nav-link <?= (uri_string() === 'admin/patient') ? 'active' : '' ?>">
+            <a href="<?= base_url('admin/patient-management') ?>" class="nav-link <?= (uri_string() === 'admin/patient-management') ? 'active' : '' ?>">
                 <i class="fas fa-user-injured nav-icon"></i>
                 Patient Management
             </a>

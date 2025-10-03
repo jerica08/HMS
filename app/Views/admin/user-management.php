@@ -23,6 +23,26 @@
                 </button>
             </div>
 
+            <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
+                <div id="flashNotice" role="alert" aria-live="polite" style="
+                    margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px;
+                    border: 1px solid <?= session()->getFlashdata('success') ? '#86efac' : '#fecaca' ?>;
+                    background: <?= session()->getFlashdata('success') ? '#dcfce7' : '#fee2e2' ?>;
+                    color: <?= session()->getFlashdata('success') ? '#166534' : '#991b1b' ?>; display:flex; align-items:center; gap:0.5rem;">
+                    <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>" aria-hidden="true"></i>
+                    <span>
+                        <?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error')) ?>
+                    </span>
+                    <button type="button" onclick="dismissFlash()" aria-label="Dismiss notification" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <script>
+                    function dismissFlash(){ const n = document.getElementById('flashNotice'); if(n){ n.style.display='none'; } }
+                    setTimeout(() => dismissFlash(), 4000);
+                </script>
+            <?php endif; ?>
+
             <br />
 
             <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
@@ -175,62 +195,140 @@ function deleteUser(id) {
 
          
 
-<!-- Add User Modal -->
-<div id="addUserModal" class="modal" style="display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgb(0,0,0); background-color: rgba(0,0,0,0.4);">
-    <div class="modal-content" style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
-        <span class="close" onclick="closeAddUserModal()" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
-        <h2>Add New User</h2>
-        <form id="addUserForm" action="<?= base_url('admin/users/saveUser') ?>" method="post">
-            <?= csrf_field() ?>
-            <div style="margin-bottom: 15px;">
-                <label for="staff_id">Select Staff:</label>
-                <select name="staff_id" id="staff_id" required style="width: 100%; padding: 8px; margin-top: 5px;">
-                    <option value="">Choose Staff</option>
-                    <?php if (!empty($staff) && is_array($staff)): ?>
-                        <?php foreach ($staff as $s): ?>
-                            <option value="<?= esc($s['staff_id']) ?>"><?= esc($s['first_name'] . ' ' . $s['last_name'] . ' (' . $s['employee_id'] . ')') ?></option>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </select>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label for="username">Username:</label>
-                <input type="text" name="username" id="username" required style="width: 100%; padding: 8px; margin-top: 5px;">
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label for="password">Password:</label>
-                <input type="password" name="password" id="password" required style="width: 100%; padding: 8px; margin-top: 5px;">
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label for="confirm_password">Confirm Password:</label>
-                <input type="password" name="confirm_password" id="confirm_password" required style="width: 100%; padding: 8px; margin-top: 5px;">
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label for="role">Role:</label>
-                <select name="role" id="role" required style="width: 100%; padding: 8px; margin-top: 5px;">
-                    <option value="">Select Role</option>
-                    <option value="admin">Admin</option>
-                    <option value="doctor">Doctor</option>
-                    <option value="nurse">Nurse</option>
-                    <option value="receptionist">Receptionist</option>
-                    <option value="laboratorist">Laboratorist</option>
-                    <option value="pharmacist">Pharmacist</option>
-                    <option value="accountant">Accountant</option>
-                    <option value="it_staff">IT Staff</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%;">Add User</button>
-        </form>
+<!-- Add User Modal (styled like Add Staff) -->
+<style>
+/* Modal and form styles adapted from staff-management */
+.hms-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 9990; }
+.hms-modal-overlay.active { display: flex; }
+.hms-modal { width: 100%; max-width: 900px; background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid #f1f5f9; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); max-height: 90vh; overflow: auto; box-sizing: border-box; }
+.hms-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; background: #f8f9ff; }
+.hms-modal-title { font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
+.hms-modal-body { padding: 1rem 1.25rem; color: #475569; }
+.hms-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 0.75rem 1.25rem 1.25rem; background: #fff; }
+.form-input, .form-select, .form-textarea { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.95rem; background: #fff; transition: border-color 0.2s; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+.form-label { font-size: 0.9rem; color: #374151; margin-bottom: 0.25rem; display: block; font-weight: 500; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.form-grid .full { grid-column: 1 / -1; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+</style>
+<div id="addUserModal" class="hms-modal-overlay" aria-hidden="true">
+  <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
+    <div class="hms-modal-header">
+      <div class="hms-modal-title" id="addUserTitle">
+        <i class="fas fa-user-plus" style="color:#4f46e5"></i>
+        Add User
+      </div>
+      <button type="button" class="btn btn-secondary btn-small" onclick="closeAddUserModal()" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
+    <form id="addUserForm" action="<?= base_url('admin/users/saveUser') ?>" method="post">
+      <?= csrf_field() ?>
+      <div class="hms-modal-body">
+        <div class="form-grid">
+          <div class="full">
+            <label class="form-label" for="staff_id">Select Staff</label>
+            <select name="staff_id" id="staff_id" class="form-select" required>
+              <option value="">Choose Staff</option>
+              <?php if (!empty($staff) && is_array($staff)): ?>
+                <?php foreach ($staff as $s): ?>
+                  <option 
+                    value="<?= esc($s['staff_id']) ?>"
+                    data-first-name="<?= esc($s['first_name'] ?? '') ?>"
+                    data-last-name="<?= esc($s['last_name'] ?? '') ?>"
+                    data-email="<?= esc($s['email'] ?? '') ?>"
+                  >
+                    <?= esc(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? '') . ' (' . ($s['employee_id'] ?? 'N/A') . ')') ?>
+                  </option>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="first_name">First Name</label>
+            <input type="text" id="first_name" name="first_name" class="form-input" readonly>
+          </div>
+          <div>
+            <label class="form-label" for="last_name">Last Name</label>
+            <input type="text" id="last_name" name="last_name" class="form-input" readonly>
+          </div>
+          <div class="full">
+            <label class="form-label" for="email">Email</label>
+            <input type="email" name="email" id="email" class="form-input" required readonly>
+          </div>
+          <div>
+            <label class="form-label" for="username">Username</label>
+            <input type="text" name="username" id="username" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label" for="role">Role</label>
+            <select name="role" id="role" class="form-select" required>
+              <option value="" disabled selected>Select role</option>
+              <option value="admin">Admin</option>
+              <option value="doctor">Doctor</option>
+              <option value="nurse">Nurse</option>
+              <option value="receptionist">Receptionist</option>
+              <option value="laboratorist">Laboratorist</option>
+              <option value="pharmacist">Pharmacist</option>
+              <option value="accountant">Accountant</option>
+              <option value="it_staff">IT Staff</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="password">Password</label>
+            <input type="password" name="password" id="password" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label" for="confirm_password">Confirm Password</label>
+            <input type="password" name="confirm_password" id="confirm_password" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label" for="status">Status</label>
+            <select name="status" id="status" class="form-select" required>
+              <option value="active" selected>Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="hms-modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeAddUserModal()">Cancel</button>
+        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
+function populateFromStaff() {
+    const sel = document.getElementById('staff_id');
+    if (!sel) return;
+    const opt = sel.options[sel.selectedIndex];
+    const first = document.getElementById('first_name');
+    const last = document.getElementById('last_name');
+    const email = document.getElementById('email');
+    if (!opt || !sel.value) {
+        if (first) first.value = '';
+        if (last) last.value = '';
+        if (email) email.value = '';
+        return;
+    }
+    if (first) first.value = opt.getAttribute('data-first-name') || '';
+    if (last) last.value = opt.getAttribute('data-last-name') || '';
+    if (email) email.value = opt.getAttribute('data-email') || '';
+}
+
 function openAddUserModal() {
-    document.getElementById('addUserModal').style.display = 'block';
+    const overlay = document.getElementById('addUserModal');
+    if (overlay) overlay.classList.add('active');
+    // Populate immediately in case a staff is already selected
+    populateFromStaff();
 }
 
 function closeAddUserModal() {
-    document.getElementById('addUserModal').style.display = 'none';
+    const overlay = document.getElementById('addUserModal');
+    if (overlay) overlay.classList.remove('active');
 }
 
 function deleteUser(id) {
@@ -244,13 +342,16 @@ function deleteUser(id) {
     }
 }
 
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modal = document.getElementById('addUserModal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
+// Close modal when clicking the overlay background
+window.addEventListener('click', function(event) {
+    const overlay = document.getElementById('addUserModal');
+    if (overlay && event.target === overlay) {
+        overlay.classList.remove('active');
     }
-}
+});
+
+// Populate fields when staff changes
+document.getElementById('staff_id')?.addEventListener('change', populateFromStaff);
 </script>
 
 </body>

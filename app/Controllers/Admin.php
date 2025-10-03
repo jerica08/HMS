@@ -234,6 +234,7 @@ class Admin extends BaseController
             'password' => 'required|min_length[6]',
             'confirm_password' => 'required|matches[password]',
             'role' => 'required|in_list[admin,doctor,nurse,receptionist,laboratorist,pharmacist,accountant,it_staff]',
+            'status' => 'required|in_list[active,inactive]',
         ];
 
         if(!$this->validate($rules)) {
@@ -245,11 +246,14 @@ class Admin extends BaseController
             return redirect()->back()->withInput()->with('error', 'Invalid staff selected');
         }
         $data = [
-            'staff_id' => $this->request->getPost('staff_id'),
-            'username' => $this->request->getPost('username'),
-            'email' => $staff['email'], // Assuming email from staff
-            'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'role' => $this->request->getPost('role'),
+            'staff_id'   => $this->request->getPost('staff_id'),
+            'username'   => $this->request->getPost('username'),
+            'email'      => $staff['email'] ?? null, // Email from staff record
+            'first_name' => $staff['first_name'] ?? null,
+            'last_name'  => $staff['last_name'] ?? null,
+            'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+            'role'       => $this->request->getPost('role'),
+            'status'     => $this->request->getPost('status') ?: 'active',
         ];
 
         if ($userModel->insert($data)) {

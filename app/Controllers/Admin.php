@@ -219,6 +219,9 @@ class Admin extends BaseController
             'staff' => $staffModel->getStaffWithoutUsers(),
             'stats' => [
                 'total_users' => count($userModel->getAllUsersWithStaff()),
+                 'admin_users' => count(array_filter($userModel->getAllUsersWithStaff(), function($user) {
+                    return $user['role'] == 'admin';
+                })),
             ],
         ];
 

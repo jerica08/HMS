@@ -305,10 +305,13 @@ class Admin extends BaseController
             log_message('error', 'Patients table does not exist: ' . $e->getMessage());
         }
 
-        $data = [
-            'title' => 'Patient Management',
-            'patients' => $patients
-        ];
+       $data = [
+        'title' => 'Patient Management',
+        'patients' => $patients,
+        'patientStats' => [
+            'total_patients' => count($patients),
+        ],
+    ];
 
         return view('admin/patient-management', $data);
     }

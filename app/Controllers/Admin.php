@@ -37,12 +37,18 @@ class Admin extends BaseController
 
         // Get total patients count
         $totalPatients = 0;
+        $totalDoctors = 0;
         try {
             $totalPatients = $this->db->table('patient')->countAllResults();
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
             log_message('error', 'Patients table does not exist: ' . $e->getMessage());
         }
 
+        try{
+            $totalDoctors = $this->db->table('staff')->where('designation', 'doctor')->countAllResults();    
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            log_message('error', 'Users table does not exist: ' . $e->getMessage());
+        }
         $data = [
             'title' => 'Admin Dashboard',
             'user' => [
@@ -52,6 +58,7 @@ class Admin extends BaseController
                 'role'      => $session->get('role')
             ],
             'total_patients' => $totalPatients,
+            'total_doctors' => $totalDoctors,
         ];
         
         return view('admin/dashboard', $data);
@@ -289,6 +296,49 @@ class Admin extends BaseController
         $userModel = new UserModel();
         $users = $userModel->getAllUsersWithStaff();
         return $this->response->setJSON($users);
+    }
+
+    public function getUser($id){
+        $userModel = new UserModel();
+        $user = $userModel->find($id);
+        if ($user){
+            return $this->response->setJSON($user);
+        }
+        return $this->response->setStatusCode(404)->setJSON(['error' => 'User not found']);
+    }
+
+    public function updateUser(){
+        $userModel = new UserModel();
+        $staffModel = new StaffModel();
+
+        $rules = [
+            'user_id' => 'required|integer',
+            'username' => 'required|min_length[3]|max_length[50]',
+            'role' => 'required|in_list[admin,doctor,nurse,receptionist,laboratorist,pharmacist,accountant,it_staff]',
+            'status' => 'required|in_list[active,inactive]',
+        ];
+
+        if(!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $userId = $this->request->getPost('user_id');
+        $user = $userModel->find($userId);
+        if (!$user){
+            return redirect()->back()->withInput()->with('error', 'User not found');
+        }
+
+        $data = [
+            'username'   => $this->request->getPost('username'),
+            'role'       => $this->request->getPost('role'),
+            'status'     => $this->request->getPost('status') ?: 'active',
+        ];
+
+        if ($userModel->update($userId, $data)) {
+            return redirect()->to('admin/user-management')->with('success', 'User updated successfully.');
+        } else{
+            return redirect()->back()->withInput()->with('error', 'Failed to update user');
+        }
     }
 
     public function deleteUser($id = null)

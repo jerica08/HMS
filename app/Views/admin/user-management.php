@@ -178,7 +178,29 @@
                     </tbody>
                 </table>
             </div>
-    <script>
+<script>
+function editUser(id) {
+    fetch('<?= base_url('admin/users/get/') ?>' + id)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+                return;
+            }
+            // Populate edit modal
+            document.getElementById('edit_user_id').value = data.user_id;
+            document.getElementById('edit_username').value = data.username;
+            document.getElementById('edit_role').value = data.role;
+            document.getElementById('edit_status').value = data.status;
+            // Show modal
+            document.getElementById('editUserModal').classList.add('active');
+        })
+        .catch(error => {
+            console.error('Error fetching user:', error);
+            alert('Failed to load user data.');
+        });
+}
+
 function deleteUser(id) {
     if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
         // Create a form to submit GET request to the delete route
@@ -352,6 +374,73 @@ window.addEventListener('click', function(event) {
 
 // Populate fields when staff changes
 document.getElementById('staff_id')?.addEventListener('change', populateFromStaff);
+</script>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="hms-modal-overlay" aria-hidden="true">
+  <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
+    <div class="hms-modal-header">
+      <div class="hms-modal-title" id="editUserTitle">
+        <i class="fas fa-user-edit" style="color:#4f46e5"></i>
+        Edit User
+      </div>
+      <button type="button" class="btn btn-secondary btn-small" onclick="closeEditUserModal()" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <form id="editUserForm" action="<?= base_url('admin/users/updateUser') ?>" method="post">
+      <?= csrf_field() ?>
+      <input type="hidden" name="user_id" id="edit_user_id">
+      <div class="hms-modal-body">
+        <div class="form-grid">
+          <div>
+            <label class="form-label" for="edit_username">Username</label>
+            <input type="text" name="username" id="edit_username" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label" for="edit_role">Role</label>
+            <select name="role" id="edit_role" class="form-select" required>
+              <option value="" disabled>Select role</option>
+              <option value="admin">Admin</option>
+              <option value="doctor">Doctor</option>
+              <option value="nurse">Nurse</option>
+              <option value="receptionist">Receptionist</option>
+              <option value="laboratorist">Laboratorist</option>
+              <option value="pharmacist">Pharmacist</option>
+              <option value="accountant">Accountant</option>
+              <option value="it_staff">IT Staff</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="edit_status">Status</label>
+            <select name="status" id="edit_status" class="form-select" required>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="hms-modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeEditUserModal()">Cancel</button>
+        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Update</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function closeEditUserModal() {
+    const overlay = document.getElementById('editUserModal');
+    if (overlay) overlay.classList.remove('active');
+}
+
+// Close modal when clicking the overlay background
+window.addEventListener('click', function(event) {
+    const overlay = document.getElementById('editUserModal');
+    if (overlay && event.target === overlay) {
+        overlay.classList.remove('active');
+    }
+});
 </script>
 
 </body>

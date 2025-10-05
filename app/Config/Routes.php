@@ -41,6 +41,8 @@ $routes->group('admin', function($routes) {
 //Users Management
     $routes->get('user-management', 'Admin::userManagement');
     $routes->post('users/saveUser', 'Admin::saveUser');
+    $routes->post('users/updateUser', 'Admin::updateUser');
+    $routes->get('users/get/(:num)', 'Admin::getUser/$1');
     $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
 
 

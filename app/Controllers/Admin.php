@@ -34,6 +34,15 @@ class Admin extends BaseController
     public function dashboard()
     {
         $session = session();
+
+        // Get total patients count
+        $totalPatients = 0;
+        try {
+            $totalPatients = $this->db->table('patient')->countAllResults();
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            log_message('error', 'Patients table does not exist: ' . $e->getMessage());
+        }
+
         $data = [
             'title' => 'Admin Dashboard',
             'user' => [
@@ -41,7 +50,8 @@ class Admin extends BaseController
                 'staff_id'  => $session->get('staff_id'),
                 'email'     => $session->get('email'),
                 'role'      => $session->get('role')
-            ]
+            ],
+            'total_patients' => $totalPatients,
         ];
         
         return view('admin/dashboard', $data);

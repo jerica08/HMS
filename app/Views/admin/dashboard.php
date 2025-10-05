@@ -105,7 +105,7 @@
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue">150</div>
+                            <div class="metric-value blue"><?= esc($total_patients ?? 0) ?></div>
                             <p class="metric-label">Total Patients</p>
                         </div>
                     </div>

@@ -313,25 +313,60 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                            <div class="patient-avatar">MS</div>
-                                            <div>
-                                                <div style="font-weight: 500;">Example1</div>
-                                                <div style="font-size: 0.8rem; color: #6b7280;">example@email.com</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>P-2024-0156</td>
-                                    <td>45</td>
-                                    <td>ICU</td>
-                                    <td>301</td>
-                                    <td><span class="patient-status status-critical">Critical</span></td>
-                                    <td>
-                                        <button class="btn btn-secondary btn-small">View</button>
-                                    </td>
-                                </tr>
+                                <?php if (!empty($patients) && is_array($patients)): ?>
+                                    <?php foreach ($patients as $patient): ?>
+                                        <tr>
+                                            <td>
+                                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                    <div class="patient-avatar" aria-label="Patient initials" title="Patient initials">
+                                                        <?= strtoupper(substr($patient['first_name'] ?? 'P', 0, 1) . substr($patient['last_name'] ?? 'P', 0, 1)) ?>
+                                                    </div>
+                                                    <div>
+                                                        <div style="font-weight: 500;">
+                                                            <?= esc(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? '')) ?>
+                                                        </div>
+                                                        <div style="font-size: 0.8rem; color: #6b7280;">
+                                                            <?= esc($patient['email'] ?? '') ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><?= esc($patient['patient_id'] ?? 'N/A') ?></td>
+                                            <td>
+                                                <?php
+                                                    if (!empty($patient['date_of_birth'])) {
+                                                        $dob = new DateTime($patient['date_of_birth']);
+                                                        $now = new DateTime();
+                                                        $age = $now->diff($dob)->y;
+                                                        echo $age;
+                                                    } else {
+                                                        echo 'N/A';
+                                                    }
+                                                ?>
+                                            </td>
+                                            <td><?= esc($patient['department'] ?? 'N/A') ?></td>
+                                            <td><?= esc($patient['room'] ?? 'N/A') ?></td>
+                                            <td>
+                                                <?php
+                                                    $status = strtolower($patient['status'] ?? '');
+                                                    $statusClass = 'status-' . $status;
+                                                    $statusLabel = ucfirst($status);
+                                                ?>
+                                                <span class="patient-status <?= esc($statusClass) ?>"><?= esc($statusLabel) ?></span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-secondary btn-small" onclick="viewPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">View</button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; padding: 2rem;">
+                                            <i class="fas fa-user-injured" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
+                                            <p>No patients found.</p>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>

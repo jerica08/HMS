@@ -45,7 +45,7 @@ class Admin extends BaseController
         }
 
         try{
-            $totalDoctors = $this->db->table('staff')->where('designation', 'doctor')->countAllResults();    
+            $totalDoctors = $this->db->table('users')->where('role', 'doctor')->countAllResults();
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
             log_message('error', 'Users table does not exist: ' . $e->getMessage());
         }

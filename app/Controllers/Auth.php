@@ -12,9 +12,19 @@ class Auth extends BaseController
         $db = \Config\Database::connect();
         $session = session();
 
-        // if user is already login, redirect to dashboard
+        // if user is already logged in, redirect by role
         if ($session->get('user_id')) {
-            return redirect()->to('/dashboard');
+            $role = strtolower((string) $session->get('role'));
+            switch ($role) {
+                case 'admin':
+                    return redirect()->to('/admin/dashboard');
+                case 'doctor':
+                    return redirect()->to('/doctor/dashboard');
+                case 'nurse':
+                    return redirect()->to('/nurse/dashboard');
+                default:
+                    return redirect()->to('/');
+            }
         }
 
         if ($this->request->getMethod() == 'POST') {
@@ -56,11 +66,14 @@ class Auth extends BaseController
                         'isLoggedIn'=> true
                     ]);
 
-                    switch ($user['role']) {
+                    $role = strtolower($user['role'] ?? '');
+                    switch ($role) {
                         case 'admin':
                             return redirect()->to('/admin/dashboard');
                         case 'doctor':
                             return redirect()->to('/doctor/dashboard');
+                        case 'nurse':
+                            return redirect()->to('/nurse/dashboard');
                         default:
                             $session->setFlashdata('error', 'Your account role is not recognized');
                             $session->destroy();

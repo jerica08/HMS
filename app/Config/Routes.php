@@ -82,4 +82,11 @@ $routes->group('admin', function($routes) {
     $routes->get('doctor/EHR', 'Doctor::ehr');
     $routes->get('doctor/schedule', 'Doctor::schedule');
 
+    // Nurse Routes
+    $routes->get('nurse/dashboard', 'Nurse::dashboard');
+    $routes->get('nurse/patient', 'Nurse::patient');
+    $routes->get('nurse/medication', 'Nurse::medication');
+    $routes->get('nurse/vitals', 'Nurse::vitals');
+    $routes->get('nurse/shift-report', 'Nurse::shiftReport');
+
 $routes->setAutoRoute(true);

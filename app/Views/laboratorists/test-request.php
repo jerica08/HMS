@@ -8,58 +8,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
   </head>
   <body class="lab-theme">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <div class="logo">
-          <h1><i class="fas fa-microscope"></i> HMS - Laboratory Staff</h1>
-        </div>
-        <div class="user-info">
-          <div class="user-avatar">LS</div>
-          <div>
-            <div style="font-weight: 600">Laboratory Staff</div>
-            <div style="font-size: 0.9rem; opacity: 0.8">Laboratorist</div>
-          </div>
-          <a class="btn btn-secondary" href="../profile/index.html" style="margin-left: 0.5rem">
-            <i class="fas fa-user"></i> Profile
-          </a>
-          <button class="logout-btn" onclick="handleLogout()">
-            <i class="fas fa-sign-out-alt"></i> Logout
-          </button>
-        </div>
-      </div>
-    </header>
 
+    <?php include APPPATH . 'Views/template/header.php'; ?>
     <div class="main-container">
-      <!-- Sidebar -->
-      <nav class="sidebar">
-        <ul class="nav-menu">
-          <li class="nav-item">
-            <a href="dashboard.html" class="nav-link">
-              <i class="fas fa-tachometer-alt nav-icon"></i>
-              Dashboard
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="test-request.html" class="nav-link active">
-              <i class="fas fa-clipboard-list nav-icon"></i>
-              Test Request
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="sample-management.html" class="nav-link">
-              <i class="fas fa-vial nav-icon"></i>
-              Sample Management
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="test-result.html" class="nav-link">
-              <i class="fas fa-chart-line nav-icon"></i>
-              Test Results
-            </a>
-          </li>
-        </ul>
-      </nav>
+      <?php include APPPATH . 'Views/laboratorists/components/sidebar.php'; ?>
 
       <!-- Main Content -->
       <main class="content">

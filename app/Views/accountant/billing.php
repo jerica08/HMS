@@ -8,58 +8,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="accountant-theme">
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <h1><i class="fas fa-file-invoice"></i> Patient Billing</h1>
-            </div>
-            <div class="user-info">
-                <div class="user-avatar">AC</div>
-                <div>
-                    <div style="font-weight: 600;">Accountant User</div>
-                    <div style="font-size: 0.9rem; opacity: 0.8;">Accountant</div>
-                </div>
-                <a class="btn btn-secondary" href="../profile/index.html" style="margin-left:.5rem;">
-                    <i class="fas fa-user"></i> Profile
-                </a>
-                <button class="logout-btn" onclick="handleLogout()">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </div>
-        </div>
-    </header>
 
+    <?php include APPPATH . 'Views/template/header.php'; ?>
     <div class="main-container">
-        <!-- Sidebar -->
-        <nav class="sidebar">
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="dashboard.html" class="nav-link">
-                        <i class="fas fa-tachometer-alt nav-icon"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="billing.html" class="nav-link active">
-                        <i class="fas fa-file-invoice nav-icon"></i>
-                        Patient Billing
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="payments.html" class="nav-link">
-                        <i class="fas fa-credit-card nav-icon"></i>
-                        Payment Processing
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="insurance.html" class="nav-link">
-                        <i class="fas fa-shield-alt nav-icon"></i>
-                        Insurance Claims
-                    </a>
-                </li>
-            </ul>
-        </nav>
+        <?php include APPPATH . 'Views/accountant/components/sidebar.php'; ?>
 
         <!-- Main Content -->
         <main class="content">
@@ -120,7 +72,7 @@
                             <td>₱125.00</td>
                             <td>2025-10-01</td>
                             <td><span class="badge badge-warning">Pending</span></td>
-                            <td><a href="payments.html" class="btn btn-success">Collect</a></td>
+                            <td><a href="<?= base_url('accountant/payments') ?>" class="btn btn-success">Collect</a></td>
                         </tr>
                         <tr>
                             <td>INV-2025-1238</td>

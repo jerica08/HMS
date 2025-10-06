@@ -94,4 +94,21 @@ $routes->group('admin', function($routes) {
     $routes->get('receptionist/appointment-booking', 'Receptionist::appointmentBooking');
     $routes->get('receptionist/patient-registration', 'Receptionist::patientRegistration');
 
+    // Accountant Routes
+    $routes->get('accountant/dashboard', 'Accountant::dashboard');
+    $routes->get('accountant/billing', 'Accountant::billing');
+    $routes->get('accountant/payments', 'Accountant::payments');
+    $routes->get('accountant/insurance', 'Accountant::insurance');
+
+    // IT Staff Routes
+    $routes->get('it/dashboard', 'ITStaff::dashboard');
+    $routes->get('it/maintenance', 'ITStaff::maintenance');
+    $routes->get('it/security', 'ITStaff::security');
+
+    // Laboratorist Routes
+    $routes->get('laboratorists/dashboard', 'Laboratorist::dashboard');
+    $routes->get('laboratorists/sample-management', 'Laboratorist::sampleManagement');
+    $routes->get('laboratorists/test-request', 'Laboratorist::testRequest');
+    $routes->get('laboratorists/test-result', 'Laboratorist::testResult');
+
 $routes->setAutoRoute(true);

@@ -26,4 +26,11 @@ class Laboratorist extends BaseController
     {
         return view('laboratorists/test-result');
     }
+      public function logout()
+    {
+        $session = session();
+        $session->destroy();
+        return redirect()->to(base_url('/login'));
+    }
+
 }

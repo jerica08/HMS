@@ -26,4 +26,12 @@ class Accountant extends BaseController
     {
         return view('accountant/insurance');
     }
+    
+    public function logout()
+    {
+        $session = session();
+        $session->destroy();
+        return redirect()->to(base_url('/login'));
+    }
+
 }

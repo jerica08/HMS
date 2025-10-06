@@ -41,4 +41,13 @@ class Doctor extends BaseController
     {
         return view('doctor/schedule');
     }
+
+      public function logout()
+    {
+        $session = session();
+        $session->destroy();
+        return redirect()->to(base_url('/login'));
+    }
+
+
 }

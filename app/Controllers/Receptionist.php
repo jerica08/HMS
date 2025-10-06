@@ -20,4 +20,11 @@ class Receptionist extends BaseController
     {
         return view('receptionist/patient-registration');
     }
+    public function logout()
+    {
+        $session = session();
+        $session->destroy();
+        return redirect()->to(base_url('/login'));
+    }
+
 }

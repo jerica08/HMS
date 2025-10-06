@@ -21,4 +21,12 @@ class ITStaff extends BaseController
     {
         return view('IT-staff/security');
     }
+
+      public function logout()
+    {
+        $session = session();
+        $session->destroy();
+        return redirect()->to(base_url('/login'));
+    }
+
 }

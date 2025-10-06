@@ -470,6 +470,17 @@ class Admin extends BaseController
         ])->setStatusCode(500);
     }
 
+    /**
+     * Resource management page
+     */
+    public function resourceManagement()
+    {
+        $data = [
+            'title' => 'Resource Management',
+        ];
+        return view('admin/resource-management', $data);
+    }
+
     public function logout()
     {
         $session = session();

@@ -38,21 +38,23 @@ $routes->group('admin', function($routes) {
     $routes->get('delete-staff/(:num)', 'Admin::deleteStaff/$1');
     $routes->get('view-staff/(:num)', 'Admin::viewStaff/$1');
 
-//Users Management
+    //Users Management
     $routes->get('user-management', 'Admin::userManagement');
     $routes->post('users/saveUser', 'Admin::saveUser');
     $routes->post('users/updateUser', 'Admin::updateUser');
     $routes->get('users/get/(:num)', 'Admin::getUser/$1');
     $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
 
+    // Resource Management
+    $routes->get('resource', 'Admin::resourceManagement');
 
     //Patient Management
     $routes->get('patient-management', 'Admin::patientManagement');
     $routes->post('patients', 'Admin::createPatient');
 
-});
+    });
 
-// Doctor Routes
-$routes->get('doctor/dashboard', 'Doctor::dashboard');
+    //Doctor Routes
+    $routes->get('doctor/dashboard', 'Doctor::dashboard');
 
 $routes->setAutoRoute(true);

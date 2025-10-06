@@ -416,41 +416,6 @@ btn-primary:hover {
 .btn-danger:hover {
     background: #e53e3e;
 }
-
-/*------------------------tables-----------------------*/
-
-.table-container {
-    background: white;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    margin-top: 2rem;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.table th,
-.table td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.table th {
-    background: #f7fafc;
-    font-weight: 600;
-    color: #4a5568;
-}
-
-.table tbody tr:hover {
-    background: #f7fafc;
-}
-
-/*-------------------------status badge-------------------------------*/
-
 .badge {
     padding: 0.3rem 0.8rem;
     border-radius: 20px;

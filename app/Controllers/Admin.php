@@ -481,6 +481,17 @@ class Admin extends BaseController
         return view('admin/resource-management', $data);
     }
 
+    /**
+     * Financial management page
+     */
+    public function financialManagement()
+    {
+        $data = [
+            'title' => 'Financial Management',
+        ];
+        return view('admin/financial-management', $data);
+    }
+
     public function logout()
     {
         $session = session();

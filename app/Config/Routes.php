@@ -55,6 +55,15 @@ $routes->group('admin', function($routes) {
     // Financial Management
     $routes->get('financial', 'Admin::financialManagement');
 
+    // Communication
+    $routes->get('communication', 'Admin::communication');
+
+    // Analytics & Reports
+    $routes->get('analytics', 'Admin::analytics');
+
+    // System Settings
+    $routes->get('systemSettings', 'Admin::systemSettings');
+
     });
 
     //Doctor Routes

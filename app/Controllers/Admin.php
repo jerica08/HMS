@@ -492,6 +492,39 @@ class Admin extends BaseController
         return view('admin/financial-management', $data);
     }
 
+    /**
+     * Communication & Notifications page
+     */
+    public function communication()
+    {
+        $data = [
+            'title' => 'Communication & Notifications',
+        ];
+        return view('admin/communication', $data);
+    }
+
+    /**
+     * Analytics & Reports page
+     */
+    public function analytics()
+    {
+        $data = [
+            'title' => 'Analytics & Reports',
+        ];
+        return view('admin/analytics-reports', $data);
+    }
+
+    /**
+     * System Settings page
+     */
+    public function systemSettings()
+    {
+        $data = [
+            'title' => 'System Settings',
+        ];
+        return view('admin/system-setting', $data);
+    }
+
     public function logout()
     {
         $session = session();

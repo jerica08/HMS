@@ -547,10 +547,5 @@ class Admin extends BaseController
         return view('admin/audit-logs', $data);
     }
 
-    public function logout()
-    {
-        $session = session();
-        $session->destroy();
-        return redirect()->to(base_url('/login'));
-    }
+   
 }

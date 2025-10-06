@@ -31,11 +31,7 @@ class Nurse extends BaseController
         return view('nurse/shift-report');
     }
 
-      public function logout()
-    {
-        $session = session();
-        $session->destroy();
-        return redirect()->to(base_url('/login'));
-    }
+  
+
 
 }

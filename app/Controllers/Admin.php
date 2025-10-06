@@ -536,6 +536,17 @@ class Admin extends BaseController
         return view('admin/security-access', $data);
     }
 
+    /**
+     * Audit Logs page
+     */
+    public function auditLogs()
+    {
+        $data = [
+            'title' => 'Audit Logs',
+        ];
+        return view('admin/audit-logs', $data);
+    }
+
     public function logout()
     {
         $session = session();

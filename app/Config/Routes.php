@@ -67,6 +67,9 @@ $routes->group('admin', function($routes) {
     // Security & Access
     $routes->get('securityAccess', 'Admin::securityAccess');
 
+    // Audit Logs
+    $routes->get('auditLogs', 'Admin::auditLogs');
+
     });
 
     //Doctor Routes

@@ -64,6 +64,9 @@ $routes->group('admin', function($routes) {
     // System Settings
     $routes->get('systemSettings', 'Admin::systemSettings');
 
+    // Security & Access
+    $routes->get('securityAccess', 'Admin::securityAccess');
+
     });
 
     //Doctor Routes

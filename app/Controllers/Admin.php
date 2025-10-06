@@ -525,6 +525,17 @@ class Admin extends BaseController
         return view('admin/system-setting', $data);
     }
 
+    /**
+     * Security & Access page
+     */
+    public function securityAccess()
+    {
+        $data = [
+            'title' => 'Security & Access',
+        ];
+        return view('admin/security-access', $data);
+    }
+
     public function logout()
     {
         $session = session();

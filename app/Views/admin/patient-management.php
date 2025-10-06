@@ -122,14 +122,11 @@
                 font-weight: bold;
                 font-size: 0.9rem;
             }
-            .action-buttons {
-                display: flex;
-                gap: 0.5rem;
                 margin-top: 1rem;
                 flex-wrap: wrap;
             }
             .btn-small {
-                padding: 0.5rem 1rem;
+                padding: 0.3rem 0.8rem;
                 font-size: 0.8rem;
             }
             .critical-alert {
@@ -137,16 +134,7 @@
                 border: 1px solid #fecaca;
                 border-left: 4px solid #ef4444;
                 border-radius: 8px;
-                padding: 1rem;
-                margin-bottom: 1rem;
-            }
-            .alert-header {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                font-weight: 600;
-                color: #991b1b;
-                margin-bottom: 0.5rem;
+{{ ... }
             }
             .alert-content {
                 color: #7f1d1d;
@@ -159,12 +147,10 @@
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 margin-bottom: 2rem;
             }
-            .actions-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 1rem;
-                margin-top: 1rem;
-            }
+            /* Table style aligned with doctor lab-results */
+            .table { width: 100%; border-collapse: separate; border-spacing: 0; }
+            .table thead th { background: #f8fafc; color: #374151; font-weight: 600; text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid #e5e7eb; }
+            .table tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6; }
             .patient-flow {
                 display: flex;
                 justify-content: space-between;

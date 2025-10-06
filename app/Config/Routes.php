@@ -89,4 +89,9 @@ $routes->group('admin', function($routes) {
     $routes->get('nurse/vitals', 'Nurse::vitals');
     $routes->get('nurse/shift-report', 'Nurse::shiftReport');
 
+    // Receptionist Routes
+    $routes->get('receptionist/dashboard', 'Receptionist::dashboard');
+    $routes->get('receptionist/appointment-booking', 'Receptionist::appointmentBooking');
+    $routes->get('receptionist/patient-registration', 'Receptionist::patientRegistration');
+
 $routes->setAutoRoute(true);

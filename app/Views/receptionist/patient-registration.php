@@ -1,63 +1,19 @@
-    <!DOCTYPE html>
-<html lang ="en">
+<!DOCTYPE html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width", initial-scale="1.0">
         <title>Patients Registration</title>
-        <link rel="stylesheet" href="assets/css/common.css">
+        <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     </head>
     <body class="receptionist-theme">
-        <header class="header">
-            <div class="header-content">
-                <div class="logo">
-                    <h1><i class="fas fa-user-secret"></i>Receptionists</h1>
-                </div>
-               <div class="user-info">
-                    <div href="" class="fas fa-avatar" href=""></div>
-                    <div>
-                        <div style="font-weight: 600;">
-                            <?= \App\Helpers\UserHelper::getDisplayName($currentUser ?? null) ?>
-                        </div>
-                        <div style="font-size: 0.9rem;opacity:0.8">
-                            <?= \App\Helpers\UserHelper::getDisplayRole($currentUser ?? null) ?>
-                        </div>
-                    </div>
-                    <a class="btn btn-secondary" href="<?= base_url('profile') ?>" style="margin-left:.5rem;">
-                        <i class="fas fa-user"></i> Profile
-                    </a>
-                    <button class="logout-btn" onclick="handleLogout()">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Logout
-                    </button>
-                </div>
-            </div>
-        </header>
+        <?php include APPPATH . 'Views/template/header.php'; ?>
 
         <div class="main-container">
-                <  <!-- Sidebar -->
-            <nav class="sidebar">
-                <ul class="nav-menu">
-                    <li class="nav-item">
-                    <a href="<?= base_url('receptionist/dashboard') ?>" class="nav-link">
-                            <i class="fas fa-tachometer-alt nav-icon"></i>
-                            Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('receptionist/patient-registration') ?>" class="nav-link active">
-                            <i class="fas fa-user-plus nav-icon"></i>
-                            Patient Registration
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= base_url('receptionist/appointments') ?>" class="nav-link">
-                            <i class="fas fa-calendar-alt nav-icon"></i>
-                            Appointment Booking
-                        </a>
-                    </li>
-                </ul>
-            </nav>
+            <!-- Sidebar -->
+            <?php include APPPATH . 'Views/receptionist/components/sidebar.php'; ?>
+
             <main class="content">
                 <div class="content-header">
                     <h2 class="page-title"><i class="fas fa-user-plus"></i> Patient Registration</h2>
@@ -207,35 +163,14 @@
                 </section>
             </main>
         </div>
+
         <style>
-        .content { 
-            padding: 24px;
-            width: 100%; 
-            overflow: auto; 
-        }
-        .content-header { 
-            margin-bottom: 16px; 
-        }
-        .page-title { 
-            margin: 0 0 6px 0; 
-            font-weight: 700; 
-        }
-        .page-subtitle { 
-            margin: 0; 
-            opacity: 0.8; 
-        }
-        .card { 
-            background: var(--card-bg, #fff); 
-            border-radius: 12px; 
-            box-shadow: var(--shadow-md, 0 2px 12px rgba(0,0,0,0.06)); 
-            overflow: hidden; 
-        }
-        .card-header { 
-            padding: 16px 20px; 
-            border-bottom: 1px solid rgba(0,0,0,0.06); 
-            display: flex; align-items: center; 
-            justify-content: space-between; 
-        }
+        .content { padding: 24px; width: 100%; overflow: auto; }
+        .content-header { margin-bottom: 16px; }
+        .page-title { margin: 0 0 6px 0; font-weight: 700; }
+        .page-subtitle { margin: 0; opacity: 0.8; }
+        .card { background: var(--card-bg, #fff); border-radius: 12px; box-shadow: var(--shadow-md, 0 2px 12px rgba(0,0,0,0.06)); overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between; }
         .card-title { margin: 0; font-size: 1.05rem; font-weight: 600; }
         .card-body { padding: 20px; }
         .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -259,86 +194,20 @@
         .alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
         .alert ul { margin: 8px 0 0 0; padding-left: 20px; }
         .alert li { margin-bottom: 4px; }
-
-        /* Enhanced form validation styles */
-        .form-group input.error,
-        .form-group select.error,
-        .form-group textarea.error {
-            border-color: #dc2626;
-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
-        }
-
-        .field-error {
-            color: #dc2626;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .field-error::before {
-            content: "⚠";
-            font-size: 0.75rem;
-        }
-
-        .age-display {
-            color: #6b7280;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-            font-style: italic;
-        }
-
-        /* Loading and notification styles */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 500;
-            z-index: 1000;
-            transform: translateX(100%);
-            transition: transform 0.3s ease-in-out;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification-success {
-            background-color: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-
-        .notification-error {
-            background-color: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .fa-spinner {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
+        .form-group input.error, .form-group select.error, .form-group textarea.error { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
+        .field-error { color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem; }
+        .field-error::before { content: "⚠"; font-size: 0.75rem; }
+        .age-display { color: #6b7280; font-size: 0.875rem; margin-top: 0.25rem; font-style: italic; }
+        .notification { position: fixed; top: 20px; right: 20px; padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 8px; font-weight: 500; z-index: 1000; transform: translateX(100%); transition: transform 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+        .notification.show { transform: translateX(0); }
+        .notification-success { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .notification-error { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .fa-spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         </style>
 
         <script src="<?= base_url('js/logout.js') ?>"></script>
         <script src="<?= base_url('js/patient-registration.js') ?>"></script>
-        
     </body>
-    </html>
+</html>

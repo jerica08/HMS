@@ -1,24 +1,34 @@
 <!DOCTYPE html>
-<html lang ="en">
+<html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width", initial-scale="1.0">
         <title>Receptionist Dashboard</title>
-        <link rel="stylesheet" href="assets/css/common.css">
+        <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <style>
+            /* Table styling for Recent Patient Registrations */
+            .table-container { background:#fff; border:1px solid #e5e7eb; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.06); overflow:auto; }
+            .table-header { display:flex; align-items:center; justify-content:space-between; padding:1rem; border-bottom:1px solid #e5e7eb; background:#f8fafc; }
+            .table-actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+            .table { width:100%; border-collapse:separate; border-spacing:0; min-width: 900px; }
+            .table thead th { position:sticky; top:0; background:#f8fafc; color:#374151; font-weight:600; text-align:left; padding:.75rem 1rem; border-bottom:1px solid #e5e7eb; z-index:1; }
+            .table tbody td { padding:.75rem 1rem; border-bottom:1px solid #f3f4f6; vertical-align:middle; }
+            .table tbody tr:nth-child(odd) { background:#fcfcfd; }
+            .table tbody tr:hover { background:#f9fafb; }
+            .table th:last-child, .table td:last-child { text-align:right; white-space:nowrap; }
+        </style>
     </head>
     <body class="receptionist-theme">
        <!-- Header -->
        <?php include APPPATH . 'Views/template/header.php'; ?>
         <div class="main-container">
             <!-- Sidebar -->
-             <?php include APPPATH . '/receptionist/components/sidebar.php'; ?> 
+             <?php include APPPATH . 'Views/receptionist/components/sidebar.php'; ?> 
             <main class="content">
-                <h1 class="page-title">Dashboard</h1>
-    
-                <!-- Dashboard Overview Cards -->
+                <h1 class="page-title">Receptionist Dashboard</h1>
                 <div class="dashboard-overview">
-                    <!--Today's Appointmenet Card-->
+                    <!--Today's Appointment Card-->
                     <div class="overview-card">
                         <div class="card-header-modern">
                             <div class="card-icon-modern blue">

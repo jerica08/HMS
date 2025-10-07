@@ -75,6 +75,7 @@ $routes->group('admin', function($routes) {
     //Doctor Routes
     $routes->get('doctor/dashboard', 'Doctor::dashboard');
     $routes->get('doctor/patients', 'Doctor::patients');
+    $routes->post('doctor/patients', 'Doctor::createPatient');
     $routes->get('doctor/patient', 'Doctor::patients');
     $routes->get('doctor/appointments', 'Doctor::appointments');
     $routes->get('doctor/prescriptions', 'Doctor::prescriptions');

@@ -57,7 +57,19 @@ class Doctor extends BaseController
 
     public function appointments()
     {
-        return view('doctor/appointments');
+        // Fetch patients for the dropdown
+        $patients = [];
+        try {
+            $patients = $this->db->table('patient')->select('patient_id, first_name, last_name')->get()->getResultArray();
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            log_message('error', 'Failed to fetch patients: ' . $e->getMessage());
+        }
+
+        $data = [
+            'patients' => $patients,
+        ];
+
+        return view('doctor/appointments', $data);
     }
 
     public function prescriptions()

@@ -183,6 +183,138 @@
         </main>
     </div>
 
+    <!-- Schedule Appointment Modal -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Schedule New Appointment</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="scheduleForm">
+                    <div style="margin-bottom: 1rem;">
+                        <label for="patientSelect" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Patient</label>
+                        <select id="patientSelect" name="patient_id" class="filter-input" required style="width: 100%;">
+                            <option value="">Select Patient</option>
+                            <?php if (!empty($patients)): ?>
+                                <?php foreach ($patients as $patient): ?>
+                                    <option value="<?= esc($patient['patient_id']) ?>"><?= esc($patient['first_name'] . ' ' . $patient['last_name']) ?> (<?= esc($patient['patient_id']) ?>)</option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="appointmentDate" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Date</label>
+                        <input type="date" id="appointmentDate" class="filter-input" required style="width: 100%;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="appointmentTime" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Time</label>
+                        <input type="time" id="appointmentTime" class="filter-input" required style="width: 100%;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="appointmentType" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Type</label>
+                        <select id="appointmentType" class="filter-input" required style="width: 100%;">
+                            <option value="">Select Type</option>
+                            <option value="consultation">Consultation</option>
+                            <option value="follow-up">Follow-up</option>
+                            <option value="check-up">Check-up</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="appointmentReason" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Reason/Condition</label>
+                        <textarea id="appointmentReason" class="filter-input" rows="3" placeholder="Describe the reason for the appointment" style="width: 100%; resize: vertical;"></textarea>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label for="appointmentDuration" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Duration (minutes)</label>
+                        <input type="number" id="appointmentDuration" class="filter-input" min="15" max="120" step="15" value="30" required style="width: 100%;">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                <button class="btn btn-success" id="saveBtn">Schedule Appointment</button>
+            </div>
+        </div>
+    </div>
+
     <script src="<?= base_url('js/logout.js') ?>"></script>
+    <script>
+        // Modal functionality
+        const modal = document.getElementById('scheduleModal');
+        const scheduleBtn = document.getElementById('scheduleAppointmentBtn');
+        const closeModal = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const form = document.getElementById('scheduleForm');
+
+        // Show modal
+        scheduleBtn.addEventListener('click', () => {
+            modal.classList.add('show');
+        });
+
+        // Hide modal
+        closeModal.addEventListener('click', () => {
+            modal.classList.remove('show');
+            form.reset();
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            modal.classList.remove('show');
+            form.reset();
+        });
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                form.reset();
+            }
+        });
+
+        // Handle form submission
+        saveBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (form.checkValidity()) {
+                const formData = new FormData(form);
+                const data = {
+                    patient_id: formData.get('patientSelect'),
+                    date: formData.get('appointmentDate'),
+                    time: formData.get('appointmentTime'),
+                    type: formData.get('appointmentType'),
+                    reason: formData.get('appointmentReason'),
+                    duration: formData.get('appointmentDuration')
+                };
+
+                // AJAX submission (adjust URL as needed)
+                fetch('<?= base_url('doctor/schedule-appointment') ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('Appointment scheduled successfully!');
+                        modal.classList.remove('show');
+                        form.reset();
+                        // Optionally refresh the page or update the table
+                        location.reload();
+                    } else {
+                        alert('Error scheduling appointment: ' + result.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while scheduling the appointment.');
+                });
+            } else {
+                alert('Please fill in all required fields.');
+            }
+        });
+    </script>
 </body>
 </html>

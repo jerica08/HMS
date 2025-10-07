@@ -28,10 +28,15 @@ class UserHelper
             // Fallback to session or generic label
             try {
                 $session = session();
-                $email = $session ? (string) $session->get('email') : '';
-                if ($email) {
-                    $atPos = strpos($email, '@');
-                    $name = $atPos !== false ? substr($email, 0, $atPos) : $email;
+                $username = $session ? (string) $session->get('username') : '';
+                if ($username) {
+                    $name = $username;
+                } else {
+                    $email = $session ? (string) $session->get('email') : '';
+                    if ($email) {
+                        $atPos = strpos($email, '@');
+                        $name = $atPos !== false ? substr($email, 0, $atPos) : $email;
+                    }
                 }
             } catch (\Throwable $e) {
                 // ignore

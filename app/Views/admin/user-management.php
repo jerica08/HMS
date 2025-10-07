@@ -11,7 +11,6 @@
       .table thead th { text-align: left; background: #f8fafc; color: #374151; font-weight: 600; padding: 0.75rem 1.25rem; border-bottom: 1px solid #e5e7eb; }
       .table tbody td { padding: 0.75rem 1.25rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
       .table tbody tr:last-child td { border-bottom: none; }
-      .user-avatar { width: 40px; height: 40px; border-radius: 9999px; background: #e0e7ff; color: #3730a3; display: flex; align-items: center; justify-content: center; font-weight: 700; }
       .role-badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
       .role-admin { background: #fee2e2; color: #991b1b; }
       .role-doctor { background: #dbeafe; color: #1e40af; }
@@ -156,10 +155,7 @@
                           <?php foreach ($users as $user): ?>
                               <tr class="user-row">
                                   <td>
-                                      <div style="display: flex; align-items: center; gap: 1rem;">
-                                          <div class="user-avatar" aria-label="User initials" title="User initials">
-                                              <?= strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['last_name'] ?? 'U', 0, 1)) ?>
-                                          </div>
+                                      <div style="display: flex; align-items: center; gap: 0.5rem;">
                                           <div>
                                               <div style="font-weight: 600;">
                                                   <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>

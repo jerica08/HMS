@@ -362,7 +362,7 @@
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value blue"><? esc($total_staff) ?></div>
+                                <div class="metric-value blue"><?= esc($total_staff) ?></div>
                             </div>
                         </div>
                     </div>
@@ -403,113 +403,7 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="staff-grid">
-                <!-- Current Shift Status -->
-                <div class="staff-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div>
-                            <div class="section-title">Current Shift Status</div>
-                        </div>
-                    </div>
-
-                    <div class="staff-item">
-                        <div class="staff-info">
-                            <div class="staff-name">Dr. Staff1</div>
-                            <div class="staff-details">Emergency Department - 8:00 AM - 6:00 PM</div>
-                        </div>
-                        <div class="staff-status status-on-duty">On Duty</div>
-                    </div>
-
-                    <div class="staff-item">
-                        <div class="staff-info">
-                            <div class="staff-name">Nurse Staff1</div>
-                            <div class="staff-details">ICU - 6:00 AM - 6:00 PM</div>
-                        </div>
-                        <div class="staff-status status-break">On Break</div>
-                    </div>
-
-                    <div class="staff-item">
-                        <div class="staff-info">
-                            <div class="staff-name">Dr. Staff2</div>
-                            <div class="staff-details">Cardiology - 9:00 AM - 5:00 PM</div>
-                        </div>
-                        <div class="staff-status status-on-duty">On Duty</div>
-                    </div>
-
-                    <div class="staff-item">
-                        <div class="staff-info">
-                            <div class="staff-name">Tech Staff1</div>
-                            <div class="staff-details">Laboratory - 7:00 AM - 3:00 PM</div>
-                        </div>
-                        <div class="staff-status status-overtime">Overtime</div>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button class="btn btn-primary btn-small" onclick="viewAllShifts()">
-                            <i class="fas fa-list"></i> View All Shifts
-                        </button>
-                        <button class="btn btn-secondary btn-small" onclick="shiftReports()">
-                            <i class="fas fa-chart-bar"></i> Shift Reports
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Leave Management -->
-                <div class="staff-section">
-                    <div class="section-header">
-                        <div class="section-icon" style="background: #06b6d4;">
-                            <i class="fas fa-calendar-times"></i>
-                        </div>
-                        <div>
-                            <div class="section-title">Leave Requests</div>
-                        </div>
-                    </div>
-
-                    <div class="staff-item">
-                        <div class="staff-info">
-                            <div class="staff-name">Dr. Staff3</div>
-                            <div class="staff-details">Vacation Leave - Dec 20-27, 2024</div>
-                        </div>
-                        <div class="staff-status status-break">Pending</div>
-                    </div>
-
-                    <div class="staff-item">
-                        <div class="staff-info">
-                            <div class="staff-name">Nurse Staff2</div>
-                            <div class="staff-details">Sick Leave - Dec 18, 2024</div>
-                        </div>
-                        <div class="staff-status status-on-duty">Approved</div>
-                    </div>
-
-                    <div class="staff-item">
-                        <div class="staff-info">
-                            <div class="staff-name">Tech Staff2</div>
-                            <div class="staff-details">Personal Leave - Dec 22, 2024</div>
-                        </div>
-                        <div class="staff-status status-break">Pending</div>
-                    </div>
-
-                    <div style="margin-top: 1rem; font-size: 0.9rem; color: #6b7280;">
-                        <div>Pending Requests: 8</div>
-                        <div>Approved This Month: 23</div>
-                        <div>Leave Balance Usage: 67%</div>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button class="btn btn-primary btn-small" onclick="reviewLeaveRequests()">
-                            <i class="fas fa-clipboard-check"></i> Review Requests
-                        </button>
-                        <button class="btn btn-secondary btn-small" onclick="leaveReports()">
-                            <i class="fas fa-calendar-alt"></i> Leave Reports
-                        </button>
-                    </div>
-                </div>
-                </div>
-
+        
                 <!-- Staff List Table -->
                 <div class="staff-section">
                     <div class="section-header">
@@ -530,13 +424,12 @@
                                     <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Role</th>
                                     <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Department</th>
                                     <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Email</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Status</th>
                                     <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="staffTableBody">
                                 <tr>
-                                    <td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">Loading staff...</td>
+                                    <td colspan="5" style="text-align:center; color:#6b7280; padding:1rem;">Loading staff...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -782,7 +675,7 @@
                             const staff = await res.json();
 
                             if (!Array.isArray(staff) || staff.length === 0) {
-                                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">No staff found.</td></tr>';
+                                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#6b7280; padding:1rem;">No staff found.</td></tr>';
                                 return;
                             }
 
@@ -795,8 +688,6 @@
                                 const roleDisplay = role ? role.replace('_', ' ') : '';
                                 const dept = s.department ?? '';
                                 const email = s.email ?? '';
-                                // Status is not part of staff schema; show placeholder
-                                const statusBadge = '<span class="staff-status status-off-duty">-</span>';
                                 const viewUrl = '<?= base_url('admin/view-staff') ?>/' + id;
                                 return `
                                     <tr>
@@ -804,7 +695,6 @@
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; text-transform:capitalize;">${roleDisplay || '-'}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${dept || '-'}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${email || '-'}</td>
-                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${statusBadge}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">
                                             <a class="btn btn-primary btn-small" href="${viewUrl}"><i class="fas fa-eye"></i> View</a>
                                         </td>
@@ -813,7 +703,7 @@
                             }).join('');
                         } catch (err) {
                             console.error(err);
-                            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#ef4444; padding:1rem;">Failed to load staff.</td></tr>';
+                            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#ef4444; padding:1rem;">Failed to load staff.</td></tr>';
                         }
                     }
                     // Initial load

@@ -122,9 +122,9 @@
                 font-weight: bold;
                 font-size: 0.9rem;
             }
-                margin-top: 1rem;
-                flex-wrap: wrap;
-            }
+            /* Status badges to match DB values (Active/Inactive) */
+            .status-active { background: #dcfce7; color: #166534; }
+            .status-inactive { background: #f3f4f6; color: #6b7280; }
             .btn-small {
                 padding: 0.3rem 0.8rem;
                 font-size: 0.8rem;
@@ -134,7 +134,6 @@
                 border: 1px solid #fecaca;
                 border-left: 4px solid #ef4444;
                 border-radius: 8px;
-{{ ... }
             }
             .alert-content {
                 color: #7f1d1d;
@@ -294,7 +293,6 @@
                                     <th>Age</th>
                                     <th>Department</th>
                                     <th>Room</th>
-                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -333,21 +331,13 @@
                                             <td><?= esc($patient['department'] ?? 'N/A') ?></td>
                                             <td><?= esc($patient['room'] ?? 'N/A') ?></td>
                                             <td>
-                                                <?php
-                                                    $status = strtolower($patient['status'] ?? '');
-                                                    $statusClass = 'status-' . $status;
-                                                    $statusLabel = ucfirst($status);
-                                                ?>
-                                                <span class="patient-status <?= esc($statusClass) ?>"><?= esc($statusLabel) ?></span>
-                                            </td>
-                                            <td>
                                                 <button class="btn btn-secondary btn-small" onclick="viewPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">View</button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="7" style="text-align: center; padding: 2rem;">
+                                        <td colspan="6" style="text-align: center; padding: 2rem;">
                                             <i class="fas fa-user-injured" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
                                             <p>No patients found.</p>
                                         </td>

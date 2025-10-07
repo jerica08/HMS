@@ -39,17 +39,16 @@
         .table tbody td { border: none; padding: 0.25rem 1rem; }
       }
     </style>
-</head>
-<body class="admin">
-
-    <?php include APPPATH . 'Views/template/header.php'; ?>
-
     <?php
       // Initialize optional filter vars to avoid notices
       $search = $search ?? null;
       $roleFilter = $roleFilter ?? null;
       $statusFilter = $statusFilter ?? null;
     ?>
+</head>
+<body class="admin">
+
+    <?php include APPPATH . 'Views/template/header.php'; ?>
 
     <div class="main-container">
         <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>
@@ -192,13 +191,13 @@
                                   </td>
                                   <td>
                                       <div class="action-buttons">
-                                          <button class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="editUser(<?= esc($user['user_id']) ?>)" aria-label="Edit User <?= esc($user['first_name'] . ' ' . $user['last_name']) ?>">
+                                          <button class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="editUser(<?= esc($user['user_id']) ?>)" aria-label="Edit User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
                                               <i class="fas fa-edit" aria-hidden="true"></i> Edit
                                           </button>
-                                          <button class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="resetPassword(<?= esc($user['user_id']) ?>)" aria-label="Reset Password for <?= esc($user['first_name'] . ' ' . $user['last_name']) ?>">
+                                          <button class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="resetPassword(<?= esc($user['user_id']) ?>)" aria-label="Reset Password for <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
                                               <i class="fas fa-key" aria-hidden="true"></i> Reset
                                           </button>
-                                          <button class="btn btn-danger" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="deleteUser(<?= esc($user['user_id']) ?>)" aria-label="Delete User <?= esc($user['first_name'] . ' ' . $user['last_name']) ?>">
+                                          <button class="btn btn-danger" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="deleteUser(<?= esc($user['user_id']) ?>)" aria-label="Delete User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
                                               <i class="fas fa-trash" aria-hidden="true"></i> Delete
                                           </button>
                                       </div>
@@ -225,7 +224,7 @@
 </div>
 <script>
 function editUser(id) {
-    fetch('<?= base_url('admin/getUser/') ?>' + id)
+    fetch('<?= base_url('admin/users/get/') ?>' + id)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -251,7 +250,7 @@ function resetPassword(id) {
     if (!confirm('Reset this user\'s password? A temporary password will be generated.')) return;
     const form = document.createElement('form');
     form.method = 'GET';
-    form.action = '<?= base_url('admin/resetUserPassword/') ?>' + id;
+    form.action = '<?= base_url('admin/users/reset/') ?>' + id;
     document.body.appendChild(form);
     form.submit();
 }
@@ -261,20 +260,16 @@ function deleteUser(id) {
         // Create a form to submit GET request to the delete route
         const form = document.createElement('form');
         form.method = 'GET';
-        form.action = '<?= base_url('admin/deleteUser/') ?>' + id;
+        form.action = '<?= base_url('admin/users/delete/') ?>' + id;
         document.body.appendChild(form);
         form.submit();
     }
 }
 </script>
 
-    
-
-         
-
-<!-- Add User Modal (styled like Add Staff) -->
+<!-- Add User Modal -->
 <style>
-/* Modal and form styles adapted from staff-management */
+/* Modal and form styles */
 .hms-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 9990; }
 .hms-modal-overlay.active { display: flex; }
 .hms-modal { width: 100%; max-width: 900px; background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid #f1f5f9; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); max-height: 90vh; overflow: auto; box-sizing: border-box; }
@@ -300,7 +295,7 @@ function deleteUser(id) {
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <form id="addUserForm" action="<?= base_url('admin/saveUser') ?>" method="post">
+    <form id="addUserForm" action="<?= base_url('admin/users/saveUser') ?>" method="post">
       <?= csrf_field() ?>
       <div class="hms-modal-body">
         <div class="form-grid">
@@ -408,17 +403,6 @@ function closeAddUserModal() {
     if (overlay) overlay.classList.remove('active');
 }
 
-function deleteUser(id) {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-        // Create a form to submit GET request to the delete route
-        const form = document.createElement('form');
-        form.method = 'GET';
-        form.action = '<?= base_url('admin/users/delete/') ?>' + id;
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-
 // Close modal when clicking the overlay background
 window.addEventListener('click', function(event) {
     const overlay = document.getElementById('addUserModal');
@@ -443,7 +427,7 @@ document.getElementById('staff_id')?.addEventListener('change', populateFromStaf
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <form id="editUserForm" action="<?= base_url('admin/updateUser') ?>" method="post">
+    <form id="editUserForm" action="<?= base_url('admin/users/updateUser') ?>" method="post">
       <?= csrf_field() ?>
       <input type="hidden" name="user_id" id="edit_user_id">
       <div class="hms-modal-body">

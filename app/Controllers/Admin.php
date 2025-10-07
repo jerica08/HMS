@@ -69,14 +69,8 @@ class Admin extends BaseController
      */
     public function users()
     {
-        $users = $this->db->table('users')->get()->getResultArray();
-        
-        $data = [
-            'title' => 'Manage Users',
-            'users' => $users
-        ];
-        
-        return view('admin/users', $data);
+        // Redirect legacy route to the consolidated user management page
+        return redirect()->to(base_url('admin/user-management'));
     }
 
     /**

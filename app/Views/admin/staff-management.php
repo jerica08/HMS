@@ -772,7 +772,7 @@
                         }
                     });
 
-                    // Load Staff Table
+                    // Load Staff Table (all staff)
                     async function loadStaffTable() {
                         const tbody = document.getElementById('staffTableBody');
                         if (!tbody) return;
@@ -780,29 +780,33 @@
                             const res = await fetch('<?= base_url('admin/staff/api') ?>', { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
                             if (!res.ok) throw new Error('Failed to load staff');
                             const staff = await res.json();
-                            const doctors = Array.isArray(staff) ? staff.filter(s => (s.role ?? '').toLowerCase() === 'doctor') : [];
-                            if (doctors.length === 0) {
-                                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">No doctors found.</td></tr>';
+
+                            if (!Array.isArray(staff) || staff.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">No staff found.</td></tr>';
                                 return;
                             }
-                            tbody.innerHTML = doctors.map(s => {
-                                const id = s.id ?? '';
-                                const name = `${s.first_name ?? ''} ${s.last_name ?? ''}`.trim();
-                                const role = s.role ?? '';
+
+                            tbody.innerHTML = staff.map(s => {
+                                const id = s.id ?? s.staff_id ?? '';
+                                const first = s.first_name ?? '';
+                                const last = s.last_name ?? '';
+                                const name = (s.full_name ?? `${first} ${last}`).trim();
+                                const role = (s.role ?? '').toString().toLowerCase();
+                                const roleDisplay = role ? role.replace('_', ' ') : '';
                                 const dept = s.department ?? '';
                                 const email = s.email ?? '';
-                                const status = s.status ?? '';
-                                const statusBadge = status ? `<span class="staff-status ${status === 'active' ? 'status-on-duty' : 'status-off-duty'}">${status}</span>` : '';
-                                const viewUrl = '<?= base_url('admin/staff') ?>/' + id + '/shifts';
+                                // Status is not part of staff schema; show placeholder
+                                const statusBadge = '<span class="staff-status status-off-duty">-</span>';
+                                const viewUrl = '<?= base_url('admin/view-staff') ?>/' + id;
                                 return `
                                     <tr>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${name || '-'}</td>
-                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; text-transform:capitalize;">${role || '-'}</td>
+                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; text-transform:capitalize;">${roleDisplay || '-'}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${dept || '-'}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${email || '-'}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${statusBadge}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">
-                                            <a class="btn btn-primary btn-small" href="${viewUrl}"><i class="fas fa-calendar"></i> View Shifts</a>
+                                            <a class="btn btn-primary btn-small" href="${viewUrl}"><i class="fas fa-eye"></i> View</a>
                                         </td>
                                     </tr>
                                 `;

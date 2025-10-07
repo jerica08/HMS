@@ -44,6 +44,7 @@ $routes->group('admin', function($routes) {
     $routes->post('users/updateUser', 'Admin::updateUser');
     $routes->get('users/get/(:num)', 'Admin::getUser/$1');
     $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
+    $routes->get('users/reset/(:num)', 'Admin::resetUserPassword/$1');
 
     // Resource Management
     $routes->get('resource', 'Admin::resourceManagement');

@@ -44,6 +44,13 @@
 
     <?php include APPPATH . 'Views/template/header.php'; ?>
 
+    <?php
+      // Initialize optional filter vars to avoid notices
+      $search = $search ?? null;
+      $roleFilter = $roleFilter ?? null;
+      $statusFilter = $statusFilter ?? null;
+    ?>
+
     <div class="main-container">
         <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>
 
@@ -133,6 +140,19 @@
                       </tr>
                   </thead>
                   <tbody id="usersTableBody">
+                      <?php
+                        if (!empty($users) && is_array($users)) {
+                            usort($users, function($a, $b) {
+                                $aCreated = $a['created_at'] ?? null;
+                                $bCreated = $b['created_at'] ?? null;
+                                if ($aCreated && $bCreated) {
+                                    return strtotime($bCreated) <=> strtotime($aCreated); // newest first
+                                }
+                                // Fallback: sort by user_id desc (newest IDs first)
+                                return ((int)($b['user_id'] ?? 0)) <=> ((int)($a['user_id'] ?? 0));
+                            });
+                        }
+                      ?>
                       <?php if (!empty($users) && is_array($users)): ?>
                           <?php foreach ($users as $user): ?>
                               <tr class="user-row">
@@ -205,7 +225,7 @@
 </div>
 <script>
 function editUser(id) {
-    fetch('<?= base_url('admin/users/get/') ?>' + id)
+    fetch('<?= base_url('admin/getUser/') ?>' + id)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -226,12 +246,22 @@ function editUser(id) {
         });
 }
 
+function resetPassword(id) {
+    if (!id) return;
+    if (!confirm('Reset this user\'s password? A temporary password will be generated.')) return;
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = '<?= base_url('admin/resetUserPassword/') ?>' + id;
+    document.body.appendChild(form);
+    form.submit();
+}
+
 function deleteUser(id) {
     if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
         // Create a form to submit GET request to the delete route
         const form = document.createElement('form');
         form.method = 'GET';
-        form.action = '<?= base_url('admin/users/delete/') ?>' + id;
+        form.action = '<?= base_url('admin/deleteUser/') ?>' + id;
         document.body.appendChild(form);
         form.submit();
     }
@@ -270,7 +300,7 @@ function deleteUser(id) {
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <form id="addUserForm" action="<?= base_url('admin/users/saveUser') ?>" method="post">
+    <form id="addUserForm" action="<?= base_url('admin/saveUser') ?>" method="post">
       <?= csrf_field() ?>
       <div class="hms-modal-body">
         <div class="form-grid">
@@ -413,7 +443,7 @@ document.getElementById('staff_id')?.addEventListener('change', populateFromStaf
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <form id="editUserForm" action="<?= base_url('admin/users/updateUser') ?>" method="post">
+    <form id="editUserForm" action="<?= base_url('admin/updateUser') ?>" method="post">
       <?= csrf_field() ?>
       <input type="hidden" name="user_id" id="edit_user_id">
       <div class="hms-modal-body">

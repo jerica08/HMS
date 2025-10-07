@@ -15,6 +15,7 @@ class UserModel extends Model
         'email',
         'password',
         'role',
+        'status',
         'created_at',
         'updated_at',
     ];
@@ -36,9 +37,12 @@ class UserModel extends Model
     
     public function getAllUsersWithStaff()
     {
-        return $this->select('users.user_id, users.username, users.email as user_email, users.role, 
+        return $this->select('users.user_id, users.username, users.email as email, users.role, users.status,
+                              users.created_at, users.updated_at,
                               staff.employee_id, staff.first_name, staff.last_name, staff.department')
                     ->join('staff', 'staff.staff_id = users.staff_id', 'left')
+                    ->orderBy('users.created_at', 'DESC')
+                    ->orderBy('users.user_id', 'DESC')
                     ->findAll();
     }
     

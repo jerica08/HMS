@@ -230,15 +230,22 @@ class Admin extends BaseController
         $userModel = new UserModel();
         $staffModel = new StaffModel();
 
-        $data =[
+        // Fetch once and guard types
+        $users = $userModel->getAllUsersWithStaff();
+        if (!is_array($users)) { $users = []; }
+
+        $adminCount = 0;
+        foreach ($users as $u) {
+            if (($u['role'] ?? '') === 'admin') { $adminCount++; }
+        }
+
+        $data = [
             'title' => 'User Management',
-            'users' => $userModel->getAllUsersWithStaff(),
+            'users' => $users,
             'staff' => $staffModel->getStaffWithoutUsers(),
             'stats' => [
-                'total_users' => count($userModel->getAllUsersWithStaff()),
-                 'admin_users' => count(array_filter($userModel->getAllUsersWithStaff(), function($user) {
-                    return $user['role'] == 'admin';
-                })),
+                'total_users' => count($users),
+                'admin_users' => $adminCount,
             ],
         ];
 
@@ -341,17 +348,57 @@ class Admin extends BaseController
         }
     }
 
+    /**
+     * Delete a user by ID
+     */
     public function deleteUser($id = null)
-{
-    $userModel = new UserModel();
-    if ($id && $userModel->delete($id)) {
-        session()->setFlashdata('success', 'User deleted successfully!');
-    } else {
-        session()->setFlashdata('error', 'Failed to delete user.');
+    {
+        $userModel = new UserModel();
+        if ($id && $userModel->delete($id)) {
+            session()->setFlashdata('success', 'User deleted successfully!');
+        } else {
+            session()->setFlashdata('error', 'Failed to delete user.');
+        }
+        return redirect()->to(base_url('admin/user-management'));
     }
-    return redirect()->to(base_url('admin/user-management'));
-}
-    
+
+    /**
+     * Reset a user's password and show the temporary password via flash message
+     */
+    public function resetUserPassword($id = null)
+    {
+        if (!$id) {
+            session()->setFlashdata('error', 'Invalid user ID for reset.');
+            return redirect()->to(base_url('admin/user-management'));
+        }
+
+        $userModel = new UserModel();
+        $user = $userModel->find($id);
+        if (!$user) {
+            session()->setFlashdata('error', 'User not found.');
+            return redirect()->to(base_url('admin/user-management'));
+        }
+
+        // Generate a temporary password (12 chars)
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^*';
+        $temp = '';
+        for ($i = 0; $i < 12; $i++) {
+            $temp .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
+
+        $ok = $userModel->update($id, [
+            'password' => password_hash($temp, PASSWORD_DEFAULT),
+        ]);
+
+        if ($ok) {
+            session()->setFlashdata('success', 'Password reset successfully. Temporary password: ' . $temp);
+        } else {
+            session()->setFlashdata('error', 'Failed to reset password.');
+        }
+
+        return redirect()->to(base_url('admin/user-management'));
+    }
+
     /**
      * Patient management page - displays all patients
      */
@@ -365,13 +412,13 @@ class Admin extends BaseController
             log_message('error', 'Patients table does not exist: ' . $e->getMessage());
         }
 
-       $data = [
-        'title' => 'Patient Management',
-        'patients' => $patients,
-        'patientStats' => [
-            'total_patients' => count($patients),
-        ],
-    ];
+        $data = [
+            'title' => 'Patient Management',
+            'patients' => $patients,
+            'patientStats' => [
+                'total_patients' => count($patients),
+            ],
+        ];
 
         return view('admin/patient-management', $data);
     }
@@ -547,5 +594,30 @@ class Admin extends BaseController
         return view('admin/audit-logs', $data);
     }
 
-   
+    /**
+     * API: Return all staff as JSON
+     * Route: GET admin/staff/api
+     */
+    public function getStaffAPI()
+    {
+        try {
+            // Fetch all staff
+            $rows = $this->builder->orderBy('last_name', 'ASC')->orderBy('first_name', 'ASC')->get()->getResultArray();
+            // Normalize payload to include a generic 'id' and 'full_name'
+            $staff = array_map(function ($s) {
+                $first = $s['first_name'] ?? '';
+                $last  = $s['last_name'] ?? '';
+                $s['id'] = $s['staff_id'] ?? null;
+                $s['full_name'] = trim($first . ' ' . $last);
+                return $s;
+            }, $rows);
+
+            return $this->response->setJSON($staff);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to load staff: ' . $e->getMessage());
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON(['status' => 'error', 'message' => 'Failed to load staff']);
+        }
+    }
 }

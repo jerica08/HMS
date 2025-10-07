@@ -52,6 +52,7 @@ $routes->group('admin', function($routes) {
     //Patient Management
     $routes->get('patient-management', 'Admin::patientManagement');
     $routes->post('patients', 'Admin::createPatient');
+    $routes->post('patients/update', 'Admin::updatePatient');
 
     // Financial Management
     $routes->get('financial', 'Admin::financialManagement');

@@ -220,66 +220,6 @@
                 </div>       
 
                 <div class="patient-view">         
-                    <!--Filter and Actions-->    
-                    <div class="search-filter">
-                        <h3 style="margin-bottom: 1rem;">Patient Search & Filters</h3>
-                        <div class="filter-row">
-                            <div class="filter-group">
-                                <label> Search Patient</label>
-                                <input type="text" class="filter-input" placeholder="Search by name, email, or ID..." 
-                                    id="searchInput" value="">
-                            </div>
-                            <div class="filter-group">
-                                <label>Status Filter</label>
-                                <select class="filter-input" id="statusFilter">
-                                    <option value="">All Status</option>
-                                    <option value="admitted">Admitted</option>
-                                    <option value="discharged">Dishcarge</option>
-                                    <option value="critical">Critical</option>
-                                    <option value="emergency">Emergency</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label> Role Filter</label>
-                                <select class="filter-input" id="roleFilter">
-                                    <option value="">All Roles</option>
-                                    <option value="admin">Administrator</option>
-                                    <option value="doctor">Doctor</option>
-                                    <option value="nurse">Nurse</option>
-                                    <option value="receptionist">Receptionist</option>
-                                    <option value="laboratorist">Laboratory Staff</option>
-                                    <option value="pharmacist">Pharmacist</option>
-                                    <option value="accountant">Accountant</option>
-                                    <option value="it_staff">IT Staff</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label>Department</label>
-                                <select class="filter-input" id="departmentFilter">
-                                    <option value="">All Departments</option>
-                                    <option value="emergency">Emergency</option>
-                                    <option value="icu">ICU</option>
-                                    <option value="cardiology">Cardiology</option>
-                                    <option value="general">General Ward</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label>Date Range</label>
-                                <select class="filter-input" id="dateFilter">
-                                    <option value="today">Today</option>
-                                    <option value="week">This Week</option>
-                                    <option value="month">This Month</option>
-                                    <option value="custom">Custom Range</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label>&nbsp;</label>
-                                <button class="btn btn-primary" onclick="applyFilters()">
-                                    <i class="fas fa-search"></i> Search
-                                </button>
-                            </div>     
-                        </div>          
-                    </div><br>
                     <!-- Patient List Table -->
                     <div class="patient-table">
                         <div class="table-header">
@@ -331,7 +271,10 @@
                                             <td><?= esc($patient['department'] ?? 'N/A') ?></td>
                                             <td><?= esc($patient['room'] ?? 'N/A') ?></td>
                                             <td>
-                                                <button class="btn btn-secondary btn-small" onclick="viewPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">View</button>
+                                                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                                    <button class="btn btn-secondary btn-small" onclick="viewPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">View</button>
+                                                    <button class="btn btn-primary btn-small" onclick="editPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">Edit</button>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -489,7 +432,351 @@
             </div>
         </div>
         
+        <!-- View Patient Modal -->
+        <div id="viewPatientModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
+            <div style="background:#fff; padding:1.25rem 1.5rem; border-radius:8px; max-width:780px; width:96%; margin:auto; position:relative; max-height:92vh; overflow:auto; box-sizing:border-box;">
+                <div class="hms-modal-header">
+                    <div class="hms-modal-title">
+                        <i class="fas fa-user" style="color:#4f46e5"></i>
+                        <h2 style="margin:0; font-size:1.25rem;">Patient Details</h2>
+                    </div>
+                </div>
+                <div class="hms-modal-body">
+                    <div class="form-grid">
+                        <div>
+                            <label class="form-label">Patient ID</label>
+                            <div id="vp_id">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Name</label>
+                            <div id="vp_name">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Gender</label>
+                            <div id="vp_gender">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Date of Birth</label>
+                            <div id="vp_dob">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Age</label>
+                            <div id="vp_age">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Phone</label>
+                            <div id="vp_phone">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Email</label>
+                            <div id="vp_email">-</div>
+                        </div>
+                        <div class="full">
+                            <label class="form-label">Address</label>
+                            <div id="vp_address">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Department</label>
+                            <div id="vp_department">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Room</label>
+                            <div id="vp_room">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Patient Type</label>
+                            <div id="vp_type">-</div>
+                        </div>
+                        <div>
+                            <label class="form-label">Status</label>
+                            <div id="vp_status">-</div>
+                        </div>
+                        <div class="full">
+                            <label class="form-label">Emergency Contact</label>
+                            <div id="vp_emergency">-</div>
+                        </div>
+                        <div class="full">
+                            <label class="form-label">Notes</label>
+                            <div id="vp_notes">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hms-modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeViewPatientModal()">Close</button>
+                </div>
+                <button aria-label="Close" onclick="closeViewPatientModal()" style="position:absolute; top:10px; right:10px; background:transparent; border:none; font-size:1.25rem; color:#6b7280; cursor:pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Edit Patient Modal -->
+        <div id="editPatientModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
+            <div style="background:#fff; padding:1.25rem 1.5rem; border-radius:8px; max-width:840px; width:96%; margin:auto; position:relative; max-height:92vh; overflow:auto; box-sizing:border-box;">
+                <div class="hms-modal-header">
+                    <div class="hms-modal-title">
+                        <i class="fas fa-user-edit" style="color:#4f46e5"></i>
+                        <h2 style="margin:0; font-size:1.25rem;">Edit Patient</h2>
+                    </div>
+                </div>
+                <form id="editPatientForm">
+                    <input type="hidden" id="ep_patient_id" name="patient_id">
+                    <div class="form-grid" style="margin-top:0.5rem;">
+                        <div>
+                            <label class="form-label" for="ep_first_name">First Name</label>
+                            <input type="text" id="ep_first_name" name="first_name" class="form-input" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_middle_name">Middle Name</label>
+                            <input type="text" id="ep_middle_name" name="middle_name" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_last_name">Last Name</label>
+                            <input type="text" id="ep_last_name" name="last_name" class="form-input" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_date_of_birth">Date of Birth</label>
+                            <input type="date" id="ep_date_of_birth" name="date_of_birth" class="form-input" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_gender">Gender</label>
+                            <select id="ep_gender" name="gender" class="form-select" required>
+                                <option value="">Select...</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_civil_status">Civil Status</label>
+                            <select id="ep_civil_status" name="civil_status" class="form-select" required>
+                                <option value="">Select...</option>
+                                <option value="single">Single</option>
+                                <option value="married">Married</option>
+                                <option value="widowed">Widowed</option>
+                                <option value="separated">Separated</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_phone">Phone</label>
+                            <input type="tel" id="ep_phone" name="phone" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_email">Email</label>
+                            <input type="email" id="ep_email" name="email" class="form-input">
+                        </div>
+                        <div class="full">
+                            <label class="form-label" for="ep_address">Address</label>
+                            <input type="text" id="ep_address" name="address" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_province">Province</label>
+                            <input type="text" id="ep_province" name="province" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_city">City/Municipality</label>
+                            <input type="text" id="ep_city" name="city" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_barangay">Barangay</label>
+                            <input type="text" id="ep_barangay" name="barangay" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_zip_code">ZIP Code</label>
+                            <input type="text" id="ep_zip_code" name="zip_code" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_insurance_provider">Insurance Provider</label>
+                            <input type="text" id="ep_insurance_provider" name="insurance_provider" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_insurance_number">Insurance Number</label>
+                            <input type="text" id="ep_insurance_number" name="insurance_number" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_department">Department</label>
+                            <input type="text" id="ep_department" name="department" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_room">Room</label>
+                            <input type="text" id="ep_room" name="room" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_patient_type">Patient Type</label>
+                            <select id="ep_patient_type" name="patient_type" class="form-select">
+                                <option value="">Select...</option>
+                                <option value="outpatient">Outpatient</option>
+                                <option value="inpatient">Inpatient</option>
+                                <option value="emergency">Emergency</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_status">Status</label>
+                            <select id="ep_status" name="status" class="form-select">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_emergency_contact_name">Emergency Contact Name</label>
+                            <input type="text" id="ep_emergency_contact_name" name="emergency_contact_name" class="form-input">
+                        </div>
+                        <div>
+                            <label class="form-label" for="ep_emergency_contact_phone">Emergency Contact Phone</label>
+                            <input type="tel" id="ep_emergency_contact_phone" name="emergency_contact_phone" class="form-input">
+                        </div>
+                        <div class="full">
+                            <label class="form-label" for="ep_medical_notes">Medical Notes</label>
+                            <textarea id="ep_medical_notes" name="medical_notes" rows="3" class="form-textarea"></textarea>
+                        </div>
+                    </div>
+                    <div class="hms-modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditPatientModal()">Cancel</button>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+                    </div>
+                </form>
+                <button aria-label="Close" onclick="closeEditPatientModal()" style="position:absolute; top:10px; right:10px; background:transparent; border:none; font-size:1.25rem; color:#6b7280; cursor:pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
         <script>
+            // Build a quick lookup from PHP data
+            (function(){
+                try {
+                    var list = <?php echo json_encode($patients ?? []); ?>;
+                    var map = {};
+                    if (Array.isArray(list)) { for (var i=0;i<list.length;i++){ var p=list[i]; if(p && p.patient_id){ map[p.patient_id]=p; } } }
+                    window.patientsById = map;
+                } catch(e){ window.patientsById = {}; }
+            })();
+
+            function openViewPatientModal(){ var m=document.getElementById('viewPatientModal'); if(m){ m.style.display='flex'; } }
+            function closeViewPatientModal(){ var m=document.getElementById('viewPatientModal'); if(m){ m.style.display='none'; } }
+            function viewPatient(id){
+                var p = (window.patientsById||{})[id];
+                if(!p){ alert('Patient not found'); return; }
+                // derive age
+                var age='';
+                if(p.date_of_birth){
+                    try { var d=new Date(p.date_of_birth); var t=new Date(); var a=t.getFullYear()-d.getFullYear(); var m=t.getMonth()-d.getMonth(); if(m<0 || (m===0 && t.getDate()<d.getDate())) a--; age = a>=0? a : ''; } catch(e){}
+                }
+                // helper to set input/select/textarea values
+                var setVal = function(i,v){ var el=document.getElementById(i); if(!el) return; if(el.tagName==='SELECT' || el.tagName==='INPUT' || el.tagName==='TEXTAREA'){ el.value = v ?? ''; } else { el.textContent = (v==null||v==='')? '-' : v; } };
+                setVal('vp_id', p.patient_id || '');
+                setVal('vp_first_name', p.first_name || '');
+                setVal('vp_last_name', p.last_name || '');
+                setVal('vp_gender', (p.gender||'').toLowerCase());
+                setVal('vp_dob', p.date_of_birth || '');
+                setVal('vp_age', age || '');
+                setVal('vp_phone', p.contact_no || p.phone || '');
+                setVal('vp_email', p.email || '');
+                setVal('vp_address', p.address || '');
+                setVal('vp_department', p.department || '');
+                setVal('vp_room', p.room || '');
+                setVal('vp_type', (p.patient_type||'').toLowerCase());
+                setVal('vp_status', p.status || '');
+                setVal('vp_emergency_name', p.emergency_contact || '');
+                setVal('vp_emergency_phone', p.emergency_phone || '');
+                setVal('vp_notes', p.medical_notes || '');
+                openViewPatientModal();
+            }
+            // Edit Patient modal
+            function openEditPatientModal(){ var m=document.getElementById('editPatientModal'); if(m){ m.style.display='flex'; } }
+            function closeEditPatientModal(){ var m=document.getElementById('editPatientModal'); if(m){ m.style.display='none'; } }
+            function editPatient(id){
+                var p = (window.patientsById||{})[id];
+                if(!p){ alert('Patient not found'); return; }
+                var set = function(i,val){ var el=document.getElementById(i); if(el){ if(el.tagName==='INPUT' || el.tagName==='TEXTAREA' || el.tagName==='SELECT'){ el.value = val ?? ''; } else { el.textContent = val ?? ''; } } };
+                set('ep_patient_id', p.patient_id || '');
+                set('ep_first_name', p.first_name || '');
+                set('ep_middle_name', p.middle_name || '');
+                set('ep_last_name', p.last_name || '');
+                set('ep_date_of_birth', p.date_of_birth || '');
+                set('ep_gender', (p.gender||'').toLowerCase());
+                set('ep_civil_status', (p.civil_status||''));
+                set('ep_phone', p.contact_no || p.phone || '');
+                set('ep_email', p.email || '');
+                set('ep_address', p.address || '');
+                set('ep_province', p.province || '');
+                set('ep_city', p.city || '');
+                set('ep_barangay', p.barangay || '');
+                set('ep_zip_code', p.zip_code || '');
+                set('ep_insurance_provider', p.insurance_provider || '');
+                set('ep_insurance_number', p.insurance_number || '');
+                set('ep_department', p.department || '');
+                set('ep_room', p.room || '');
+                set('ep_patient_type', p.patient_type || '');
+                set('ep_status', (p.status||'').toLowerCase());
+                set('ep_emergency_contact_name', p.emergency_contact || '');
+                set('ep_emergency_contact_phone', p.emergency_phone || '');
+                set('ep_medical_notes', p.medical_notes || '');
+                openEditPatientModal();
+            }
+            (function(){
+                var form = document.getElementById('editPatientForm');
+                if (!form) return;
+                form.addEventListener('submit', async function(e){
+                    e.preventDefault();
+                    var btn = form.querySelector('button[type="submit"]');
+                    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving'; }
+                    // Build payload mirroring backend expectations
+                    var val = function(id){ var el=document.getElementById(id); return el? el.value : null; };
+                    var payload = {
+                        patient_id: val('ep_patient_id'),
+                        first_name: val('ep_first_name'),
+                        middle_name: val('ep_middle_name'),
+                        last_name: val('ep_last_name'),
+                        date_of_birth: val('ep_date_of_birth'),
+                        gender: val('ep_gender'),
+                        civil_status: val('ep_civil_status'),
+                        phone: val('ep_phone'),
+                        email: val('ep_email'),
+                        address: val('ep_address'),
+                        province: val('ep_province'),
+                        city: val('ep_city'),
+                        barangay: val('ep_barangay'),
+                        zip_code: val('ep_zip_code'),
+                        insurance_provider: val('ep_insurance_provider'),
+                        insurance_number: val('ep_insurance_number'),
+                        department: val('ep_department'),
+                        room: val('ep_room'),
+                        patient_type: val('ep_patient_type'),
+                        status: val('ep_status'),
+                        emergency_contact_name: val('ep_emergency_contact_name'),
+                        emergency_contact_phone: val('ep_emergency_contact_phone'),
+                        medical_notes: val('ep_medical_notes')
+                    };
+                    try {
+                        var res = await fetch('<?= base_url('admin/patients/update') ?>', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                            body: JSON.stringify(payload),
+                            credentials: 'same-origin'
+                        });
+                        var result = await res.json().catch(function(){ return {}; });
+                        if (res.ok && result.status === 'success'){
+                            alert('Patient updated successfully');
+                            closeEditPatientModal();
+                            window.location.reload();
+                        } else {
+                            var msg = result.message || 'Failed to update patient';
+                            if (result.errors){ msg += '\n\n' + Object.values(result.errors).join('\n'); }
+                            alert(msg);
+                        }
+                    } catch (err){
+                        console.error('Error updating patient', err);
+                        alert('Network error. Please try again.');
+                    } finally {
+                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; }
+                    }
+                });
+                // Close on overlay click
+                document.addEventListener('click', function(e){ var m=document.getElementById('editPatientModal'); if(m && e.target===m){ closeEditPatientModal(); }});
+                // Close on ESC
+                document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeEditPatientModal(); }});
+            })();
             function openAddPatientsModal() {
                 var m = document.getElementById('patientModal');
                 if (m) { m.style.display = 'flex'; }

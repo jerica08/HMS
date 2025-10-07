@@ -512,6 +512,109 @@ class Admin extends BaseController
     }
 
     /**
+     * Update an existing patient record via JSON POST
+     * Route: POST admin/patients/update
+     */
+    public function updatePatient()
+    {
+        // Expect JSON payload but also allow form POST
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+
+        if (!is_array($input) || empty($input['patient_id'])) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'patient_id is required',
+            ])->setStatusCode(422);
+        }
+
+        $id = (int) $input['patient_id'];
+
+        // Basic rules (aligning with createPatient non-nullables where applicable)
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'first_name'              => 'permit_empty|min_length[1]|max_length[100]',
+            'last_name'               => 'permit_empty|min_length[1]|max_length[100]',
+            'gender'                  => 'permit_empty|in_list[male,female,other,MALE,FEMALE,OTHER,Male,Female,Other]',
+            'date_of_birth'           => 'permit_empty|valid_date',
+            'phone'                   => 'permit_empty|max_length[50]',
+            'email'                   => 'permit_empty|valid_email',
+            'address'                 => 'permit_empty',
+            'province'                => 'permit_empty|max_length[100]',
+            'city'                    => 'permit_empty|max_length[100]',
+            'barangay'                => 'permit_empty|max_length[100]',
+            'zip_code'                => 'permit_empty|max_length[20]',
+            'emergency_contact_name'  => 'permit_empty|max_length[100]',
+            'emergency_contact_phone' => 'permit_empty|max_length[50]',
+            'patient_type'            => 'permit_empty|in_list[outpatient,inpatient,emergency,Outpatient,Inpatient,Emergency]',
+            'status'                  => 'permit_empty|in_list[Active,Inactive,active,inactive]'
+        ]);
+
+        if (!$validation->run($input)) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Validation failed',
+                'errors'  => $validation->getErrors(),
+            ])->setStatusCode(422);
+        }
+
+        // Normalize values
+        $gender = $input['gender'] ?? null;
+        $status = $input['status'] ?? null;
+        $gender = $gender ? ucfirst(strtolower($gender)) : null; // Male/Female/Other
+        $status = $status ? ucfirst(strtolower($status)) : null;  // Active/Inactive
+
+        // Map incoming fields to DB schema
+        $data = [
+            'first_name'         => $input['first_name'] ?? null,
+            'middle_name'        => $input['middle_name'] ?? null,
+            'last_name'          => $input['last_name'] ?? null,
+            'gender'             => $gender,
+            'civil_status'       => $input['civil_status'] ?? null,
+            'date_of_birth'      => $input['date_of_birth'] ?? null,
+            'contact_no'         => $input['phone'] ?? ($input['contact_no'] ?? null),
+            'email'              => $input['email'] ?? null,
+            'address'            => $input['address'] ?? null,
+            'province'           => $input['province'] ?? null,
+            'city'               => $input['city'] ?? null,
+            'barangay'           => $input['barangay'] ?? null,
+            'zip_code'           => $input['zip_code'] ?? null,
+            'insurance_provider' => $input['insurance_provider'] ?? null,
+            'insurance_number'   => $input['insurance_number'] ?? null,
+            'emergency_contact'  => $input['emergency_contact_name'] ?? ($input['emergency_contact'] ?? null),
+            'emergency_phone'    => $input['emergency_contact_phone'] ?? ($input['emergency_phone'] ?? null),
+            'patient_type'       => $input['patient_type'] ?? null,
+            'medical_notes'      => $input['medical_notes'] ?? null,
+            'status'             => $status,
+        ];
+
+        // Remove nulls to avoid overwriting with null unintentionally
+        $data = array_filter($data, function($v) { return $v !== null; });
+
+        try {
+            $builder = $this->db->table('patient');
+            $ok = $builder->where('patient_id', $id)->update($data);
+            if ($ok) {
+                return $this->response->setJSON([
+                    'status'  => 'success',
+                    'message' => 'Patient updated successfully',
+                    'id'      => $id,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to update patient: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Database error: ' . $e->getMessage(),
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'status'  => 'error',
+            'message' => 'Failed to update patient',
+        ])->setStatusCode(500);
+    }
+
+    /**
      * Resource management page
      */
     public function resourceManagement()

@@ -34,21 +34,21 @@
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue">0</div>
+                            <div class="metric-value blue"><?= $scheduledToday ?? 0 ?></div>
                             <div class="metric-label">Scheduled</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value green">0</div>
+                            <div class="metric-value green"><?= $completedToday ?? 0 ?></div>
                             <div class="metric-label">Completed</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value orange">0</div>
+                            <div class="metric-value orange"><?= $pendingToday ?? 0 ?></div>
                             <div class="metric-label">Pending</div>
                         </div>
                     </div>
                     <div class="card-actions">
-                        <button class="action-btn primary">View Schedule</button>
-                        <button class="action-btn secondary">Add Appointment</button>
+                        <a href="<?= base_url('doctor/appointments') ?>" class="action-btn primary">View Schedule</a>
+                        <button class="action-btn secondary" onclick="alert('Add Appointment functionality not implemented yet')">Add Appointment</button>
                     </div>
                 </div>
 

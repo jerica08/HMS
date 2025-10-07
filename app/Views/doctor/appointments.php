@@ -192,6 +192,7 @@
             </div>
             <div class="modal-body">
                 <form id="scheduleForm">
+                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>" id="csrfToken">
                     <div style="margin-bottom: 1rem;">
                         <label for="patientSelect" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Patient</label>
                         <select id="patientSelect" name="patient_id" class="filter-input" required style="width: 100%;">
@@ -205,29 +206,29 @@
                     </div>
                     <div style="margin-bottom: 1rem;">
                         <label for="appointmentDate" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Date</label>
-                        <input type="date" id="appointmentDate" class="filter-input" required style="width: 100%;">
+                        <input type="date" id="appointmentDate" name="appointmentDate" class="filter-input" required style="width: 100%;">
                     </div>
                     <div style="margin-bottom: 1rem;">
                         <label for="appointmentTime" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Time</label>
-                        <input type="time" id="appointmentTime" class="filter-input" required style="width: 100%;">
+                        <input type="time" id="appointmentTime" name="appointmentTime" class="filter-input" required style="width: 100%;">
                     </div>
                     <div style="margin-bottom: 1rem;">
                         <label for="appointmentType" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Type</label>
-                        <select id="appointmentType" class="filter-input" required style="width: 100%;">
+                        <select id="appointmentType" name="appointmentType" class="filter-input" required style="width: 100%;">
                             <option value="">Select Type</option>
-                            <option value="consultation">Consultation</option>
-                            <option value="follow-up">Follow-up</option>
-                            <option value="check-up">Check-up</option>
-                            <option value="emergency">Emergency</option>
+                            <option value="Consultation">Consultation</option>
+                            <option value="Follow-up">Follow-up</option>
+                            <option value="Check-up">Check-up</option>
+                            <option value="Emergency">Emergency</option>
                         </select>
                     </div>
                     <div style="margin-bottom: 1rem;">
                         <label for="appointmentReason" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Reason/Condition</label>
-                        <textarea id="appointmentReason" class="filter-input" rows="3" placeholder="Describe the reason for the appointment" style="width: 100%; resize: vertical;"></textarea>
+                        <textarea id="appointmentReason" name="appointmentReason" class="filter-input" rows="3" placeholder="Describe the reason for the appointment" style="width: 100%; resize: vertical;"></textarea>
                     </div>
                     <div style="margin-bottom: 1rem;">
                         <label for="appointmentDuration" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Duration (minutes)</label>
-                        <input type="number" id="appointmentDuration" class="filter-input" min="15" max="120" step="15" value="30" required style="width: 100%;">
+                        <input type="number" id="appointmentDuration" name="appointmentDuration" class="filter-input" min="15" max="120" step="15" value="30" required style="width: 100%;">
                     </div>
                 </form>
             </div>
@@ -278,12 +279,13 @@
             if (form.checkValidity()) {
                 const formData = new FormData(form);
                 const data = {
-                    patient_id: formData.get('patientSelect'),
+                    patient_id: formData.get('patient_id'),
                     date: formData.get('appointmentDate'),
                     time: formData.get('appointmentTime'),
                     type: formData.get('appointmentType'),
                     reason: formData.get('appointmentReason'),
-                    duration: formData.get('appointmentDuration')
+                    duration: formData.get('appointmentDuration'),
+                    csrf_token: document.getElementById('csrfToken').value
                 };
 
                 // AJAX submission (adjust URL as needed)
@@ -304,7 +306,7 @@
                         // Optionally refresh the page or update the table
                         location.reload();
                     } else {
-                        alert('Error scheduling appointment: ' + result.message);
+                        alert('Error scheduling appointment: ' + result.message + ' Errors: ' + JSON.stringify(result.errors));
                     }
                 })
                 .catch(error => {

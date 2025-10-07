@@ -72,6 +72,8 @@ class Doctor extends BaseController
         return view('doctor/appointments', $data);
     }
 
+
+    
     public function prescriptions()
     {
         return view('doctor/prescriptions');
@@ -186,4 +188,76 @@ class Doctor extends BaseController
         ])->setStatusCode(500);
     }
 
+    /**
+     * Schedule a new appointment via JSON POST
+     */
+    public function postScheduleAppointment()
+    {
+        // Expect JSON payload
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+
+        // Basic validation
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'patient_id'    => 'required|numeric',
+            'date'          => 'required|valid_date',
+            'time'          => 'required',
+            'type'          => 'required|in_list[Consultation,Follow-up,Check-up,Emergency]',
+            'reason'        => 'permit_empty|max_length[255]',
+            'duration'      => 'required|numeric|greater_than[0]'
+        ]);
+
+        if (!$validation->run($input)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validation->getErrors(),
+            ])->setStatusCode(422);
+        }
+
+        // Get doctor_id from session
+        $doctorId = session()->get('staff_id');
+        if (!$doctorId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Doctor not authenticated',
+            ])->setStatusCode(401);
+        }
+
+        // Prepare data for insertion
+        $data = [
+            'patient_id'        => $input['patient_id'],
+            'doctor_id'         => $doctorId,
+            'appointment_date'  => $input['date'],
+            'appointment_time'  => $input['time'],
+            'appointment_type'  => $input['type'],
+            'reason'            => $input['reason'] ?? null,
+            'duration'          => $input['duration'],
+            'status'            => 'scheduled',
+            'created_at'        => date('Y-m-d H:i:s'),
+        ];
+
+        try {
+            $builder = $this->db->table('appointments');
+            $inserted = $builder->insert($data);
+            if ($inserted) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Appointment scheduled successfully',
+                    'id'      => $this->db->insertID(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to schedule appointment: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage(),
+            ])->setStatusCode(500);
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Failed to schedule appointment',
+        ])->setStatusCode(500);
+    }
 }

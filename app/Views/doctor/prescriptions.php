@@ -63,9 +63,9 @@
                         </div>
                     </div>
                     <div class="card-metrics">
-                        <div class="metric"><div class="metric-value blue">0</div><div class="metric-label">Total</div></div>
-                        <div class="metric"><div class="metric-value green">0</div><div class="metric-label">Pending</div></div>
-                        <div class="metric"><div class="metric-value orange">0</div><div class="metric-label">Sent</div></div>
+                        <div class="metric"><div class="metric-value blue"><?= $totalToday ?? 0 ?></div><div class="metric-label">Total</div></div>
+                        <div class="metric"><div class="metric-value green"><?= $pending ?? 0 ?></div><div class="metric-label">Pending</div></div>
+                        <div class="metric"><div class="metric-value orange"><?= $sent ?? 0 ?></div><div class="metric-label">Sent</div></div>
                     </div>
                 </div>
             </div>
@@ -124,50 +124,46 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>RX001234</td>
-                            <td>
-                                <div>
-                                    <strong>Sarah Wilson</strong><br>
-                                    <small>P0012347 | Age: 45</small>
-                                </div>
-                            </td>
-                            <td>Lisinopril</td>
-                            <td>10mg once daily</td>
-                            <td>30 days</td>
-                            <td>August 20, 2025</td>
-                            <td><span class="badge badge-success">Active</span></td>
-                            <td>
-                                <button class="btn btn-primary view-rx-btn" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</button>
-                                <button class="btn btn-secondary edit-rx-btn" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Edit</button>
-                            </td>
-                        </tr>
+                        <?php if (isset($prescriptions) && !empty($prescriptions)): ?>
+                            <?php foreach ($prescriptions as $rx): ?>
+                                <tr>
+                                    <td><?= $rx['prescription_id'] ?></td>
+                                    <td>
+                                        <div>
+                                            <strong><?= $rx['first_name'] . ' ' . $rx['last_name'] ?></strong><br>
+                                            <small><?= $rx['pat_id'] ?> | Age: <?php
+                                                if (!empty($rx['date_of_birth'])) {
+                                                    $dob = new DateTime($rx['date_of_birth']);
+                                                    $now = new DateTime();
+                                                    $age = $now->diff($dob)->y;
+                                                    echo $age;
+                                                } else {
+                                                    echo 'N/A';
+                                                }
+                                            ?> years</small>
+                                        </div>
+                                    </td>
+                                    <td><?= $rx['medication'] ?></td>
+                                    <td><?= $rx['dosage'] ?></td>
+                                    <td><?= $rx['duration'] ?></td>
+                                    <td><?= date('F j, Y', strtotime($rx['date_issued'])) ?></td>
+                                    <td><span class="badge badge-<?= $rx['status'] == 'active' ? 'success' : ($rx['status'] == 'completed' ? 'info' : 'danger') ?>"><?= ucfirst($rx['status']) ?></span></td>
+                                    <td>
+                                        <button class="btn btn-primary view-rx-btn" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</button>
+                                        <button class="btn btn-secondary edit-rx-btn" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Edit</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="8" style="text-align: center;">No prescriptions found.</td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
         </main>
     </div>
-
-    <script>
-    (function() {
-        const newRxModal = document.getElementById('newPrescriptionModal');
-        const viewRxModal = document.getElementById('viewPrescriptionModal');
-        function open(modal) { modal.classList.add('show'); }
-        function close(modal) { modal.classList.remove('show'); }
-        document.getElementById('addPrescriptionBtn').addEventListener('click', function() { open(newRxModal); });
-        document.getElementById('closeNewRx').addEventListener('click', function() { close(newRxModal); });
-        document.getElementById('cancelNewRx').addEventListener('click', function() { close(newRxModal); });
-        document.getElementById('newPrescriptionForm').addEventListener('submit', function(e) { e.preventDefault(); alert('Prescription saved successfully!'); close(newRxModal); this.reset(); });
-        document.querySelectorAll('.view-rx-btn').forEach(function(btn) { btn.addEventListener('click', function() { open(viewRxModal); }); });
-        document.getElementById('closeViewRx').addEventListener('click', function() { close(viewRxModal); });
-        document.getElementById('closeViewRxBtn').addEventListener('click', function() { close(viewRxModal); });
-        document.getElementById('editFromViewBtn').addEventListener('click', function() { close(viewRxModal); open(newRxModal); });
-        document.querySelectorAll('.edit-rx-btn').forEach(function(btn) { btn.addEventListener('click', function() { open(newRxModal); }); });
-        window.addEventListener('click', function(event) { if (event.target === newRxModal) close(newRxModal); if (event.target === viewRxModal) close(viewRxModal); });
-    })();
-    </script>
-
-    <script src="<?= base_url('js/logout.js') ?>"></script>
 
     <!-- Modals -->
     <div class="modal" id="newPrescriptionModal">
@@ -181,32 +177,36 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Patient *</label>
-                            <select class="form-select" required>
+                            <select class="form-select" name="patient_id" required>
                                 <option value="">Select Patient</option>
-                                <option value="P001234">John Smith (P001234)</option>
-                                <option value="P001198">Maria Garcia (P001198)</option>
-                                <option value="P001345">Robert Johnson (P001345)</option>
+                                <?php if (isset($patients) && !empty($patients)): ?>
+                                    <?php foreach ($patients as $patient): ?>
+                                        <option value="<?= $patient['patient_id'] ?>">
+                                            <?= $patient['first_name'] . ' ' . $patient['last_name'] ?> (<?= $patient['patient_id'] ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </select>
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Date Issued *</label>
-                            <input type="date" class="form-input" required>
+                            <input type="date" class="form-input" name="date_issued" required>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Medication *</label>
-                            <input type="text" class="form-input" placeholder="e.g., Lisinopril" required>
+                            <input type="text" class="form-input" name="medication" placeholder="e.g., Lisinopril" required>
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Dosage *</label>
-                            <input type="text" class="form-input" placeholder="e.g., 10mg once daily" required>
+                            <input type="text" class="form-input" name="dosage" placeholder="e.g., 10mg once daily" required>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Frequency *</label>
-                            <select class="form-select" required>
+                            <select class="form-select" name="frequency" required>
                                 <option value="">Select Frequency</option>
                                 <option>Once daily</option>
                                 <option>Twice daily</option>
@@ -216,7 +216,7 @@
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Duration *</label>
-                            <select class="form-select" required>
+                            <select class="form-select" name="duration" required>
                                 <option value="">Select Duration</option>
                                 <option>7 days</option>
                                 <option>14 days</option>
@@ -227,7 +227,7 @@
                     </div>
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Notes</label>
-                        <textarea class="form-input" rows="3" placeholder="Additional instructions or notes"></textarea>
+                        <textarea class="form-input" name="notes" rows="3" placeholder="Additional instructions or notes"></textarea>
                     </div>
                 </form>
             </div>
@@ -278,6 +278,50 @@
             </div>
         </div>
     </div>
+
+    <script>
+    (function() {
+        const newRxModal = document.getElementById('newPrescriptionModal');
+        const viewRxModal = document.getElementById('viewPrescriptionModal');
+        function open(modal) { modal.classList.add('show'); }
+        function close(modal) { modal.classList.remove('show'); }
+        document.getElementById('addPrescriptionBtn').addEventListener('click', function() { open(newRxModal); });
+        document.getElementById('closeNewRx').addEventListener('click', function() { close(newRxModal); });
+        document.getElementById('cancelNewRx').addEventListener('click', function() { close(newRxModal); });
+        document.getElementById('newPrescriptionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('<?= base_url('doctor/create-prescription') ?>', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Prescription created successfully! ID: ' + data.prescription_id);
+                    close(newRxModal);
+                    this.reset();
+                    location.reload(); // Refresh the page to show the new prescription
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to create prescription'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while creating the prescription.');
+            });
+        });
+        document.querySelectorAll('.view-rx-btn').forEach(function(btn) { btn.addEventListener('click', function() { open(viewRxModal); }); });
+        document.getElementById('closeViewRx').addEventListener('click', function() { close(viewRxModal); });
+        document.getElementById('closeViewRxBtn').addEventListener('click', function() { close(viewRxModal); });
+        document.getElementById('editFromViewBtn').addEventListener('click', function() { close(viewRxModal); open(newRxModal); });
+        document.querySelectorAll('.edit-rx-btn').forEach(function(btn) { btn.addEventListener('click', function() { open(newRxModal); }); });
+        window.addEventListener('click', function(event) { if (event.target === newRxModal) close(newRxModal); if (event.target === viewRxModal) close(viewRxModal); });
+    })();
+    </script>
 
 </body>
 </html>

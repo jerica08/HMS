@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>IT Staff Dashboard - HMS</title>
-        <link rel="stylesheet" href="assets/css/common.css">
+        <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     </head>
     <body class="it-theme">

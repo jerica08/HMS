@@ -80,6 +80,18 @@
             </script>
         <?php endif; ?>
 
+        <?php $errors = session()->get('errors'); ?>
+        <?php if (!empty($errors) && is_array($errors)): ?>
+            <div role="alert" aria-live="polite" style="margin-top:0.75rem; padding:0.75rem 1rem; border-radius:8px; border:1px solid #fecaca; background:#fee2e2; color:#991b1b;">
+                <div style="font-weight:600; margin-bottom:0.25rem;"><i class="fas fa-exclamation-circle"></i> Please fix the following errors:</div>
+                <ul style="margin:0; padding-left:1.25rem;">
+                    <?php foreach ($errors as $field => $msg): ?>
+                        <li><?= esc(is_array($msg) ? implode(', ', $msg) : $msg) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
           <br />
 
           <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
@@ -306,6 +318,7 @@ function deleteUser(id) {
                     data-first-name="<?= esc($s['first_name'] ?? '') ?>"
                     data-last-name="<?= esc($s['last_name'] ?? '') ?>"
                     data-email="<?= esc($s['email'] ?? '') ?>"
+                    <?= old('staff_id') == ($s['staff_id'] ?? null) ? 'selected' : '' ?>
                   >
                     <?= esc(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? '') . ' (' . ($s['employee_id'] ?? 'N/A') . ')') ?>
                   </option>
@@ -315,32 +328,32 @@ function deleteUser(id) {
           </div>
           <div>
             <label class="form-label" for="first_name">First Name</label>
-            <input type="text" id="first_name" name="first_name" class="form-input" readonly>
+            <input type="text" id="first_name" name="first_name" class="form-input" value="<?= esc(old('first_name') ?? '') ?>" readonly>
           </div>
           <div>
             <label class="form-label" for="last_name">Last Name</label>
-            <input type="text" id="last_name" name="last_name" class="form-input" readonly>
+            <input type="text" id="last_name" name="last_name" class="form-input" value="<?= esc(old('last_name') ?? '') ?>" readonly>
           </div>
           <div class="full">
             <label class="form-label" for="email">Email</label>
-            <input type="email" name="email" id="email" class="form-input" required readonly>
+            <input type="email" name="email" id="email" class="form-input" value="<?= esc(old('email') ?? '') ?>" required readonly>
           </div>
           <div>
             <label class="form-label" for="username">Username</label>
-            <input type="text" name="username" id="username" class="form-input" required>
+            <input type="text" name="username" id="username" class="form-input" value="<?= esc(old('username') ?? '') ?>" required>
           </div>
           <div>
             <label class="form-label" for="role">Role</label>
             <select name="role" id="role" class="form-select" required>
-              <option value="" disabled selected>Select role</option>
-              <option value="admin">Admin</option>
-              <option value="doctor">Doctor</option>
-              <option value="nurse">Nurse</option>
-              <option value="receptionist">Receptionist</option>
-              <option value="laboratorist">Laboratorist</option>
-              <option value="pharmacist">Pharmacist</option>
-              <option value="accountant">Accountant</option>
-              <option value="it_staff">IT Staff</option>
+              <option value="" disabled <?= old('role') ? '' : 'selected' ?>>Select role</option>
+              <option value="admin" <?= old('role')==='admin'?'selected':'' ?>>Admin</option>
+              <option value="doctor" <?= old('role')==='doctor'?'selected':'' ?>>Doctor</option>
+              <option value="nurse" <?= old('role')==='nurse'?'selected':'' ?>>Nurse</option>
+              <option value="receptionist" <?= old('role')==='receptionist'?'selected':'' ?>>Receptionist</option>
+              <option value="laboratorist" <?= old('role')==='laboratorist'?'selected':'' ?>>Laboratorist</option>
+              <option value="pharmacist" <?= old('role')==='pharmacist'?'selected':'' ?>>Pharmacist</option>
+              <option value="accountant" <?= old('role')==='accountant'?'selected':'' ?>>Accountant</option>
+              <option value="it_staff" <?= old('role')==='it_staff'?'selected':'' ?>>IT Staff</option>
             </select>
           </div>
           <div>
@@ -354,8 +367,8 @@ function deleteUser(id) {
           <div>
             <label class="form-label" for="status">Status</label>
             <select name="status" id="status" class="form-select" required>
-              <option value="active" selected>Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="active" <?= old('status')==='inactive'?'':'selected' ?>>Active</option>
+              <option value="inactive" <?= old('status')==='inactive'?'selected':'' ?>>Inactive</option>
             </select>
           </div>
         </div>
@@ -410,6 +423,15 @@ window.addEventListener('click', function(event) {
 // Populate fields when staff changes
 document.getElementById('staff_id')?.addEventListener('change', populateFromStaff);
 </script>
+
+<?php if (!empty(session()->get('errors'))): ?>
+<script>
+  // Ensure the modal opens when there are validation errors and repopulate
+  window.addEventListener('DOMContentLoaded', function(){
+    try { openAddUserModal(); populateFromStaff(); } catch(e) {}
+  });
+</script>
+<?php endif; ?>
 
 <!-- Edit User Modal -->
 <div id="editUserModal" class="hms-modal-overlay" aria-hidden="true">

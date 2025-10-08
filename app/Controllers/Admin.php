@@ -250,8 +250,8 @@ class Admin extends BaseController
         $staffModel = new StaffModel();
 
         $rules = [
-            'staff_id' => 'required|integer',
-            'username' => 'required|min_length[3]|max_length[50]',
+            'staff_id' => 'required|integer|is_unique[users.staff_id]',
+            'username' => 'required|min_length[3]|max_length[50]|is_unique[users.username]',
             'password' => 'required|min_length[6]',
             'confirm_password' => 'required|matches[password]',
             'role' => 'required|in_list[admin,doctor,nurse,receptionist,laboratorist,pharmacist,accountant,it_staff]',
@@ -266,6 +266,19 @@ class Admin extends BaseController
         if (!$staff){
             return redirect()->back()->withInput()->with('error', 'Invalid staff selected');
         }
+
+        // Optional: prevent duplicate email if users.email has a unique constraint
+        $staffEmail = $staff['email'] ?? null;
+        // Login uses email, ensure staff has a valid email
+        if (empty($staffEmail)) {
+            return redirect()->back()->withInput()->with('error', 'Selected staff has no email. Please add an email to the staff record before creating the user.');
+        }
+        if ($staffEmail) {
+            $existingByEmail = $userModel->where('email', $staffEmail)->first();
+            if ($existingByEmail) {
+                return redirect()->back()->withInput()->with('error', 'A user with the same email already exists. Please update the staff email or choose a different staff/username.');
+            }
+        }
         $data = [
             'staff_id'   => $this->request->getPost('staff_id'),
             'username'   => $this->request->getPost('username'),
@@ -277,11 +290,23 @@ class Admin extends BaseController
             'status'     => $this->request->getPost('status') ?: 'active',
         ];
 
-        if ($userModel->insert($data)) {
-            return redirect()->to('admin/user-management')->with('success', 'User added successfully.');
-        } else{
-            return redirect()->back()->withInput()->with('error', 'Failed to add user');
+        try {
+            if ($userModel->insert($data)) {
+                return redirect()->to('admin/user-management')->with('success', 'User added successfully.');
+            }
+            // If insert returned false, capture model errors
+            $modelErrors = $userModel->errors();
+            if (!empty($modelErrors)) {
+                return redirect()->back()->withInput()->with('errors', $modelErrors)->with('error', 'Failed to add user. Please fix the highlighted errors.');
+            }
+        } catch (\Throwable $e) {
+            // Fall through to db error reporting
         }
+
+        // As a last resort, surface DB error if available
+        $dbError = $this->db->error();
+        $dbMsg = !empty($dbError['message']) ? $dbError['message'] : 'Unknown database error';
+        return redirect()->back()->withInput()->with('error', 'Failed to add user: ' . $dbMsg);
     }
 
     public function getStaff($id){

@@ -24,6 +24,8 @@ class Auth extends BaseController
                     return redirect()->to('/nurse/dashboard');
                 case 'receptionist':
                     return redirect()->to('/receptionist/dashboard');
+                case 'it_staff':
+                    return redirect()->to('/it/dashboard');
                 default:
                     return redirect()->to('/');
             }
@@ -79,6 +81,8 @@ class Auth extends BaseController
                             return redirect()->to('/nurse/dashboard');
                         case 'receptionist':
                             return redirect()->to('/receptionist/dashboard');
+                        case 'it_staff':
+                            return redirect()->to('/it/dashboard');
                         default:
                             $session->setFlashdata('error', 'Your account role is not recognized');
                             $session->destroy();

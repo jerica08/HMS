@@ -69,7 +69,6 @@ class CreatePrescriptionsTable extends Migration
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->addKey('prescription_id');
         $this->forge->addKey('patient_id');
         $this->forge->addKey('doctor_id');
 

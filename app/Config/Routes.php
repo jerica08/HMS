@@ -15,8 +15,6 @@ $routes->get('contact', 'Home::contact');
 // Authentication Routes
 $routes->get('login', 'Auth::login');
 $routes->post('login', 'Auth::login');
-$routes->get('logout', 'Auth::logout');
-
 // Admin Dashboard Routes
 $routes->get('admin/dashboard', 'Admin::dashboard');
 $routes->get('admin/users', 'Admin::users');
@@ -38,7 +36,7 @@ $routes->group('admin', function($routes) {
     $routes->get('delete-staff/(:num)', 'Admin::deleteStaff/$1');
     $routes->get('view-staff/(:num)', 'Admin::viewStaff/$1');
 
-    //Users Management
+    // Users Management
     $routes->get('user-management', 'Admin::userManagement');
     $routes->post('users/saveUser', 'Admin::saveUser');
     $routes->post('users/updateUser', 'Admin::updateUser');
@@ -49,7 +47,7 @@ $routes->group('admin', function($routes) {
     // Resource Management
     $routes->get('resource', 'Admin::resourceManagement');
 
-    //Patient Management
+    // Patient Management
     $routes->get('patient-management', 'Admin::patientManagement');
     $routes->post('patients', 'Admin::createPatient');
     $routes->post('patients/update', 'Admin::updatePatient');
@@ -72,20 +70,28 @@ $routes->group('admin', function($routes) {
     // Audit Logs
     $routes->get('auditLogs', 'Admin::auditLogs');
 
-    });
+    // Doctor Shifts APIs
+    $routes->get('doctor-shifts/api', 'Admin::getDoctorShiftsAPI');
+    $routes->get('doctor-shifts/(:num)', 'Admin::getDoctorShift/$1');
+    $routes->post('doctor-shifts/update', 'Admin::updateDoctorShift');
+    $routes->post('doctor-shifts/create', 'Admin::createDoctorShift');
+    $routes->post('doctor-shifts/delete', 'Admin::deleteDoctorShift');
 
-    //Doctor Routes
-    $routes->get('doctor/dashboard', 'Doctor::dashboard');
-    $routes->get('doctor/patients', 'Doctor::patients');
-    $routes->post('doctor/patients', 'Doctor::createPatient');
-    $routes->get('doctor/patient', 'Doctor::patients');
-    $routes->get('doctor/appointments', 'Doctor::appointments');
-    $routes->post('doctor/schedule-appointment', 'Doctor::postScheduleAppointment');
-    $routes->get('doctor/prescriptions', 'Doctor::prescriptions');
-    $routes->post('doctor/create-prescription', 'Doctor::createPrescription');
-    $routes->get('doctor/lab-results', 'Doctor::labResults');
-    $routes->get('doctor/EHR', 'Doctor::ehr');
-    $routes->get('doctor/schedule', 'Doctor::schedule');
+    // Doctors list API
+    $routes->get('doctors/api', 'Admin::getDoctorsAPI');
+});
+// Doctor Routes
+$routes->get('doctor/dashboard', 'Doctor::dashboard');
+$routes->get('doctor/patients', 'Doctor::patients');
+$routes->post('doctor/patients', 'Doctor::createPatient');
+$routes->get('doctor/patient', 'Doctor::patients');
+$routes->get('doctor/appointments', 'Doctor::appointments');
+$routes->post('doctor/schedule-appointment', 'Doctor::postScheduleAppointment');
+$routes->get('doctor/prescriptions', 'Doctor::prescriptions');
+$routes->post('doctor/create-prescription', 'Doctor::createPrescription');
+$routes->get('doctor/lab-results', 'Doctor::labResults');
+$routes->get('doctor/EHR', 'Doctor::ehr');
+$routes->get('doctor/schedule', 'Doctor::schedule');
 
     // Nurse Routes
     $routes->get('nurse/dashboard', 'Nurse::dashboard');

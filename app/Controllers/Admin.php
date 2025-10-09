@@ -111,6 +111,42 @@ class Admin extends BaseController
                 'date_joined' => 'permit_empty|valid_date'
             ]);
 
+            // Add role-specific validation
+            $designation = $this->request->getPost('designation');
+            if ($designation === 'doctor') {
+                $validation->setRules([
+                    'doctor_specialization' => 'required|min_length[2]|max_length[100]',
+                    'doctor_license_no'     => 'permit_empty|max_length[50]',
+                    'doctor_consultation_fee' => 'permit_empty|decimal'
+                ]);
+            } elseif ($designation === 'nurse') {
+                $validation->setRules([
+                    'nurse_license_no' => 'required|max_length[100]'
+                ]);
+            } elseif ($designation === 'pharmacist') {
+                $validation->setRules([
+                    'pharmacist_license_no' => 'required|max_length[100]'
+                ]);
+            } elseif ($designation === 'laboratorist') {
+                $validation->setRules([
+                    'laboratorist_license_no' => 'required|max_length[100]',
+                    'laboratorist_specialization' => 'permit_empty|max_length[150]',
+                    'laboratorist_lab_room_no' => 'permit_empty|max_length[50]'
+                ]);
+            } elseif ($designation === 'accountant') {
+                $validation->setRules([
+                    'accountant_license_no' => 'required|max_length[100]'
+                ]);
+            } elseif ($designation === 'receptionist') {
+                $validation->setRules([
+                    'receptionist_desk_no' => 'permit_empty|max_length[50]'
+                ]);
+            } elseif ($designation === 'it_staff') {
+                $validation->setRules([
+                    'it_expertise' => 'permit_empty|max_length[150]'
+                ]);
+            }
+
             // Check if this is an AJAX request expecting JSON
             $isAjax = $this->request->isAJAX() || 
                       $this->request->getHeaderLine('Accept') == 'application/json' ||
@@ -146,11 +182,74 @@ class Admin extends BaseController
                 'date_joined' => $this->request->getPost('date_joined') ?: date('Y-m-d')
             ];
 
-            // Insert data into database
+            // Insert data into staff table
             $success = $this->builder->insert($data);
             
             // Handle success/failure responses
             if ($success) {
+                // Insert into role-specific table
+                $staffId = (int)$this->db->insertID();
+                try {
+                    switch ($designation) {
+                        case 'doctor':
+                            $this->db->table('doctor')->insert([
+                                'staff_id' => $staffId,
+                                'specialization' => $this->request->getPost('doctor_specialization'),
+                                'license_no' => $this->request->getPost('doctor_license_no') ?: null,
+                                'consultation_fee' => $this->request->getPost('doctor_consultation_fee') ?: null,
+                                'status' => 'Active',
+                            ]);
+                            break;
+                        case 'nurse':
+                            $this->db->table('nurse')->insert([
+                                'staff_id' => $staffId,
+                                'license_no' => $this->request->getPost('nurse_license_no'),
+                                'specialization' => $this->request->getPost('nurse_specialization') ?: null,
+                            ]);
+                            break;
+                        case 'pharmacist':
+                            $this->db->table('pharmacist')->insert([
+                                'staff_id' => $staffId,
+                                'license_no' => $this->request->getPost('pharmacist_license_no'),
+                                'specialization' => $this->request->getPost('pharmacist_specialization') ?: null,
+                            ]);
+                            break;
+                        case 'laboratorist':
+                            $this->db->table('laboratorist')->insert([
+                                'staff_id' => $staffId,
+                                'license_no' => $this->request->getPost('laboratorist_license_no'),
+                                'specialization' => $this->request->getPost('laboratorist_specialization') ?: null,
+                                'lab_room_no' => $this->request->getPost('laboratorist_lab_room_no') ?: null,
+                            ]);
+                            break;
+                        case 'accountant':
+                            $this->db->table('accountant')->insert([
+                                'staff_id' => $staffId,
+                                'license_no' => $this->request->getPost('accountant_license_no'),
+                            ]);
+                            break;
+                        case 'receptionist':
+                            $this->db->table('receptionist')->insert([
+                                'staff_id' => $staffId,
+                                'desk_no' => $this->request->getPost('receptionist_desk_no') ?: null,
+                            ]);
+                            break;
+                        case 'it_staff':
+                            $this->db->table('it_staff')->insert([
+                                'staff_id' => $staffId,
+                                'expertise' => $this->request->getPost('it_expertise') ?: null,
+                            ]);
+                            break;
+                        case 'admin':
+                            // No automatic user account here; admin table expects username/password.
+                            // Skip creating admin row to avoid invalid data; handled via Users feature.
+                            break;
+                    }
+                } catch (\Throwable $e) {
+                    log_message('error', 'Failed inserting role-specific record for staff_id ' . $staffId . ': ' . $e->getMessage());
+                    // Continue, but inform via flashdata
+                    session()->setFlashdata('warning', 'Staff saved, but role details could not be created. You can edit later.');
+                }
                 if ($isAjax) {
                     return $this->response->setJSON([
                         'status' => 'success',
@@ -684,6 +783,266 @@ class Admin extends BaseController
     }
 
     /**
+     * API: Return all doctors for selection (joins staff for names)
+     * Route: GET admin/doctors/api
+     */
+    public function getDoctorsAPI()
+    {
+        try {
+            $rows = $this->db->table('doctor d')
+                ->select('d.doctor_id, s.staff_id, s.first_name, s.last_name, d.specialization, d.status')
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->orderBy('s.first_name', 'ASC')
+                ->get()->getResultArray();
+            $data = array_map(function($r){
+                $r['name'] = trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''));
+                return $r;
+            }, $rows);
+            return $this->response->setJSON(['status' => 'success', 'data' => $data]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to load doctors: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load doctors']);
+        }
+    }
+
+    /**
+     * API: Return all doctor shifts as JSON
+     * Route: GET admin/doctor-shifts/api
+     */
+    public function getDoctorShiftsAPI()
+    {
+        try {
+            $builder = $this->db->table('doctor_shift ds')
+                ->select('ds.shift_id as id, ds.shift_date as date, ds.shift_start as start, ds.shift_end as end, ds.department, ds.status, d.doctor_id, s.first_name, s.last_name')
+                ->join('doctor d', 'd.doctor_id = ds.doctor_id', 'left')
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->orderBy('ds.shift_date', 'DESC')
+                ->orderBy('ds.shift_start', 'DESC');
+
+            $rows = $builder->get()->getResultArray();
+            $data = array_map(function ($r) {
+                $r['doctor_name'] = trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''));
+                return $r;
+            }, $rows);
+
+            return $this->response->setJSON(['status' => 'success', 'data' => $data]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to load doctor shifts: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load doctor shifts']);
+        }
+    }
+
+    /**
+     * API: Get single doctor shift by ID
+     * Route: GET admin/doctor-shifts/{id}
+     */
+    public function getDoctorShift($id = null)
+    {
+        if (!$id) {
+            return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Missing shift id']);
+        }
+        try {
+            $r = $this->db->table('doctor_shift ds')
+                ->select('ds.shift_id as id, ds.shift_date as date, ds.shift_start as start, ds.shift_end as end, ds.department, ds.status, ds.doctor_id, s.first_name, s.last_name')
+                ->join('doctor d', 'd.doctor_id = ds.doctor_id', 'left')
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->where('ds.shift_id', (int)$id)
+                ->get()->getRowArray();
+            if (!$r) {
+                return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Shift not found']);
+            }
+            $r['doctor_name'] = trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''));
+            return $this->response->setJSON(['status' => 'success', 'data' => $r]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load shift']);
+        }
+    }
+
+    /**
+     * API: Create doctor shift
+     * Route: POST admin/doctor-shifts/create
+     */
+    public function createDoctorShift()
+    {
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'doctor_id'  => 'required|integer',
+            'shift_date' => 'required|valid_date',
+            'shift_start'=> 'required',
+            'shift_end'  => 'required',
+            'department' => 'permit_empty|max_length[100]',
+            'status'     => 'permit_empty|in_list[Scheduled,Completed,Cancelled]'
+        ]);
+        if (!$validation->run($input)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status'=>'error',
+                'errors'=>$validation->getErrors(),
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        try {
+            $data = [
+                'doctor_id'  => (int)$input['doctor_id'],
+                'shift_date' => $input['shift_date'],
+                'shift_start'=> $input['shift_start'],
+                'shift_end'  => $input['shift_end'],
+                'department' => $input['department'] ?? null,
+                'status'     => $input['status'] ?? 'Scheduled',
+            ];
+            $ok = $this->db->table('doctor_shift')->insert($data);
+            if ($ok) {
+                return $this->response->setJSON([
+                    'status'=>'success',
+                    'message'=>'Shift created',
+                    'id'=>$this->db->insertID(),
+                    'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                ]);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to create doctor shift: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status'=>'error',
+                'message'=>'Failed to create shift',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        return $this->response->setStatusCode(500)->setJSON([
+            'status'=>'error',
+            'message'=>'Failed to create shift',
+            'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+        ]);
+    }
+
+    /**
+     * API: Update doctor shift
+     * Route: POST admin/doctor-shifts/update
+     */
+    public function updateDoctorShift()
+    {
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        if (!is_array($input) || empty($input['id'])) {
+            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'id is required']);
+        }
+        $id = (int)$input['id'];
+
+        // Ensure record exists
+        $exists = $this->db->table('doctor_shift')->where('shift_id', $id)->countAllResults();
+        if ($exists === 0) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Shift not found',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+
+        $data = [
+            'shift_date'  => $input['shift_date']  ?? null,
+            'shift_start' => $input['shift_start'] ?? null,
+            'shift_end'   => $input['shift_end']   ?? null,
+            'department'  => $input['department']  ?? null,
+            'status'      => $input['status']      ?? null,
+        ];
+        // Remove nulls
+        $data = array_filter($data, function($v) { return $v !== null; });
+        if (empty($data)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'No fields to update',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        try {
+            $ok = $this->db->table('doctor_shift')->where('shift_id', $id)->update($data);
+            if ($ok) {
+                $affected = $this->db->affectedRows();
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => $affected > 0 ? 'Shift updated' : 'No changes applied',
+                    'affected' => $affected,
+                    'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                ]);
+            }
+            $dbErr = $this->db->error();
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to update shift',
+                'db_error' => $dbErr,
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to update shift',
+                'exception' => $e->getMessage(),
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        return $this->response->setStatusCode(500)->setJSON([
+            'status' => 'error',
+            'message' => 'Failed to update shift',
+            'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+        ]);
+    }
+
+    /**
+     * API: Delete doctor shift
+     * Route: POST admin/doctor-shifts/delete
+     */
+    public function deleteDoctorShift()
+    {
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        $id = (int)($input['id'] ?? 0);
+        if ($id <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'id is required',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        // Ensure exists first
+        $exists = $this->db->table('doctor_shift')->where('shift_id', $id)->countAllResults();
+        if ($exists === 0) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Shift not found',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        try {
+            $ok = $this->db->table('doctor_shift')->where('shift_id', $id)->delete();
+            if ($ok) {
+                $affected = $this->db->affectedRows();
+                return $this->response->setJSON([
+                    'status' => $affected > 0 ? 'success' : 'error',
+                    'message' => $affected > 0 ? 'Shift deleted' : 'Shift not found',
+                    'affected' => $affected,
+                    'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                ]);
+            }
+            $dbErr = $this->db->error();
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to delete shift',
+                'db_error' => $dbErr,
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to delete shift',
+                'exception' => $e->getMessage(),
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        return $this->response->setStatusCode(500)->setJSON([
+            'status' => 'error',
+            'message' => 'Failed to delete shift',
+            'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+        ]);
+    }
+
+    /**
      * System Settings page
      */
     public function systemSettings()
@@ -691,7 +1050,7 @@ class Admin extends BaseController
         $data = [
             'title' => 'System Settings',
         ];
-        return view('admin/system-setting', $data);
+        return view('admin/system-settings', $data);
     }
 
     /**

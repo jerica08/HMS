@@ -403,6 +403,84 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Doctor Shifts Table -->
+                <div class="staff-section">
+                    <div class="section-header">
+                        <div class="section-icon" style="background:#2563eb;">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div>
+                            <div class="section-title">Doctor Shifts</div>
+                            <div style="color:#6b7280;font-size:0.9rem;">All scheduled doctor shifts</div>
+                        </div>
+                    </div>
+
+                    <div style="overflow:auto;">
+                        <table style="width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                            <thead>
+                                <tr style="background:#f8fafc; color:#374151;">
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Doctor</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Date</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Start</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">End</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Department</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doctorShiftsBody">
+                                <tr>
+                                    <td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">Loading doctor shifts...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div><br>
+
+                <!-- View/Edit Doctor Shift Modal -->
+                <div id="doctorShiftAdminModal" class="hms-modal-overlay" aria-hidden="true">
+                    <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="doctorShiftAdminTitle">
+                        <div class="hms-modal-header">
+                            <div class="hms-modal-title" id="doctorShiftAdminTitle">
+                                <i class="fas fa-user-md" style="color:#4f46e5"></i>
+                                <span id="doctorShiftAdminMode">View Shift</span>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-small" onclick="closeDoctorShiftAdminModal()" aria-label="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <form id="doctorShiftAdminForm">
+                            <?= csrf_field() ?>
+                            <input type="hidden" id="doctor_shift_id" name="id">
+                            <div class="hms-modal-body">
+                                <div class="form-grid">
+                                    <div>
+                                        <label class="form-label" for="adm_shift_date">Date</label>
+                                        <input type="date" id="adm_shift_date" name="shift_date" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="adm_shift_start">Start</label>
+                                        <input type="time" id="adm_shift_start" name="shift_start" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="adm_shift_end">End</label>
+                                        <input type="time" id="adm_shift_end" name="shift_end" class="form-input" required>
+                                    </div>
+                                    <div class="full">
+                                        <label class="form-label" for="adm_department">Department</label>
+                                        <input type="text" id="adm_department" name="department" class="form-input" placeholder="e.g., Emergency, Cardiology">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hms-modal-actions">
+                                <button type="button" class="btn btn-secondary" onclick="closeDoctorShiftAdminModal()">Close</button>
+                                <button type="submit" class="btn btn-success" id="doctorShiftAdminSaveBtn">
+                                    <i class="fas fa-save"></i> Save
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
         
                 <!-- Staff List Table -->
                 <div class="staff-section">
@@ -519,6 +597,94 @@
                                             <option value="accountant">Accountant</option>
                                         </select>
                                     </div>
+                                    
+                                    <!-- Role-specific fields (hidden by default) -->
+                                    <div class="full role-fields" id="role-fields-doctor" style="display:none;">
+                                        <div class="form-grid">
+                                            <div>
+                                                <label class="form-label" for="doctor_specialization">Specialization</label>
+                                                <input type="text" id="doctor_specialization" name="doctor_specialization" class="form-input" placeholder="e.g., Cardiology">
+                                            </div>
+                                            <div>
+                                                <label class="form-label" for="doctor_license_no">License No</label>
+                                                <input type="text" id="doctor_license_no" name="doctor_license_no" class="form-input" placeholder="Optional">
+                                            </div>
+                                            <div class="full">
+                                                <label class="form-label" for="doctor_consultation_fee">Consultation Fee</label>
+                                                <input type="number" step="0.01" id="doctor_consultation_fee" name="doctor_consultation_fee" class="form-input" placeholder="e.g., 500.00">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="full role-fields" id="role-fields-nurse" style="display:none;">
+                                        <div class="form-grid">
+                                            <div>
+                                                <label class="form-label" for="nurse_license_no">License No</label>
+                                                <input type="text" id="nurse_license_no" name="nurse_license_no" class="form-input">
+                                            </div>
+                                            <div>
+                                                <label class="form-label" for="nurse_specialization">Specialization</label>
+                                                <input type="text" id="nurse_specialization" name="nurse_specialization" class="form-input" placeholder="Optional">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="full role-fields" id="role-fields-pharmacist" style="display:none;">
+                                        <div class="form-grid">
+                                            <div>
+                                                <label class="form-label" for="pharmacist_license_no">License No</label>
+                                                <input type="text" id="pharmacist_license_no" name="pharmacist_license_no" class="form-input">
+                                            </div>
+                                            <div>
+                                                <label class="form-label" for="pharmacist_specialization">Specialization</label>
+                                                <input type="text" id="pharmacist_specialization" name="pharmacist_specialization" class="form-input" placeholder="Optional">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="full role-fields" id="role-fields-laboratorist" style="display:none;">
+                                        <div class="form-grid">
+                                            <div>
+                                                <label class="form-label" for="laboratorist_license_no">License No</label>
+                                                <input type="text" id="laboratorist_license_no" name="laboratorist_license_no" class="form-input">
+                                            </div>
+                                            <div>
+                                                <label class="form-label" for="laboratorist_specialization">Specialization</label>
+                                                <input type="text" id="laboratorist_specialization" name="laboratorist_specialization" class="form-input" placeholder="Optional">
+                                            </div>
+                                            <div>
+                                                <label class="form-label" for="laboratorist_lab_room_no">Lab Room No</label>
+                                                <input type="text" id="laboratorist_lab_room_no" name="laboratorist_lab_room_no" class="form-input" placeholder="Optional">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="full role-fields" id="role-fields-accountant" style="display:none;">
+                                        <div class="form-grid">
+                                            <div class="full">
+                                                <label class="form-label" for="accountant_license_no">License No</label>
+                                                <input type="text" id="accountant_license_no" name="accountant_license_no" class="form-input">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="full role-fields" id="role-fields-receptionist" style="display:none;">
+                                        <div class="form-grid">
+                                            <div class="full">
+                                                <label class="form-label" for="receptionist_desk_no">Desk No</label>
+                                                <input type="text" id="receptionist_desk_no" name="receptionist_desk_no" class="form-input" placeholder="Optional">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="full role-fields" id="role-fields-it_staff" style="display:none;">
+                                        <div class="form-grid">
+                                            <div class="full">
+                                                <label class="form-label" for="it_expertise">Expertise</label>
+                                                <input type="text" id="it_expertise" name="it_expertise" class="form-input" placeholder="Optional">
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div>
                                         <label class="form-label" for="date_joined">Date of Joining</label>
                                         <input type="date" id="date_joined" name="date_joined" class="form-input">
@@ -534,6 +700,344 @@
                         </form>
                     </div>
                 </div>
+
+                <script>
+                    (function() {
+                        const roleSelect = document.getElementById('designation');
+                        const roleBlocks = {
+                            'doctor': document.getElementById('role-fields-doctor'),
+                            'nurse': document.getElementById('role-fields-nurse'),
+                            'pharmacist': document.getElementById('role-fields-pharmacist'),
+                            'laboratorist': document.getElementById('role-fields-laboratorist'),
+                            'accountant': document.getElementById('role-fields-accountant'),
+                            'receptionist': document.getElementById('role-fields-receptionist'),
+                            'it_staff': document.getElementById('role-fields-it_staff')
+                        };
+
+                        function updateRoleFields() {
+                            const v = roleSelect.value;
+                            // Hide all
+                            Object.values(roleBlocks).forEach(b => { if (b) b.style.display = 'none'; });
+                            // Show selected if exists
+                            if (roleBlocks[v]) roleBlocks[v].style.display = 'block';
+                        }
+
+                        roleSelect && roleSelect.addEventListener('change', updateRoleFields);
+                        // Initialize on open if value preset
+                        updateRoleFields();
+                    })();
+                </script>
+
+                <script>
+                    (function() {
+                        // Lazy DOM getters because this script appears before the modal markup
+                        function getAssignModal(){ return document.getElementById('assignShiftModal'); }
+                        function getAssignForm(){ return document.getElementById('assignShiftForm'); }
+                        function getDoctorSelect(){ return document.getElementById('doctor_id'); }
+                        const shiftsBody = document.getElementById('doctorShiftsBody');
+
+                        const URLS = {
+                            doctors: '<?= base_url('admin/doctors/api') ?>',
+                            shifts: '<?= base_url('admin/doctor-shifts/api') ?>',
+                            createShift: '<?= base_url('admin/doctor-shifts/create') ?>'
+                        };
+
+                        function openAssignShiftModal() {
+                            // Prefill date with today
+                            try {
+                                const today = new Date();
+                                const yyyy = today.getFullYear();
+                                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                                const dd = String(today.getDate()).padStart(2, '0');
+                                const dateEl = document.getElementById('shift_date');
+                                if (dateEl) dateEl.value = `${yyyy}-${mm}-${dd}`;
+                            } catch(_) {}
+                            loadDoctors();
+                            const modal = getAssignModal();
+                            if (modal) modal.classList.add('active');
+                        }
+                        function closeAssignShiftModal() {
+                            const modal = getAssignModal();
+                            const form = getAssignForm();
+                            if (modal) modal.classList.remove('active');
+                            if (form) form.reset();
+                        }
+                        // Expose to global (buttons call these)
+                        window.openAssignShiftModal = openAssignShiftModal;
+                        window.closeAssignShiftModal = closeAssignShiftModal;
+                        // Fallback binding in case inline onclick is blocked
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const btn = document.getElementById('openAssignShiftBtn');
+                            if (btn) btn.addEventListener('click', openAssignShiftModal);
+                            const overlay = getAssignModal();
+                            if (overlay) {
+                                overlay.addEventListener('click', (e) => {
+                                    if (e.target === overlay) closeAssignShiftModal();
+                                });
+                            }
+                        });
+
+                        async function loadDoctors() {
+                            const select = getDoctorSelect();
+                            if (!select) return;
+                            try {
+                                select.innerHTML = '<option value>Loading doctors...</option>';
+                                const res = await fetch(URLS.doctors, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }});
+                                const json = await res.json();
+                                const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+                                if (!Array.isArray(list) || list.length === 0) {
+                                    select.innerHTML = '<option value>None available</option>';
+                                    return;
+                                }
+                                select.innerHTML = '<option value="" selected>Select a doctor</option>' +
+                                    list.map(d => `<option value="${d.doctor_id}">${(d.name || 'Doctor')} ${d.specialization ? '('+d.specialization+')' : ''}</option>`).join('');
+                            } catch (e) {
+                                select.innerHTML = '<option value>Error loading doctors</option>';
+                            }
+                        }
+
+                        async function loadDoctorShifts() {
+                            try {
+                                shiftsBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">Loading doctor shifts...</td></tr>`;
+                                const res = await fetch(URLS.shifts, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }});
+                                if (!res.ok) {
+                                    const t = await res.text().catch(()=>'');
+                                    console.error('doctor-shifts/api HTTP', res.status, t);
+                                    throw new Error('HTTP '+res.status);
+                                }
+                                const json = await res.json();
+                                // Accept both {data:[...]} and plain array responses
+                                const rows = Array.isArray(json?.data)
+                                    ? json.data
+                                    : (Array.isArray(json) ? json : []);
+                                if (!Array.isArray(rows)) {
+                                    console.warn('Unexpected shifts payload', json);
+                                }
+                                if (!Array.isArray(rows) || rows.length === 0) {
+                                    shiftsBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">No shifts found</td></tr>`;
+                                    return;
+                                }
+                                shiftsBody.innerHTML = rows.map(r => `
+                                    <tr>
+                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${escapeHtml(r.doctor_name || '')}</td>
+                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${escapeHtml(r.date || '')}</td>
+                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${escapeHtml(r.start || '')}</td>
+                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${escapeHtml(r.end || '')}</td>
+                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${escapeHtml(r.department || '')}</td>
+                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">
+                                            <button class="btn btn-primary btn-small btn-edit-shift" data-id="${r.id}"><i class="fas fa-pen"></i> Edit</button>
+                                            <button class="btn btn-danger btn-small btn-delete-shift" data-id="${r.id}"><i class="fas fa-trash"></i> Delete</button>
+                                        </td>
+                                    </tr>
+                                `).join('');
+                            } catch (e) {
+                                console.error('Failed to load doctor shifts', e);
+                                shiftsBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#ef4444; padding:1rem;">Failed to load shifts</td></tr>`;
+                            }
+                        }
+                        // Make available to other scripts
+                        window.loadDoctorShifts = loadDoctorShifts;
+
+                        function getCsrfPair(formEl) {
+                            // Find the first hidden input with name starting with csrf_
+                            const input = formEl.querySelector('input[type="hidden"][name^="csrf_"]');
+                            return input ? { name: input.getAttribute('name'), value: input.value } : null;
+                        }
+
+                        function getGlobalCsrf() {
+                            const input = document.querySelector('input[type="hidden"][name^="csrf_"]');
+                            return input ? { name: input.getAttribute('name'), value: input.value } : null;
+                        }
+
+                        function refreshCsrfFromJson(json) {
+                            try {
+                                const c = json && json.csrf;
+                                if (!c || !c.name || !c.value) return;
+                                const inputs = document.querySelectorAll('input[type="hidden"][name^="csrf_"]');
+                                inputs.forEach(inp => {
+                                    inp.setAttribute('name', c.name);
+                                    inp.value = c.value;
+                                });
+                            } catch (_) {}
+                        }
+
+                        async function onAssignFormSubmit(e) {
+                            e.preventDefault();
+                            const formEl = e.currentTarget;
+                            const fd = new FormData(formEl); // includes CSRF
+                            try {
+                                const res = await fetch(URLS.createShift, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: fd
+                                });
+                                const json = await res.json();
+                                refreshCsrfFromJson(json);
+                                if (json && json.status === 'success') {
+                                    formEl.reset();
+                                    closeAssignShiftModal();
+                                    await loadDoctorShifts();
+                                } else {
+                                    alert((json && (json.message || JSON.stringify(json.errors))) || 'Failed to save shift');
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                alert('Failed to save shift');
+                            }
+                        }
+
+                        // Bind submit safely for Assign form
+                        const assignF = getAssignForm();
+                        if (assignF) {
+                            assignF.addEventListener('submit', onAssignFormSubmit);
+                        } else {
+                            document.addEventListener('DOMContentLoaded', () => {
+                                const f = getAssignForm();
+                                if (f) f.addEventListener('submit', onAssignFormSubmit);
+                            });
+                        }
+
+                        // Delegated actions for edit/delete on shifts table
+                        const bindShiftActions = () => {
+                            if (!shiftsBody) return;
+                            // Prevent duplicate bindings
+                            if (shiftsBody.__boundShiftActions) return;
+                            shiftsBody.__boundShiftActions = true;
+                            shiftsBody.addEventListener('click', async (e) => {
+                                    const btn = e.target.closest('button');
+                                    if (!btn) return;
+                                    const id = btn.getAttribute('data-id');
+                                    if (!id) return;
+                                    if (btn.classList.contains('btn-edit-shift')) {
+                                        await openDoctorShiftAdminModal(id);
+                                    } else if (btn.classList.contains('btn-delete-shift')) {
+                                        const ok = confirm('Delete this shift?');
+                                        if (!ok) return;
+                                        const csrf = getGlobalCsrf();
+                                        const fd = new FormData();
+                                        fd.append('id', id);
+                                        if (csrf) fd.append(csrf.name, csrf.value);
+                                        try {
+                                            const res = await fetch('<?= base_url('admin/doctor-shifts/delete') ?>', {
+                                                method: 'POST',
+                                                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                                                body: fd
+                                            });
+                                            const json = await res.json();
+                                            refreshCsrfFromJson(json);
+                                            if (json?.status === 'success') {
+                                                await loadDoctorShifts();
+                                            } else {
+                                                const errMsg = json?.message || 'Failed to delete shift';
+                                                const dbm = json?.db_error?.message ? `\nDB: ${json.db_error.message}` : '';
+                                                const exm = json?.exception ? `\nEx: ${json.exception}` : '';
+                                                alert(errMsg + dbm + exm);
+                                            }
+                                        } catch (err) {
+                                            alert('Failed to delete shift');
+                                        }
+                                    }
+                                });
+                        };
+                        if (shiftsBody) {
+                            bindShiftActions();
+                        } else {
+                            document.addEventListener('DOMContentLoaded', bindShiftActions);
+                        }
+
+                        // Admin modal lazy getters and handlers
+                        function getAdminModal(){ return document.getElementById('doctorShiftAdminModal'); }
+                        function getAdminForm(){ return document.getElementById('doctorShiftAdminForm'); }
+                        function openDoctorShiftAdminModal(id) {
+                            return (async () => {
+                                try {
+                                    const res = await fetch(`<?= base_url('admin/doctor-shifts') ?>/${id}`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+                                    if (!res.ok) {
+                                        const txt = await res.text().catch(()=> '');
+                                        console.error('Load shift failed', res.status, txt);
+                                        alert('Failed to load shift (HTTP ' + res.status + ').');
+                                        return;
+                                    }
+                                    const json = await res.json();
+                                    const d = json?.data || {};
+                                    // populate fields
+                                    const form = getAdminForm();
+                                    if (!form) return;
+                                    form.querySelector('#doctor_shift_id').value = d.id || '';
+                                    form.querySelector('#adm_shift_date').value = d.date || '';
+                                    form.querySelector('#adm_shift_start').value = d.start || '';
+                                    form.querySelector('#adm_shift_end').value = d.end || '';
+                                    form.querySelector('#adm_department').value = d.department || '';
+                                    const modal = getAdminModal();
+                                    if (modal) modal.classList.add('active');
+                                } catch (err) {
+                                    console.error('Exception loading shift', err);
+                                    alert('Failed to load shift');
+                                }
+                            })();
+                        }
+
+                        function closeDoctorShiftAdminModal(){ const m = getAdminModal(); if (m) m.classList.remove('active'); }
+                        window.closeDoctorShiftAdminModal = closeDoctorShiftAdminModal;
+
+                        // Bind admin form submit (immediately if present) with fallback
+                        const bindAdminForm = () => {
+                            const form = getAdminForm();
+                            if (!form || form.__boundSubmit) return;
+                            form.__boundSubmit = true;
+                            form.addEventListener('submit', async (e) => {
+                                e.preventDefault();
+                                const fd = new FormData(form); // includes csrf + id
+                                try {
+                                    const res = await fetch('<?= base_url('admin/doctor-shifts/update') ?>', {
+                                        method: 'POST',
+                                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                                        body: fd
+                                    });
+                                    if (!res.ok) {
+                                        const txt = await res.text().catch(()=> '');
+                                        console.error('Update shift failed', res.status, txt);
+                                        alert('Failed to update shift (HTTP ' + res.status + ').');
+                                        return;
+                                    }
+                                    const json = await res.json();
+                                    refreshCsrfFromJson(json);
+                                    if (json?.status === 'success') {
+                                        closeDoctorShiftAdminModal();
+                                        await loadDoctorShifts();
+                                    } else {
+                                        const errMsg = json?.message || 'Failed to update shift';
+                                        const dbm = json?.db_error?.message ? `\nDB: ${json.db_error.message}` : '';
+                                        const exm = json?.exception ? `\nEx: ${json.exception}` : '';
+                                        alert(errMsg + dbm + exm);
+                                    }
+                                } catch (err) {
+                                    console.error('Exception updating shift', err);
+                                    alert('Failed to update shift');
+                                }
+                            });
+                        };
+                        bindAdminForm();
+                        document.addEventListener('DOMContentLoaded', bindAdminForm);
+
+                        function escapeHtml(str){
+                            return (str||'').toString()
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#039;');
+                        }
+
+                        // Initial load
+                        document.addEventListener('DOMContentLoaded', () => loadDoctorShifts());
+                        // Also try immediate call
+                        loadDoctorShifts();
+                    })();
+                </script>
 
               <!-- Assign Shift Modal (Doctors only) -->
                 <div id="assignShiftModal" class="hms-modal-overlay" aria-hidden="true">
@@ -708,110 +1212,7 @@
                     }
                     // Initial load
                     window.addEventListener('DOMContentLoaded', loadStaffTable);
-                    // Assign Shift (Doctors only)
-                    const assignShiftModal = document.getElementById('assignShiftModal');
-                    const doctorSelect = document.getElementById('doctor_id');
-                    const shiftTypeSelect = document.getElementById('shift_type');
-
-                    function openAssignShiftModal() {
-                        assignShiftModal.classList.add('active');
-                        assignShiftModal.setAttribute('aria-hidden', 'false');
-                        // Prefill date with today
-                        const today = new Date();
-                        const yyyy = today.getFullYear();
-                        const mm = String(today.getMonth() + 1).padStart(2, '0');
-                        const dd = String(today.getDate()).padStart(2, '0');
-                        document.getElementById('shift_date').value = `${yyyy}-${mm}-${dd}`;
-                        // Load doctors list (UI only, optional)
-                        loadDoctorsIntoSelect();
-                        // Sync default times to selected shift type
-                        syncTimesToShiftType();
-                    }
-                    function closeAssignShiftModal() {
-                        assignShiftModal.classList.remove('active');
-                        assignShiftModal.setAttribute('aria-hidden', 'true');
-                    }
-                    // Close on overlay click
-                    assignShiftModal?.addEventListener('click', (e) => {
-                        if (e.target === assignShiftModal) closeAssignShiftModal();
-                    });
-
-                    function syncTimesToShiftType() {
-                        const type = shiftTypeSelect?.value;
-                        const start = document.getElementById('start_time');
-                        const end = document.getElementById('end_time');
-                        if (!start || !end) return;
-                        if (type === 'morning') {
-                            start.value = '06:00';
-                            end.value = '14:00';
-                        } else if (type === 'afternoon') {
-                            start.value = '14:00';
-                            end.value = '22:00';
-                        } else if (type === 'night') {
-                            start.value = '22:00';
-                            end.value = '06:00';
-                        }
-                    }
-                    shiftTypeSelect?.addEventListener('change', () => {
-                        if (shiftTypeSelect.value !== 'custom') {
-                            syncTimesToShiftType();
-                        }
-                    });
-
-                     async function loadDoctorsIntoSelect() {
-                        if (!doctorSelect) return;
-                        try {
-                            // Should return JSON: [{id, full_name}, ...]
-                            const res = await fetch('<?= base_url('admin/staff/doctors') ?>', { headers: { 'Accept': 'application/json' } });
-                            if (!res.ok) throw new Error('Failed to load doctors');
-                            const data = await res.json();
-                            const doctors = Array.isArray(data?.doctors) ? data.doctors : [];
-                            if (doctors.length === 0) throw new Error('No doctors list');
-                            doctorSelect.innerHTML = '<option value="">Select doctor</option>' +
-                                doctors.map(d => `<option value="${d.id}">${d.full_name}</option>`).join('');
-                        } catch (err) {
-                            // Fallback to static placeholders if endpoint not available
-                            doctorSelect.innerHTML = `
-                                <option value="">Select doctor</option>
-                                <option value="1">Dr. Staff1</option>
-                                <option value="2">Dr. Staff2</option>
-                                <option value="3">Dr. Staff3</option>
-                            `;
-                        }
-                    }
-
-                    const assignShiftForm = document.getElementById('assignShiftForm');
-                    assignShiftForm?.addEventListener('submit', async (e) => {
-                        e.preventDefault();
-                        const form = e.target;
-                        const formData = new FormData(form);
-                        const doctorId = formData.get('doctor_id');
-                        if (!doctorId) {
-                            alert('Please select a doctor.');
-                            return;
-                        }
-                        const url = `<?= base_url('admin/staff') ?>/${doctorId}/shifts`;
-                        try {
-                            const res = await fetch(url, {
-                                method: 'POST',
-                                headers: { 'Accept': 'application/json' },
-                                body: formData
-                            });
-                            const data = await res.json();
-                            if (!res.ok || data?.status !== 'success') {
-                                const msg = data?.message || 'Failed to create shift';
-                                const errs = data?.errors ? ('\n' + JSON.stringify(data.errors)) : '';
-                                alert(msg + errs);
-                                return;
-                            }
-                            alert('Shift assigned successfully');
-                            form.reset();
-                            closeAssignShiftModal();
-                        } catch (err) {
-                            console.error(err);
-                            alert('An error occurred while assigning the shift');
-                        }
-                    });
+                    // Assign Shift JS is defined earlier to avoid duplication
                 </script>
 
             </main>

@@ -101,6 +101,14 @@
             <h1 class="page-title">Pharmacy Dashboard</h1>
             <p class="text-muted">Welcome to the Pharmacy Management System</p>
 
+            <!-- Error Notice -->
+            <?php if (isset($error)): ?>
+                <div style="background: #fee2e2; border: 1px solid #fecaca; color: #dc2626; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; text-align: center;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>
+                    <?php echo $error; ?>
+                </div>
+            <?php endif; ?>
+
             <!-- Statistics Cards -->
             <div class="dashboard-overview">
                 <div class="overview-card">

@@ -21,47 +21,105 @@ class Pharmacist extends BaseController
     {
         $data = [
             'title' => 'Pharmacist Dashboard',
-            'page' => 'dashboard',
-            'statistics' => $this->prescriptionModel->getStatistics(),
-            'low_stock_items' => $this->inventoryModel->getLowStockItems(),
-            'recent_prescriptions' => $this->prescriptionModel->getPrescriptions(['limit' => 5]),
-            'expired_items' => $this->inventoryModel->getExpiredItems()
+            'page' => 'dashboard'
         ];
+
+        try {
+            // Try to load models and get data
+            $prescriptionModel = new PrescriptionModel();
+            $inventoryModel = new InventoryModel();
+
+            $data['statistics'] = $prescriptionModel->getStatistics();
+            $data['low_stock_items'] = $inventoryModel->getLowStockItems();
+            $data['recent_prescriptions'] = $prescriptionModel->getPrescriptions(['limit' => 5]);
+            $data['expired_items'] = $inventoryModel->getExpiredItems();
+            $data['inventory_items'] = $inventoryModel->getInventory();
+
+        } catch (Exception $e) {
+            // Fallback data when database/models fail
+            $data['statistics'] = [
+                'total_queued' => 0,
+                'total_verifying' => 0,
+                'total_ready' => 0,
+                'total_dispensed' => 0,
+                'stat_prescriptions' => 0,
+                'today_dispensed' => 0
+            ];
+            $data['low_stock_items'] = [];
+            $data['recent_prescriptions'] = [];
+            $data['expired_items'] = [];
+            $data['inventory_items'] = [];
+            $data['error'] = 'Database not configured. Please contact administrator.';
+        }
 
         return view('pharmacists/dashboard', $data);
     }
 
     public function prescription()
     {
-        $filters = $this->request->getGet();
+        try {
+            $filters = $this->request->getGet();
 
-        $data = [
-            'title' => 'Prescription Management',
-            'page' => 'prescription',
-            'prescriptions' => $this->prescriptionModel->getPrescriptions($filters),
-            'queue' => $this->prescriptionModel->getQueue(),
-            'priority_queue' => $this->prescriptionModel->getQueue('stat'),
-            'interactions' => [], // Will be populated when checking interactions
-            'statistics' => $this->prescriptionModel->getStatistics()
-        ];
+            $data = [
+                'title' => 'Prescription Management',
+                'page' => 'prescription',
+                'prescriptions' => $this->prescriptionModel->getPrescriptions($filters),
+                'queue' => $this->prescriptionModel->getQueue(),
+                'priority_queue' => $this->prescriptionModel->getQueue('stat'),
+                'interactions' => [], // Will be populated when checking interactions
+                'statistics' => $this->prescriptionModel->getStatistics()
+            ];
 
-        return view('pharmacists/prescription', $data);
+            return view('pharmacists/prescription', $data);
+
+        } catch (Exception $e) {
+            return view('pharmacists/prescription', [
+                'title' => 'Prescription Management',
+                'page' => 'prescription',
+                'prescriptions' => [],
+                'queue' => [],
+                'priority_queue' => [],
+                'interactions' => [],
+                'statistics' => [
+                    'total_queued' => 0,
+                    'total_verifying' => 0,
+                    'total_ready' => 0,
+                    'total_dispensed' => 0,
+                    'stat_prescriptions' => 0,
+                    'today_dispensed' => 0
+                ],
+                'error' => 'Database not configured. Please contact administrator.'
+            ]);
+        }
     }
 
     public function inventory()
     {
-        $filters = $this->request->getGet();
+        try {
+            $filters = $this->request->getGet();
 
-        $data = [
-            'title' => 'Inventory Management',
-            'page' => 'inventory',
-            'inventory_items' => $this->inventoryModel->getInventory($filters),
-            'low_stock_items' => $this->inventoryModel->getLowStockItems(),
-            'expired_items' => $this->inventoryModel->getExpiredItems(),
-            'transaction_history' => $this->inventoryModel->getTransactionHistory(null, 10)
-        ];
+            $data = [
+                'title' => 'Inventory Management',
+                'page' => 'inventory',
+                'inventory_items' => $this->inventoryModel->getInventory($filters),
+                'low_stock_items' => $this->inventoryModel->getLowStockItems(),
+                'expired_items' => $this->inventoryModel->getExpiredItems(),
+                'transaction_history' => $this->inventoryModel->getTransactionHistory(null, 10)
+            ];
 
-        return view('pharmacists/inventory', $data);
+            return view('pharmacists/inventory', $data);
+
+        } catch (Exception $e) {
+            return view('pharmacists/inventory', [
+                'title' => 'Inventory Management',
+                'page' => 'inventory',
+                'inventory_items' => [],
+                'low_stock_items' => [],
+                'expired_items' => [],
+                'transaction_history' => [],
+                'error' => 'Database not configured. Please contact administrator.'
+            ]);
+        }
     }
 
     /**

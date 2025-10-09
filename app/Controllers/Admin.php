@@ -806,6 +806,269 @@ class Admin extends BaseController
     }
 
     /**
+     * API: Return all doctor shifts as JSON
+     * Route: GET admin/doctor-shifts/api
+     */
+    public function getDoctorShiftsAPI()
+    {
+        try {
+            $builder = $this->db->table('doctor_shift ds')
+                ->select('ds.shift_id as id, ds.shift_date as date, ds.shift_start as start, ds.shift_end as end, ds.department, ds.status, ds.shift_type, ds.duration_hours, ds.room_ward, ds.notes, d.doctor_id, s.first_name, s.last_name')
+                ->join('doctor d', 'd.doctor_id = ds.doctor_id', 'left')
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->orderBy('ds.shift_date', 'DESC')
+                ->orderBy('ds.shift_start', 'DESC');
+
+            $rows = $builder->get()->getResultArray();
+            $data = array_map(function ($r) {
+                $r['doctor_name'] = trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''));
+                return $r;
+            }, $rows);
+
+            return $this->response->setJSON(['status' => 'success', 'data' => $data]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to load doctor shifts: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load doctor shifts']);
+        }
+    }
+
+    /**
+     * API: Get single doctor shift by ID
+     * Route: GET admin/doctor-shifts/{id}
+     */
+    public function getDoctorShift($id = null)
+    {
+        if (!$id) {
+            return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Missing shift id']);
+        }
+        try {
+            $r = $this->db->table('doctor_shift ds')
+                ->select('ds.shift_id as id, ds.shift_date as date, ds.shift_start as start, ds.shift_end as end, ds.department, ds.status, ds.shift_type, ds.duration_hours, ds.room_ward, ds.notes, ds.doctor_id, s.first_name, s.last_name')
+                ->join('doctor d', 'd.doctor_id = ds.doctor_id', 'left')
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->where('ds.shift_id', (int)$id)
+                ->get()->getRowArray();
+            if (!$r) {
+                return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Shift not found']);
+            }
+            $r['doctor_name'] = trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''));
+            return $this->response->setJSON(['status' => 'success', 'data' => $r]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load shift']);
+        }
+    }
+
+    /**
+     * API: Create doctor shift
+     * Route: POST admin/doctor-shifts/create
+     */
+    public function createDoctorShift()
+    {
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'doctor_id'    => 'required|integer',
+            'shift_date'   => 'required|valid_date',
+            'shift_start'  => 'required',
+            'shift_end'    => 'required',
+            'department'   => 'permit_empty|max_length[100]',
+            'status'       => 'permit_empty|in_list[Scheduled,Completed,Cancelled]',
+            'shift_type'   => 'permit_empty|max_length[50]',
+            'room_ward'    => 'permit_empty|max_length[100]',
+            'notes'        => 'permit_empty',
+        ]);
+        if (!$validation->run($input)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors(),
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+
+        // Compute duration (in hours, handle overnight end < start)
+        $duration = null;
+        try {
+            $start = new \DateTime($input['shift_date'].' '.$input['shift_start']);
+            $end   = new \DateTime($input['shift_date'].' '.$input['shift_end']);
+            if ($end < $start) { $end->modify('+1 day'); }
+            $diff = $end->getTimestamp() - $start->getTimestamp();
+            $duration = round($diff / 3600, 2);
+        } catch (\Throwable $e) {
+            $duration = null;
+        }
+
+        try {
+            $data = [
+                'doctor_id'      => (int)$input['doctor_id'],
+                'shift_date'     => $input['shift_date'],
+                'shift_start'    => $input['shift_start'],
+                'shift_end'      => $input['shift_end'],
+                'department'     => $input['department'] ?? null,
+                'status'         => $input['status'] ?? 'Scheduled',
+                'shift_type'     => $input['shift_type'] ?? null,
+                'room_ward'      => $input['room_ward'] ?? null,
+                'notes'          => $input['notes'] ?? null,
+                'duration_hours' => $duration,
+            ];
+            $ok = $this->db->table('doctor_shift')->insert($data);
+            if ($ok) {
+                return $this->response->setJSON([
+                    'status'  => 'success',
+                    'message' => 'Shift created',
+                    'id'      => $this->db->insertID(),
+                    'csrf'    => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                ]);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to create doctor shift: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to create shift',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        return $this->response->setStatusCode(500)->setJSON([
+            'status' => 'error',
+            'message' => 'Failed to create shift',
+            'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+        ]);
+    }
+
+    /**
+     * API: Update doctor shift
+     * Route: POST admin/doctor-shifts/update
+     */
+    public function updateDoctorShift()
+    {
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        if (!is_array($input) || empty($input['id'])) {
+            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'id is required']);
+        }
+        $id = (int)$input['id'];
+
+        // Ensure record exists
+        $exists = $this->db->table('doctor_shift')->where('shift_id', $id)->countAllResults();
+        if ($exists === 0) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Shift not found',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+
+        $data = [
+            'shift_date'     => $input['shift_date']    ?? null,
+            'shift_start'    => $input['shift_start']   ?? null,
+            'shift_end'      => $input['shift_end']     ?? null,
+            'department'     => $input['department']    ?? null,
+            'status'         => $input['status']        ?? null,
+            'shift_type'     => $input['shift_type']    ?? null,
+            'room_ward'      => $input['room_ward']     ?? null,
+            'notes'          => $input['notes']         ?? null,
+        ];
+        // Recompute duration if times provided
+        if (!empty($input['shift_date']) && !empty($input['shift_start']) && !empty($input['shift_end'])) {
+            try {
+                $start = new \DateTime($input['shift_date'].' '.$input['shift_start']);
+                $end   = new \DateTime($input['shift_date'].' '.$input['shift_end']);
+                if ($end < $start) { $end->modify('+1 day'); }
+                $diff = $end->getTimestamp() - $start->getTimestamp();
+                $data['duration_hours'] = round($diff / 3600, 2);
+            } catch (\Throwable $e) {}
+        }
+
+        // Remove nulls
+        $data = array_filter($data, function($v) { return $v !== null; });
+        if (empty($data)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'No fields to update',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        try {
+            $ok = $this->db->table('doctor_shift')->where('shift_id', $id)->update($data);
+            if ($ok) {
+                $affected = $this->db->affectedRows();
+                return $this->response->setJSON([
+                    'status'   => 'success',
+                    'message'  => $affected > 0 ? 'Shift updated' : 'No changes applied',
+                    'affected' => $affected,
+                    'csrf'     => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                ]);
+            }
+            $dbErr = $this->db->error();
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to update shift',
+                'db_error' => $dbErr,
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to update shift',
+                'exception' => $e->getMessage(),
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+    }
+
+    /**
+     * API: Delete doctor shift
+     * Route: POST admin/doctor-shifts/delete
+     */
+    public function deleteDoctorShift()
+    {
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        $id = (int)($input['id'] ?? 0);
+        if ($id <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'id is required',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        // Ensure exists first
+        $exists = $this->db->table('doctor_shift')->where('shift_id', $id)->countAllResults();
+        if ($exists === 0) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Shift not found',
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+        try {
+            $ok = $this->db->table('doctor_shift')->where('shift_id', $id)->delete();
+            if ($ok) {
+                $affected = $this->db->affectedRows();
+                return $this->response->setJSON([
+                    'status' => $affected > 0 ? 'success' : 'error',
+                    'message' => $affected > 0 ? 'Shift deleted' : 'Shift not found',
+                    'affected' => $affected,
+                    'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                ]);
+            }
+            $dbErr = $this->db->error();
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to delete shift',
+                'db_error' => $dbErr,
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to delete shift',
+                'exception' => $e->getMessage(),
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
+        }
+    }
+
+    /**
      * System Settings page
      */
     public function systemSettings()

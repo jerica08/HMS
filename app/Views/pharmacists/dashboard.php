@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pharmacist Dashboard - HMS</title>
-    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="<?= base_url('assets/css/common.css')?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="pharmacy-theme">
@@ -12,7 +12,7 @@
     <?php include APPPATH . 'Views/template/header.php'; ?>
     <div class="main-container">
         <!-- Sidebar -->
-        <?php include APPPATH . 'Views/pharmacists/components/sidebar.html'; ?>
+        <?php include APPPATH . 'Views/pharmacists/components/sidebar.php'; ?>
         <!--Main Content-->
         <main class="content">
             <h1 class="page-title">Pharmacy Dashboard</h1>

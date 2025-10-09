@@ -72,10 +72,7 @@ class CreatePrescriptionsTable extends Migration
         $this->forge->addKey('patient_id');
         $this->forge->addKey('doctor_id');
 
-        // Add foreign key constraints if tables exist
-        $this->forge->addForeignKey('patient_id', 'patient', 'patient_id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('doctor_id', 'staff', 'staff_id', 'CASCADE', 'CASCADE');
-
+        // Create table without foreign key constraints for now
         $this->forge->createTable('prescriptions');
     }
 

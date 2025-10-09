@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pharmacy - Inventory Management - HMS</title>
-    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="/assets/css/common.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="pharmacy-theme">
@@ -75,32 +75,27 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>MED-0001</td>
-                            <td>Amoxicillin 500mg Cap</td>
-                            <td>Antibiotics</td>
-                            <td>220</td>
-                            <td>caps</td>
-                            <td>100</td>
-                            <td>2026-01-10</td>
-                            <td>
-                                <a href="#receive" class="btn btn-secondary" style="padding:.3rem .8rem; font-size:.8rem">Receive</a>
-                                <a href="#adjust" class="btn btn-primary" style="padding:.3rem .8rem; font-size:.8rem">Adjust</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>MED-0002</td>
-                            <td>Insulin Glargine</td>
-                            <td>Endocrine</td>
-                            <td>8</td>
-                            <td>vials</td>
-                            <td>15</td>
-                            <td>2025-11-05</td>
-                            <td>
-                                <a href="#receive" class="btn btn-secondary" style="padding:.3rem .8rem; font-size:.8rem">Receive</a>
-                                <a href="#adjust" class="btn btn-primary" style="padding:.3rem .8rem; font-size:.8rem">Adjust</a>
-                            </td>
-                        </tr>
+                        <?php if (!empty($inventory_items)): ?>
+                            <?php foreach ($inventory_items as $item): ?>
+                                <tr>
+                                    <td><?= $item['item_code'] ?></td>
+                                    <td><?= $item['name'] ?></td>
+                                    <td><?= $item['category'] ?></td>
+                                    <td><?= $item['stock_quantity'] ?></td>
+                                    <td><?= $item['unit'] ?></td>
+                                    <td><?= $item['min_stock_level'] ?></td>
+                                    <td><?= $item['expiry_date'] ?></td>
+                                    <td>
+                                        <a href="#receive" class="btn btn-secondary" style="padding:.3rem .8rem; font-size:.8rem">Receive</a>
+                                        <a href="#adjust" class="btn btn-primary" style="padding:.3rem .8rem; font-size:.8rem">Adjust</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="8" style="text-align: center;">No inventory items found</td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -119,15 +114,23 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>MED-0002</td>
-                            <td>Insulin Glargine</td>
-                            <td>8</td>
-                            <td>15</td>
-                            <td>
-                                <a href="#receive" class="btn btn-warning" style="padding:.3rem .8rem; font-size:.8rem">Receive</a>
-                            </td>
-                        </tr>
+                        <?php if (!empty($low_stock_items)): ?>
+                            <?php foreach ($low_stock_items as $item): ?>
+                                <tr>
+                                    <td><?= $item['item_code'] ?></td>
+                                    <td><?= $item['name'] ?></td>
+                                    <td><?= $item['stock_quantity'] ?></td>
+                                    <td><?= $item['min_stock_level'] ?></td>
+                                    <td>
+                                        <a href="#receive" class="btn btn-warning" style="padding:.3rem .8rem; font-size:.8rem">Receive</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" style="text-align: center;">No low stock items</td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -146,15 +149,23 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>MED-0005</td>
-                            <td>Cough Syrup 100ml</td>
-                            <td>2025-05-02</td>
-                            <td>12</td>
-                            <td>
-                                <a href="#" class="btn btn-danger" style="padding:.3rem .8rem; font-size:.8rem" onclick="alert('Removed (demo)')">Remove</a>
-                            </td>
-                        </tr>
+                        <?php if (!empty($expired_items)): ?>
+                            <?php foreach ($expired_items as $item): ?>
+                                <tr>
+                                    <td><?= $item['item_code'] ?></td>
+                                    <td><?= $item['name'] ?></td>
+                                    <td><?= $item['expiry_date'] ?></td>
+                                    <td><?= $item['stock_quantity'] ?></td>
+                                    <td>
+                                        <a href="#" class="btn btn-danger" style="padding:.3rem .8rem; font-size:.8rem" onclick="removeExpiredItem('<?= $item['item_code'] ?>')">Remove</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" style="text-align: center;">No expired items</td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -220,21 +231,114 @@
     </div>
 
     <script>
-        function handleLogout(){ if(confirm('Are you sure you want to logout?')) alert('Logged out (demo)'); }
+        function handleLogout(){ if(confirm('Are you sure you want to logout?')) window.location.href = '<?= base_url('logout') ?>'; }
 
+        // Receive Stock Form
         document.getElementById('receive-form').addEventListener('submit', function(e){
             e.preventDefault();
-            const d = new FormData(this);
-            alert('Received '+(d.get('rQty')||'?')+' of '+(d.get('rCode')||'?')+' (demo).');
-            this.reset();
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+
+            fetch('<?= base_url('pharmacists/receiveStock') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: new URLSearchParams(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert(result.message);
+                    this.reset();
+                    location.reload(); // Refresh to show updated data
+                } else {
+                    alert('Error: ' + (result.errors ? Object.values(result.errors).join(', ') : result.message));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
         });
 
+        // Adjust Inventory Form
         document.getElementById('adjust-form').addEventListener('submit', function(e){
             e.preventDefault();
-            const d = new FormData(this);
-            alert('Adjusted '+(d.get('aCode')||'?')+' by '+(d.get('aDelta')||'?')+' for '+(d.get('aReason')||'?')+' (demo).');
-            this.reset();
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+
+            fetch('<?= base_url('pharmacists/adjustInventory') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: new URLSearchParams(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert(result.message);
+                    this.reset();
+                    location.reload(); // Refresh to show updated data
+                } else {
+                    alert('Error: ' + (result.errors ? Object.values(result.errors).join(', ') : result.message));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
         });
+
+        // Remove expired item
+        function removeExpiredItem(itemCode) {
+            if (confirm('Are you sure you want to remove this expired item?')) {
+                fetch('<?= base_url('pharmacists/removeExpiredItem') ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: new URLSearchParams({ item_code: itemCode })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert(result.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+            }
+        }
+
+        // Filter functionality
+        document.getElementById('search').addEventListener('input', filterTable);
+        document.getElementById('category').addEventListener('change', filterTable);
+        document.getElementById('status').addEventListener('change', filterTable);
+
+        function filterTable() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const category = document.getElementById('category').value;
+            const status = document.getElementById('status').value;
+
+            const params = new URLSearchParams();
+            if (search) params.append('search', search);
+            if (category) params.append('category', category);
+            if (status) params.append('status', status);
+
+            window.location.href = '<?= base_url('pharmacists/inventory') ?>?' + params.toString();
+        }
     </script>
 </body>
 </html>

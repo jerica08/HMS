@@ -7,13 +7,13 @@
             <div class="fas fa-user-circle"></div>
             <div>
                 <div style="font-weight: 600;">
-                    <?= \App\Helpers\UserHelper::getDisplayName(session()) ?>
+                    Pharmacist User
                 </div>
                 <div style="font-size: 0.9rem;opacity:0.8">
-                    <?= \App\Helpers\UserHelper::getDisplayRole(session()) ?>
+                    Pharmacist
                 </div>
             </div>
-            <a href="<?= base_url('logout') ?>" class="logout-btn">
+            <a href="#" class="logout-btn" onclick="handleLogout()">
                 <i class="fas fa-sign-out-alt"></i>
                 Logout
             </a>

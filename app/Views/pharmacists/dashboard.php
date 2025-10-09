@@ -4,209 +4,220 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pharmacist Dashboard - HMS</title>
-    <link rel="stylesheet" href="<?= base_url('assets/css/common.css')?>">
+    <link rel="stylesheet" href="/assets/css/common.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .dashboard-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .overview-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .card-icon-modern {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+        .card-icon-modern.blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-icon-modern.green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .card-icon-modern.purple { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .card-icon-modern.red { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .card-metrics { flex: 1; }
+        .metric { text-align: right; }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        .metric-value.blue { color: #667eea; }
+        .metric-value.green { color: #f093fb; }
+        .metric-value.purple { color: #4facfe; }
+        .metric-value.red { color: #43e97b; }
+        .metric-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin: 0;
+        }
+        .recent-activity {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: #e0f2fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0284c7;
+        }
+        .activity-content { flex: 1; }
+        .activity-title {
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+        .activity-details {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+    </style>
 </head>
-<body class="pharmacy-theme">
+
+<body>
     <!-- Header -->
     <?php include APPPATH . 'Views/template/header.php'; ?>
+
     <div class="main-container">
         <!-- Sidebar -->
         <?php include APPPATH . 'Views/pharmacists/components/sidebar.php'; ?>
         <!--Main Content-->
         <main class="content">
             <h1 class="page-title">Pharmacy Dashboard</h1>
+            <p class="text-muted">Welcome to the Pharmacy Management System</p>
 
-            <!-- Dashboard Overview Cards -->
+            <!-- Statistics Cards -->
             <div class="dashboard-overview">
-                <!--Prescription Queue-->
                 <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern blue">
-                            <i class="fas fa-prescription"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Prescription Queue</h3>
-                            <p class="card-subtitle">Pending prescriptions</p>
-                        </div>
+                    <div class="card-icon-modern blue">
+                        <i class="fas fa-prescription"></i>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue">34</div>
-                            <div class="metric-label">Pending</div>
+                            <div class="metric-value blue"><?php echo $statistics['total_queued'] ?? 0; ?></div>
+                            <p class="metric-label">Prescription Queue</p>
                         </div>
-                        <div class="metric">
-                            <div class="metric-value green">12</div>
-                            <div class="metric-label">Priority</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value orange">22</div>
-                            <div class="metric-label">Routine</div>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <a href="prescription.html#priority" class="action-btn primary">Process Priority</a>
-                        <a href="prescription.html#queue" class="action-btn secondary">View Queue</a>
                     </div>
                 </div>
-                <!--Inventory Status-->
+
                 <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple">
-                            <i class="fas fa-boxes"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Inventory Status</h3>
-                            <p class="card-subtitle">Stock levels and alerts</p>
-                        </div>
+                    <div class="card-icon-modern green">
+                        <i class="fas fa-pills"></i>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value purple">847</div>
-                            <div class="metric-label">Items</div>
+                            <div class="metric-value green"><?php echo count($inventory_items ?? []); ?></div>
+                            <p class="metric-label">Inventory Items</p>
                         </div>
-                        <div class="metric">
-                            <div class="metric-value green">23</div>
-                            <div class="metric-label">Low Stock</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">8</div>
-                            <div class="metric-label">Expired</div>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <a href="inventory.html#low-stock" class="action-btn warning">Check Low Stock</a>
-                        <a href="inventory.html#expired" class="action-btn danger">Remove Expired</a>
                     </div>
                 </div>
-                <!--Dispensed Today-->
-                 <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple">
-                            <i class="fas fa-boxes"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Dispense Today</h3>
-                            <p class="card-subtitle">Medications dispensed</p>
-                        </div>
+
+                <div class="overview-card">
+                    <div class="card-icon-modern purple">
+                        <i class="fas fa-exclamation-triangle"></i>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value purple">156</div>
-                            <div class="metric-label">Total</div>
+                            <div class="metric-value purple"><?php echo count($low_stock_items ?? []); ?></div>
+                            <p class="metric-label">Low Stock Items</p>
                         </div>
-                        <div class="metric">
-                            <div class="metric-value green">142</div>
-                            <div class="metric-label">Outpatient</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">14</div>
-                            <div class="metric-label">Inpatient</div>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <a href="prescription.html#dispense" class="action-btn warning">Dispense Medication</a>
-                        <a href="prescription.html#history" class="action-btn danger">View History</a>
                     </div>
                 </div>
-                <!--Drug Interaction-->
-               <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple">
-                            <i class="fas fa-boxes"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Drug Interaction</h3>
-                            <p class="card-subtitle">Safety Alerts</p>
-                        </div>
+
+                <div class="overview-card">
+                    <div class="card-icon-modern red">
+                        <i class="fas fa-clock"></i>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value purple">7</div>
-                            <div class="metric-label">Alerts</div>
+                            <div class="metric-value red"><?php echo $statistics['stat_prescriptions'] ?? 0; ?></div>
+                            <p class="metric-label">STAT Prescriptions</p>
                         </div>
-                        <div class="metric">
-                            <div class="metric-value green">3</div>
-                            <div class="metric-label">Critical</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value">4</div>
-                            <div class="metric-label">Moderate</div>
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <a href="prescription.html#interactions" class="action-btn warning">Review Critical</a>
-                        <a href="prescription.html#interactions" class="action-btn danger">Check All</a>
                     </div>
                 </div>
             </div>
-            <!-- Prescription Processing Queue -->
-            <div class="table-container" style="margin-top: 2rem;">
-                <h3 style="margin-bottom: 1.5rem;">Prescription Processing Queue</h3>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Rx Number</th>
-                            <th>Patient</th>
-                            <th>Medication</th>
-                            <th>Quantity</th>
-                            <th>Prescriber</th>
-                            <th>Priority</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>RX-2025-001</strong></td>
-                            <td>Maria Garcia</td>
-                            <td>Lisinopril 10mg</td>
-                            <td>30 tablets</td>
-                            <td>Dr. Wilson</td>
-                            <td><span class="badge badge-danger">STAT</span></td>
-                            <td><span class="badge badge-warning">Verifying</span></td>
-                            <td><a href="#" class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Process</a></td>
-                        </tr>
-                        <tr>
-                            <td><strong>RX-2025-002</strong></td>
-                            <td>David Lee</td>
-                            <td>Metformin 500mg</td>
-                            <td>60 tablets</td>
-                            <td>Dr. Martinez</td>
-                            <td><span class="badge badge-info">Routine</span></td>
-                            <td><span class="badge badge-info">Queued</span></td>
-                            <td><a href="#" class="btn btn-success" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Start</a></td>
-                        </tr>
-                        <tr>
-                            <td><strong>RX-2025-003</strong></td>
-                            <td>Lisa Anderson</td>
-                            <td>Atorvastatin 20mg</td>
-                            <td>30 tablets</td>
-                            <td>Dr. Lee</td>
-                            <td><span class="badge badge-warning">Priority</span></td>
-                            <td><span class="badge badge-success">Ready</span></td>
-                            <td><a href="#" class="btn btn-success" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Dispense</a></td>
-                        </tr>
-                        <tr>
-                            <td><strong>RX-2025-004</strong></td>
-                            <td>James Brown</td>
-                            <td>Insulin Glargine</td>
-                            <td>1 vial</td>
-                            <td>Dr. Davis</td>
-                            <td><span class="badge badge-danger">STAT</span></td>
-                            <td><span class="badge badge-warning">Processing</span></td>
-                            <td><a href="#" class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Continue</a></td>
-                        </tr>
-                    </tbody>
-                </table>
+
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <h2>Recent Activity</h2>
+
+                <?php if (!empty($recent_prescriptions)): ?>
+                    <?php foreach ($recent_prescriptions as $prescription): ?>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-prescription"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title"><?php echo $prescription['medication']; ?></div>
+                                <div class="activity-details">
+                                    Patient: <?php echo $prescription['patient_name']; ?> |
+                                    RX: <?php echo $prescription['rx_number']; ?> |
+                                    Status: <?php echo ucfirst($prescription['status']); ?> |
+                                    Priority: <?php echo ucfirst($prescription['priority']); ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">No Recent Activity</div>
+                            <div class="activity-details">No prescriptions have been processed recently.</div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">Inventory Status</div>
+                        <div class="activity-details">
+                            <?php echo count($expired_items ?? []); ?> expired items |
+                            <?php echo count($low_stock_items ?? []); ?> low stock items |
+                            <?php echo count($inventory_items ?? []); ?> total items
+                        </div>
+                    </div>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">Login Successful</div>
+                        <div class="activity-details">You have successfully logged into the pharmacy dashboard</div>
+                    </div>
+                </div>
             </div>
-            <script>
-        // Logout (demo)
+        </main>
+    </div>
+    <script>
+        // Logout
         function handleLogout() {
             if (confirm('Are you sure you want to logout?')) {
-                alert('Logged out (demo)');
+                window.location.href = '<?= base_url('logout') ?>';
             }
         }
     </script>
- </body>
+</body>
 </html>

@@ -9,13 +9,13 @@
         <li class="nav-item">
             <a href="<?= base_url('pharmacists/prescription') ?>" class="nav-link <?= (uri_string() === 'pharmacists/prescription') ? 'active' : '' ?>">
                 <i class="fas fa-prescription nav-icon"></i>
-             Prescriptions
+                Prescriptions
             </a>
         </li>
         <li class="nav-item">
-            <a href="<?= base_url('pharmacists/inventroy') ?>" class="nav-link <?= (uri_string() === 'pharmacists/inventroy') ? 'active' : '' ?>">
+            <a href="<?= base_url('pharmacists/inventory') ?>" class="nav-link <?= (uri_string() === 'pharmacists/inventory') ? 'active' : '' ?>">
                 <i class="fas fa-boxes nav-icon"></i>
-             Inventory Management
+                Inventory Management
             </a>
         </li>
     </ul>

@@ -122,4 +122,9 @@ $routes->get('doctor/schedule', 'Doctor::schedule');
     $routes->get('laboratorists/test-request', 'Laboratorist::testRequest');
     $routes->get('laboratorists/test-result', 'Laboratorist::testResult');
 
+    // Pharmacist Routes
+    $routes->get('pharmacists/dashboard', 'Pharmacist::dashboard');
+    $routes->get('pharmacists/prescription', 'Pharmacist::prescription');
+    $routes->get('pharmacists/inventory', 'Pharmacist::inventory');
+
 $routes->setAutoRoute(true);

@@ -122,10 +122,52 @@
             color: #6b7280;
         }
 
-        .empty-state i {
-            font-size: 3rem;
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .form-group {
             margin-bottom: 1rem;
-            color: #d1d5db;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            min-height: 100px;
+            resize: vertical;
         }
     </style>
 </head>
@@ -222,10 +264,67 @@
         </main>
     </div>
 
+    <!-- Patient Note Modal -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <h3>Add Patient Note</h3>
+            <form id="noteForm">
+                <div class="form-group">
+                    <label class="form-label">Patient</label>
+                    <select class="form-select" id="patientSelect" required>
+                        <option value="">Select Patient</option>
+                        <?php if (!empty($assigned_patients)): ?>
+                            <?php foreach ($assigned_patients as $patient): ?>
+                                <option value="<?php echo $patient['id'] ?? 1; ?>"><?php echo ($patient['first_name'] ?? 'John') . ' ' . ($patient['last_name'] ?? 'Doe'); ?></option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Note Type</label>
+                    <select class="form-select" id="noteTypeSelect" required>
+                        <option value="">Select Note Type</option>
+                        <option value="general">General Observation</option>
+                        <option value="medication">Medication Note</option>
+                        <option value="vitals">Vital Signs Note</option>
+                        <option value="observation">Patient Observation</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Priority</label>
+                    <select class="form-select" id="prioritySelect" required>
+                        <option value="">Select Priority</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Note Content</label>
+                    <textarea class="form-textarea" id="noteContent" placeholder="Enter your note here..." required></textarea>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; justify-content: end; margin-top: 1rem;">
+                    <button type="button" onclick="closeNoteModal()" class="action-btn secondary">Cancel</button>
+                    <button type="submit" class="action-btn" style="background: #10b981;">Add Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         // Navigation functions
         function addPatientNote() {
-            alert('Add patient note functionality would be implemented here');
+            document.getElementById('noteModal').style.display = 'block';
+        }
+
+        function closeNoteModal() {
+            document.getElementById('noteModal').style.display = 'none';
+            document.getElementById('noteForm').reset();
         }
 
         function refreshPatientList() {
@@ -242,6 +341,51 @@
 
         function viewPatientDetails(patientId) {
             window.location.href = '<?= base_url('nurse/patient/details/') ?>' + patientId;
+        }
+
+        // Form submission for patient notes
+        document.getElementById('noteForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Get form data
+            const formData = {
+                patient_id: document.getElementById('patientSelect').value,
+                note_type: document.getElementById('noteTypeSelect').value,
+                note_content: document.getElementById('noteContent').value,
+                priority: document.getElementById('prioritySelect').value
+            };
+
+            // Send AJAX request
+            fetch('<?= base_url('nurse/add-patient-note') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Patient note added successfully!');
+                    closeNoteModal();
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Failed to add patient note');
+                console.error('Error:', error);
+            });
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('noteModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
         }
 
         // Logout functionality

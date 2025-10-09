@@ -355,40 +355,51 @@ class Nurse extends BaseController
     }
 
     /**
-     * Get recent activities (AJAX)
+     * Add patient note (AJAX)
      */
-    public function getRecentActivities()
+    public function addPatientNote()
     {
         if (!$this->request->isAJAX()) {
             return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
         }
 
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'patient_id' => 'required',
+            'note_type' => 'required|in_list[general,medication,vitals,observation]',
+            'note_content' => 'required|min_length[5]',
+            'priority' => 'required|in_list[low,medium,high,critical]'
+        ]);
+
+        if (!$validation->withRequest($this->request)->run()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors()
+            ]);
+        }
+
         try {
-            // For now, return mock data (would fetch from database in real implementation)
-            $activities = [
-                [
-                    'description' => 'Recorded vital signs for Patient ID: PAT001',
-                    'timestamp' => date('Y-m-d H:i:s', strtotime('-30 minutes'))
-                ],
-                [
-                    'description' => 'Administered medication to Patient ID: PAT003',
-                    'timestamp' => date('Y-m-d H:i:s', strtotime('-1 hour'))
-                ],
-                [
-                    'description' => 'Created shift report for Day shift',
-                    'timestamp' => date('Y-m-d H:i:s', strtotime('-2 hours'))
-                ]
+            $noteData = [
+                'patient_id' => $this->request->getPost('patient_id'),
+                'nurse_id' => session()->get('user_id'), // Current nurse
+                'note_type' => $this->request->getPost('note_type'),
+                'note_content' => $this->request->getPost('note_content'),
+                'priority' => $this->request->getPost('priority'),
+                'created_at' => date('Y-m-d H:i:s')
             ];
 
+            // For now, return success (would save to database in real implementation)
             return $this->response->setJSON([
                 'success' => true,
-                'activities' => $activities
+                'message' => 'Patient note added successfully',
+                'note_id' => 'NOTE-' . date('Ymd') . '-' . rand(100, 999)
             ]);
 
         } catch (Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Failed to get recent activities'
+                'message' => 'Failed to add patient note'
             ]);
         }
     }

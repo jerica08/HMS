@@ -5,29 +5,128 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Patient Care - HMS Nurse</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/css/users.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-            /* Filters */
-            .filter-row { display: flex; gap: 1rem; align-items: end; flex-wrap: wrap; }
-            .filter-group { display: flex; flex-direction: column; gap: 0.5rem; min-width: 150px; }
-            .filter-input { padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 5px; font-size: 0.9rem; }
+        /* Modern card styling */
+        .patient-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
 
-            /* Table enhancements */
-            .table-container { background:#fff; border:1px solid #e5e7eb; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.06); overflow:auto; max-height:60vh; }
-            .table { width:100%; border-collapse: separate; border-spacing:0; min-width: 900px; }
-            .table thead th { position: sticky; top: 0; background:#f8fafc; color:#374151; font-weight:600; text-align:left; padding: .75rem 1rem; border-bottom:1px solid #e5e7eb; z-index:1; }
-            .table tbody td { padding:.75rem 1rem; border-bottom:1px solid #f3f4f6; vertical-align: middle; }
-            .table tbody tr:nth-child(odd) { background:#fcfcfd; }
-            .table tbody tr:hover { background:#f9fafb; }
-            .table th:last-child, .table td:last-child { text-align:right; white-space: nowrap; }
+        .patient-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid #667eea;
+        }
 
-            /* Badges & compact buttons */
-            .badge { display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.75rem; font-weight:600; }
-            .badge-success { background:#dcfce7; color:#166534; }
-            .badge-warning { background:#fef3c7; color:#92400e; }
-            .badge-danger  { background:#fecaca; color:#991b1b; }
-            .btn.btn-primary.btn-compact, .btn.btn-secondary.btn-compact { padding: .35rem .65rem; font-size:.8rem; }
+        .patient-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .patient-header {
+            display: flex;
+            justify-content: between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .patient-id {
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .patient-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+            margin: 0;
+        }
+
+        .patient-info {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin: 0.25rem 0;
+        }
+
+        .patient-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .status-stable { background: #dcfce7; color: #166534; }
+        .status-critical { background: #fecaca; color: #991b1b; }
+        .status-observation { background: #fef3c7; color: #92400e; }
+
+        .patient-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: #667eea;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #5a67d8;
+            color: white;
+        }
+
+        .action-btn.secondary {
+            background: #6b7280;
+        }
+
+        .action-btn.secondary:hover {
+            background: #4b5563;
+        }
+
+        .error-notice {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #d1d5db;
+        }
     </style>
 </head>
 <body class="nurse">
@@ -35,156 +134,123 @@
     <?php include APPPATH . 'Views/template/header.php'; ?>
 
     <div class="main-container">
-        <?= $this->include('Views/nurse/components/sidebar') ?>
+        <?= $this->include('nurse/components/sidebar') ?>
 
         <main class="content">
-            <h1 class="page-title"> Patient Care Management</h1>
-            <div class="page-actions">
-                <button class="btn btn-success"><i class="fas fa-plus"></i> Add Patient Note</button>
-            </div>
-            <br>
+            <h1 class="page-title">Patient Care Management</h1>
+            <p class="text-muted">Monitor and care for assigned patients</p>
 
-            <div class="dashboard-overview">
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern blue"><i class="fas fa-bed"></i></div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Total Patients</h3>
-                            <p class="card-subtitle">Assigned to you</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric"><div class="metric-value blue">0</div></div>
-                    </div>
+            <!-- Error Notice -->
+            <?php if (isset($error)): ?>
+                <div class="error-notice">
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>
+                    <?php echo $error; ?>
                 </div>
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple"><i class="fas fa-check-circle"></i></div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Stable Patients</h3>
-                            <p class="card-subtitle">Normal condition</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric"><div class="metric-value purple">0</div></div>
-                    </div>
-                </div>
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple"><i class="fas fa-exclamation-triangle"></i></div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Critical Patients</h3>
-                            <p class="card-subtitle">Requires attentions</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric"><div class="metric-value purple">0</div></div>
-                    </div>
-                </div>
+            <?php endif; ?>
+
+            <!-- Quick Actions -->
+            <div style="margin-bottom: 2rem;">
+                <button onclick="addPatientNote()" class="action-btn" style="background: #10b981;">
+                    <i class="fas fa-plus"></i> Add Patient Note
+                </button>
+                <button onclick="refreshPatientList()" class="action-btn secondary" style="margin-left: 0.5rem;">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
             </div>
 
-            <div class="search-filter">
-                <h3>My Assigned Patients</h3>
-                <div class="search-filter">
-                    <div class="filter-row">
-                        <div class="filter-group">
-                            <input type="text" class="filter-input" placeholder="Search by patient name, test type, or result ID..." id="labSearch" value="">
-                        </div>
-                        <div class="filter-group" id="statusFilter">
-                            <select class="filter-input" id="roleFilter">
-                                <option value="">All Status</option>
-                                <option value="new">New</option>
-                                <option value="reviewed">Reviewed</option>
-                                <option value="critical">Critical</option>
-                                <option value="pending">Pending</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label>&nbsp;</label>
-                            <button class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
-                        </div>
-                    </div>
-                </div>
+            <!-- Patient Cards -->
+            <?php if (!empty($assigned_patients)): ?>
+                <div class="patient-grid">
+                    <?php foreach ($assigned_patients as $patient): ?>
+                        <div class="patient-card">
+                            <div class="patient-header">
+                                <div>
+                                    <span class="patient-id"><?php echo $patient['patient_id'] ?? 'PAT' . rand(100, 999); ?></span>
+                                </div>
+                            </div>
+                            <h3 class="patient-name"><?php echo ($patient['first_name'] ?? 'John') . ' ' . ($patient['last_name'] ?? 'Doe'); ?></h3>
+                            <p class="patient-info">
+                                <i class="fas fa-birthday-cake"></i> Age: <?php echo $patient['age'] ?? 'N/A'; ?> |
+                                <i class="fas fa-venus-mars"></i> <?php echo $patient['gender'] ?? 'N/A'; ?>
+                            </p>
+                            <p class="patient-info">
+                                <i class="fas fa-bed"></i> Room: <?php echo $patient['room_number'] ?? 'Not assigned'; ?> |
+                                <i class="fas fa-user-md"></i> Assigned Doctor: <?php echo $patient['assigned_doctor'] ?? 'Dr. Smith'; ?>
+                            </p>
+                            <span class="patient-status status-<?php echo $patient['status'] ?? 'stable'; ?>">
+                                <?php echo ucfirst($patient['status'] ?? 'stable'); ?>
+                            </span>
 
-                <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Room</th>
-                            <th>Patient</th>
-                            <th>Age</th>
-                            <th>Condition</th>
-                            <th>Status</th>
-                            <th>Last Check</th>
-                            <th>Priority</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="patientTableBody">
-                        <tr>
-                            <td>201</td>
-                            <td>
-                                <div class="patient-info">
-                                    <strong>John Smith</strong>
-                                    <small>ID: P001</small>
-                                </div>
-                            </td>
-                            <td>45</td>
-                            <td>Post-operative recovery</td>
-                            <td><span class="badge badge-success">Stable</span></td>
-                            <td>2 hours ago</td>
-                            <td><span class="badge badge-success">Low</span></td>
-                            <td>
-                                <button class="btn btn-primary btn-compact">View</button>
-                                <button class="btn btn-secondary btn-compact">Note</button>
-                                <button class="btn btn-secondary btn-compact">Edit</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>203</td>
-                            <td>
-                                <div class="patient-info">
-                                    <strong>Maria Garcia</strong>
-                                    <small>ID: P002</small>
-                                </div>
-                            </td>
-                            <td>62</td>
-                            <td>Cardiac monitoring</td>
-                            <td><span class="badge badge-danger">Critical</span></td>
-                            <td>30 minutes ago</td>
-                            <td><span class="badge badge-danger">High</span></td>
-                            <td>
-                                <button class="btn btn-primary btn-compact">View</button>
-                                <button class="btn btn-secondary btn-compact">Note</button>
-                                <button class="btn btn-secondary btn-compact">Edit</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>205</td>
-                            <td>
-                                <div class="patient-info">
-                                    <strong>David Lee</strong>
-                                    <small>ID: P003</small>
-                                </div>
-                            </td>
-                            <td>38</td>
-                            <td>Wound care treatment</td>
-                            <td><span class="badge badge-warning">Recovering</span></td>
-                            <td>1 hour ago</td>
-                            <td><span class="badge badge-warning">Medium</span></td>
-                            <td>
-                                <button class="btn btn-primary btn-compact">View</button>
-                                <button class="btn btn-secondary btn-compact">Note</button>
-                                <button class="btn btn-secondary btn-compact">Edit</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            <div class="patient-actions">
+                                <button onclick="recordVitals(<?php echo $patient['id'] ?? 1; ?>)" class="action-btn">
+                                    <i class="fas fa-heartbeat"></i> Record Vitals
+                                </button>
+                                <button onclick="administerMedication(<?php echo $patient['id'] ?? 1; ?>)" class="action-btn">
+                                    <i class="fas fa-pills"></i> Medication
+                                </button>
+                                <button onclick="viewPatientDetails(<?php echo $patient['id'] ?? 1; ?>)" class="action-btn secondary">
+                                    <i class="fas fa-eye"></i> Details
+                                </button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <h3>No Assigned Patients</h3>
+                    <p>You don't have any patients assigned to you at the moment.</p>
+                    <p>Patients will appear here once they are assigned to your care.</p>
+                </div>
+            <?php endif; ?>
+
+            <!-- Patient Statistics -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem;">
+                <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+                    <div style="color: #667eea; font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;"><?php echo count($assigned_patients ?? []); ?></div>
+                    <p style="margin: 0; color: #6b7280;">Total Assigned Patients</p>
+                </div>
+                <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+                    <div style="color: #10b981; font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;"><?php echo count(array_filter($assigned_patients ?? [], function($p) { return ($p['status'] ?? 'stable') === 'stable'; })); ?></div>
+                    <p style="margin: 0; color: #6b7280;">Stable Patients</p>
+                </div>
+                <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+                    <div style="color: #f59e0b; font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem;"><?php echo count(array_filter($assigned_patients ?? [], function($p) { return ($p['status'] ?? 'stable') === 'observation'; })); ?></div>
+                    <p style="margin: 0; color: #6b7280;">Under Observation</p>
                 </div>
             </div>
         </main>
     </div>
 
+    <script>
+        // Navigation functions
+        function addPatientNote() {
+            alert('Add patient note functionality would be implemented here');
+        }
+
+        function refreshPatientList() {
+            location.reload();
+        }
+
+        function recordVitals(patientId) {
+            window.location.href = '<?= base_url('nurse/vitals') ?>?patient_id=' + patientId;
+        }
+
+        function administerMedication(patientId) {
+            window.location.href = '<?= base_url('nurse/medication') ?>?patient_id=' + patientId;
+        }
+
+        function viewPatientDetails(patientId) {
+            window.location.href = '<?= base_url('nurse/patient/details/') ?>' + patientId;
+        }
+
+        // Logout functionality
+        function handleLogout() {
+            if(confirm('Are you sure you want to logout?')) {
+                window.location.href = '<?= base_url('auth/logout') ?>';
+            }
+        }
+    </script>
     <script src="<?= base_url('js/logout.js') ?>"></script>
 </body>
 </html>

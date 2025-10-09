@@ -20,132 +20,78 @@
         </style>
     </head>
     <body class="receptionist-theme">
-       <!-- Header -->
        <?php include APPPATH . 'Views/template/header.php'; ?>
         <div class="main-container">
             <!-- Sidebar -->
              <?php include APPPATH . 'Views/receptionist/components/sidebar.php'; ?> 
             <main class="content">
                 <h1 class="page-title">Receptionist Dashboard</h1>
-                <div class="dashboard-overview">
-                    <!--Today's Appointment Card-->
-                    <div class="overview-card">
-                        <div class="card-header-modern">
-                            <div class="card-icon-modern blue">
+                <p class="text-muted">Welcome to the Reception Management System</p>
+
+                <!-- Error Notice -->
+                <?php if (isset($error)): ?>
+                    <div style="background: #fee2e2; border: 1px solid #fecaca; color: #dc2626; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; text-align: center;">
+                        <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>
+                        <?php echo $error; ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Quick Actions -->
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                    <button onclick="showAppointmentBooking()" class="btn btn-primary" style="background: #667eea; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; color: white; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-calendar-plus"></i> Book Appointment
+                    </button>
+                    <button onclick="showPatientRegistration()" class="btn btn-secondary" style="background: #6b7280; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; color: white; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-user-plus"></i> Register Patient
+                    </button>
+                </div>
+                <!-- Statistics Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    <div style="background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
                                 <i class="fas fa-calendar-check"></i>
                             </div>
                             <div>
-                                <h3 class="card-title-modern">Today's Appointments</h3>
-                                <p class="card-subtitle">Schedule visit for today</p>
+                                <div style="font-size: 2rem; font-weight: bold; color: #667eea; margin-bottom: 0.25rem;"><?php echo $statistics['today_appointments'] ?? 0; ?></div>
+                                <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">Today's Appointments</p>
                             </div>
-                        </div>
-                        <div class="card-metrics">
-                            <div class="metrics">
-                                <div class="metric-value purple">0</div>
-                                <div class="metric-label">Total</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value purple">0</div>
-                                <div class="metric-label">Checked</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value red">0</div>
-                                <div class="metric-label">Pending</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <a href="<?= base_url('receptionist/appointments') ?>" class="action-btn primary">View Schedule</a>
-                            <a href="<?= base_url('receptionist/appointments/create') ?>" class="action-btn secondary">New Appointment</a>
                         </div>
                     </div>
-                    <!--Patient Registration Card-->
-                    <div class="overview-card">
-                        <div class="card-header-modern">
-                            <div class="card-icon-modern green">
-                                <i class="fas fa-user-plus"></i>
+
+                    <div style="background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
+                                <i class="fas fa-clock"></i>
                             </div>
                             <div>
-                                <h3 class="card-title-modern">Patient Registration</h3>
-                                <p class="card-subtitle">New patient registrations</p>
+                                <div style="font-size: 2rem; font-weight: bold; color: #f093fb; margin-bottom: 0.25rem;"><?php echo $statistics['pending_appointments'] ?? 0; ?></div>
+                                <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">Pending Appointments</p>
                             </div>
-                        </div>
-                        <div class="card-metrics">
-                            <div class="metrics">
-                                <div class="metric-value green" id="registrations-today"><?= $trackingData['registrations_today'] ?? 0 ?></div>
-                                <div class="metric-label">Today</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value blue" id="registrations-week"><?= $trackingData['registrations_this_week'] ?? 0 ?></div>
-                                <div class="metric-label">This Week</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value orange" id="pending-patients"><?= $trackingData['active_patients'] ?? 0 ?></div>
-                                <div class="metric-label">Active</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <a href="<?= base_url('receptionist/patient-registration/create') ?>" class="action-btn primary">Register Patient</a>
-                            <a href="<?= base_url('receptionist/patient-registration') ?>" class="action-btn secondary">View All</a>
                         </div>
                     </div>
-                    <!--Patient Overview Card-->
-                    <div class="overview-card">
-                        <div class="card-header-modern">
-                            <div class="card-icon-modern purple">
+
+                    <div style="background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
                                 <i class="fas fa-users"></i>
                             </div>
                             <div>
-                                <h3 class="card-title-modern">Patient Overview</h3>
-                                <p class="card-subtitle">Current patient status</p>
+                                <div style="font-size: 2rem; font-weight: bold; color: #4facfe; margin-bottom: 0.25rem;"><?php echo $statistics['total_patients'] ?? 0; ?></div>
+                                <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">Total Patients</p>
                             </div>
-                        </div>
-                        <div class="card-metrics">
-                            <div class="metrics">
-                                <div class="metric-value purple" id="total-patients"><?= $patientStats['total_patients'] ?? 0 ?></div>
-                                <div class="metric-label">Total</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value green" id="active-patients"><?= $patientStats['active_patients'] ?? 0 ?></div>
-                                <div class="metric-label">Active</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value blue" id="patients-month"><?= $patientStats['patients_this_month'] ?? 0 ?></div>
-                                <div class="metric-label">This Month</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <a href="<?= base_url('receptionist/patient-registration/search') ?>" class="action-btn primary">Search Patients</a>
-                            <a href="<?= base_url('receptionist/waiting-room') ?>" class="action-btn secondary">Waiting Room</a>
                         </div>
                     </div>
-                    <!--Insurance Verification-->
-                    <div class="overview-card">
-                        <div class="card-header-modern">
-                            <div class="card-icon-modern teal">
-                                <i class="fas fa-shield-alt"></i>
+
+                    <div style="background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
+                                <i class="fas fa-user-clock"></i>
                             </div>
-                            <div class="card-info">
-                                <h3 class="card-title">Insurance Status</h3>
-                                <p class="card-content">Insurance verification tracking</p>
+                            <div>
+                                <div style="font-size: 2rem; font-weight: bold; color: #43e97b; margin-bottom: 0.25rem;"><?php echo $statistics['waiting_patients'] ?? 0; ?></div>
+                                <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">Waiting Patients</p>
                             </div>
-                        </div>
-                        <div class="card-metrics">
-                            <div class="metric">
-                                <div class="metric-value green" id="insured-patients"><?= $patientStats['insured_patients'] ?? 0 ?></div>
-                                <div class="metric-label">Insured</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value orange" id="uninsured-patients"><?= $patientStats['uninsured_patients'] ?? 0 ?></div>
-                                <div class="metric-label">Uninsured</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value blue">0</div>
-                                <div class="metric-label">Pending</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <a href="<?= base_url('receptionist/insurance') ?>" class="action-btn primary">Verify Insurance</a>
-                            <a href="<?= base_url('receptionist/insurance/pending') ?>" class="action-btn secondary">View Pending</a>
                         </div>
                     </div>
                 </div>
@@ -221,6 +167,15 @@
                 this.classList.add('active');
             });
         });
+
+        // Navigation functions for quick actions
+        function showAppointmentBooking() {
+            window.location.href = '<?= base_url('receptionist/appointment-booking') ?>';
+        }
+
+        function showPatientRegistration() {
+            window.location.href = '<?= base_url('receptionist/patient-registration') ?>';
+        }
 
         // Logout functionality
         function handleLogout() {

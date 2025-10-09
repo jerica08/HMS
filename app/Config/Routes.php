@@ -70,13 +70,6 @@ $routes->group('admin', function($routes) {
     // Audit Logs
     $routes->get('auditLogs', 'Admin::auditLogs');
 
-    // Doctor Shifts APIs
-    $routes->get('doctor-shifts/api', 'Admin::getDoctorShiftsAPI');
-    $routes->get('doctor-shifts/(:num)', 'Admin::getDoctorShift/$1');
-    $routes->post('doctor-shifts/update', 'Admin::updateDoctorShift');
-    $routes->post('doctor-shifts/create', 'Admin::createDoctorShift');
-    $routes->post('doctor-shifts/delete', 'Admin::deleteDoctorShift');
-
     // Doctors list API
     $routes->get('doctors/api', 'Admin::getDoctorsAPI');
 });

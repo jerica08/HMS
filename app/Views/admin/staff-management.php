@@ -782,7 +782,16 @@
                             if (!select) return;
                             try {
                                 select.innerHTML = '<option value>Loading doctors...</option>';
-                                const res = await fetch(URLS.doctors, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }});
+                                const res = await fetch(URLS.doctors, {
+                                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                                });
+                                // If request failed (e.g., 401 via redirect), surface a helpful message
+                                const ctype = res.headers.get('content-type') || '';
+                                if (!res.ok || !ctype.includes('application/json')) {
+                                    const msg = !res.ok ? `Error ${res.status}. Please reload the page.` : 'Session expired. Please reload the page.';
+                                    select.innerHTML = `<option value>Failed to load doctors. ${msg}</option>`;
+                                    return;
+                                }
                                 const json = await res.json();
                                 const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
                                 if (!Array.isArray(list) || list.length === 0) {
@@ -792,7 +801,8 @@
                                 select.innerHTML = '<option value="" selected>Select a doctor</option>' +
                                     list.map(d => `<option value="${d.doctor_id}">${(d.name || 'Doctor')} ${d.specialization ? '('+d.specialization+')' : ''}</option>`).join('');
                             } catch (e) {
-                                select.innerHTML = '<option value>Error loading doctors</option>';
+                                console.error('loadDoctors() failed', e);
+                                select.innerHTML = '<option value>Failed to load doctors. Please reload the page.</option>';
                             }
                         }
 
@@ -1059,25 +1069,13 @@
                                     <div class="alert-content">This assignment modal is limited to doctors. Only doctors will appear in the list.</div>
                                 </div>
                                 <div class="form-grid">
-                                    <div class="full">
-                                        <label for="doctor_id" class="form-label">Doctor</label>
+                                    <div>
+                                        <label for="doctor_id" class="form-label">Doctor Name</label>
                                         <select id="doctor_id" name="doctor_id" class="form-select" required>
                                             <option value="">Loading doctors...</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label for="shift_date" class="form-label">Shift Date</label>
-                                        <input type="date" id="shift_date" name="shift_date" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label for="start_time" class="form-label">Start Time</label>
-                                        <input type="time" id="start_time" name="shift_start" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label for="end_time" class="form-label">End Time</label>
-                                        <input type="time" id="end_time" name="shift_end" class="form-input" required>
-                                    </div>
-                                    <div class="full">
                                         <label for="department" class="form-label">Department</label>
                                         <select id="department" name="department" class="form-select">
                                             <option value="" selected>Select department</option>
@@ -1092,11 +1090,49 @@
                                             <option value="Surgery">Surgery</option>
                                         </select>
                                     </div>
+                                    <div>
+                                        <label for="shift_date" class="form-label">Date</label>
+                                        <input type="date" id="shift_date" name="shift_date" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label for="shift_type" class="form-label">Shift Type</label>
+                                        <select id="shift_type" name="shift_type" class="form-select">
+                                            <option value="" selected>Select shift type</option>
+                                            <option value="Morning">Morning</option>
+                                            <option value="Afternoon">Afternoon</option>
+                                            <option value="Night">Night</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="start_time" class="form-label">Start Time</label>
+                                        <input type="time" id="start_time" name="shift_start" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label for="end_time" class="form-label">End Time</label>
+                                        <input type="time" id="end_time" name="shift_end" class="form-input" required>
+                                    </div>
+                                    <div class="full">
+                                        <label for="room_ward" class="form-label">Room/Ward</label>
+                                        <select id="room_ward" name="room_ward" class="form-select">
+                                            <option value="" selected>Select room/ward</option>
+                                            <option value="ER-1">Emergency ER-1</option>
+                                            <option value="Cardio A-12">Cardio A-12</option>
+                                            <option value="ICU 1">ICU 1</option>
+                                            <option value="ICU 2">ICU 2</option>
+                                            <option value="OPD 1">OPD 1</option>
+                                            <option value="OR-2">Surgery OR-2</option>
+                                        </select>
+                                    </div>
+                                    <div class="full">
+                                        <label for="notes" class="form-label">Notes</label>
+                                        <textarea id="notes" name="notes" class="form-textarea" rows="2" placeholder="Optional notes (e.g., Regular OPD shift)"></textarea>
+                                    </div>
                                     <input type="hidden" name="status" value="Scheduled">
                                 </div>
                             </div>
                             <div class="hms-modal-actions">
                                 <button type="button" class="btn btn-secondary" onclick="closeAssignShiftModal()">Cancel</button>
+                                <button type="button" class="btn" onclick="document.getElementById('assignShiftForm')?.reset()">Clear</button>
                                 <button type="submit" class="btn btn-success">
                                     <i class="fas fa-save"></i> Assign
                                 </button>

@@ -20,3 +20,11 @@
         </div>
     </div>
 </header>
+
+<script>
+function handleLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+        window.location.href = '<?= base_url('logout') ?>';
+    }
+}
+</script>

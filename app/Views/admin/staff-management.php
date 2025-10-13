@@ -839,6 +839,10 @@
                         function getAssignModal(){ return document.getElementById('assignShiftModal'); }
                         function getAssignForm(){ return document.getElementById('assignShiftForm'); }
                         function getDoctorSelect(){ return document.getElementById('doctor_id'); }
+                        function getAssignDepartment(){
+                            const form = getAssignForm();
+                            return form ? form.querySelector('select[name="department"]') : null;
+                        }
                         const shiftsBody = document.getElementById('doctorShiftsBody');
 
                         const URLS = {
@@ -904,12 +908,41 @@
                                     return;
                                 }
                                 select.innerHTML = '<option value="" selected>Select a doctor</option>' +
-                                    list.map(d => `<option value="${d.doctor_id}">${(d.name || 'Doctor')} ${d.specialization ? '('+d.specialization+')' : ''}</option>`).join('');
+                                    list.map(d => `<option value="${d.doctor_id}" data-department="${(d.department||'').replace(/"/g,'&quot;')}">${(d.name || 'Doctor')} ${d.specialization ? '('+d.specialization+')' : ''}</option>`).join('');
                             } catch (e) {
                                 console.error('loadDoctors() failed', e);
                                 select.innerHTML = '<option value>Failed to load doctors. Please reload the page.</option>';
                             }
                         }
+
+                        function syncDepartmentFromDoctor(){
+                            try {
+                                const docSel = getDoctorSelect();
+                                const depSel = getAssignDepartment();
+                                if (!docSel || !depSel) return;
+                                const opt = docSel.options[docSel.selectedIndex];
+                                if (!opt) return;
+                                const dept = (opt.getAttribute('data-department') || '').trim();
+                                if (!dept) return;
+                                // If the department value is not in the list, append it once
+                                let match = Array.from(depSel.options).some(o => (o.value||'') === dept);
+                                if (!match) {
+                                    const o = document.createElement('option');
+                                    o.value = dept; o.textContent = dept;
+                                    depSel.appendChild(o);
+                                }
+                                depSel.value = dept;
+                            } catch(_) {}
+                        }
+
+                        // When doctor changes, auto-select department
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const docSel = getDoctorSelect();
+                            if (docSel && !docSel.__boundSyncDept) {
+                                docSel.__boundSyncDept = true;
+                                docSel.addEventListener('change', syncDepartmentFromDoctor);
+                            }
+                        });
 
                         async function loadDoctorShifts() {
                             try {

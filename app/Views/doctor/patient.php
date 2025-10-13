@@ -6,6 +6,15 @@
     <title>Patient Management - HMS Doctor</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        .patient-table { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+        .table-header { background:#f8fafc; padding:1rem; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
+        .table { width:100%; border-collapse:separate; border-spacing:0; }
+        .table thead th { background:#f8fafc; color:#374151; font-weight:600; text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; }
+        .table tbody td { padding:0.75rem 1rem; border-bottom:1px solid #f3f4f6; }
+        .patient-avatar { width:40px; height:40px; border-radius:50%; background:#4299e1; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:0.9rem; }
+        .btn-small { padding:0.3rem 0.8rem; font-size:0.8rem; }
+    </style>
 </head>
 <body class="doctor">
      <!--header-->
@@ -58,9 +67,32 @@
                     </div>
                 </div>
             </div>
+             <div class="patient-view">         
+                    <!-- Patient List Table -->
+                    <div class="patient-table">
+                        <div class="table-header">
+                            <h3>Patients</h3>
+                        </div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>ID</th>
+                                    <th>Age</th>
+                                    <th>Assigned Doctor</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doctorPatientsBody">
+                                <tr><td colspan="7" style="text-align:center; color:#6b7280; padding:1rem;">Loading patients...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
         </main>
     </div>
-     <!-- Add Patient Popup Modal (styled like Add User) -->
+     <!-- Add Patient Modal -->
         <div id="patientModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
             <div style="background:#fff; padding:2rem; border-radius:8px; max-width:960px; width:98%; margin:auto; position:relative; max-height:90vh; overflow:auto; box-sizing:border-box; -webkit-overflow-scrolling:touch;">
                 <div class="hms-modal-header">
@@ -200,6 +232,85 @@
         </div>
         
         <script>
+            // Fetch and render patients in real-time (on load)
+            (function(){
+                const tbody = document.getElementById('doctorPatientsBody');
+                const URL = '<?= base_url('doctor/patients/api') ?>';
+                function initials(first, last){
+                    const a = (first||'').trim();
+                    const b = (last||'').trim();
+                    return ((a[0]||'P') + (b[0]||'P')).toUpperCase();
+                }
+                function calcAge(dob){
+                    try { if(!dob) return 'N/A'; const d=new Date(dob); if(isNaN(d)) return 'N/A'; const t=new Date(); let a=t.getFullYear()-d.getFullYear(); const m=t.getMonth()-d.getMonth(); if(m<0 || (m===0 && t.getDate()<d.getDate())) a--; return a>=0? a : 'N/A'; } catch(_) { return 'N/A'; }
+                }
+                function escapeHtml(str){
+                    return (str||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+                }
+                async function loadPatients(){
+                    if (!tbody) return;
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#6b7280; padding:1rem;">Loading patients...</td></tr>';
+                    try {
+                        const res = await fetch(URL, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }});
+                        if (!res.ok) { throw new Error('HTTP '+res.status); }
+                        const json = await res.json();
+                        const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json)? json : []);
+                        if (!list.length){
+                            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#6b7280; padding:1rem;">No patients found</td></tr>';
+                            return;
+                        }
+                        tbody.innerHTML = list.map(p => {
+                            const name = escapeHtml((p.first_name||'') + ' ' + (p.last_name||''));
+                            const email = escapeHtml(p.email||'');
+                            const age = calcAge(p.date_of_birth);
+                            const id = escapeHtml(p.patient_id);
+                            const assigned = escapeHtml(p.assigned_doctor_name || '');
+                            const status = escapeHtml(p.status||'N/A');
+                            const init = initials(p.first_name, p.last_name);
+                            return `
+                                <tr>
+                                    <td>
+                                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                                            <div class="patient-avatar" aria-label="Patient initials" title="Patient initials">${init}</div>
+                                            <div>
+                                                <div style="font-weight:500;">${name}</div>
+                                                <div style="font-size:0.8rem; color:#6b7280;">${email}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>${id}</td>
+                                    <td>${age}</td>
+                                    <td>${assigned}</td>
+                                    <td>${status}</td>
+                                    <td>
+                                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                            <button class="btn btn-secondary btn-small" data-action="view" data-id="${id}">View</button>
+                                            <button class="btn btn-primary btn-small" data-action="edit" data-id="${id}">Edit</button>
+                                        </div>
+                                    </td>
+                                </tr>`;
+                        }).join('');
+                    } catch (e) {
+                        console.error('Failed to load patients', e);
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#ef4444; padding:1rem;">Failed to load patients</td></tr>';
+                    }
+                }
+                document.addEventListener('DOMContentLoaded', loadPatients);
+                // Optional: delegate view/edit buttons if needed later
+                if (tbody && !tbody.__bound) {
+                    tbody.__bound = true;
+                    tbody.addEventListener('click', function(e){
+                        const btn = e.target.closest('button[data-action]');
+                        if (!btn) return;
+                        const id = btn.getAttribute('data-id');
+                        if (btn.getAttribute('data-action') === 'view') {
+                            // Implement viewPatient(id) if needed
+                        } else if (btn.getAttribute('data-action') === 'edit') {
+                            // Implement editPatient(id) if needed
+                        }
+                    });
+                }
+            })();
             function openAddPatientsModal() {
                 var m = document.getElementById('patientModal');
                 if (m) { m.style.display = 'flex'; }
@@ -282,7 +393,7 @@
                     };
 
                     try {
-                        var res = await fetch('/doctor/patients', {
+                        var res = await fetch('<?= base_url('doctor/patients') ?>', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                             body: JSON.stringify(payload),

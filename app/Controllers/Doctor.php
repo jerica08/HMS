@@ -55,6 +55,38 @@ class Doctor extends BaseController
         return view('doctor/patient', $data);
     }
 
+    /**
+     * API: Return all patients as JSON for the doctor view
+     * Route: GET doctor/patients/api
+     */
+    public function getPatientsAPI()
+    {
+        try {
+            // Resolve current doctor's doctor_id from session staff_id
+            $staffId = session()->get('staff_id');
+            if (!$staffId) {
+                return $this->response->setStatusCode(401)->setJSON(['status' => 'error', 'message' => 'Doctor not authenticated']);
+            }
+            $docRow = $this->db->table('doctor')->select('doctor_id')->where('staff_id', $staffId)->get()->getRowArray();
+            $doctorId = $docRow['doctor_id'] ?? null;
+            if (!$doctorId) {
+                return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Doctor profile not found']);
+            }
+
+            $rows = $this->db->table('patient p')
+                ->select("p.patient_id, p.first_name, p.last_name, p.email, p.date_of_birth, p.status, d.doctor_id, CONCAT(s.first_name, ' ', s.last_name) AS assigned_doctor_name")
+                ->join('doctor d', 'd.doctor_id = p.primary_doctor_id', 'left')
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->where('p.primary_doctor_id', $doctorId)
+                ->orderBy('p.first_name', 'ASC')
+                ->get()->getResultArray();
+            return $this->response->setJSON(['status' => 'success', 'data' => $rows]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to load patients: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load patients']);
+        }
+    }
+
     public function appointments()
     {
         // Fetch patients for the dropdown
@@ -180,6 +212,18 @@ class Doctor extends BaseController
         $gender = $gender ? ucfirst(strtolower($gender)) : null; // Male/Female/Other
         $status = $status ? ucfirst(strtolower($status)) : 'Active'; // Active/Inactive
 
+        // Resolve current doctor's doctor_id from session staff_id
+        $doctorId = null;
+        try {
+            $staffId = session()->get('staff_id');
+            if ($staffId) {
+                $docRow = $this->db->table('doctor')->select('doctor_id')->where('staff_id', $staffId)->get()->getRowArray();
+                $doctorId = $docRow['doctor_id'] ?? null;
+            }
+        } catch (\Throwable $e) {
+            $doctorId = null;
+        }
+
         $data = [
             'first_name'         => $input['first_name'] ?? null,
             'middle_name'        => $input['middle_name'] ?? null,
@@ -204,6 +248,8 @@ class Doctor extends BaseController
             'medical_notes'      => $input['medical_notes'] ?? null,
             'date_registered'    => date('Y-m-d'),
             'status'             => $status,
+            // Link patient to the logged-in doctor (requires patient.primary_doctor_id column)
+            'primary_doctor_id'  => $doctorId,
         ];
 
         try {

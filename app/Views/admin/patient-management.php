@@ -166,12 +166,10 @@
             }
         </style>
     </head>
-<?php include APPPATH . 'Views/template/header.php'; ?>
-    
-    
-        
-        <div class="main-container">
-               <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>      
+<?php include APPPATH . 'Views/template/header.php'; ?> 
+    <div class="main-container">
+        <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>    
+
             <main class="content">
                 <h1 class="page-title"> Patient Management</h1>
                 <div style="display: flex; gap: 0.5rem;">
@@ -231,8 +229,7 @@
                                     <th>Patient</th>
                                     <th>ID</th>
                                     <th>Age</th>
-                                    <th>Department</th>
-                                    <th>Room</th>
+                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -268,8 +265,7 @@
                                                     }
                                                 ?>
                                             </td>
-                                            <td><?= esc($patient['department'] ?? 'N/A') ?></td>
-                                            <td><?= esc($patient['room'] ?? 'N/A') ?></td>
+                                            <td><?= esc($patient['status'] ?? 'N/A') ?></td>
                                             <td>
                                                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                                                     <button class="btn btn-secondary btn-small" onclick="viewPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">View</button>
@@ -293,7 +289,7 @@
             </main>
         </div>
 
-        <!-- Add Patient Popup Modal (styled like Add User) -->
+        <!-- Add Patient Modal -->
         <div id="patientModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
             <div style="background:#fff; padding:2rem; border-radius:8px; max-width:960px; width:98%; margin:auto; position:relative; max-height:90vh; overflow:auto; box-sizing:border-box; -webkit-overflow-scrolling:touch;">
                 <div class="hms-modal-header">
@@ -475,14 +471,7 @@
                             <label class="form-label">Address</label>
                             <div id="vp_address">-</div>
                         </div>
-                        <div>
-                            <label class="form-label">Department</label>
-                            <div id="vp_department">-</div>
-                        </div>
-                        <div>
-                            <label class="form-label">Room</label>
-                            <div id="vp_room">-</div>
-                        </div>
+                        
                         <div>
                             <label class="form-label">Patient Type</label>
                             <div id="vp_type">-</div>
@@ -593,14 +582,7 @@
                             <label class="form-label" for="ep_insurance_number">Insurance Number</label>
                             <input type="text" id="ep_insurance_number" name="insurance_number" class="form-input">
                         </div>
-                        <div>
-                            <label class="form-label" for="ep_department">Department</label>
-                            <input type="text" id="ep_department" name="department" class="form-input">
-                        </div>
-                        <div>
-                            <label class="form-label" for="ep_room">Room</label>
-                            <input type="text" id="ep_room" name="room" class="form-input">
-                        </div>
+                        
                         <div>
                             <label class="form-label" for="ep_patient_type">Patient Type</label>
                             <select id="ep_patient_type" name="patient_type" class="form-select">
@@ -673,8 +655,7 @@
                 setVal('vp_phone', p.contact_no || p.phone || '');
                 setVal('vp_email', p.email || '');
                 setVal('vp_address', p.address || '');
-                setVal('vp_department', p.department || '');
-                setVal('vp_room', p.room || '');
+                
                 setVal('vp_type', (p.patient_type||'').toLowerCase());
                 setVal('vp_status', p.status || '');
                 setVal('vp_emergency_name', p.emergency_contact || '');
@@ -705,8 +686,7 @@
                 set('ep_zip_code', p.zip_code || '');
                 set('ep_insurance_provider', p.insurance_provider || '');
                 set('ep_insurance_number', p.insurance_number || '');
-                set('ep_department', p.department || '');
-                set('ep_room', p.room || '');
+                
                 set('ep_patient_type', p.patient_type || '');
                 set('ep_status', (p.status||'').toLowerCase());
                 set('ep_emergency_contact_name', p.emergency_contact || '');
@@ -740,8 +720,7 @@
                         zip_code: val('ep_zip_code'),
                         insurance_provider: val('ep_insurance_provider'),
                         insurance_number: val('ep_insurance_number'),
-                        department: val('ep_department'),
-                        room: val('ep_room'),
+                        
                         patient_type: val('ep_patient_type'),
                         status: val('ep_status'),
                         emergency_contact_name: val('ep_emergency_contact_name'),

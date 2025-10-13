@@ -353,7 +353,6 @@ class Admin extends BaseController
             'username' => 'required|min_length[3]|max_length[50]|is_unique[users.username]',
             'password' => 'required|min_length[6]',
             'confirm_password' => 'required|matches[password]',
-            'role' => 'required|in_list[admin,doctor,nurse,receptionist,laboratorist,pharmacist,accountant,it_staff]',
             'status' => 'required|in_list[active,inactive]',
         ];
 
@@ -378,6 +377,16 @@ class Admin extends BaseController
                 return redirect()->back()->withInput()->with('error', 'A user with the same email already exists. Please update the staff email or choose a different staff/username.');
             }
         }
+        // Determine role from staff record (prefer staff.role, fallback to staff.designation)
+        $derivedRole = strtolower(trim((string)($staff['role'] ?? '')));
+        if ($derivedRole === '') {
+            $derivedRole = strtolower(trim((string)($staff['designation'] ?? '')));
+        }
+        $validRoles = ['admin','doctor','nurse','receptionist','laboratorist','pharmacist','accountant','it_staff'];
+        if ($derivedRole === '' || !in_array($derivedRole, $validRoles, true)) {
+            return redirect()->back()->withInput()->with('error', 'Selected staff has no valid role/designation. Please update the staff record.');
+        }
+
         $data = [
             'staff_id'   => $this->request->getPost('staff_id'),
             'username'   => $this->request->getPost('username'),
@@ -385,7 +394,7 @@ class Admin extends BaseController
             'first_name' => $staff['first_name'] ?? null,
             'last_name'  => $staff['last_name'] ?? null,
             'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'role'       => $this->request->getPost('role'),
+            'role'       => $derivedRole,
             'status'     => $this->request->getPost('status') ?: 'active',
         ];
 
@@ -790,7 +799,7 @@ class Admin extends BaseController
     {
         try {
             $rows = $this->db->table('doctor d')
-                ->select('d.doctor_id, s.staff_id, s.first_name, s.last_name, d.specialization, d.status')
+                ->select('d.doctor_id, s.staff_id, s.first_name, s.last_name, s.department, d.specialization, d.status')
                 ->join('staff s', 's.staff_id = d.staff_id', 'left')
                 ->orderBy('s.first_name', 'ASC')
                 ->get()->getResultArray();
@@ -911,12 +920,27 @@ class Admin extends BaseController
                     'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
                 ]);
             }
+            // If no department provided, default to the doctor's staff department
+            $dept = $input['department'] ?? null;
+            if (empty($dept)) {
+                try {
+                    $s = $this->db->table('doctor d')
+                        ->select('s.department')
+                        ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                        ->where('d.doctor_id', $doctorId)
+                        ->get()->getRowArray();
+                    $dept = $s['department'] ?? null;
+                } catch (\Throwable $e) {
+                    $dept = null;
+                }
+            }
+
             $data = [
                 'doctor_id'      => $doctorId,
                 'shift_date'     => $input['shift_date'],
                 'shift_start'    => $input['shift_start'],
                 'shift_end'      => $input['shift_end'],
-                'department'     => $input['department'] ?? null,
+                'department'     => $dept,
                 'status'         => $input['status'] ?? 'Scheduled',
                 'shift_type'     => $input['shift_type'] ?? null,
                 'room_ward'      => $input['room_ward'] ?? null,

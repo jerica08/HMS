@@ -319,6 +319,8 @@ function deleteUser(id) {
                     data-first-name="<?= esc($s['first_name'] ?? '') ?>"
                     data-last-name="<?= esc($s['last_name'] ?? '') ?>"
                     data-email="<?= esc($s['email'] ?? '') ?>"
+                    data-designation="<?= esc($s['designation'] ?? '') ?>"
+                    data-role="<?= esc($s['role'] ?? '') ?>"
                     <?= old('staff_id') == ($s['staff_id'] ?? null) ? 'selected' : '' ?>
                   >
                     <?= esc(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? '') . ' (' . ($s['employee_id'] ?? 'N/A') . ')') ?>
@@ -390,15 +392,24 @@ function populateFromStaff() {
     const first = document.getElementById('first_name');
     const last = document.getElementById('last_name');
     const email = document.getElementById('email');
+    const roleSel = document.getElementById('role');
     if (!opt || !sel.value) {
         if (first) first.value = '';
         if (last) last.value = '';
         if (email) email.value = '';
+        if (roleSel) roleSel.value = '';
         return;
     }
     if (first) first.value = opt.getAttribute('data-first-name') || '';
     if (last) last.value = opt.getAttribute('data-last-name') || '';
     if (email) email.value = opt.getAttribute('data-email') || '';
+    // Auto-select role from staff record (prefer specific role, fallback to designation)
+    if (roleSel) {
+        const autoRole = (opt.getAttribute('data-role') || opt.getAttribute('data-designation') || '').toLowerCase();
+        if (autoRole) {
+            roleSel.value = autoRole;
+        }
+    }
 }
 
 function openAddUserModal() {

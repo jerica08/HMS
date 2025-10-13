@@ -230,6 +230,7 @@
                                     <th>ID</th>
                                     <th>Age</th>
                                     <th>Status</th>
+                                    <th>Assigned Doctor</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -266,6 +267,21 @@
                                                 ?>
                                             </td>
                                             <td><?= esc($patient['status'] ?? 'N/A') ?></td>
+                                            <td>
+                                                <?php
+                                                    $docLabel = '';
+                                                    if (!empty($patient['primary_doctor_name'])) {
+                                                        $docLabel = $patient['primary_doctor_name'];
+                                                    } elseif (!empty($patient['doctor_name'])) {
+                                                        $docLabel = $patient['doctor_name'];
+                                                    } elseif (!empty($patient['primary_doctor_id'])) {
+                                                        $docLabel = 'Doctor #' . $patient['primary_doctor_id'];
+                                                    } else {
+                                                        $docLabel = '—';
+                                                    }
+                                                    echo esc($docLabel);
+                                                ?>
+                                            </td>
                                             <td>
                                                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                                                     <button class="btn btn-secondary btn-small" onclick="viewPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">View</button>
@@ -397,6 +413,12 @@
                             <small id="err_emergency_contact_phone" style="color:#dc2626"></small>
                         </div>
                         <div>
+                            <label for="primary_doctor_id">Assign Doctor</label>
+                            <select id="primary_doctor_id" name="primary_doctor_id" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
+                                <option value="">Loading doctors...</option>
+                            </select>
+                        </div>
+                        <div>
                             <label for="patient_type">Patient Type</label>
                             <select id="patient_type" name="patient_type" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                                 <option value="">Select...</option>
@@ -412,7 +434,7 @@
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
-                        <div style="grid-column: 1 / -1;">
+                        <div class="full">
                             <label for="medical_notes">Medical Notes</label>
                             <textarea id="medical_notes" name="medical_notes" rows="3" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;"></textarea>
                         </div>
@@ -582,7 +604,12 @@
                             <label class="form-label" for="ep_insurance_number">Insurance Number</label>
                             <input type="text" id="ep_insurance_number" name="insurance_number" class="form-input">
                         </div>
-                        
+                        <div>
+                            <label class="form-label" for="ep_primary_doctor_id">Assign Doctor</label>
+                            <select id="ep_primary_doctor_id" name="primary_doctor_id" class="form-select">
+                                <option value="">Loading doctors...</option>
+                            </select>
+                        </div>
                         <div>
                             <label class="form-label" for="ep_patient_type">Patient Type</label>
                             <select id="ep_patient_type" name="patient_type" class="form-select">
@@ -686,84 +713,27 @@
                 set('ep_zip_code', p.zip_code || '');
                 set('ep_insurance_provider', p.insurance_provider || '');
                 set('ep_insurance_number', p.insurance_number || '');
-                
                 set('ep_patient_type', p.patient_type || '');
                 set('ep_status', (p.status||'').toLowerCase());
                 set('ep_emergency_contact_name', p.emergency_contact || '');
                 set('ep_emergency_contact_phone', p.emergency_phone || '');
                 set('ep_medical_notes', p.medical_notes || '');
+                // load doctors and preselect
+                loadDoctors('ep_primary_doctor_id', p.primary_doctor_id || '');
                 openEditPatientModal();
             }
-            (function(){
-                var form = document.getElementById('editPatientForm');
-                if (!form) return;
-                form.addEventListener('submit', async function(e){
-                    e.preventDefault();
-                    var btn = form.querySelector('button[type="submit"]');
-                    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving'; }
-                    // Build payload mirroring backend expectations
-                    var val = function(id){ var el=document.getElementById(id); return el? el.value : null; };
-                    var payload = {
-                        patient_id: val('ep_patient_id'),
-                        first_name: val('ep_first_name'),
-                        middle_name: val('ep_middle_name'),
-                        last_name: val('ep_last_name'),
-                        date_of_birth: val('ep_date_of_birth'),
-                        gender: val('ep_gender'),
-                        civil_status: val('ep_civil_status'),
-                        phone: val('ep_phone'),
-                        email: val('ep_email'),
-                        address: val('ep_address'),
-                        province: val('ep_province'),
-                        city: val('ep_city'),
-                        barangay: val('ep_barangay'),
-                        zip_code: val('ep_zip_code'),
-                        insurance_provider: val('ep_insurance_provider'),
-                        insurance_number: val('ep_insurance_number'),
-                        
-                        patient_type: val('ep_patient_type'),
-                        status: val('ep_status'),
-                        emergency_contact_name: val('ep_emergency_contact_name'),
-                        emergency_contact_phone: val('ep_emergency_contact_phone'),
-                        medical_notes: val('ep_medical_notes')
-                    };
-                    try {
-                        var res = await fetch('<?= base_url('admin/patients/update') ?>', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                            body: JSON.stringify(payload),
-                            credentials: 'same-origin'
-                        });
-                        var result = await res.json().catch(function(){ return {}; });
-                        if (res.ok && result.status === 'success'){
-                            alert('Patient updated successfully');
-                            closeEditPatientModal();
-                            window.location.reload();
-                        } else {
-                            var msg = result.message || 'Failed to update patient';
-                            if (result.errors){ msg += '\n\n' + Object.values(result.errors).join('\n'); }
-                            alert(msg);
-                        }
-                    } catch (err){
-                        console.error('Error updating patient', err);
-                        alert('Network error. Please try again.');
-                    } finally {
-                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; }
-                    }
-                });
-                // Close on overlay click
-                document.addEventListener('click', function(e){ var m=document.getElementById('editPatientModal'); if(m && e.target===m){ closeEditPatientModal(); }});
-                // Close on ESC
-                document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeEditPatientModal(); }});
-            })();
+
             function openAddPatientsModal() {
                 var m = document.getElementById('patientModal');
                 if (m) { m.style.display = 'flex'; }
+                // Load doctors for add form
+                loadDoctors('primary_doctor_id');
             }
             function closeAddPatientsModal() {
                 var m = document.getElementById('patientModal');
                 if (m) { m.style.display = 'none'; }
             }
+
             // Button handler to open modal
             function addPatient() {
                 openAddPatientsModal();
@@ -802,12 +772,49 @@
                 }
             })();
 
+            // Load doctors into a select element
+            async function loadDoctors(selectId, selectedValue){
+                var sel = document.getElementById(selectId);
+                if (!sel) return;
+                // Set loading state
+                sel.innerHTML = '<option value="">Loading doctors...</option>';
+                try {
+                    var res = await fetch('<?= base_url('admin/doctors/api') ?>', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+                    var result = await res.json().catch(function(){ return {}; });
+                    sel.innerHTML = '';
+                    if (res.ok && result.status === 'success' && Array.isArray(result.data) && result.data.length){
+                        var opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = '— Select doctor —';
+                        sel.appendChild(opt);
+                        result.data.forEach(function(d){
+                            var o = document.createElement('option');
+                            o.value = d.doctor_id;
+                            var label = (d.name || ('Doctor #' + d.doctor_id));
+                            if (d.department) { label += ' — ' + d.department; }
+                            if (d.specialization) { label += ' (' + d.specialization + ')'; }
+                            o.textContent = label;
+                            if (selectedValue && String(selectedValue) === String(d.doctor_id)) o.selected = true;
+                            sel.appendChild(o);
+                        });
+                    } else {
+                        var none = document.createElement('option');
+                        none.value = '';
+                        none.textContent = 'No doctors found';
+                        sel.appendChild(none);
+                    }
+                } catch (e){
+                    sel.innerHTML = '<option value="">Failed to load</option>';
+                }
+            }
+
             // Submit patient form to backend
             (function(){
                 var form = document.getElementById('patientForm');
                 if (!form) return;
                 form.addEventListener('submit', async function(e){
                     e.preventDefault();
+
                     var btn = document.getElementById('savePatientBtn');
                     if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
 
@@ -832,6 +839,7 @@
                         insurance_number: getVal('insurance_number'),
                         emergency_contact_name: getVal('emergency_contact_name'),
                         emergency_contact_phone: getVal('emergency_contact_phone'),
+                        primary_doctor_id: getVal('primary_doctor_id'),
                         patient_type: getVal('patient_type'),
                         status: getVal('status'),
                         medical_notes: getVal('medical_notes')

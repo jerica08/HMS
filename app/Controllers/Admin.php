@@ -531,8 +531,13 @@ class Admin extends BaseController
      */
     public function patientManagement() {
         try {
-            // Use correct table name 'patient' as per migration
-            $patients = $this->db->table('patient')->get()->getResultArray();
+            // Use correct table name 'patient' and join doctor/staff to get assigned doctor name
+            $patients = $this->db->table('patient')
+                ->select("patient.*, CONCAT(s.first_name, ' ', COALESCE(s.last_name, '')) AS primary_doctor_name")
+                ->join('doctor d', 'd.doctor_id = patient.primary_doctor_id', 'left')
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->get()
+                ->getResultArray();
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
             // Handle missing table gracefully
             $patients = [];
@@ -594,6 +599,18 @@ class Admin extends BaseController
         $gender = $gender ? ucfirst(strtolower($gender)) : null; // Male/Female/Other
         $status = $status ? ucfirst(strtolower($status)) : 'Active'; // Active/Inactive
 
+        // Resolve and sanitize optional primary_doctor_id
+        $primaryDoctorId = null;
+        if (isset($input['primary_doctor_id']) && $input['primary_doctor_id'] !== '') {
+            $candidate = (int)$input['primary_doctor_id'];
+            if ($candidate > 0) {
+                try {
+                    $exists = $this->db->table('doctor')->where('doctor_id', $candidate)->countAllResults();
+                    if ($exists > 0) { $primaryDoctorId = $candidate; }
+                } catch (\Throwable $e) { /* leave null if check fails */ }
+            }
+        }
+
         $data = [
             'first_name'         => $input['first_name'] ?? null,
             'middle_name'        => $input['middle_name'] ?? null,
@@ -618,6 +635,7 @@ class Admin extends BaseController
             'medical_notes'      => $input['medical_notes'] ?? null,
             'date_registered'    => date('Y-m-d'),
             'status'             => $status,
+            'primary_doctor_id'  => $primaryDoctorId,
         ];
 
         try {
@@ -679,7 +697,8 @@ class Admin extends BaseController
             'emergency_contact_name'  => 'permit_empty|max_length[100]',
             'emergency_contact_phone' => 'permit_empty|max_length[50]',
             'patient_type'            => 'permit_empty|in_list[outpatient,inpatient,emergency,Outpatient,Inpatient,Emergency]',
-            'status'                  => 'permit_empty|in_list[Active,Inactive,active,inactive]'
+            'status'                  => 'permit_empty|in_list[Active,Inactive,active,inactive]',
+            'primary_doctor_id'       => 'permit_empty|integer'
         ]);
 
         if (!$validation->run($input)) {
@@ -719,6 +738,20 @@ class Admin extends BaseController
             'medical_notes'      => $input['medical_notes'] ?? null,
             'status'             => $status,
         ];
+
+        // Optionally update primary_doctor_id if provided and valid
+        if (isset($input['primary_doctor_id']) && $input['primary_doctor_id'] !== '') {
+            $candidate = (int)$input['primary_doctor_id'];
+            if ($candidate > 0) {
+                try {
+                    $exists = $this->db->table('doctor')->where('doctor_id', $candidate)->countAllResults();
+                    if ($exists > 0) { $data['primary_doctor_id'] = $candidate; }
+                } catch (\Throwable $e) { /* ignore invalid */ }
+            } else {
+                // Allow clearing assignment when explicitly set to empty string/0
+                $data['primary_doctor_id'] = null;
+            }
+        }
 
         // Remove nulls to avoid overwriting with null unintentionally
         $data = array_filter($data, function($v) { return $v !== null; });

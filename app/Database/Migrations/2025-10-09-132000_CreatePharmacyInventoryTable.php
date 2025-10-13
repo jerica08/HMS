@@ -87,7 +87,6 @@ class CreatePharmacyInventoryTable extends Migration
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->addKey('item_code');
         $this->forge->addKey('category');
         $this->forge->createTable('pharmacy_inventory');
 
@@ -131,7 +130,7 @@ class CreatePharmacyInventoryTable extends Migration
         $this->forge->addKey('id', true);
         $this->forge->addKey('inventory_id');
         $this->forge->addForeignKey('inventory_id', 'pharmacy_inventory', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('created_by', 'users', 'id', 'SET NULL', 'CASCADE');
+        $this->forge->addForeignKey('created_by', 'users', 'user_id', 'SET NULL', 'CASCADE');
         $this->forge->createTable('inventory_transactions');
     }
 

@@ -29,6 +29,8 @@ $routes->group('admin', function($routes) {
     $routes->post('add-staff', 'Admin::addStaff');
     $routes->post('staff/create', 'Admin::addStaff');
     $routes->get('staff/api', 'Admin::getStaffAPI');
+    // Get single staff by ID (for AJAX modals)
+    $routes->get('staff/get/(:num)', 'Admin::getStaff/$1');
     
     // Individual staff operations
     $routes->get('edit-staff/(:num)', 'Admin::editStaff/$1');

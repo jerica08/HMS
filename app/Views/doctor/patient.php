@@ -58,9 +58,80 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Patient Table Section -->
+            <div class="patient-table-section">
+                <h2>Patient List</h2>
+                <div class="table-responsive">
+                    <table class="patient-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Age</th>
+                                <th>Gender</th>
+                                <th>Phone</th>
+                                <th>Email</th>
+                                <th>Patient Type</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($patients)): ?>
+                                <?php foreach ($patients as $patient): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($patient['first_name'] . ' ' . $patient['middle_name'] . ' ' . $patient['last_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($patient['age']); ?></td>
+                                        <td><?php echo htmlspecialchars(ucfirst($patient['gender'])); ?></td>
+                                        <td><?php echo htmlspecialchars($patient['phone']); ?></td>
+                                        <td><?php echo htmlspecialchars($patient['email'] ?? 'N/A'); ?></td>
+                                        <td><?php echo htmlspecialchars(ucfirst($patient['patient_type'] ?? 'N/A')); ?></td>
+                                        <td>
+                                            <span class="status-badge <?php echo strtolower($patient['status'] ?? 'active'); ?>">
+                                                <?php echo htmlspecialchars(ucfirst($patient['status'] ?? 'Active')); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary view-patient" data-id="<?php echo $patient['id']; ?>">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            <button class="btn btn-sm btn-warning edit-patient" data-id="<?php echo $patient['id']; ?>">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="8" class="text-center">No patients found.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </main>
     </div>
-     <!-- Add Patient Popup Modal (styled like Add User) -->
+
+    <!-- View Patient Modal -->
+    <div id="viewPatientModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#fff; padding:2rem; border-radius:8px; max-width:800px; width:98%; margin:auto; position:relative; max-height:90vh; overflow:auto; box-sizing:border-box; -webkit-overflow-scrolling:touch;">
+            <div class="hms-modal-header">
+                <div class="hms-modal-title">
+                    <i class="fas fa-eye" style="color:#4f46e5"></i>
+                    <h2>View Patient Details</h2>
+                </div>
+            </div>
+            <div id="viewPatientContent">
+                <!-- Patient details will be loaded here -->
+            </div>
+            <button aria-label="Close" onclick="closeViewPatientModal()" style="position:absolute; top:10px; right:10px; background:transparent; border:none; font-size:1.25rem; color:#6b7280; cursor:pointer;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+     <!-- Add/Edit Patient Popup Modal (styled like Add User) -->
         <div id="patientModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
             <div style="background:#fff; padding:2rem; border-radius:8px; max-width:960px; width:98%; margin:auto; position:relative; max-height:90vh; overflow:auto; box-sizing:border-box; -webkit-overflow-scrolling:touch;">
                 <div class="hms-modal-header">
@@ -208,6 +279,14 @@
                 var m = document.getElementById('patientModal');
                 if (m) { m.style.display = 'none'; }
             }
+            function openViewPatientModal() {
+                var m = document.getElementById('viewPatientModal');
+                if (m) { m.style.display = 'flex'; }
+            }
+            function closeViewPatientModal() {
+                var m = document.getElementById('viewPatientModal');
+                if (m) { m.style.display = 'none'; }
+            }
             // Button handler to open modal
             function addPatient() {
                 openAddPatientsModal();
@@ -217,10 +296,16 @@
                 var m = document.getElementById('patientModal');
                 if (!m) return;
                 if (e.target === m) closeAddPatientsModal();
+                var vm = document.getElementById('viewPatientModal');
+                if (!vm) return;
+                if (e.target === vm) closeViewPatientModal();
             });
             // Close on Escape
             document.addEventListener('keydown', function(e){
-                if (e.key === 'Escape') closeAddPatientsModal();
+                if (e.key === 'Escape') {
+                    closeAddPatientsModal();
+                    closeViewPatientModal();
+                }
             });
             // Optional: attach by ID if present (button already uses inline onclick)
             (function(){
@@ -246,14 +331,135 @@
                 }
             })();
 
-            // Submit patient form to backend
+            // View Patient Details
+            (function(){
+                document.addEventListener('click', function(e){
+                    if (e.target.classList.contains('view-patient') || e.target.closest('.view-patient')) {
+                        e.preventDefault();
+                        var btn = e.target.classList.contains('view-patient') ? e.target : e.target.closest('.view-patient');
+                        var patientId = btn.getAttribute('data-id');
+                        if (patientId) {
+                            viewPatient(patientId);
+                        }
+                    }
+                });
+            })();
+
+            async function viewPatient(patientId) {
+                try {
+                    var res = await fetch('/doctor/patient/' + patientId, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin'
+                    });
+                    var result = await res.json().catch(function(){ return {}; });
+                    if (res.ok && result.status === 'success'){
+                        var patient = result.patient;
+                        var content = document.getElementById('viewPatientContent');
+                        if (content) {
+                            content.innerHTML = `
+                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+                                    <div><strong>Name:</strong> ${patient.first_name} ${patient.middle_name || ''} ${patient.last_name}</div>
+                                    <div><strong>Age:</strong> ${patient.age || 'N/A'}</div>
+                                    <div><strong>Gender:</strong> ${patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : 'N/A'}</div>
+                                    <div><strong>Phone:</strong> ${patient.contact_no || 'N/A'}</div>
+                                    <div><strong>Email:</strong> ${patient.email || 'N/A'}</div>
+                                    <div><strong>Patient Type:</strong> ${patient.patient_type ? patient.patient_type.charAt(0).toUpperCase() + patient.patient_type.slice(1) : 'N/A'}</div>
+                                    <div><strong>Status:</strong> ${patient.status ? patient.status.charAt(0).toUpperCase() + patient.status.slice(1) : 'N/A'}</div>
+                                    <div><strong>Date of Birth:</strong> ${patient.date_of_birth || 'N/A'}</div>
+                                    <div><strong>Civil Status:</strong> ${patient.civil_status || 'N/A'}</div>
+                                    <div style="grid-column: 1 / -1;"><strong>Address:</strong> ${patient.address || 'N/A'}</div>
+                                    <div><strong>Province:</strong> ${patient.province || 'N/A'}</div>
+                                    <div><strong>City:</strong> ${patient.city || 'N/A'}</div>
+                                    <div><strong>Barangay:</strong> ${patient.barangay || 'N/A'}</div>
+                                    <div><strong>ZIP Code:</strong> ${patient.zip_code || 'N/A'}</div>
+                                    <div><strong>Insurance Provider:</strong> ${patient.insurance_provider || 'N/A'}</div>
+                                    <div><strong>Insurance Number:</strong> ${patient.insurance_number || 'N/A'}</div>
+                                    <div><strong>Emergency Contact:</strong> ${patient.emergency_contact || 'N/A'}</div>
+                                    <div><strong>Emergency Phone:</strong> ${patient.emergency_phone || 'N/A'}</div>
+                                    <div style="grid-column: 1 / -1;"><strong>Medical Notes:</strong> ${patient.medical_notes || 'N/A'}</div>
+                                </div>
+                            `;
+                        }
+                        openViewPatientModal();
+                    } else {
+                        alert('Failed to load patient details');
+                    }
+                } catch (err){
+                    console.error('Error loading patient details', err);
+                    alert('Network error. Please try again.');
+                }
+            }
+
+            // Edit Patient
+            (function(){
+                document.addEventListener('click', function(e){
+                    if (e.target.classList.contains('edit-patient') || e.target.closest('.edit-patient')) {
+                        e.preventDefault();
+                        var btn = e.target.classList.contains('edit-patient') ? e.target : e.target.closest('.edit-patient');
+                        var patientId = btn.getAttribute('data-id');
+                        if (patientId) {
+                            editPatient(patientId);
+                        }
+                    }
+                });
+            })();
+
+            async function editPatient(patientId) {
+                try {
+                    var res = await fetch('/doctor/patient/' + patientId, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin'
+                    });
+                    var result = await res.json().catch(function(){ return {}; });
+                    if (res.ok && result.status === 'success'){
+                        var patient = result.patient;
+                        // Populate form with patient data
+                        document.getElementById('first_name').value = patient.first_name || '';
+                        document.getElementById('middle_name').value = patient.middle_name || '';
+                        document.getElementById('last_name').value = patient.last_name || '';
+                        document.getElementById('date_of_birth').value = patient.date_of_birth || '';
+                        document.getElementById('age').value = patient.age || '';
+                        document.getElementById('gender').value = patient.gender || '';
+                        document.getElementById('civil_status').value = patient.civil_status || '';
+                        document.getElementById('phone').value = patient.contact_no || '';
+                        document.getElementById('email').value = patient.email || '';
+                        document.getElementById('address').value = patient.address || '';
+                        document.getElementById('province').value = patient.province || '';
+                        document.getElementById('city').value = patient.city || '';
+                        document.getElementById('barangay').value = patient.barangay || '';
+                        document.getElementById('zip_code').value = patient.zip_code || '';
+                        document.getElementById('insurance_provider').value = patient.insurance_provider || '';
+                        document.getElementById('insurance_number').value = patient.insurance_number || '';
+                        document.getElementById('emergency_contact_name').value = patient.emergency_contact || '';
+                        document.getElementById('emergency_contact_phone').value = patient.emergency_phone || '';
+                        document.getElementById('patient_type').value = patient.patient_type || '';
+                        document.getElementById('status').value = patient.status || '';
+                        document.getElementById('medical_notes').value = patient.medical_notes || '';
+                        // Change modal title and button
+                        document.getElementById('patientModalTitle').innerHTML = '<i class="fas fa-edit" style="color:#f59e0b"></i> Edit Patient';
+                        document.getElementById('savePatientBtn').textContent = 'Update Patient';
+                        // Store patient ID for update
+                        document.getElementById('patientForm').setAttribute('data-patient-id', patientId);
+                        openAddPatientsModal();
+                    } else {
+                        alert('Failed to load patient details');
+                    }
+                } catch (err){
+                    console.error('Error loading patient details', err);
+                    alert('Network error. Please try again.');
+                }
+            }
+
+            // Submit patient form to backend (for both add and edit)
             (function(){
                 var form = document.getElementById('patientForm');
                 if (!form) return;
                 form.addEventListener('submit', async function(e){
                     e.preventDefault();
                     var btn = document.getElementById('savePatientBtn');
-                    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+                    if (btn) { btn.disabled = true; btn.textContent = btn.textContent === 'Update Patient' ? 'Updating...' : 'Saving...'; }
 
                     // Collect values
                     var getVal = function(id){ var el = document.getElementById(id); return el ? el.value : null; };
@@ -281,17 +487,26 @@
                         medical_notes: getVal('medical_notes')
                     };
 
+                    var patientId = form.getAttribute('data-patient-id');
+                    var method = patientId ? 'PUT' : 'POST';
+                    var url = patientId ? '/doctor/patient/' + patientId : '/doctor/patients';
+
                     try {
-                        var res = await fetch('/doctor/patients', {
-                            method: 'POST',
+                        var res = await fetch(url, {
+                            method: method,
                             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                             body: JSON.stringify(payload),
                             credentials: 'same-origin'
                         });
                         var result = await res.json().catch(function(){ return {}; });
                         if (res.ok && result.status === 'success'){
-                            alert('Patient saved successfully');
+                            alert('Patient ' + (patientId ? 'updated' : 'saved') + ' successfully');
                             closeAddPatientsModal();
+                            // Reset form
+                            form.reset();
+                            form.removeAttribute('data-patient-id');
+                            document.getElementById('patientModalTitle').innerHTML = '<i class="fas fa-user-plus" style="color:#4f46e5"></i> Add New Patient';
+                            document.getElementById('savePatientBtn').textContent = 'Save Patient';
                             // Reload to refresh counts/list
                             window.location.reload();
                         } else {
@@ -306,7 +521,7 @@
                         console.error('Error saving patient', err);
                         alert('Network error. Please try again.');
                     } finally {
-                        if (btn) { btn.disabled = false; btn.textContent = 'Save Patient'; }
+                        if (btn) { btn.disabled = false; btn.textContent = patientId ? 'Update Patient' : 'Save Patient'; }
                     }
                 });
             })();

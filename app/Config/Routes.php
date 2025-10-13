@@ -88,6 +88,8 @@ $routes->group('admin', function($routes) {
 $routes->get('doctor/dashboard', 'Doctor::dashboard');
 $routes->get('doctor/patients', 'Doctor::patients');
 $routes->post('doctor/patients', 'Doctor::createPatient');
+$routes->get('doctor/patient/(:num)', 'Doctor::getPatient/$1');
+$routes->put('doctor/patient/(:num)', 'Doctor::updatePatient/$1');
 $routes->get('doctor/patient', 'Doctor::patients');
 $routes->get('doctor/appointments', 'Doctor::appointments');
 $routes->post('doctor/schedule-appointment', 'Doctor::postScheduleAppointment');

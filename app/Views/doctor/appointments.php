@@ -63,33 +63,35 @@
             </div><br>
 
             <div class="dashboard-overview">
+                <!-- Today's Appointments Card -->
                 <div class="overview-card">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern blue"><i class="fas fa-users"></i></div>
+                        <div class="card-icon-modern blue"><i class="fas fa-calendar-day"></i></div>
                         <div class="card-info">
                             <h3 class="card-title-modern">Today's Appointments</h3>
-                            <p class="card-subtitle">Schedule for today</p>
+                            <p class="card-subtitle"><?= date('F j, Y') ?></p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue">0</div>
+                            <div class="metric-value blue"><?= $todayStats['total'] ?? 0 ?></div>
                             <div class="metric-label">Total</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value green">0</div>
+                            <div class="metric-value green"><?= $todayStats['completed'] ?? 0 ?></div>
                             <div class="metric-label">Completed</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value orange">0</div>
-                            <div class="metric-label">Remaining</div>
+                            <div class="metric-value orange"><?= $todayStats['pending'] ?? 0 ?></div>
+                            <div class="metric-label">Pending</div>
                         </div>
                     </div>
                 </div>
 
+                <!-- This Week Card -->
                 <div class="overview-card">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern blue"><i class="fas fa-calendar-week"></i></div>
+                        <div class="card-icon-modern purple"><i class="fas fa-calendar-week"></i></div>
                         <div class="card-info">
                             <h3 class="card-title-modern">This Week</h3>
                             <p class="card-subtitle">Weekly overview</p>
@@ -97,16 +99,37 @@
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue">0</div>
+                            <div class="metric-value purple"><?= $weekStats['total'] ?? 0 ?></div>
                             <div class="metric-label">Scheduled</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value green">0</div>
+                            <div class="metric-value red"><?= $weekStats['cancelled'] ?? 0 ?></div>
                             <div class="metric-label">Cancelled</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value orange">0</div>
+                            <div class="metric-value orange"><?= $weekStats['no_shows'] ?? 0 ?></div>
                             <div class="metric-label">No-shows</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Schedule Card -->
+                <div class="overview-card">
+                    <div class="card-header-modern">
+                        <div class="card-icon-modern green"><i class="fas fa-clock"></i></div>
+                        <div class="card-info">
+                            <h3 class="card-title-modern">Today's Schedule</h3>
+                            <p class="card-subtitle">Current time: <?= date('h:i A') ?></p>
+                        </div>
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric">
+                            <div class="metric-value green"><?= $scheduleStats['next_appointment'] ?? 'None' ?></div>
+                            <div class="metric-label">Next Appointment</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value blue"><?= $scheduleStats['hours_scheduled'] ?? 0 ?></div>
+                            <div class="metric-label">Hours Scheduled</div>
                         </div>
                     </div>
                 </div>
@@ -137,12 +160,12 @@
                     </div>
                 </div>
                 <div class="table-header">
-                    <h3>Today's Schedule - August 20, 2025</h3>
+                    <h3 id="scheduleTitle">Today's Schedule - <?= date('F j, Y') ?></h3>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="btn btn-primary btn-small" id="printBtn">
                             <i class="fas fa-print"></i> Print Schedule
                         </button>
-                        <button class="btn btn-secondary btn-small" id="exportBtn">
+                        <button class="btn btn-secondary btn-small" id="refreshBtn">
                             <i class="fas fa-sync"></i> Refresh
                         </button>
                     </div>
@@ -159,24 +182,67 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>10:00 AM</td>
-                            <td>
-                                <div>
-                                    <strong>Sarah Wilson</strong><br>
-                                    <small>P0012347 | Age: 45</small>
-                                </div>
-                            </td>
-                            <td>Follow-up</td>
-                            <td>Hypertension Management</td>
-                            <td>30 min</td>
-                            <td><span class="badge badge-success">Completed</span></td>
-                            <td>
-                                <button class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View Notes</button>
-                                <button class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Reschedule</button>
-                            </td>
-                        </tr>
+                    <tbody id="appointmentsTableBody">
+                        <?php if (!empty($todayAppointments) && is_array($todayAppointments)): ?>
+                            <?php foreach ($todayAppointments as $appointment): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?= date('g:i A', strtotime($appointment['appointment_time'] ?? '00:00:00')) ?></strong>
+                                        <?php if (!empty($appointment['duration'])): ?>
+                                            <br><small><?= esc($appointment['duration']) ?> min</small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong><?= esc(($appointment['patient_first_name'] ?? '') . ' ' . ($appointment['patient_last_name'] ?? '')) ?></strong><br>
+                                            <small><?= esc($appointment['patient_id'] ?? 'N/A') ?> | Age: <?= esc($appointment['patient_age'] ?? 'N/A') ?></small>
+                                        </div>
+                                    </td>
+                                    <td><?= esc($appointment['appointment_type'] ?? 'N/A') ?></td>
+                                    <td><?= esc($appointment['reason'] ?? 'General consultation') ?></td>
+                                    <td><?= esc($appointment['duration'] ?? '30') ?> min</td>
+                                    <td>
+                                        <?php 
+                                            $status = $appointment['status'] ?? 'scheduled';
+                                            $badgeClass = '';
+                                            switch(strtolower($status)) {
+                                                case 'completed': $badgeClass = 'badge-success'; break;
+                                                case 'in-progress': $badgeClass = 'badge-info'; break;
+                                                case 'cancelled': $badgeClass = 'badge-danger'; break;
+                                                case 'no-show': $badgeClass = 'badge-warning'; break;
+                                                default: $badgeClass = 'badge-info';
+                                            }
+                                        ?>
+                                        <span class="badge <?= $badgeClass ?>"><?= esc(ucfirst($status)) ?></span>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                                            <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="viewAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            <?php if (strtolower($status) !== 'completed'): ?>
+                                                <button class="btn btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="markCompleted(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
+                                                    <i class="fas fa-check"></i> Complete
+                                                </button>
+                                            <?php endif; ?>
+                                            <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="rescheduleAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
+                                                <i class="fas fa-calendar-alt"></i> Reschedule
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 2rem; color: #6b7280;">
+                                    <i class="fas fa-calendar-times" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                                    <p>No appointments scheduled for today.</p>
+                                    <button class="btn btn-primary" onclick="document.getElementById('scheduleAppointmentBtn').click()">
+                                        <i class="fas fa-plus"></i> Schedule New Appointment
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -241,6 +307,10 @@
 
     <script src="<?= base_url('js/logout.js') ?>"></script>
     <script>
+        // Global variables
+        let currentView = 'today';
+        let currentDate = new Date();
+        
         // Modal functionality
         const modal = document.getElementById('scheduleModal');
         const scheduleBtn = document.getElementById('scheduleAppointmentBtn');
@@ -249,12 +319,291 @@
         const saveBtn = document.getElementById('saveBtn');
         const form = document.getElementById('scheduleForm');
 
-        // Show modal
+        // View switching functionality
+        const todayViewBtn = document.getElementById('todayView');
+        const weekViewBtn = document.getElementById('weekView');
+        const monthViewBtn = document.getElementById('monthView');
+        const dateSelector = document.getElementById('dateSelector');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const scheduleTitle = document.getElementById('scheduleTitle');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current date
+            dateSelector.value = formatDate(currentDate);
+            
+            // Auto-refresh every 5 minutes
+            setInterval(refreshAppointments, 300000);
+            
+            // Update current time every minute
+            setInterval(updateCurrentTime, 60000);
+        });
+
+        // View switching
+        todayViewBtn.addEventListener('click', () => switchView('today'));
+        weekViewBtn.addEventListener('click', () => switchView('week'));
+        monthViewBtn.addEventListener('click', () => switchView('month'));
+        dateSelector.addEventListener('change', () => {
+            currentDate = new Date(dateSelector.value);
+            refreshAppointments();
+        });
+        refreshBtn.addEventListener('click', refreshAppointments);
+
+        function switchView(view) {
+            currentView = view;
+            
+            // Update button states
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('btn-primary', 'active');
+                btn.classList.add('btn-secondary');
+            });
+            
+            const activeBtn = document.getElementById(view + 'View');
+            activeBtn.classList.remove('btn-secondary');
+            activeBtn.classList.add('btn-primary', 'active');
+            
+            // Update title
+            updateScheduleTitle();
+            
+            // Refresh data
+            refreshAppointments();
+        }
+
+        function updateScheduleTitle() {
+            let title = '';
+            switch(currentView) {
+                case 'today':
+                    title = "Today's Schedule - " + formatDateDisplay(currentDate);
+                    break;
+                case 'week':
+                    title = "Weekly Schedule - " + getWeekRange(currentDate);
+                    break;
+                case 'month':
+                    title = "Monthly Schedule - " + currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                    break;
+            }
+            scheduleTitle.textContent = title;
+        }
+
+        function refreshAppointments() {
+            const tbody = document.getElementById('appointmentsTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading appointments...</td></tr>';
+            
+            // AJAX call to fetch appointments
+            fetch(`<?= base_url('doctor/appointments/data') ?>?view=${currentView}&date=${formatDate(currentDate)}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateAppointmentsTable(data.appointments || []);
+                updateStats(data.stats || {});
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #ef4444;"><i class="fas fa-exclamation-triangle"></i> Error loading appointments</td></tr>';
+            });
+        }
+
+        function updateAppointmentsTable(appointments) {
+            const tbody = document.getElementById('appointmentsTableBody');
+            
+            if (appointments.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: #6b7280;">
+                            <i class="fas fa-calendar-times" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                            <p>No appointments found for the selected ${currentView}.</p>
+                            <button class="btn btn-primary" onclick="document.getElementById('scheduleAppointmentBtn').click()">
+                                <i class="fas fa-plus"></i> Schedule New Appointment
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = appointments.map(appointment => {
+                const status = appointment.status || 'scheduled';
+                const badgeClass = getBadgeClass(status);
+                
+                return `
+                    <tr>
+                        <td>
+                            <strong>${formatTime(appointment.appointment_time)}</strong>
+                            ${appointment.duration ? `<br><small>${appointment.duration} min</small>` : ''}
+                        </td>
+                        <td>
+                            <div>
+                                <strong>${appointment.patient_first_name || ''} ${appointment.patient_last_name || ''}</strong><br>
+                                <small>${appointment.patient_id || 'N/A'} | Age: ${appointment.patient_age || 'N/A'}</small>
+                            </div>
+                        </td>
+                        <td>${appointment.appointment_type || 'N/A'}</td>
+                        <td>${appointment.reason || 'General consultation'}</td>
+                        <td>${appointment.duration || '30'} min</td>
+                        <td><span class="badge ${badgeClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+                        <td>
+                            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                                <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="viewAppointment(${appointment.appointment_id})">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                ${status !== 'completed' ? `
+                                    <button class="btn btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="markCompleted(${appointment.appointment_id})">
+                                        <i class="fas fa-check"></i> Complete
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="rescheduleAppointment(${appointment.appointment_id})">
+                                    <i class="fas fa-calendar-alt"></i> Reschedule
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateStats(stats) {
+            // Update dashboard cards with new stats
+            if (stats.today) {
+                document.querySelector('.overview-card:nth-child(1) .metric:nth-child(1) .metric-value').textContent = stats.today.total || 0;
+                document.querySelector('.overview-card:nth-child(1) .metric:nth-child(2) .metric-value').textContent = stats.today.completed || 0;
+                document.querySelector('.overview-card:nth-child(1) .metric:nth-child(3) .metric-value').textContent = stats.today.pending || 0;
+            }
+            
+            if (stats.week) {
+                document.querySelector('.overview-card:nth-child(2) .metric:nth-child(1) .metric-value').textContent = stats.week.total || 0;
+                document.querySelector('.overview-card:nth-child(2) .metric:nth-child(2) .metric-value').textContent = stats.week.cancelled || 0;
+                document.querySelector('.overview-card:nth-child(2) .metric:nth-child(3) .metric-value').textContent = stats.week.no_shows || 0;
+            }
+        }
+
+        // Appointment management functions
+        function viewAppointment(appointmentId) {
+            // Open appointment details modal
+            window.location.href = `<?= base_url('doctor/appointment/view/') ?>${appointmentId}`;
+        }
+
+        function markCompleted(appointmentId) {
+            if (confirm('Mark this appointment as completed?')) {
+                updateAppointmentStatus(appointmentId, 'completed');
+            }
+        }
+
+        function rescheduleAppointment(appointmentId) {
+            // Open reschedule modal or redirect
+            window.location.href = `<?= base_url('doctor/appointment/reschedule/') ?>${appointmentId}`;
+        }
+
+        function updateAppointmentStatus(appointmentId, status) {
+            fetch(`<?= base_url('doctor/appointment/update-status') ?>`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    appointment_id: appointmentId,
+                    status: status,
+                    csrf_token: '<?= csrf_token() ?>'
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    refreshAppointments();
+                    showNotification('Appointment status updated successfully', 'success');
+                } else {
+                    showNotification('Error updating appointment status', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred', 'error');
+            });
+        }
+
+        // Utility functions
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDateDisplay(date) {
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        function formatTime(timeString) {
+            if (!timeString) return 'N/A';
+            const time = new Date('2000-01-01 ' + timeString);
+            return time.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit', 
+                hour12: true 
+            });
+        }
+
+        function getWeekRange(date) {
+            const startOfWeek = new Date(date);
+            startOfWeek.setDate(date.getDate() - date.getDay());
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            
+            return `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        }
+
+        function getBadgeClass(status) {
+            switch(status.toLowerCase()) {
+                case 'completed': return 'badge-success';
+                case 'in-progress': return 'badge-info';
+                case 'cancelled': return 'badge-danger';
+                case 'no-show': return 'badge-warning';
+                default: return 'badge-info';
+            }
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeElement = document.querySelector('.overview-card:nth-child(3) .card-subtitle');
+            if (timeElement) {
+                timeElement.textContent = `Current time: ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+            }
+        }
+
+        function showNotification(message, type) {
+            // Simple notification system
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 1rem;
+                border-radius: 4px;
+                color: white;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Modal functionality
         scheduleBtn.addEventListener('click', () => {
             modal.classList.add('show');
         });
 
-        // Hide modal
         closeModal.addEventListener('click', () => {
             modal.classList.remove('show');
             form.reset();
@@ -265,7 +614,6 @@
             form.reset();
         });
 
-        // Close modal when clicking outside
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.classList.remove('show');
@@ -288,7 +636,6 @@
                     csrf_token: document.getElementById('csrfToken').value
                 };
 
-                // AJAX submission (adjust URL as needed)
                 fetch('<?= base_url('doctor/schedule-appointment') ?>', {
                     method: 'POST',
                     headers: {
@@ -300,21 +647,20 @@
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) {
-                        alert('Appointment scheduled successfully!');
+                        showNotification('Appointment scheduled successfully!', 'success');
                         modal.classList.remove('show');
                         form.reset();
-                        // Optionally refresh the page or update the table
-                        location.reload();
+                        refreshAppointments();
                     } else {
-                        alert('Error scheduling appointment: ' + result.message + ' Errors: ' + JSON.stringify(result.errors));
+                        showNotification('Error scheduling appointment: ' + (result.message || 'Unknown error'), 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while scheduling the appointment.');
+                    showNotification('An error occurred while scheduling the appointment.', 'error');
                 });
             } else {
-                alert('Please fill in all required fields.');
+                showNotification('Please fill in all required fields.', 'error');
             }
         });
     </script>

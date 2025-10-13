@@ -544,11 +544,23 @@ class Admin extends BaseController
             log_message('error', 'Patients table does not exist: ' . $e->getMessage());
         }
 
+        // Aggregate patient types
+        $inPatients = 0; $outPatients = 0; $emergencyPatients = 0;
+        foreach ($patients as $p) {
+            $t = strtolower(trim((string)($p['patient_type'] ?? '')));
+            if ($t === 'inpatient') { $inPatients++; }
+            elseif ($t === 'outpatient') { $outPatients++; }
+            elseif ($t === 'emergency') { $emergencyPatients++; }
+        }
+
         $data = [
             'title' => 'Patient Management',
             'patients' => $patients,
             'patientStats' => [
                 'total_patients' => count($patients),
+                'in_patients' => $inPatients,
+                'out_patients' => $outPatients,
+                'emergency_patients' => $emergencyPatients,
             ],
         ];
 

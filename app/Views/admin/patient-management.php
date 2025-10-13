@@ -198,22 +198,25 @@
                         </div>
                     </div>
 
-                    <!-- Active User Card -->
+                    <!-- Patient Type Card -->
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern purple">
-                                <i class="fas fa-bed"></i>
-                            </div>
+                            <div class="card-icon-modern blue"><i class="fas fa-calendar-week"></i></div>
                             <div class="card-info">
-                                <h3 class="card-title-modern">Admitted Patient</h3>
-                                <p class="card-subtitle">Currently active</p>
+                                <h3 class="card-title-modern">Patient Type</h3>
+                                <p class="card-subtitle">All patients</p>
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value purple">0</div>
+                                <div class="metric-value blue"><?= $patientStats['in_patients'] ?? 0 ?></div>
+                                <div class="metric-label">In-Patient</div>
                             </div>
-                        </div>   
+                            <div class="metric">
+                                <div class="metric-value green"><?= $patientStats['out_patients'] ?? 0 ?></div>
+                                <div class="metric-label">Out-Patient</div>
+                            </div>
+                        </div>
                     </div>
                 </div>       
 
@@ -229,6 +232,7 @@
                                     <th>Patient</th>
                                     <th>ID</th>
                                     <th>Age</th>
+                                    <th>Patient Type</th>
                                     <th>Status</th>
                                     <th>Assigned Doctor</th>
                                     <th>Actions</th>
@@ -266,6 +270,7 @@
                                                     }
                                                 ?>
                                             </td>
+                                            <td><?= esc(strtolower($patient['patient_type'] ?? '') ? ucfirst(strtolower($patient['patient_type'])) : 'N/A') ?></td>
                                             <td><?= esc($patient['status'] ?? 'N/A') ?></td>
                                             <td>
                                                 <?php
@@ -292,7 +297,7 @@
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" style="text-align: center; padding: 2rem;">
+                                        <td colspan="7" style="text-align: center; padding: 2rem;">
                                             <i class="fas fa-user-injured" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
                                             <p>No patients found.</p>
                                         </td>

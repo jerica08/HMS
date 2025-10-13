@@ -6,6 +6,30 @@
     <title>Patient Management - HMS Doctor</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        .patient-table {
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            table-layout: fixed;
+            width: 100%;
+        }
+        .patient-table th, .patient-table td {
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+        .patient-table th:nth-child(1) { width: 20%; } /* Name */
+        .patient-table th:nth-child(2) { width: 8%; } /* Age */
+        .patient-table th:nth-child(3) { width: 8%; } /* Gender */
+        .patient-table th:nth-child(4) { width: 12%; } /* Phone */
+        .patient-table th:nth-child(5) { width: 15%; } /* Email */
+        .patient-table th:nth-child(6) { width: 10%; } /* Patient Type */
+        .patient-table th:nth-child(7) { width: 10%; } /* Status */
+        .patient-table th:nth-child(8) { width: 17%; } /* Actions */
+        .table-header { background: #f9fafb; padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+        .btn-small { padding: .5rem 1rem; font-size: .8rem; }
+    </style>
 </head>
 <body class="doctor">
      <!--header-->

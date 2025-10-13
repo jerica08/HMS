@@ -219,44 +219,51 @@
                     </div>
                 </div>       
 
-                <div class="patient-view">         
-                    <!-- Patient List Table -->
-                    <div class="patient-table">
-                        <div class="table-header">
-                            <h3>Patients</h3>
+                <div class="staff-section">
+                    <div class="section-header">
+                        <div class="section-icon" style="background:#10b981;">
+                            <i class="fas fa-user-injured"></i>
                         </div>
-                        <table class="table">
+                        <div>
+                            <div class="section-title">Patient Directory</div>
+                            <div style="color:#6b7280;font-size:0.9rem;">All registered patients</div>
+                        </div>
+                    </div>
+
+                    <div style="overflow:auto;">
+                        <table style="width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                             <thead>
-                                <tr>
-                                    <th>Patient</th>
-                                    <th>ID</th>
-                                    <th>Age</th>
-                                    <th>Department</th>
-                                    <th>Room</th>
-                                    <th>Actions</th>
+                                <tr style="background:#f8fafc; color:#374151;">
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; font-weight:600;">Name</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; font-weight:600;">Age</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; font-weight:600;">Gender</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; font-weight:600;">Phone</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; font-weight:600;">Email</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; font-weight:600;">Patient Type</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; font-weight:600;">Status</th>
+                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; font-weight:600;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (!empty($patients) && is_array($patients)): ?>
                                     <?php foreach ($patients as $patient): ?>
-                                        <tr>
-                                            <td>
+                                        <tr style="border-bottom:1px solid #f3f4f6;">
+                                            <td style="padding:0.75rem 1rem;">
                                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                                                     <div class="patient-avatar" aria-label="Patient initials" title="Patient initials">
                                                         <?= strtoupper(substr($patient['first_name'] ?? 'P', 0, 1) . substr($patient['last_name'] ?? 'P', 0, 1)) ?>
                                                     </div>
                                                     <div>
-                                                        <div style="font-weight: 500;">
+                                                        <div style="font-weight: 500; color: #1f2937;">
                                                             <?= esc(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? '')) ?>
                                                         </div>
                                                         <div style="font-size: 0.8rem; color: #6b7280;">
-                                                            <?= esc($patient['email'] ?? '') ?>
+                                                            ID: <?= esc($patient['patient_id'] ?? 'N/A') ?>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td><?= esc($patient['patient_id'] ?? 'N/A') ?></td>
-                                            <td>
+                                            <td style="padding:0.75rem 1rem; color:#374151;">
                                                 <?php
                                                     if (!empty($patient['date_of_birth'])) {
                                                         $dob = new DateTime($patient['date_of_birth']);
@@ -268,19 +275,52 @@
                                                     }
                                                 ?>
                                             </td>
-                                            <td><?= esc($patient['department'] ?? 'N/A') ?></td>
-                                            <td><?= esc($patient['room'] ?? 'N/A') ?></td>
-                                            <td>
+                                            <td style="padding:0.75rem 1rem; color:#374151;">
+                                                <span style="text-transform: capitalize; color: <?= ($patient['gender'] ?? '') === 'male' ? '#3b82f6' : (($patient['gender'] ?? '') === 'female' ? '#ec4899' : '#6b7280') ?>;">
+                                                    <?= esc($patient['gender'] ?? 'N/A') ?>
+                                                </span>
+                                            </td>
+                                            <td style="padding:0.75rem 1rem; color:#374151;"><?= esc($patient['phone'] ?? 'N/A') ?></td>
+                                            <td style="padding:0.75rem 1rem; color:#374151;"><?= esc($patient['email'] ?? 'N/A') ?></td>
+                                            <td style="padding:0.75rem 1rem;">
+                                                <?php 
+                                                    $type = $patient['patient_type'] ?? 'N/A';
+                                                    $typeClass = '';
+                                                    switch(strtolower($type)) {
+                                                        case 'outpatient': $typeClass = 'background:#dcfce7; color:#166534;'; break;
+                                                        case 'inpatient': $typeClass = 'background:#dbeafe; color:#1e40af;'; break;
+                                                        case 'emergency': $typeClass = 'background:#fecaca; color:#991b1b;'; break;
+                                                        default: $typeClass = 'background:#f3f4f6; color:#6b7280;';
+                                                    }
+                                                ?>
+                                                <span style="padding:0.25rem 0.75rem; border-radius:15px; font-size:0.8rem; font-weight:500; <?= $typeClass ?>">
+                                                    <?= esc(ucfirst($type)) ?>
+                                                </span>
+                                            </td>
+                                            <td style="padding:0.75rem 1rem;">
+                                                <?php 
+                                                    $status = $patient['status'] ?? 'N/A';
+                                                    $statusClass = strtolower($status) === 'active' ? 'background:#dcfce7; color:#166534;' : 'background:#f3f4f6; color:#6b7280;';
+                                                ?>
+                                                <span style="padding:0.25rem 0.75rem; border-radius:15px; font-size:0.8rem; font-weight:500; <?= $statusClass ?>">
+                                                    <?= esc(ucfirst($status)) ?>
+                                                </span>
+                                            </td>
+                                            <td style="padding:0.75rem 1rem;">
                                                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                                                    <button class="btn btn-secondary btn-small" onclick="viewPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">View</button>
-                                                    <button class="btn btn-primary btn-small" onclick="editPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">Edit</button>
+                                                    <button class="btn btn-secondary btn-small" onclick="viewPatient(<?= esc($patient['patient_id'] ?? 0) ?>)" style="background:#6b7280; color:#fff; border:none; padding:0.3rem 0.8rem; border-radius:4px; font-size:0.8rem; cursor:pointer;">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </button>
+                                                    <button class="btn btn-primary btn-small" onclick="editPatient(<?= esc($patient['patient_id'] ?? 0) ?>)" style="background:#2563eb; color:#fff; border:none; padding:0.3rem 0.8rem; border-radius:4px; font-size:0.8rem; cursor:pointer;">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" style="text-align: center; padding: 2rem;">
+                                        <td colspan="8" style="text-align: center; padding: 2rem; color:#6b7280;">
                                             <i class="fas fa-user-injured" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
                                             <p>No patients found.</p>
                                         </td>

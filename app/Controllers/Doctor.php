@@ -304,12 +304,12 @@ class Doctor extends BaseController
     }
 
     /**
-     * Create a new prescription via JSON POST
+     * Create a new prescription via POST
      */
     public function createPrescription()
     {
-        // Expect JSON payload
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        // Expect POST data from form
+        $input = $this->request->getPost();
 
         // Basic validation
         $validation = \Config\Services::validation();

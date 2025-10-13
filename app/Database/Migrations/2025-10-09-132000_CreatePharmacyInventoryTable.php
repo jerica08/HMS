@@ -8,6 +8,11 @@ class CreatePharmacyInventoryTable extends Migration
 {
     public function up()
     {
+        // Check if pharmacy_inventory table already exists
+        if ($this->db->tableExists('pharmacy_inventory')) {
+            return;
+        }
+
         // Pharmacy Inventory Table
         $this->forge->addField([
             'id' => [
@@ -87,9 +92,13 @@ class CreatePharmacyInventoryTable extends Migration
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->addKey('item_code');
         $this->forge->addKey('category');
         $this->forge->createTable('pharmacy_inventory');
+
+        // Check if inventory_transactions table already exists
+        if ($this->db->tableExists('inventory_transactions')) {
+            return;
+        }
 
         // Inventory Transactions Table
         $this->forge->addField([
@@ -131,7 +140,7 @@ class CreatePharmacyInventoryTable extends Migration
         $this->forge->addKey('id', true);
         $this->forge->addKey('inventory_id');
         $this->forge->addForeignKey('inventory_id', 'pharmacy_inventory', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('created_by', 'users', 'id', 'SET NULL', 'CASCADE');
+        $this->forge->addForeignKey('created_by', 'users', 'user_id', 'SET NULL', 'CASCADE');
         $this->forge->createTable('inventory_transactions');
     }
 

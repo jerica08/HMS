@@ -8,6 +8,10 @@ class CreateAppointmentsTable extends Migration
 {
     public function up()
     {
+
+        if ($this->db->tableExists('appointments')){
+            return;
+        }
         $this->forge->addField([
             'id' => [
                 'type'           => 'INT',

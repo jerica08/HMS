@@ -7,10 +7,10 @@
             <div class="fas fa-user-circle"></div>
             <div>
                 <div style="font-weight: 600;">
-                    Pharmacist User
+                    <?= \App\Helpers\UserHelper::getDisplayName() ?>
                 </div>
                 <div style="font-size: 0.9rem;opacity:0.8">
-                    Pharmacist
+                    <?= \App\Helpers\UserHelper::getDisplayRole() ?>
                 </div>
             </div>
             <a href="#" class="logout-btn" onclick="handleLogout()">
@@ -20,3 +20,11 @@
         </div>
     </div>
 </header>
+
+<script>
+function handleLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+        window.location.href = '<?= base_url('logout') ?>';
+    }
+}
+</script>

@@ -9,6 +9,7 @@ class Doctor extends BaseController
 {
     protected $db;
     protected $builder;
+    protected $doctorId;
 
     /**
      * Constructor - initializes database connection and checks doctor authentication
@@ -25,6 +26,13 @@ class Doctor extends BaseController
             redirect()->to(base_url('/login'))->send();
             exit();
         }
+
+        // Get doctor_id from staff_id
+        $staffId = $session->get('staff_id');
+        if ($staffId) {
+            $doctor = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
+            $this->doctorId = $doctor ? $doctor['doctor_id'] : null;
+        }
     }
 
     public function dashboard()
@@ -34,23 +42,24 @@ class Doctor extends BaseController
 
     public function patients()
     {
-        // Fetch patient statistics
+        // Fetch patient statistics for this doctor
         $totalPatients = 0;
         $inPatients = 0;
         $outPatients = 0;
         try {
-            $totalPatients = $this->db->table('patient')->countAllResults();
-            $inPatients = $this->db->table('patient')->where('patient_type', 'inpatient')->countAllResults();
-            $outPatients = $this->db->table('patient')->where('patient_type', 'outpatient')->countAllResults();
+            $totalPatients = $this->db->table('patient')->where('primary_doctor_id', $this->doctorId)->countAllResults();
+            $inPatients = $this->db->table('patient')->where('primary_doctor_id', $this->doctorId)->where('patient_type', 'inpatient')->countAllResults();
+            $outPatients = $this->db->table('patient')->where('primary_doctor_id', $this->doctorId)->where('patient_type', 'outpatient')->countAllResults();
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
             log_message('error', 'Patients table does not exist: ' . $e->getMessage());
         }
 
-        // Fetch patients list
+        // Fetch patients list assigned to this doctor
         $patients = [];
         try {
             $patients = $this->db->table('patient')
                 ->select('patient_id as id, first_name, middle_name, last_name, date_of_birth, gender, contact_no as phone, email, patient_type, status')
+                ->where('primary_doctor_id', $this->doctorId)
                 ->get()
                 ->getResultArray();
 
@@ -83,12 +92,13 @@ class Doctor extends BaseController
     {
         // Get doctor ID from session
         $doctorId = session()->get('staff_id');
-        
-        // Fetch patients for the dropdown
+
+        // Fetch patients assigned to this doctor for the dropdown
         $patients = [];
         try {
             $patients = $this->db->table('patient')
                 ->select('patient_id, first_name, last_name')
+                ->where('primary_doctor_id', $this->doctorId)
                 ->get()
                 ->getResultArray();
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
@@ -118,20 +128,25 @@ class Doctor extends BaseController
     
     public function prescriptions()
     {
-        // Fetch patients for the dropdown
+        // Fetch patients assigned to this doctor for the dropdown
         $patients = [];
         try {
-            $patients = $this->db->table('patient')->select('patient_id, first_name, last_name')->get()->getResultArray();
+            $patients = $this->db->table('patient')
+                ->select('patient_id, first_name, last_name')
+                ->where('primary_doctor_id', $this->doctorId)
+                ->get()
+                ->getResultArray();
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
             log_message('error', 'Failed to fetch patients: ' . $e->getMessage());
         }
 
-        // Fetch prescriptions
+        // Fetch prescriptions created by this doctor
         $prescriptions = [];
         try {
             $prescriptions = $this->db->table('prescriptions')
                 ->select('prescriptions.*, patient.first_name, patient.last_name, patient.patient_id as pat_id')
                 ->join('patient', 'patient.patient_id = prescriptions.patient_id')
+                ->where('prescriptions.doctor_id', $this->doctorId)
                 ->orderBy('prescriptions.created_at', 'DESC')
                 ->get()
                 ->getResultArray();
@@ -697,6 +712,47 @@ class Doctor extends BaseController
     }
 
     /**
+     * Get patients data for AJAX requests (API endpoint)
+     */
+    public function getPatientsAPI()
+    {
+        try {
+            // Fetch patients assigned to this doctor
+            $patients = $this->db->table('patient p')
+                ->select('p.patient_id, p.first_name, p.middle_name, p.last_name, p.date_of_birth, p.gender, p.contact_no, p.email, p.patient_type, p.status, p.primary_doctor_id, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
+                ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
+                ->where('p.primary_doctor_id', $this->doctorId)
+                ->orderBy('p.patient_id', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            // Calculate age for each patient
+            foreach ($patients as &$patient) {
+                if ($patient['date_of_birth']) {
+                    $dob = new \DateTime($patient['date_of_birth']);
+                    $now = new \DateTime();
+                    $age = $now->diff($dob)->y;
+                    $patient['age'] = $age;
+                } else {
+                    $patient['age'] = null;
+                }
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $patients
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to fetch patients API: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to load patients',
+                'data' => []
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
      * Get appointment data for AJAX requests
      */
     public function getAppointmentData()
@@ -914,6 +970,113 @@ class Doctor extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Database error'
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Get available doctors for assignment
+     */
+    public function getDoctorsAPI()
+    {
+        try {
+            // Get all staff members with doctor role
+            $doctors = $this->db->table('staff')
+                ->select('staff_id, first_name, last_name, department, designation')
+                ->where('role', 'doctor')
+                ->orderBy('first_name', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            // Format doctor names
+            foreach ($doctors as &$doctor) {
+                $doctor['full_name'] = trim($doctor['first_name'] . ' ' . $doctor['last_name']);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $doctors
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to fetch doctors API: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to load doctors',
+                'data' => []
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Assign doctor to patient
+     */
+    public function assignDoctor()
+    {
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        
+        if (!isset($input['patient_id']) || !isset($input['doctor_id'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Missing required fields: patient_id and doctor_id'
+            ])->setStatusCode(400);
+        }
+        
+        $patientId = $input['patient_id'];
+        $doctorId = $input['doctor_id'];
+        
+        try {
+            // Verify patient exists
+            $patient = $this->db->table('patient')
+                ->where('patient_id', $patientId)
+                ->get()
+                ->getRowArray();
+            
+            if (!$patient) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Patient not found'
+                ])->setStatusCode(404);
+            }
+            
+            // Verify doctor exists
+            $doctor = $this->db->table('staff')
+                ->where('staff_id', $doctorId)
+                ->where('role', 'doctor')
+                ->get()
+                ->getRowArray();
+            
+            if (!$doctor) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Doctor not found'
+                ])->setStatusCode(404);
+            }
+            
+            // Update patient's primary doctor
+            $updated = $this->db->table('patient')
+                ->where('patient_id', $patientId)
+                ->update([
+                    'primary_doctor_id' => $doctorId
+                ]);
+            
+            if ($updated !== false) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Doctor assigned successfully',
+                    'doctor_name' => trim($doctor['first_name'] . ' ' . $doctor['last_name'])
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to assign doctor'
+                ])->setStatusCode(500);
+            }
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to assign doctor: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
             ])->setStatusCode(500);
         }
     }

@@ -230,6 +230,35 @@
                 </button>
             </div>
         </div>
+
+        <!-- Assign Doctor Modal -->
+        <div id="assignDoctorModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
+            <div style="background:#fff; padding:2rem; border-radius:8px; max-width:500px; width:90%; margin:auto; position:relative; box-sizing:border-box;">
+                <div class="hms-modal-header">
+                    <div class="hms-modal-title">
+                        <i class="fas fa-user-md" style="color:#4f46e5"></i>
+                        <h2 style="margin:0; font-size:1.25rem;">Assign Doctor</h2>
+                    </div>
+                </div>
+                <form id="assignDoctorForm">
+                    <input type="hidden" id="assignPatientId" name="patient_id">
+                    <div style="margin:1rem 0;">
+                        <label for="doctorSelect">Select Doctor*</label>
+                        <select id="doctorSelect" name="doctor_id" required style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; margin-top:0.5rem;">
+                            <option value="">Loading doctors...</option>
+                        </select>
+                        <small id="err_doctor" style="color:#dc2626"></small>
+                    </div>
+                    <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1.5rem;">
+                        <button type="button" onclick="closeAssignDoctorModal()" style="background:#6b7280; color:#fff; border:none; padding:0.75rem 1.5rem; border-radius:4px; cursor:pointer;">Cancel</button>
+                        <button type="submit" id="assignDoctorBtn" style="background:#2563eb; color:#fff; border:none; padding:0.75rem 1.5rem; border-radius:4px; cursor:pointer;">Assign Doctor</button>
+                    </div>
+                </form>
+                <button aria-label="Close" onclick="closeAssignDoctorModal()" style="position:absolute; top:10px; right:10px; background:transparent; border:none; font-size:1.25rem; color:#6b7280; cursor:pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
         
         <script>
             // Fetch and render patients in real-time (on load)
@@ -286,6 +315,7 @@
                                         <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                                             <button class="btn btn-secondary btn-small" data-action="view" data-id="${id}">View</button>
                                             <button class="btn btn-primary btn-small" data-action="edit" data-id="${id}">Edit</button>
+                                            <button class="btn btn-success btn-small" data-action="assign" data-id="${id}">Assign Doctor</button>
                                         </div>
                                     </td>
                                 </tr>`;
@@ -307,6 +337,8 @@
                             // Implement viewPatient(id) if needed
                         } else if (btn.getAttribute('data-action') === 'edit') {
                             // Implement editPatient(id) if needed
+                        } else if (btn.getAttribute('data-action') === 'assign') {
+                            openAssignDoctorModal(id);
                         }
                     });
                 }
@@ -421,6 +453,142 @@
                     }
                 });
             })();
+            // Assign Doctor Modal Functions
+            let doctorsCache = null;
+            
+            async function loadDoctors() {
+                if (doctorsCache) return doctorsCache;
+                
+                try {
+                    const response = await fetch('<?= base_url('doctor/doctors/api') ?>', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to fetch doctors');
+                    
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        doctorsCache = result.data;
+                        return doctorsCache;
+                    }
+                    throw new Error('Invalid response format');
+                } catch (error) {
+                    console.error('Error loading doctors:', error);
+                    return [];
+                }
+            }
+            
+            async function openAssignDoctorModal(patientId) {
+                const modal = document.getElementById('assignDoctorModal');
+                const patientIdInput = document.getElementById('assignPatientId');
+                const doctorSelect = document.getElementById('doctorSelect');
+                
+                if (!modal || !patientIdInput || !doctorSelect) return;
+                
+                // Set patient ID
+                patientIdInput.value = patientId;
+                
+                // Load doctors
+                doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+                const doctors = await loadDoctors();
+                
+                // Populate doctor dropdown
+                doctorSelect.innerHTML = '<option value="">Select a doctor...</option>';
+                doctors.forEach(doctor => {
+                    const option = document.createElement('option');
+                    option.value = doctor.staff_id;
+                    option.textContent = `${doctor.full_name} - ${doctor.department || 'N/A'}`;
+                    doctorSelect.appendChild(option);
+                });
+                
+                // Show modal
+                modal.style.display = 'flex';
+            }
+            
+            function closeAssignDoctorModal() {
+                const modal = document.getElementById('assignDoctorModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    // Reset form
+                    document.getElementById('assignDoctorForm').reset();
+                    document.getElementById('err_doctor').textContent = '';
+                }
+            }
+            
+            // Handle assign doctor form submission
+            (function() {
+                const form = document.getElementById('assignDoctorForm');
+                if (!form) return;
+                
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const btn = document.getElementById('assignDoctorBtn');
+                    const errorEl = document.getElementById('err_doctor');
+                    
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.textContent = 'Assigning...';
+                    }
+                    
+                    errorEl.textContent = '';
+                    
+                    const formData = new FormData(form);
+                    const payload = {
+                        patient_id: formData.get('patient_id'),
+                        doctor_id: formData.get('doctor_id')
+                    };
+                    
+                    try {
+                        const response = await fetch('<?= base_url('doctor/assign-doctor') ?>', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok && result.success) {
+                            alert('Doctor assigned successfully!');
+                            closeAssignDoctorModal();
+                            // Reload patients to show updated assignment
+                            loadPatients();
+                        } else {
+                            errorEl.textContent = result.message || 'Failed to assign doctor';
+                        }
+                    } catch (error) {
+                        console.error('Error assigning doctor:', error);
+                        errorEl.textContent = 'Network error. Please try again.';
+                    } finally {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.textContent = 'Assign Doctor';
+                        }
+                    }
+                });
+            })();
+            
+            // Close modal when clicking outside
+            document.addEventListener('click', function(e) {
+                const modal = document.getElementById('assignDoctorModal');
+                if (modal && e.target === modal) {
+                    closeAssignDoctorModal();
+                }
+            });
+            
+            // Close modal on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeAssignDoctorModal();
+                }
+            });
         </script>
 </body>
 </html>

@@ -79,6 +79,7 @@
                                     <th>Patient</th>
                                     <th>ID</th>
                                     <th>Age</th>
+                                    <th>Patient Type</th>
                                     <th>Assigned Doctor</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -456,6 +457,7 @@
                             const email = escapeHtml(p.email||'');
                             const age = calcAge(p.date_of_birth);
                             const id = escapeHtml(p.patient_id);
+                            const patientType = escapeHtml(p.patient_type || 'N/A');
                             const assigned = escapeHtml(p.assigned_doctor_name || '');
                             const status = escapeHtml(p.status||'N/A');
                             const init = initials(p.first_name, p.last_name);
@@ -472,6 +474,7 @@
                                     </td>
                                     <td>${id}</td>
                                     <td>${age}</td>
+                                    <td><span style="text-transform:capitalize;">${patientType}</span></td>
                                     <td>${assigned}</td>
                                     <td>${status}</td>
                                     <td>

@@ -22,7 +22,8 @@
       .role-it-staff { background: #eef2ff; color: #3730a3; }
       .status-active { color: #16a34a; }
       .status-inactive { color: #9ca3af; }
-      .action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .action-buttons { display: flex; gap: 0.5rem;  margin-top: 1rem; flex-wrap: wrap; }
+      .btn-small { padding: 0.5rem 1rem; font-size: 0.8rem; }
       .dashboard-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; }
       .overview-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 0.75rem; }
       .card-header-modern { display: flex; align-items: center; gap: 0.75rem; }
@@ -199,13 +200,13 @@
                                   </td>
                                   <td>
                                       <div class="action-buttons">
-                                          <button class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="editUser(<?= esc($user['user_id']) ?>)" aria-label="Edit User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
+                                          <button class="btn btn-warning btn-small" onclick="editUser(<?= esc($user['user_id']) ?>)" aria-label="Edit User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
                                               <i class="fas fa-edit" aria-hidden="true"></i> Edit
                                           </button>
-                                          <button class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="resetPassword(<?= esc($user['user_id']) ?>)" aria-label="Reset Password for <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
+                                          <button class="btn btn-primary btn-small" onclick="resetPassword(<?= esc($user['user_id']) ?>)" aria-label="Reset Password for <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
                                               <i class="fas fa-key" aria-hidden="true"></i> Reset
                                           </button>
-                                          <button class="btn btn-danger" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="deleteUser(<?= esc($user['user_id']) ?>)" aria-label="Delete User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
+                                          <button class="btn btn-danger btn-small" onclick="deleteUser(<?= esc($user['user_id']) ?>)" aria-label="Delete User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
                                               <i class="fas fa-trash" aria-hidden="true"></i> Delete
                                           </button>
                                       </div>

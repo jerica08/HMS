@@ -89,13 +89,19 @@ $routes->get('doctor/dashboard', 'Doctor::dashboard');
 $routes->get('doctor/patients', 'Doctor::patients');
 $routes->post('doctor/patients', 'Doctor::createPatient');
 $routes->get('doctor/patients/api', 'Doctor::getPatientsAPI');
+$routes->get('doctor/patient/(:num)', 'Doctor::getPatient/$1');
+$routes->put('doctor/patient/(:num)', 'Doctor::updatePatient/$1');
+$routes->post('doctor/patient/(:num)', 'Doctor::updatePatient/$1');
 $routes->get('doctor/doctors/api', 'Doctor::getDoctorsAPI');
 $routes->post('doctor/assign-doctor', 'Doctor::assignDoctor');
 $routes->get('doctor/patient', 'Doctor::patients');
+
 $routes->get('doctor/appointments', 'Doctor::appointments');
 $routes->post('doctor/schedule-appointment', 'Doctor::postScheduleAppointment');
+
 $routes->get('doctor/prescriptions', 'Doctor::prescriptions');
 $routes->post('doctor/create-prescription', 'Doctor::createPrescription');
+
 $routes->get('doctor/lab-results', 'Doctor::labResults');
 $routes->get('doctor/EHR', 'Doctor::ehr');
 $routes->get('doctor/schedule', 'Doctor::schedule');

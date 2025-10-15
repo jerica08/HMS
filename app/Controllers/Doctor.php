@@ -55,9 +55,7 @@ class Doctor extends BaseController
         return view('doctor/schedule');
     }
 
-    /**
-     * Get available doctors for assignment
-     */
+    
     public function getDoctorsAPI()
     {
         try {

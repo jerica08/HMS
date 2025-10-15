@@ -101,8 +101,12 @@ $routes->post('doctor/schedule-appointment', 'Appointments::postScheduleAppointm
 $routes->get('doctor/appointment-data', 'Appointments::getAppointmentData');
 $routes->post('doctor/update-appointment-status', 'Appointments::updateAppointmentStatus');
 
-$routes->get('doctor/prescriptions', 'Doctor::prescriptions');
-$routes->post('doctor/create-prescription', 'Doctor::createPrescription');
+$routes->get('doctor/prescriptions', 'Prescriptions::prescriptions');
+$routes->post('doctor/create-prescription', 'Prescriptions::createPrescription');
+$routes->get('doctor/prescriptions/api', 'Prescriptions::getPrescriptionsAPI');
+$routes->post('doctor/update-prescription-status', 'Prescriptions::updatePrescriptionStatus');
+$routes->get('doctor/prescription/(:any)', 'Prescriptions::getPrescription/$1');
+$routes->put('doctor/prescription/(:any)', 'Prescriptions::updatePrescription/$1');
 
 $routes->get('doctor/lab-results', 'Doctor::labResults');
 $routes->get('doctor/EHR', 'Doctor::ehr');

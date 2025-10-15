@@ -96,8 +96,10 @@ $routes->post('doctor/patient/(:num)', 'Patients::updatePatient/$1');
 $routes->get('doctor/doctors/api', 'Doctor::getDoctorsAPI');
 $routes->post('doctor/assign-doctor', 'Doctor::assignDoctor');
 
-$routes->get('doctor/appointments', 'Doctor::appointments');
-$routes->post('doctor/schedule-appointment', 'Doctor::postScheduleAppointment');
+$routes->get('doctor/appointments', 'Appointments::appointments');
+$routes->post('doctor/schedule-appointment', 'Appointments::postScheduleAppointment');
+$routes->get('doctor/appointment-data', 'Appointments::getAppointmentData');
+$routes->post('doctor/update-appointment-status', 'Appointments::updateAppointmentStatus');
 
 $routes->get('doctor/prescriptions', 'Doctor::prescriptions');
 $routes->post('doctor/create-prescription', 'Doctor::createPrescription');

@@ -4,6 +4,33 @@ use App\Models\PatientModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Patients extends BaseController{
+    protected $db;
+    protected $builder;
+    protected $doctorId;
+
+    /**
+     * Constructor - initializes database connection and checks doctor authentication
+     */
+    public function __construct()
+    {
+        // DB Connection
+        $this->db = \Config\Database::connect();
+        $this->builder = $this->db->table('patient');
+
+        // Session check for doctor
+        $session = session();
+        if (!$session->get('isLoggedIn') || $session->get('role') !== 'doctor') {
+            redirect()->to(base_url('/login'))->send();
+            exit();
+        }
+
+        // Get doctor_id from staff_id
+        $staffId = $session->get('staff_id');
+        if ($staffId) {
+            $doctor = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
+            $this->doctorId = $doctor ? $doctor['doctor_id'] : null;
+        }
+    }
      public function patients()
     {
         // Fetch patient statistics for this doctor

@@ -86,15 +86,15 @@ $routes->group('admin', function($routes) {
 });
 // Doctor Routes
 $routes->get('doctor/dashboard', 'Doctor::dashboard');
-$routes->get('doctor/patients', 'Doctor::patients');
-$routes->post('doctor/patients', 'Doctor::createPatient');
-$routes->get('doctor/patients/api', 'Doctor::getPatientsAPI');
-$routes->get('doctor/patient/(:num)', 'Doctor::getPatient/$1');
-$routes->put('doctor/patient/(:num)', 'Doctor::updatePatient/$1');
-$routes->post('doctor/patient/(:num)', 'Doctor::updatePatient/$1');
+$routes->get('doctor/patients', 'Patients::patients');
+$routes->post('doctor/patients', 'Patients::createPatient');
+$routes->get('doctor/patients/api', 'Patients::getPatientsAPI');
+$routes->get('doctor/patient/(:num)', 'Patients::getPatient/$1');
+$routes->get('doctor/patient', 'Patients::patients');
+$routes->put('doctor/patient/(:num)', 'Patients::updatePatient/$1');
+$routes->post('doctor/patient/(:num)', 'Patients::updatePatient/$1');
 $routes->get('doctor/doctors/api', 'Doctor::getDoctorsAPI');
 $routes->post('doctor/assign-doctor', 'Doctor::assignDoctor');
-$routes->get('doctor/patient', 'Doctor::patients');
 
 $routes->get('doctor/appointments', 'Doctor::appointments');
 $routes->post('doctor/schedule-appointment', 'Doctor::postScheduleAppointment');

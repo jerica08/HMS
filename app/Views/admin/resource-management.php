@@ -6,6 +6,22 @@
     <title>Resource Management - HMS Admin</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+      /* Modal and form styles (aligned with user-management.php) */
+      .hms-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 9990; }
+      .hms-modal-overlay.active { display: flex; }
+      .hms-modal { width: 100%; max-width: 900px; background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid #f1f5f9; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); max-height: 90vh; overflow: auto; box-sizing: border-box; }
+      .hms-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; background: #f8f9ff; }
+      .hms-modal-title { font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
+      .hms-modal-body { padding: 1rem 1.25rem; color: #475569; }
+      .hms-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 0.75rem 1.25rem 1.25rem; background: #fff; }
+      .form-input, .form-select, .form-textarea { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.95rem; background: #fff; transition: border-color 0.2s; }
+      .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+      .form-label { font-size: 0.9rem; color: #374151; margin-bottom: 0.25rem; display: block; font-weight: 500; }
+      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+      .form-grid .full { grid-column: 1 / -1; }
+      @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+    </style>
 </head>
 <body class="admin">
 
@@ -136,45 +152,69 @@
                 </div>
             </div>
 
-            <!-- Add Resource Modal -->
-            <div id="addResourceModal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
-                <div style="background:#fff; padding:1.5rem; border-radius:8px; max-width:720px; width:96%; margin:auto; position:relative; max-height:92vh; overflow:auto; box-sizing:border-box;">
+            <!-- Add Resource Modal (styled like Add User modal) -->
+            <div id="addResourceModal" class="hms-modal-overlay" aria-hidden="true">
+                <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addResourceTitle">
                     <div class="hms-modal-header">
-                        <div class="hms-modal-title">
+                        <div class="hms-modal-title" id="addResourceTitle">
                             <i class="fas fa-plus-circle" style="color:#4f46e5"></i>
-                            <h2 style="margin:0; font-size:1.1rem;">Add Resource</h2>
+                            Add Resource
                         </div>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="closeAddResourceModal()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                     <form id="addResourceForm">
-                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
-                            <div>
-                                <label for="res_name">Name</label>
-                                <input id="res_name" name="name" type="text" class="form-input" required>
-                            </div>
-                            <div>
-                                <label for="res_category">Category</label>
-                                <input id="res_category" name="category" type="text" class="form-input" required>
-                            </div>
-                            <div>
-                                <label for="res_quantity">Quantity</label>
-                                <input id="res_quantity" name="quantity" type="number" class="form-input" min="0" required>
-                            </div>
-                            <div>
-                                <label for="res_status">Status</label>
-                                <select id="res_status" name="status" class="form-select" required>
-                                    <option value="available">Available</option>
-                                    <option value="in_use">In Use</option>
-                                    <option value="maintenance">Maintenance</option>
-                                    <option value="retired">Retired</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="res_location">Location</label>
-                                <input id="res_location" name="location" type="text" class="form-input">
-                            </div>
-                            <div class="full">
-                                <label for="res_notes">Notes</label>
-                                <textarea id="res_notes" name="notes" rows="3" class="form-textarea"></textarea>
+                        <div class="hms-modal-body">
+                            <div class="form-grid">
+                                <div>
+                                    <label class="form-label" for="res_name">Equipment Name</label>
+                                    <input id="res_name" name="name" type="text" class="form-input" required>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="res_category">Category</label>
+                                    <select id="res_category" name="category" class="form-select" required>
+                                        <option value="">Select category</option>
+                                        <option value="Diagnostic">Diagnostic</option>
+                                        <option value="Surgical">Surgical</option>
+                                        <option value="Furniture">Furniture</option>
+                                        <option value="IT">IT</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="res_quantity">Quantity</label>
+                                    <input id="res_quantity" name="quantity" type="number" class="form-input" min="0" required>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="res_status">Status</label>
+                                    <select id="res_status" name="status" class="form-select" required>
+                                        <option value="available">Available</option>
+                                        <option value="in_use">In Use</option>
+                                        <option value="maintenance">Maintenance</option>
+                                        <option value="retired">Retired</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="res_location">Location</label>
+                                    <input id="res_location" name="location" type="text" class="form-input">
+                                </div>
+                                <div>
+                                    <label class="form-label" for="res_date_acquired">Date Acquired</label>
+                                    <input id="res_date_acquired" name="date_acquired" type="date" class="form-input">
+                                </div>
+                                <div>
+                                    <label class="form-label" for="res_supplier">Supplier</label>
+                                    <input id="res_supplier" name="supplier" type="text" class="form-input">
+                                </div>
+                                <div>
+                                    <label class="form-label" for="res_maintenance">Maintenance Schedule</label>
+                                    <input id="res_maintenance" name="maintenance_schedule" type="date" class="form-input">
+                                </div>
+                                <div class="full">
+                                    <label class="form-label" for="res_notes">Remarks</label>
+                                    <textarea id="res_notes" name="notes" rows="3" class="form-textarea"></textarea>
+                                </div>
                             </div>
                         </div>
                         <div class="hms-modal-actions">
@@ -182,52 +222,54 @@
                             <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
                         </div>
                     </form>
-                    <button aria-label="Close" onclick="closeAddResourceModal()" style="position:absolute; top:10px; right:10px; background:transparent; border:none; font-size:1.25rem; color:#6b7280; cursor:pointer;">
-                        <i class="fas fa-times"></i>
-                    </button>
                 </div>
             </div>
 
-            <!-- Edit Resource Modal -->
-            <div id="editResourceModal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
-                <div style="background:#fff; padding:1.5rem; border-radius:8px; max-width:720px; width:96%; margin:auto; position:relative; max-height:92vh; overflow:auto; box-sizing:border-box;">
+            <!-- Edit Resource Modal (styled like Add User modal) -->
+            <div id="editResourceModal" class="hms-modal-overlay" aria-hidden="true">
+                <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="editResourceTitle">
                     <div class="hms-modal-header">
-                        <div class="hms-modal-title">
+                        <div class="hms-modal-title" id="editResourceTitle">
                             <i class="fas fa-edit" style="color:#4f46e5"></i>
-                            <h2 style="margin:0; font-size:1.1rem;">Edit Resource</h2>
+                            Edit Resource
                         </div>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="closeEditResourceModal()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                     <form id="editResourceForm">
                         <input type="hidden" id="er_id" name="id">
-                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
-                            <div>
-                                <label for="er_name">Name</label>
-                                <input id="er_name" name="name" type="text" class="form-input" required>
-                            </div>
-                            <div>
-                                <label for="er_category">Category</label>
-                                <input id="er_category" name="category" type="text" class="form-input" required>
-                            </div>
-                            <div>
-                                <label for="er_quantity">Quantity</label>
-                                <input id="er_quantity" name="quantity" type="number" class="form-input" min="0" required>
-                            </div>
-                            <div>
-                                <label for="er_status">Status</label>
-                                <select id="er_status" name="status" class="form-select" required>
-                                    <option value="available">Available</option>
-                                    <option value="in_use">In Use</option>
-                                    <option value="maintenance">Maintenance</option>
-                                    <option value="retired">Retired</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="er_location">Location</label>
-                                <input id="er_location" name="location" type="text" class="form-input">
-                            </div>
-                            <div class="full">
-                                <label for="er_notes">Notes</label>
-                                <textarea id="er_notes" name="notes" rows="3" class="form-textarea"></textarea>
+                        <div class="hms-modal-body">
+                            <div class="form-grid">
+                                <div>
+                                    <label class="form-label" for="er_name">Name</label>
+                                    <input id="er_name" name="name" type="text" class="form-input" required>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="er_category">Category</label>
+                                    <input id="er_category" name="category" type="text" class="form-input" required>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="er_quantity">Quantity</label>
+                                    <input id="er_quantity" name="quantity" type="number" class="form-input" min="0" required>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="er_status">Status</label>
+                                    <select id="er_status" name="status" class="form-select" required>
+                                        <option value="available">Available</option>
+                                        <option value="in_use">In Use</option>
+                                        <option value="maintenance">Maintenance</option>
+                                        <option value="retired">Retired</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="er_location">Location</label>
+                                    <input id="er_location" name="location" type="text" class="form-input">
+                                </div>
+                                <div class="full">
+                                    <label class="form-label" for="er_notes">Notes</label>
+                                    <textarea id="er_notes" name="notes" rows="3" class="form-textarea"></textarea>
+                                </div>
                             </div>
                         </div>
                         <div class="hms-modal-actions">
@@ -235,9 +277,6 @@
                             <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
                         </div>
                     </form>
-                    <button aria-label="Close" onclick="closeEditResourceModal()" style="position:absolute; top:10px; right:10px; background:transparent; border:none; font-size:1.25rem; color:#6b7280; cursor:pointer;">
-                        <i class="fas fa-times"></i>
-                    </button>
                 </div>
             </div>
 
@@ -252,11 +291,11 @@
                     } catch(e){ window.resourcesById = {}; }
                 })();
 
-                // Modal controls
-                function openAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m) m.style.display='flex'; }
-                function closeAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m) m.style.display='none'; }
-                function openEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m) m.style.display='flex'; }
-                function closeEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m) m.style.display='none'; }
+                // Modal controls (aligned with user-management.php)
+                function openAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m) m.classList.add('active'); }
+                function closeAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m) m.classList.remove('active'); }
+                function openEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m) m.classList.add('active'); }
+                function closeEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m) m.classList.remove('active'); }
 
                 document.getElementById('addResourceBtn')?.addEventListener('click', openAddResourceModal);
                 document.addEventListener('click', function(e){ var m=document.getElementById('addResourceModal'); if(m && e.target===m) closeAddResourceModal(); });

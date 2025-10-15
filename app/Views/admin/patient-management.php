@@ -172,9 +172,9 @@
 
             <main class="content">
                 <h1 class="page-title"> Patient Management</h1>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn btn-primary btn-small" onclick="addPatient()">
-                        <i class="fas fa-plus"></i> Add Patient
+                <div class="page-actions">
+                    <button type="button" class="btn btn-primary" onclick="addPatient()" aria-label="Add New Patient">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Patient
                     </button>
                 </div><br>
 

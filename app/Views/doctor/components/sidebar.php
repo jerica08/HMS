@@ -9,7 +9,7 @@
         <li class="nav-item">
             <a href="<?= base_url('doctor/patient') ?>" class="nav-link <?= (uri_string() === 'doctor/patient') ? 'active' : '' ?>">
                 <i class="fas fa-users nav-icon"></i>
-               My Patients
+               Patients
             </a>
         </li>
         <li class="nav-item">

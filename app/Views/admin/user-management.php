@@ -22,7 +22,8 @@
       .role-it-staff { background: #eef2ff; color: #3730a3; }
       .status-active { color: #16a34a; }
       .status-inactive { color: #9ca3af; }
-      .action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .action-buttons { display: flex; gap: 0.5rem;  margin-top: 1rem; flex-wrap: wrap; }
+      .btn-small { padding: 0.5rem 1rem; font-size: 0.8rem; }
       .dashboard-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; }
       .overview-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 0.75rem; }
       .card-header-modern { display: flex; align-items: center; gap: 0.75rem; }
@@ -199,13 +200,13 @@
                                   </td>
                                   <td>
                                       <div class="action-buttons">
-                                          <button class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="editUser(<?= esc($user['user_id']) ?>)" aria-label="Edit User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
+                                          <button class="btn btn-warning btn-small" onclick="editUser(<?= esc($user['user_id']) ?>)" aria-label="Edit User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
                                               <i class="fas fa-edit" aria-hidden="true"></i> Edit
                                           </button>
-                                          <button class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="resetPassword(<?= esc($user['user_id']) ?>)" aria-label="Reset Password for <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
+                                          <button class="btn btn-primary btn-small" onclick="resetPassword(<?= esc($user['user_id']) ?>)" aria-label="Reset Password for <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
                                               <i class="fas fa-key" aria-hidden="true"></i> Reset
                                           </button>
-                                          <button class="btn btn-danger" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="deleteUser(<?= esc($user['user_id']) ?>)" aria-label="Delete User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
+                                          <button class="btn btn-danger btn-small" onclick="deleteUser(<?= esc($user['user_id']) ?>)" aria-label="Delete User <?= esc(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?>">
                                               <i class="fas fa-trash" aria-hidden="true"></i> Delete
                                           </button>
                                       </div>
@@ -290,139 +291,151 @@ function deleteUser(id) {
 .form-label { font-size: 0.9rem; color: #374151; margin-bottom: 0.25rem; display: block; font-weight: 500; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 .form-grid .full { grid-column: 1 / -1; }
-@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } 
+}
 </style>
-<div id="addUserModal" class="hms-modal-overlay" aria-hidden="true">
-  <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
-    <div class="hms-modal-header">
-      <div class="hms-modal-title" id="addUserTitle">
-        <i class="fas fa-user-plus" style="color:#4f46e5"></i>
-        Add User
+  <div id="addUserModal" class="hms-modal-overlay" aria-hidden="true">
+    <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
+      <div class="hms-modal-header">
+        <div class="hms-modal-title" id="addUserTitle">
+          <i class="fas fa-user-plus" style="color:#4f46e5"></i>
+          Add User
+        </div>
+        <button type="button" class="btn btn-secondary btn-small" onclick="closeAddUserModal()" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-      <button type="button" class="btn btn-secondary btn-small" onclick="closeAddUserModal()" aria-label="Close">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <form id="addUserForm" action="<?= base_url('admin/users/saveUser') ?>" method="post">
-      <?= csrf_field() ?>
-      <div class="hms-modal-body">
-        <div class="form-grid">
-          <div class="full">
-            <label class="form-label" for="staff_id">Select Staff</label>
-            <select name="staff_id" id="staff_id" class="form-select" required>
-              <option value="">Choose Staff</option>
-              <?php if (!empty($staff) && is_array($staff)): ?>
-                <?php foreach ($staff as $s): ?>
-                  <option 
-                    value="<?= esc($s['staff_id']) ?>"
-                    data-first-name="<?= esc($s['first_name'] ?? '') ?>"
-                    data-last-name="<?= esc($s['last_name'] ?? '') ?>"
-                    data-email="<?= esc($s['email'] ?? '') ?>"
-                    <?= old('staff_id') == ($s['staff_id'] ?? null) ? 'selected' : '' ?>
-                  >
-                    <?= esc(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? '') . ' (' . ($s['employee_id'] ?? 'N/A') . ')') ?>
-                  </option>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </select>
-          </div>
-          <div>
-            <label class="form-label" for="first_name">First Name</label>
-            <input type="text" id="first_name" name="first_name" class="form-input" value="<?= esc(old('first_name') ?? '') ?>" readonly>
-          </div>
-          <div>
-            <label class="form-label" for="last_name">Last Name</label>
-            <input type="text" id="last_name" name="last_name" class="form-input" value="<?= esc(old('last_name') ?? '') ?>" readonly>
-          </div>
-          <div class="full">
-            <label class="form-label" for="email">Email</label>
-            <input type="email" name="email" id="email" class="form-input" value="<?= esc(old('email') ?? '') ?>" required readonly>
-          </div>
-          <div>
-            <label class="form-label" for="username">Username</label>
-            <input type="text" name="username" id="username" class="form-input" value="<?= esc(old('username') ?? '') ?>" required>
-          </div>
-          <div>
-            <label class="form-label" for="role">Role</label>
-            <select name="role" id="role" class="form-select" required>
-              <option value="" disabled <?= old('role') ? '' : 'selected' ?>>Select role</option>
-              <option value="admin" <?= old('role')==='admin'?'selected':'' ?>>Admin</option>
-              <option value="doctor" <?= old('role')==='doctor'?'selected':'' ?>>Doctor</option>
-              <option value="nurse" <?= old('role')==='nurse'?'selected':'' ?>>Nurse</option>
-              <option value="receptionist" <?= old('role')==='receptionist'?'selected':'' ?>>Receptionist</option>
-              <option value="laboratorist" <?= old('role')==='laboratorist'?'selected':'' ?>>Laboratorist</option>
-              <option value="pharmacist" <?= old('role')==='pharmacist'?'selected':'' ?>>Pharmacist</option>
-              <option value="accountant" <?= old('role')==='accountant'?'selected':'' ?>>Accountant</option>
-              <option value="it_staff" <?= old('role')==='it_staff'?'selected':'' ?>>IT Staff</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label" for="password">Password</label>
-            <input type="password" name="password" id="password" class="form-input" required>
-          </div>
-          <div>
-            <label class="form-label" for="confirm_password">Confirm Password</label>
-            <input type="password" name="confirm_password" id="confirm_password" class="form-input" required>
-          </div>
-          <div>
-            <label class="form-label" for="status">Status</label>
-            <select name="status" id="status" class="form-select" required>
-              <option value="active" <?= old('status')==='inactive'?'':'selected' ?>>Active</option>
-              <option value="inactive" <?= old('status')==='inactive'?'selected':'' ?>>Inactive</option>
-            </select>
+      <form id="addUserForm" action="<?= base_url('admin/users/saveUser') ?>" method="post">
+        <?= csrf_field() ?>
+        <div class="hms-modal-body">
+          <div class="form-grid">
+            <div class="full">
+              <label class="form-label" for="staff_id">Select Staff</label>
+              <select name="staff_id" id="staff_id" class="form-select" required>
+                <option value="">Choose Staff</option>
+                <?php if (!empty($staff) && is_array($staff)): ?>
+                  <?php foreach ($staff as $s): ?>
+                    <option 
+                      value="<?= esc($s['staff_id']) ?>"
+                      data-first-name="<?= esc($s['first_name'] ?? '') ?>"
+                      data-last-name="<?= esc($s['last_name'] ?? '') ?>"
+                      data-email="<?= esc($s['email'] ?? '') ?>"
+                      data-designation="<?= esc($s['designation'] ?? '') ?>"
+                      data-role="<?= esc($s['role'] ?? '') ?>"
+                      <?= old('staff_id') == ($s['staff_id'] ?? null) ? 'selected' : '' ?>
+                    >
+                      <?= esc(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? '') . ' (' . ($s['employee_id'] ?? 'N/A') . ')') ?>
+                    </option>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" for="first_name">First Name</label>
+              <input type="text" id="first_name" name="first_name" class="form-input" value="<?= esc(old('first_name') ?? '') ?>" readonly>
+            </div>
+            <div>
+              <label class="form-label" for="last_name">Last Name</label>
+              <input type="text" id="last_name" name="last_name" class="form-input" value="<?= esc(old('last_name') ?? '') ?>" readonly>
+            </div>
+            <div class="full">
+              <label class="form-label" for="email">Email</label>
+              <input type="email" name="email" id="email" class="form-input" value="<?= esc(old('email') ?? '') ?>" required readonly>
+            </div>
+            <div>
+              <label class="form-label" for="username">Username</label>
+              <input type="text" name="username" id="username" class="form-input" value="<?= esc(old('username') ?? '') ?>" required>
+            </div>
+            <div>
+              <label class="form-label" for="role">Role</label>
+              <select name="role" id="role" class="form-select" required>
+                <option value="" disabled <?= old('role') ? '' : 'selected' ?>>Select role</option>
+                <option value="admin" <?= old('role')==='admin'?'selected':'' ?>>Admin</option>
+                <option value="doctor" <?= old('role')==='doctor'?'selected':'' ?>>Doctor</option>
+                <option value="nurse" <?= old('role')==='nurse'?'selected':'' ?>>Nurse</option>
+                <option value="receptionist" <?= old('role')==='receptionist'?'selected':'' ?>>Receptionist</option>
+                <option value="laboratorist" <?= old('role')==='laboratorist'?'selected':'' ?>>Laboratorist</option>
+                <option value="pharmacist" <?= old('role')==='pharmacist'?'selected':'' ?>>Pharmacist</option>
+                <option value="accountant" <?= old('role')==='accountant'?'selected':'' ?>>Accountant</option>
+                <option value="it_staff" <?= old('role')==='it_staff'?'selected':'' ?>>IT Staff</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" for="password">Password</label>
+              <input type="password" name="password" id="password" class="form-input" required>
+            </div>
+            <div>
+              <label class="form-label" for="confirm_password">Confirm Password</label>
+              <input type="password" name="confirm_password" id="confirm_password" class="form-input" required>
+            </div>
+            <div>
+              <label class="form-label" for="status">Status</label>
+              <select name="status" id="status" class="form-select" required>
+                <option value="active" <?= old('status')==='inactive'?'':'selected' ?>>Active</option>
+                <option value="inactive" <?= old('status')==='inactive'?'selected':'' ?>>Inactive</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="hms-modal-actions">
-        <button type="button" class="btn btn-secondary" onclick="closeAddUserModal()">Cancel</button>
-        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
-      </div>
-    </form>
+        <div class="hms-modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeAddUserModal()">Cancel</button>
+          <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
-<script>
-function populateFromStaff() {
-    const sel = document.getElementById('staff_id');
-    if (!sel) return;
-    const opt = sel.options[sel.selectedIndex];
-    const first = document.getElementById('first_name');
-    const last = document.getElementById('last_name');
-    const email = document.getElementById('email');
-    if (!opt || !sel.value) {
-        if (first) first.value = '';
-        if (last) last.value = '';
-        if (email) email.value = '';
-        return;
-    }
-    if (first) first.value = opt.getAttribute('data-first-name') || '';
-    if (last) last.value = opt.getAttribute('data-last-name') || '';
-    if (email) email.value = opt.getAttribute('data-email') || '';
-}
+    <script>
+        function populateFromStaff() {
+            const sel = document.getElementById('staff_id');
+            if (!sel) return;
+            const opt = sel.options[sel.selectedIndex];
+            const first = document.getElementById('first_name');
+            const last = document.getElementById('last_name');
+            const email = document.getElementById('email');
+            const roleSel = document.getElementById('role');
+            if (!opt || !sel.value) {
+                if (first) first.value = '';
+                if (last) last.value = '';
+                if (email) email.value = '';
+                if (roleSel) roleSel.value = '';
+                return;
+            }
+            if (first) first.value = opt.getAttribute('data-first-name') || '';
+            if (last) last.value = opt.getAttribute('data-last-name') || '';
+            if (email) email.value = opt.getAttribute('data-email') || '';
+            // Auto-select role from staff record (prefer specific role, fallback to designation)
+            if (roleSel) {
+                const autoRole = (opt.getAttribute('data-role') || opt.getAttribute('data-designation') || '').toLowerCase();
+                if (autoRole) {
+                    roleSel.value = autoRole;
+                }
+            }
+        }
 
-function openAddUserModal() {
-    const overlay = document.getElementById('addUserModal');
-    if (overlay) overlay.classList.add('active');
-    // Populate immediately in case a staff is already selected
-    populateFromStaff();
-}
+        function openAddUserModal() {
+            const overlay = document.getElementById('addUserModal');
+            if (overlay) overlay.classList.add('active');
+            // Populate immediately in case a staff is already selected
+            populateFromStaff();
+        }
 
-function closeAddUserModal() {
-    const overlay = document.getElementById('addUserModal');
-    if (overlay) overlay.classList.remove('active');
-}
+        function closeAddUserModal() {
+            const overlay = document.getElementById('addUserModal');
+            if (overlay) overlay.classList.remove('active');
+        }
 
-// Close modal when clicking the overlay background
-window.addEventListener('click', function(event) {
-    const overlay = document.getElementById('addUserModal');
-    if (overlay && event.target === overlay) {
-        overlay.classList.remove('active');
-    }
-});
+        // Close modal when clicking the overlay background
+        window.addEventListener('click', function(event) {
+            const overlay = document.getElementById('addUserModal');
+            if (overlay && event.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
 
-// Populate fields when staff changes
-document.getElementById('staff_id')?.addEventListener('change', populateFromStaff);
-</script>
+        // Populate fields when staff changes
+        document.getElementById('staff_id')?.addEventListener('change', populateFromStaff);
+    </script>
 
 <?php if (!empty(session()->get('errors'))): ?>
 <script>

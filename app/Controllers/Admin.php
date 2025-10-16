@@ -353,7 +353,6 @@ class Admin extends BaseController
             'username' => 'required|min_length[3]|max_length[50]|is_unique[users.username]',
             'password' => 'required|min_length[6]',
             'confirm_password' => 'required|matches[password]',
-            'role' => 'required|in_list[admin,doctor,nurse,receptionist,laboratorist,pharmacist,accountant,it_staff]',
             'status' => 'required|in_list[active,inactive]',
         ];
 
@@ -378,6 +377,16 @@ class Admin extends BaseController
                 return redirect()->back()->withInput()->with('error', 'A user with the same email already exists. Please update the staff email or choose a different staff/username.');
             }
         }
+        // Determine role from staff record (prefer staff.role, fallback to staff.designation)
+        $derivedRole = strtolower(trim((string)($staff['role'] ?? '')));
+        if ($derivedRole === '') {
+            $derivedRole = strtolower(trim((string)($staff['designation'] ?? '')));
+        }
+        $validRoles = ['admin','doctor','nurse','receptionist','laboratorist','pharmacist','accountant','it_staff'];
+        if ($derivedRole === '' || !in_array($derivedRole, $validRoles, true)) {
+            return redirect()->back()->withInput()->with('error', 'Selected staff has no valid role/designation. Please update the staff record.');
+        }
+
         $data = [
             'staff_id'   => $this->request->getPost('staff_id'),
             'username'   => $this->request->getPost('username'),
@@ -385,7 +394,7 @@ class Admin extends BaseController
             'first_name' => $staff['first_name'] ?? null,
             'last_name'  => $staff['last_name'] ?? null,
             'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'role'       => $this->request->getPost('role'),
+            'role'       => $derivedRole,
             'status'     => $this->request->getPost('status') ?: 'active',
         ];
 
@@ -522,12 +531,26 @@ class Admin extends BaseController
      */
     public function patientManagement() {
         try {
-            // Use correct table name 'patient' as per migration
-            $patients = $this->db->table('patient')->get()->getResultArray();
+            // Use correct table name 'patient' and join doctor/staff to get assigned doctor name
+            $patients = $this->db->table('patient')
+                ->select("patient.*, CONCAT(s.first_name, ' ', COALESCE(s.last_name, '')) AS primary_doctor_name")
+                ->join('doctor d', 'd.doctor_id = patient.primary_doctor_id', 'left')
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->get()
+                ->getResultArray();
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
             // Handle missing table gracefully
             $patients = [];
             log_message('error', 'Patients table does not exist: ' . $e->getMessage());
+        }
+
+        // Aggregate patient types
+        $inPatients = 0; $outPatients = 0; $emergencyPatients = 0;
+        foreach ($patients as $p) {
+            $t = strtolower(trim((string)($p['patient_type'] ?? '')));
+            if ($t === 'inpatient') { $inPatients++; }
+            elseif ($t === 'outpatient') { $outPatients++; }
+            elseif ($t === 'emergency') { $emergencyPatients++; }
         }
 
         $data = [
@@ -535,6 +558,9 @@ class Admin extends BaseController
             'patients' => $patients,
             'patientStats' => [
                 'total_patients' => count($patients),
+                'in_patients' => $inPatients,
+                'out_patients' => $outPatients,
+                'emergency_patients' => $emergencyPatients,
             ],
         ];
 
@@ -585,6 +611,18 @@ class Admin extends BaseController
         $gender = $gender ? ucfirst(strtolower($gender)) : null; // Male/Female/Other
         $status = $status ? ucfirst(strtolower($status)) : 'Active'; // Active/Inactive
 
+        // Resolve and sanitize optional primary_doctor_id
+        $primaryDoctorId = null;
+        if (isset($input['primary_doctor_id']) && $input['primary_doctor_id'] !== '') {
+            $candidate = (int)$input['primary_doctor_id'];
+            if ($candidate > 0) {
+                try {
+                    $exists = $this->db->table('doctor')->where('doctor_id', $candidate)->countAllResults();
+                    if ($exists > 0) { $primaryDoctorId = $candidate; }
+                } catch (\Throwable $e) { /* leave null if check fails */ }
+            }
+        }
+
         $data = [
             'first_name'         => $input['first_name'] ?? null,
             'middle_name'        => $input['middle_name'] ?? null,
@@ -609,6 +647,7 @@ class Admin extends BaseController
             'medical_notes'      => $input['medical_notes'] ?? null,
             'date_registered'    => date('Y-m-d'),
             'status'             => $status,
+            'primary_doctor_id'  => $primaryDoctorId,
         ];
 
         try {
@@ -670,7 +709,8 @@ class Admin extends BaseController
             'emergency_contact_name'  => 'permit_empty|max_length[100]',
             'emergency_contact_phone' => 'permit_empty|max_length[50]',
             'patient_type'            => 'permit_empty|in_list[outpatient,inpatient,emergency,Outpatient,Inpatient,Emergency]',
-            'status'                  => 'permit_empty|in_list[Active,Inactive,active,inactive]'
+            'status'                  => 'permit_empty|in_list[Active,Inactive,active,inactive]',
+            'primary_doctor_id'       => 'permit_empty|integer'
         ]);
 
         if (!$validation->run($input)) {
@@ -710,6 +750,20 @@ class Admin extends BaseController
             'medical_notes'      => $input['medical_notes'] ?? null,
             'status'             => $status,
         ];
+
+        // Optionally update primary_doctor_id if provided and valid
+        if (isset($input['primary_doctor_id']) && $input['primary_doctor_id'] !== '') {
+            $candidate = (int)$input['primary_doctor_id'];
+            if ($candidate > 0) {
+                try {
+                    $exists = $this->db->table('doctor')->where('doctor_id', $candidate)->countAllResults();
+                    if ($exists > 0) { $data['primary_doctor_id'] = $candidate; }
+                } catch (\Throwable $e) { /* ignore invalid */ }
+            } else {
+                // Allow clearing assignment when explicitly set to empty string/0
+                $data['primary_doctor_id'] = null;
+            }
+        }
 
         // Remove nulls to avoid overwriting with null unintentionally
         $data = array_filter($data, function($v) { return $v !== null; });
@@ -790,7 +844,7 @@ class Admin extends BaseController
     {
         try {
             $rows = $this->db->table('doctor d')
-                ->select('d.doctor_id, s.staff_id, s.first_name, s.last_name, d.specialization, d.status')
+                ->select('d.doctor_id, s.staff_id, s.first_name, s.last_name, s.department, d.specialization, d.status')
                 ->join('staff s', 's.staff_id = d.staff_id', 'left')
                 ->orderBy('s.first_name', 'ASC')
                 ->get()->getResultArray();
@@ -900,12 +954,38 @@ class Admin extends BaseController
         }
 
         try {
+            // Ensure doctor exists to avoid FK violation
+            $doctorId = (int)$input['doctor_id'];
+            $exists = $this->db->table('doctor')->where('doctor_id', $doctorId)->countAllResults();
+            if ($exists === 0) {
+                log_message('warning', 'Create shift blocked: doctor_id not found: ' . $doctorId);
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Selected doctor does not exist. Please create a doctor profile first.',
+                    'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                ]);
+            }
+            // If no department provided, default to the doctor's staff department
+            $dept = $input['department'] ?? null;
+            if (empty($dept)) {
+                try {
+                    $s = $this->db->table('doctor d')
+                        ->select('s.department')
+                        ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                        ->where('d.doctor_id', $doctorId)
+                        ->get()->getRowArray();
+                    $dept = $s['department'] ?? null;
+                } catch (\Throwable $e) {
+                    $dept = null;
+                }
+            }
+
             $data = [
-                'doctor_id'      => (int)$input['doctor_id'],
+                'doctor_id'      => $doctorId,
                 'shift_date'     => $input['shift_date'],
                 'shift_start'    => $input['shift_start'],
                 'shift_end'      => $input['shift_end'],
-                'department'     => $input['department'] ?? null,
+                'department'     => $dept,
                 'status'         => $input['status'] ?? 'Scheduled',
                 'shift_type'     => $input['shift_type'] ?? null,
                 'room_ward'      => $input['room_ward'] ?? null,
@@ -921,14 +1001,25 @@ class Admin extends BaseController
                     'csrf'    => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
                 ]);
             }
+            // Insert failed without exception: return DB error for debugging
+            $dbErr = $this->db->error();
+            log_message('error', 'Create doctor shift failed: ' . json_encode($dbErr));
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to create shift',
+                'db_error' => $dbErr,
+                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+            ]);
         } catch (\Throwable $e) {
             log_message('error', 'Failed to create doctor shift: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
                 'message' => 'Failed to create shift',
+                'exception' => $e->getMessage(),
                 'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
             ]);
         }
+        // Fallback (should not reach here)
         return $this->response->setStatusCode(500)->setJSON([
             'status' => 'error',
             'message' => 'Failed to create shift',
@@ -1126,5 +1217,113 @@ class Admin extends BaseController
                 ->setStatusCode(500)
                 ->setJSON(['status' => 'error', 'message' => 'Failed to load staff']);
         }
+    }
+
+    /**
+     * Update staff member (AJAX)
+     * Route: POST admin/edit-staff/{id}
+     */
+    public function editStaff($id = null)
+    {
+        $id = (int) ($id ?? 0);
+        if ($id <= 0) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid staff ID'
+            ]);
+        }
+
+        // Ensure staff exists
+        $existing = $this->builder->where('staff_id', $id)->get()->getRowArray();
+        if (!$existing) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Staff not found'
+            ]);
+        }
+
+        // Accept form POST (multipart) or JSON
+        $input = $this->request->getPost();
+        if (!$input) {
+            $input = $this->request->getJSON(true) ?? [];
+        }
+
+        // Minimal validation rules
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'first_name'  => 'permit_empty|min_length[1]|max_length[100]',
+            'last_name'   => 'permit_empty|max_length[100]',
+            'gender'      => 'permit_empty|in_list[male,female,other,Male,Female,Other,MALE,FEMALE,OTHER]',
+            'dob'         => 'permit_empty|valid_date',
+            'contact_no'  => 'permit_empty|max_length[255]',
+            'email'       => 'permit_empty|valid_email',
+            'address'     => 'permit_empty',
+            'department'  => 'permit_empty|max_length[255]',
+            'designation' => 'permit_empty|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,it_staff,accountant]'
+        ]);
+
+        if (!$validation->run($input)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors(),
+            ]);
+        }
+
+        // Prepare update data; only include provided fields
+        $data = [];
+        $map = [
+            'employee_id' => 'employee_id',
+            'first_name'  => 'first_name',
+            'last_name'   => 'last_name',
+            'gender'      => 'gender',
+            'dob'         => 'dob',
+            'contact_no'  => 'contact_no',
+            'email'       => 'email',
+            'address'     => 'address',
+            'department'  => 'department',
+            'designation' => 'designation',
+        ];
+        foreach ($map as $in => $col) {
+            if (array_key_exists($in, $input) && $input[$in] !== '') {
+                $data[$col] = $input[$in];
+            }
+        }
+        if (isset($data['gender'])) {
+            $data['gender'] = strtolower($data['gender']);
+        }
+        if (isset($data['designation'])) {
+            // Keep role in sync with designation when provided
+            $data['role'] = $data['designation'];
+        }
+
+        if (empty($data)) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'No changes submitted',
+            ]);
+        }
+
+        try {
+            $ok = $this->builder->where('staff_id', $id)->update($data);
+            if ($ok) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Staff updated successfully',
+                    'id' => $id,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to update staff '.$id.': '.$e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Database error: ' . $e->getMessage(),
+            ]);
+        }
+
+        return $this->response->setStatusCode(500)->setJSON([
+            'status' => 'error',
+            'message' => 'Failed to update staff',
+        ]);
     }
 }

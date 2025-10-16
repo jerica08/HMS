@@ -1,4 +1,3 @@
-
 <?php
 
 use CodeIgniter\Router\RouteCollection;
@@ -15,13 +14,9 @@ $routes->get('contact', 'Home::contact');
 // Authentication Routes
 $routes->get('login', 'Auth::login');
 $routes->post('login', 'Auth::login');
-<<<<<<< HEAD
 $routes->get('logout', 'Auth::logout');
 $routes->get('auth/logout', 'Auth::logout');
-=======
-$routes->get('logout', 'Auth::logout'); 
 
->>>>>>> 5d9ca49b704407fdce6503d81d5732b72942a3f2
 // Admin Dashboard Routes
 $routes->get('admin/dashboard', 'Admin::dashboard');
 $routes->get('admin/users', 'Admin::users');
@@ -89,6 +84,7 @@ $routes->group('admin', function($routes) {
     // Doctors list API
     $routes->get('doctors/api', 'Admin::getDoctorsAPI');
 });
+
 // Doctor Routes
 $routes->get('doctor/dashboard', 'Doctor::dashboard');
 $routes->get('doctor/patients', 'Patients::patients');
@@ -117,38 +113,38 @@ $routes->get('doctor/lab-results', 'Doctor::labResults');
 $routes->get('doctor/EHR', 'Doctor::ehr');
 $routes->get('doctor/schedule', 'Doctor::schedule');
 
-    // Nurse Routes
-    $routes->get('nurse/dashboard', 'Nurse::dashboard');
-    $routes->get('nurse/patient', 'Nurse::patient');
-    $routes->get('nurse/medication', 'Nurse::medication');
-    $routes->get('nurse/vitals', 'Nurse::vitals');
-    $routes->get('nurse/shift-report', 'Nurse::shiftReport');
+// Nurse Routes
+$routes->get('nurse/dashboard', 'Nurse::dashboard');
+$routes->get('nurse/patient', 'Nurse::patient');
+$routes->get('nurse/medication', 'Nurse::medication');
+$routes->get('nurse/vitals', 'Nurse::vitals');
+$routes->get('nurse/shift-report', 'Nurse::shiftReport');
 
-    // Receptionist Routes
-    $routes->get('receptionist/dashboard', 'Receptionist::dashboard');
-    $routes->get('receptionist/appointment-booking', 'Receptionist::appointmentBooking');
-    $routes->get('receptionist/patient-registration', 'Receptionist::patientRegistration');
+// Receptionist Routes
+$routes->get('receptionist/dashboard', 'Receptionist::dashboard');
+$routes->get('receptionist/appointment-booking', 'Receptionist::appointmentBooking');
+$routes->get('receptionist/patient-registration', 'Receptionist::patientRegistration');
 
-    // Accountant Routes
-    $routes->get('accountant/dashboard', 'Accountant::dashboard');
-    $routes->get('accountant/billing', 'Accountant::billing');
-    $routes->get('accountant/payments', 'Accountant::payments');
-    $routes->get('accountant/insurance', 'Accountant::insurance');
+// Accountant Routes
+$routes->get('accountant/dashboard', 'Accountant::dashboard');
+$routes->get('accountant/billing', 'Accountant::billing');
+$routes->get('accountant/payments', 'Accountant::payments');
+$routes->get('accountant/insurance', 'Accountant::insurance');
 
-    // IT Staff Routes
-    $routes->get('it/dashboard', 'ITStaff::dashboard');
-    $routes->get('it/maintenance', 'ITStaff::maintenance');
-    $routes->get('it/security', 'ITStaff::security');
+// IT Staff Routes
+$routes->get('it/dashboard', 'ITStaff::dashboard');
+$routes->get('it/maintenance', 'ITStaff::maintenance');
+$routes->get('it/security', 'ITStaff::security');
 
-    // Laboratorist Routes
-    $routes->get('laboratorists/dashboard', 'Laboratorist::dashboard');
-    $routes->get('laboratorists/sample-management', 'Laboratorist::sampleManagement');
-    $routes->get('laboratorists/test-request', 'Laboratorist::testRequest');
-    $routes->get('laboratorists/test-result', 'Laboratorist::testResult');
+// Laboratorist Routes
+$routes->get('laboratorists/dashboard', 'Laboratorist::dashboard');
+$routes->get('laboratorists/sample-management', 'Laboratorist::sampleManagement');
+$routes->get('laboratorists/test-request', 'Laboratorist::testRequest');
+$routes->get('laboratorists/test-result', 'Laboratorist::testResult');
 
-    // Pharmacist Routes
-    $routes->get('pharmacists/dashboard', 'Pharmacist::dashboard');
-    $routes->get('pharmacists/prescription', 'Pharmacist::prescription');
-    $routes->get('pharmacists/inventory', 'Pharmacist::inventory');
+// Pharmacist Routes
+$routes->get('pharmacists/dashboard', 'Pharmacist::dashboard');
+$routes->get('pharmacists/prescription', 'Pharmacist::prescription');
+$routes->get('pharmacists/inventory', 'Pharmacist::inventory');
 
 $routes->setAutoRoute(true);

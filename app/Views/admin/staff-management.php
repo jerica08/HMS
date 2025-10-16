@@ -317,10 +317,6 @@
         @media (max-width: 640px) {
             .form-grid { grid-template-columns: 1fr; }
         }
-        .btn-small {
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
-        }
     </style>
 </head>
 <body class="admin">
@@ -511,6 +507,115 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- View Staff Modal -->
+                <div id="viewStaffModal" class="hms-modal-overlay" aria-hidden="true">
+                    <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="viewStaffTitle">
+                        <div class="hms-modal-header">
+                            <div class="hms-modal-title" id="viewStaffTitle">
+                                <i class="fas fa-id-badge" style="color:#4f46e5"></i>
+                                Staff Details
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-small" onclick="closeStaffViewModal()" aria-label="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="hms-modal-body">
+                            <div class="form-grid">
+                                <div class="full"><strong>Name:</strong> <span id="v_name">-</span></div>
+                                <div><strong>Role:</strong> <span id="v_role">-</span></div>
+                                <div><strong>Department:</strong> <span id="v_department">-</span></div>
+                                <div><strong>Email:</strong> <span id="v_email">-</span></div>
+                                <div><strong>Contact No:</strong> <span id="v_contact">-</span></div>
+                                <div><strong>Gender:</strong> <span id="v_gender">-</span></div>
+                                <div><strong>DOB:</strong> <span id="v_dob">-</span></div>
+                                <div class="full"><strong>Address:</strong><br><span id="v_address">-</span></div>
+                                <input type="hidden" id="v_staff_id" value="">
+                            </div>
+                        </div>
+                        <div class="hms-modal-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeStaffViewModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Staff Modal -->
+                <div id="editStaffModal" class="hms-modal-overlay" aria-hidden="true">
+                    <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="editStaffTitle">
+                        <div class="hms-modal-header">
+                            <div class="hms-modal-title" id="editStaffTitle">
+                                <i class="fas fa-user-edit" style="color:#4f46e5"></i>
+                                Edit Staff
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-small" onclick="closeStaffEditModal()" aria-label="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <form id="editStaffForm" method="post" action="#">
+                            <?= csrf_field() ?>
+                            <input type="hidden" id="e_staff_id" name="staff_id" value="">
+                            <div class="hms-modal-body">
+                                <div class="form-grid">
+                                    <div>
+                                        <label class="form-label" for="e_first_name">First Name</label>
+                                        <input type="text" id="e_first_name" name="first_name" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="e_last_name">Last Name</label>
+                                        <input type="text" id="e_last_name" name="last_name" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="e_gender">Gender</label>
+                                        <select id="e_gender" name="gender" class="form-select">
+                                            <option value="">Select gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="e_dob">Date of Birth</label>
+                                        <input type="date" id="e_dob" name="dob" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="e_contact_no">Contact Number</label>
+                                        <input type="text" id="e_contact_no" name="contact_no" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="e_email">Email</label>
+                                        <input type="email" id="e_email" name="email" class="form-input">
+                                    </div>
+                                    <div class="full">
+                                        <label class="form-label" for="e_address">Address</label>
+                                        <textarea id="e_address" name="address" class="form-textarea" rows="2"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="e_department">Department</label>
+                                        <input type="text" id="e_department" name="department" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="e_designation">Designation / Role</label>
+                                        <select id="e_designation" name="designation" class="form-select">
+                                            <option value="">Select designation</option>
+                                            <option value="admin">Admin</option>
+                                            <option value="doctor">Doctor</option>
+                                            <option value="nurse">Nurse</option>
+                                            <option value="pharmacist">Pharmacist</option>
+                                            <option value="receptionist">Receptionist</option>
+                                            <option value="laboratorist">Laboratorist</option>
+                                            <option value="it_staff">IT Staff</option>
+                                            <option value="accountant">Accountant</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hms-modal-actions">
+                                <button type="button" class="btn btn-secondary" onclick="closeStaffEditModal()">Cancel</button>
+                                <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
 
@@ -734,6 +839,10 @@
                         function getAssignModal(){ return document.getElementById('assignShiftModal'); }
                         function getAssignForm(){ return document.getElementById('assignShiftForm'); }
                         function getDoctorSelect(){ return document.getElementById('doctor_id'); }
+                        function getAssignDepartment(){
+                            const form = getAssignForm();
+                            return form ? form.querySelector('select[name="department"]') : null;
+                        }
                         const shiftsBody = document.getElementById('doctorShiftsBody');
 
                         const URLS = {
@@ -799,12 +908,41 @@
                                     return;
                                 }
                                 select.innerHTML = '<option value="" selected>Select a doctor</option>' +
-                                    list.map(d => `<option value="${d.doctor_id}">${(d.name || 'Doctor')} ${d.specialization ? '('+d.specialization+')' : ''}</option>`).join('');
+                                    list.map(d => `<option value="${d.doctor_id}" data-department="${(d.department||'').replace(/"/g,'&quot;')}">${(d.name || 'Doctor')} ${d.specialization ? '('+d.specialization+')' : ''}</option>`).join('');
                             } catch (e) {
                                 console.error('loadDoctors() failed', e);
                                 select.innerHTML = '<option value>Failed to load doctors. Please reload the page.</option>';
                             }
                         }
+
+                        function syncDepartmentFromDoctor(){
+                            try {
+                                const docSel = getDoctorSelect();
+                                const depSel = getAssignDepartment();
+                                if (!docSel || !depSel) return;
+                                const opt = docSel.options[docSel.selectedIndex];
+                                if (!opt) return;
+                                const dept = (opt.getAttribute('data-department') || '').trim();
+                                if (!dept) return;
+                                // If the department value is not in the list, append it once
+                                let match = Array.from(depSel.options).some(o => (o.value||'') === dept);
+                                if (!match) {
+                                    const o = document.createElement('option');
+                                    o.value = dept; o.textContent = dept;
+                                    depSel.appendChild(o);
+                                }
+                                depSel.value = dept;
+                            } catch(_) {}
+                        }
+
+                        // When doctor changes, auto-select department
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const docSel = getDoctorSelect();
+                            if (docSel && !docSel.__boundSyncDept) {
+                                docSel.__boundSyncDept = true;
+                                docSel.addEventListener('change', syncDepartmentFromDoctor);
+                            }
+                        });
 
                         async function loadDoctorShifts() {
                             try {
@@ -871,44 +1009,7 @@
                             } catch (_) {}
                         }
 
-                        async function onAssignFormSubmit(e) {
-                            e.preventDefault();
-                            const formEl = e.currentTarget;
-                            const fd = new FormData(formEl); // includes CSRF
-                            try {
-                                const res = await fetch(URLS.createShift, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Accept': 'application/json',
-                                        'X-Requested-With': 'XMLHttpRequest'
-                                    },
-                                    body: fd
-                                });
-                                const json = await res.json();
-                                refreshCsrfFromJson(json);
-                                if (json && json.status === 'success') {
-                                    formEl.reset();
-                                    closeAssignShiftModal();
-                                    await loadDoctorShifts();
-                                } else {
-                                    alert((json && (json.message || JSON.stringify(json.errors))) || 'Failed to save shift');
-                                }
-                            } catch (err) {
-                                console.error(err);
-                                alert('Failed to save shift');
-                            }
-                        }
-
-                        // Bind submit safely for Assign form
-                        const assignF = getAssignForm();
-                        if (assignF) {
-                            assignF.addEventListener('submit', onAssignFormSubmit);
-                        } else {
-                            document.addEventListener('DOMContentLoaded', () => {
-                                const f = getAssignForm();
-                                if (f) f.addEventListener('submit', onAssignFormSubmit);
-                            });
-                        }
+                        // Obsolete Assign Shift handler removed (was referencing undefined URLS/getAssignForm)
 
                         // Delegated actions for edit/delete on shifts table
                         const bindShiftActions = () => {
@@ -947,7 +1048,7 @@
                                                 alert(errMsg + dbm + exm);
                                             }
                                         } catch (err) {
-                                            alert('Failed to delete shift');
+                                            alert('Failed to delete shift');    
                                         }
                                     }
                                 });
@@ -1228,15 +1329,15 @@
                                 const roleDisplay = role ? role.replace('_', ' ') : '';
                                 const dept = s.department ?? '';
                                 const email = s.email ?? '';
-                                const viewUrl = '<?= base_url('admin/view-staff') ?>/' + id;
                                 return `
                                     <tr>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${name || '-'}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; text-transform:capitalize;">${roleDisplay || '-'}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${dept || '-'}</td>
                                         <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">${email || '-'}</td>
-                                        <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">
-                                            <a class="btn btn-primary btn-small" href="${viewUrl}"><i class="fas fa-eye"></i> View</a>
+                                            <td style="padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">
+                                            <button type="button" class="btn btn-primary btn-small" onclick="openStaffViewModal(${id})"><i class="fas fa-eye"></i> View</button>
+                                            <button type="button" class="btn btn-warning btn-small" onclick="openStaffEditModal(${id})"><i class="fas fa-edit"></i> Edit</button>
                                         </td>
                                     </tr>
                                 `;
@@ -1246,9 +1347,232 @@
                             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#ef4444; padding:1rem;">Failed to load staff.</td></tr>';
                         }
                     }
+                    
+                    // Staff View/Edit Modals
+                    const viewStaffOverlay = document.getElementById('viewStaffModal');
+                    const editStaffOverlay = document.getElementById('editStaffModal');
+                    const editStaffForm = document.getElementById('editStaffForm');
+                    
+                    // Helpers to open/close modals
+                    function openStaffViewModal(id){
+                        if (!viewStaffOverlay) return;
+                        // Clear previous
+                        document.getElementById('v_name').textContent = '-';
+                        document.getElementById('v_role').textContent = '-';
+                        document.getElementById('v_department').textContent = '-';
+                        document.getElementById('v_email').textContent = '-';
+                        document.getElementById('v_contact').textContent = '-';
+                        document.getElementById('v_gender').textContent = '-';
+                        document.getElementById('v_dob').textContent = '-';
+                        document.getElementById('v_address').textContent = '-';
+                        document.getElementById('v_staff_id').value = id || '';
+                        
+                        // Fetch staff details
+                        fetch('<?= base_url('admin/staff/get') ?>/' + id, {
+                            headers: { 'Accept': 'application/json', 'X-Requested-With':'XMLHttpRequest' }
+                        }).then(r => r.json()).then(s => {
+                            const first = s.first_name || '';
+                            const last = s.last_name || '';
+                            const name = (first + ' ' + last).trim() || s.full_name || '-';
+                            const role = (s.role || s.designation || '').toString().replace('_',' ');
+                            document.getElementById('v_name').textContent = name;
+                            document.getElementById('v_role').textContent = role || '-';
+                            document.getElementById('v_department').textContent = s.department || '-';
+                            document.getElementById('v_email').textContent = s.email || '-';
+                            document.getElementById('v_contact').textContent = s.contact_no || '-';
+                            document.getElementById('v_gender').textContent = (s.gender ? (s.gender.charAt(0).toUpperCase() + s.gender.slice(1)) : '-') || '-';
+                            document.getElementById('v_dob').textContent = s.dob || '-';
+                            document.getElementById('v_address').textContent = s.address || '-';
+                        }).catch(console.error);
+                        
+                        viewStaffOverlay.classList.add('active');
+                        viewStaffOverlay.setAttribute('aria-hidden','false');
+                    }
+                    function closeStaffViewModal(){
+                        if (!viewStaffOverlay) return;
+                        viewStaffOverlay.classList.remove('active');
+                        viewStaffOverlay.setAttribute('aria-hidden','true');
+                    }
+                    viewStaffOverlay?.addEventListener('click', (e)=>{ if (e.target === viewStaffOverlay) closeStaffViewModal(); });
+                    
+                    function openStaffEditModal(id){
+                        if (!editStaffOverlay) return;
+                        // Reset form
+                        editStaffForm?.reset();
+                        document.getElementById('e_staff_id').value = id || '';
+                        
+                        // Load existing data
+                        fetch('<?= base_url('admin/staff/get') ?>/' + id, {
+                            headers: { 'Accept': 'application/json', 'X-Requested-With':'XMLHttpRequest' }
+                        }).then(r => r.json()).then(s => {
+                            document.getElementById('e_first_name').value = s.first_name || '';
+                            document.getElementById('e_last_name').value = s.last_name || '';
+                            const g = s.gender ? (s.gender.charAt(0).toUpperCase()+s.gender.slice(1)) : '';
+                            document.getElementById('e_gender').value = g;
+                            document.getElementById('e_dob').value = s.dob || '';
+                            document.getElementById('e_contact_no').value = s.contact_no || '';
+                            document.getElementById('e_email').value = s.email || '';
+                            document.getElementById('e_address').value = s.address || '';
+                            document.getElementById('e_department').value = s.department || '';
+                            document.getElementById('e_designation').value = s.designation || s.role || '';
+                        }).catch(console.error);
+                        
+                        editStaffOverlay.classList.add('active');
+                        editStaffOverlay.setAttribute('aria-hidden','false');
+                    }
+                    function closeStaffEditModal(){
+                        if (!editStaffOverlay) return;
+                        editStaffOverlay.classList.remove('active');
+                        editStaffOverlay.setAttribute('aria-hidden','true');
+                    }
+                    editStaffOverlay?.addEventListener('click', (e)=>{ if (e.target === editStaffOverlay) closeStaffEditModal(); });
+                    
+                    // Submit edit form via AJAX
+                    editStaffForm?.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const id = document.getElementById('e_staff_id').value;
+                        const fd = new FormData(editStaffForm);
+                        try{
+                            const res = await fetch('<?= base_url('admin/edit-staff') ?>/' + id, {
+                                method: 'POST',
+                                headers: { 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' },
+                                body: fd,
+                                credentials: 'same-origin'
+                            });
+                            const ctype = res.headers.get('content-type') || '';
+                            const json = ctype.includes('application/json') ? await res.json() : null;
+                            if (!res.ok || (json && json.status !== 'success')){
+                                const msg = (json && (json.message || JSON.stringify(json.errors))) || ('Failed (HTTP '+res.status+')');
+                                alert('Failed to update staff. ' + msg);
+                                return;
+                            }
+                            alert('Staff updated successfully');
+                            closeStaffEditModal();
+                            loadStaffTable();
+                        }catch(err){
+                            console.error(err);
+                            alert('An error occurred while updating staff');
+                        }
+                    });
+
+                    // Expose open/close for inline handlers
+                    window.openStaffViewModal = openStaffViewModal;
+                    window.closeStaffViewModal = closeStaffViewModal;
+                    window.openStaffEditModal = openStaffEditModal;
+                    window.closeStaffEditModal = closeStaffEditModal;
+
                     // Initial load
                     window.addEventListener('DOMContentLoaded', loadStaffTable);
                     // Assign Shift JS is defined earlier to avoid duplication
+                </script>
+
+                <!-- Assign Shift wiring: submit to backend and reload table -->
+                <script>
+                    (function(){
+                        const assignOverlay = document.getElementById('assignShiftModal');
+                        const assignForm = document.getElementById('assignShiftForm');
+                        const doctorSelect = document.getElementById('doctor_id');
+
+                        function refreshCsrfFromJson(json){
+                            try{
+                                const n = json?.csrf?.name; const v = json?.csrf?.value;
+                                if (!n || !v) return;
+                                // Update all hidden CSRF inputs across forms
+                                document.querySelectorAll('input[name="'+n+'"]').forEach(inp => { inp.value = v; });
+                            }catch(_){/* noop */}
+                        }
+
+                        function openAssignShiftModal(){
+                            if (assignOverlay){
+                                assignOverlay.classList.add('active');
+                                assignOverlay.setAttribute('aria-hidden','false');
+                            }
+                            loadDoctors();
+                        }
+                        function closeAssignShiftModal(){
+                            if (assignOverlay){
+                                assignOverlay.classList.remove('active');
+                                assignOverlay.setAttribute('aria-hidden','true');
+                            }
+                        }
+
+                        async function loadDoctors(){
+                            if (!doctorSelect) return;
+                            try{
+                                doctorSelect.innerHTML = '<option value>Loading doctors...</option>';
+                                const res = await fetch('<?= base_url('admin/doctors/api') ?>', { headers: { 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' } });
+                                const ctype = res.headers.get('content-type') || '';
+                                if (!res.ok || !ctype.includes('application/json')){
+                                    const msg = !res.ok ? `Error ${res.status}. Please reload the page.` : 'Session expired. Please reload the page.';
+                                    doctorSelect.innerHTML = `<option value>Failed to load doctors. ${msg}</option>`;
+                                    return;
+                                }
+                                const json = await res.json();
+                                const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+                                if (!Array.isArray(list) || list.length === 0){
+                                    doctorSelect.innerHTML = '<option value>None available</option>';
+                                    return;
+                                }
+                                doctorSelect.innerHTML = '<option value="" selected>Select a doctor</option>' +
+                                    list.map(d => `<option value="${d.doctor_id}">${(d.name || 'Doctor')} ${d.specialization ? '('+d.specialization+')' : ''}</option>`).join('');
+                            }catch(e){
+                                console.error('loadDoctors() failed', e);
+                                doctorSelect.innerHTML = '<option value>Failed to load doctors. Please reload the page.</option>';
+                            }
+                        }
+
+                        // Expose for button onclick
+                        window.openAssignShiftModal = openAssignShiftModal;
+                        window.closeAssignShiftModal = closeAssignShiftModal;
+
+                        // Close when clicking overlay background
+                        assignOverlay?.addEventListener('click', (e)=>{ if (e.target === assignOverlay) closeAssignShiftModal(); });
+
+                        // Bind submit to create shift
+                        assignForm?.addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            const fd = new FormData(assignForm);
+                            try{
+                                const res = await fetch('<?= base_url('admin/doctor-shifts/create') ?>', {
+                                    method: 'POST',
+                                    headers: { 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' },
+                                    body: fd,
+                                    credentials: 'same-origin' // ensure session/CSRF cookies sent
+                                });
+                                const ctype = res.headers.get('content-type') || '';
+                                if (!ctype.includes('application/json')){
+                                    const txt = await res.text().catch(()=> '');
+                                    console.error('Unexpected response (non-JSON)', { status: res.status, body: txt });
+                                    alert(`Failed to create shift (HTTP ${res.status}).\n${txt?.slice(0,300) || 'Non-JSON response'}`);
+                                    return;
+                                }
+                                const json = await res.json();
+                                refreshCsrfFromJson(json);
+                                if (!res.ok || json?.status !== 'success'){
+                                    console.error('Create shift failed', { status: res.status, json });
+                                    const msg = json?.message || `Failed to create shift (HTTP ${res.status})`;
+                                    const dbm = json?.db_error?.message ? `\nDB: ${json.db_error.message}` : '';
+                                    const exm = json?.exception ? `\nEx: ${json.exception}` : '';
+                                    alert(msg + dbm + exm);
+                                    return;
+                                }
+                                // Success
+                                alert('Shift created successfully.');
+                                assignForm.reset();
+                                closeAssignShiftModal();
+                                // Reload shifts table if loader exists
+                                if (typeof loadDoctorShifts === 'function'){
+                                    await loadDoctorShifts();
+                                }
+                            }catch(err){
+                                console.error('Create shift failed', err);
+                                alert('Failed to create shift.');
+                            }
+                        });
+
+                        // Also load doctors when DOM ready for a faster first open
+                        document.addEventListener('DOMContentLoaded', loadDoctors);
+                    })();
                 </script>
 
             </main>

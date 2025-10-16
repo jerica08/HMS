@@ -166,17 +166,15 @@
             }
         </style>
     </head>
-<?php include APPPATH . 'Views/template/header.php'; ?>
-    
-    
-        
-        <div class="main-container">
-               <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>      
+<?php include APPPATH . 'Views/template/header.php'; ?> 
+    <div class="main-container">
+        <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>    
+
             <main class="content">
                 <h1 class="page-title"> Patient Management</h1>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn btn-primary btn-small" onclick="addPatient()">
-                        <i class="fas fa-plus"></i> Add Patient
+                <div class="page-actions">
+                    <button type="button" class="btn btn-primary" onclick="addPatient()" aria-label="Add New Patient">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Patient
                     </button>
                 </div><br>
 
@@ -200,22 +198,25 @@
                         </div>
                     </div>
 
-                    <!-- Active User Card -->
+                    <!-- Patient Type Card -->
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern purple">
-                                <i class="fas fa-bed"></i>
-                            </div>
+                            <div class="card-icon-modern blue"><i class="fas fa-calendar-week"></i></div>
                             <div class="card-info">
-                                <h3 class="card-title-modern">Admitted Patient</h3>
-                                <p class="card-subtitle">Currently active</p>
+                                <h3 class="card-title-modern">Patient Type</h3>
+                                <p class="card-subtitle">All patients</p>
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value purple">0</div>
+                                <div class="metric-value blue"><?= $patientStats['in_patients'] ?? 0 ?></div>
+                                <div class="metric-label">In-Patient</div>
                             </div>
-                        </div>   
+                            <div class="metric">
+                                <div class="metric-value green"><?= $patientStats['out_patients'] ?? 0 ?></div>
+                                <div class="metric-label">Out-Patient</div>
+                            </div>
+                        </div>
                     </div>
                 </div>       
 
@@ -231,8 +232,9 @@
                                     <th>Patient</th>
                                     <th>ID</th>
                                     <th>Age</th>
-                                    <th>Department</th>
-                                    <th>Room</th>
+                                    <th>Patient Type</th>
+                                    <th>Status</th>
+                                    <th>Assigned Doctor</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -268,8 +270,23 @@
                                                     }
                                                 ?>
                                             </td>
-                                            <td><?= esc($patient['department'] ?? 'N/A') ?></td>
-                                            <td><?= esc($patient['room'] ?? 'N/A') ?></td>
+                                            <td><?= esc(strtolower($patient['patient_type'] ?? '') ? ucfirst(strtolower($patient['patient_type'])) : 'N/A') ?></td>
+                                            <td><?= esc($patient['status'] ?? 'N/A') ?></td>
+                                            <td>
+                                                <?php
+                                                    $docLabel = '';
+                                                    if (!empty($patient['primary_doctor_name'])) {
+                                                        $docLabel = $patient['primary_doctor_name'];
+                                                    } elseif (!empty($patient['doctor_name'])) {
+                                                        $docLabel = $patient['doctor_name'];
+                                                    } elseif (!empty($patient['primary_doctor_id'])) {
+                                                        $docLabel = 'Doctor #' . $patient['primary_doctor_id'];
+                                                    } else {
+                                                        $docLabel = '—';
+                                                    }
+                                                    echo esc($docLabel);
+                                                ?>
+                                            </td>
                                             <td>
                                                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                                                     <button class="btn btn-secondary btn-small" onclick="viewPatient(<?= esc($patient['patient_id'] ?? 0) ?>)">View</button>
@@ -280,7 +297,7 @@
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" style="text-align: center; padding: 2rem;">
+                                        <td colspan="7" style="text-align: center; padding: 2rem;">
                                             <i class="fas fa-user-injured" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
                                             <p>No patients found.</p>
                                         </td>
@@ -293,7 +310,7 @@
             </main>
         </div>
 
-        <!-- Add Patient Popup Modal (styled like Add User) -->
+        <!-- Add Patient Modal -->
         <div id="patientModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
             <div style="background:#fff; padding:2rem; border-radius:8px; max-width:960px; width:98%; margin:auto; position:relative; max-height:90vh; overflow:auto; box-sizing:border-box; -webkit-overflow-scrolling:touch;">
                 <div class="hms-modal-header">
@@ -401,6 +418,12 @@
                             <small id="err_emergency_contact_phone" style="color:#dc2626"></small>
                         </div>
                         <div>
+                            <label for="primary_doctor_id">Assign Doctor</label>
+                            <select id="primary_doctor_id" name="primary_doctor_id" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
+                                <option value="">Loading doctors...</option>
+                            </select>
+                        </div>
+                        <div>
                             <label for="patient_type">Patient Type</label>
                             <select id="patient_type" name="patient_type" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                                 <option value="">Select...</option>
@@ -416,7 +439,7 @@
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
-                        <div style="grid-column: 1 / -1;">
+                        <div class="full">
                             <label for="medical_notes">Medical Notes</label>
                             <textarea id="medical_notes" name="medical_notes" rows="3" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;"></textarea>
                         </div>
@@ -434,7 +457,7 @@
         
         <!-- View Patient Modal -->
         <div id="viewPatientModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
-            <div style="background:#fff; padding:1.25rem 1.5rem; border-radius:8px; max-width:780px; width:96%; margin:auto; position:relative; max-height:92vh; overflow:auto; box-sizing:border-box;">
+            <div style="background:#fff; padding:2rem; border-radius:8px; max-width:960px; width:98%; margin:auto; position:relative; max-height:90vh; overflow:auto; box-sizing:border-box; -webkit-overflow-scrolling:touch;">
                 <div class="hms-modal-header">
                     <div class="hms-modal-title">
                         <i class="fas fa-user" style="color:#4f46e5"></i>
@@ -442,67 +465,84 @@
                     </div>
                 </div>
                 <div class="hms-modal-body">
-                    <div class="form-grid">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; padding-bottom:1rem;">
                         <div>
-                            <label class="form-label">Patient ID</label>
-                            <div id="vp_id">-</div>
-                        </div>
-                        <div>
-                            <label class="form-label">Name</label>
-                            <div id="vp_name">-</div>
+                            <label for="vp_id">Patient ID</label>
+                            <input id="vp_id" type="text" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
                         </div>
                         <div>
-                            <label class="form-label">Gender</label>
-                            <div id="vp_gender">-</div>
+                            <label for="vp_first_name">First Name</label>
+                            <input id="vp_first_name" type="text" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
                         </div>
                         <div>
-                            <label class="form-label">Date of Birth</label>
-                            <div id="vp_dob">-</div>
+                            <label for="vp_last_name">Last Name</label>
+                            <input id="vp_last_name" type="text" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
                         </div>
                         <div>
-                            <label class="form-label">Age</label>
-                            <div id="vp_age">-</div>
+                            <label for="vp_gender">Gender</label>
+                            <select id="vp_gender" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
+                                <option value="">Select...</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="form-label">Phone</label>
-                            <div id="vp_phone">-</div>
+                            <label for="vp_dob">Date of Birth</label>
+                            <input id="vp_dob" type="date" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
                         </div>
                         <div>
-                            <label class="form-label">Email</label>
-                            <div id="vp_email">-</div>
-                        </div>
-                        <div class="full">
-                            <label class="form-label">Address</label>
-                            <div id="vp_address">-</div>
+                            <label for="vp_age">Age</label>
+                            <input id="vp_age" type="number" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
                         </div>
                         <div>
-                            <label class="form-label">Department</label>
-                            <div id="vp_department">-</div>
+                            <label for="vp_phone">Phone</label>
+                            <input id="vp_phone" type="tel" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
                         </div>
                         <div>
-                            <label class="form-label">Room</label>
-                            <div id="vp_room">-</div>
+                            <label for="vp_email">Email</label>
+                            <input id="vp_email" type="email" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label for="vp_address">Address</label>
+                            <input id="vp_address" type="text" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
                         </div>
                         <div>
-                            <label class="form-label">Patient Type</label>
-                            <div id="vp_type">-</div>
+                            <label for="vp_type">Patient Type</label>
+                            <select id="vp_type" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
+                                <option value="">Select...</option>
+                                <option value="outpatient">Outpatient</option>
+                                <option value="inpatient">Inpatient</option>
+                                <option value="emergency">Emergency</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="form-label">Status</label>
-                            <div id="vp_status">-</div>
+                            <label for="vp_status">Status</label>
+                            <select id="vp_status" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
                         </div>
-                        <div class="full">
-                            <label class="form-label">Emergency Contact</label>
-                            <div id="vp_emergency">-</div>
+                        <div>
+                            <label for="vp_emergency_name">Emergency Contact Name</label>
+                            <input id="vp_emergency_name" type="text" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
                         </div>
-                        <div class="full">
-                            <label class="form-label">Notes</label>
-                            <div id="vp_notes">-</div>
+                        <div>
+                            <label for="vp_emergency_phone">Emergency Contact Phone</label>
+                            <input id="vp_emergency_phone" type="tel" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
+                        </div>
+                        <div>
+                            <label for="vp_doctor">Assigned Doctor</label>
+                            <input id="vp_doctor" type="text" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;">
+                        </div>
+                        <div class="full" style="grid-column: 1 / -1;">
+                            <label for="vp_notes">Medical Notes</label>
+                            <textarea id="vp_notes" rows="3" disabled style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px; background:#f9fafb;"></textarea>
                         </div>
                     </div>
                 </div>
-                <div class="hms-modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeViewPatientModal()">Close</button>
+                <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1.5rem; position:sticky; bottom:0; background:#fff; padding-top:1rem; border-top:1px solid #e5e7eb;">
+                    <button type="button" onclick="closeViewPatientModal()" style="background:#6b7280; color:#fff; border:none; padding:0.75rem 1.5rem; border-radius:4px; cursor:pointer;">Close</button>
                 </div>
                 <button aria-label="Close" onclick="closeViewPatientModal()" style="position:absolute; top:10px; right:10px; background:transparent; border:none; font-size:1.25rem; color:#6b7280; cursor:pointer;">
                     <i class="fas fa-times"></i>
@@ -512,7 +552,7 @@
 
         <!-- Edit Patient Modal -->
         <div id="editPatientModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
-            <div style="background:#fff; padding:1.25rem 1.5rem; border-radius:8px; max-width:840px; width:96%; margin:auto; position:relative; max-height:92vh; overflow:auto; box-sizing:border-box;">
+            <div style="background:#fff; padding:2rem; border-radius:8px; max-width:960px; width:98%; margin:auto; position:relative; max-height:90vh; overflow:auto; box-sizing:border-box; -webkit-overflow-scrolling:touch;">
                 <div class="hms-modal-header">
                     <div class="hms-modal-title">
                         <i class="fas fa-user-edit" style="color:#4f46e5"></i>
@@ -521,26 +561,26 @@
                 </div>
                 <form id="editPatientForm">
                     <input type="hidden" id="ep_patient_id" name="patient_id">
-                    <div class="form-grid" style="margin-top:0.5rem;">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; padding-bottom:5rem;">
                         <div>
-                            <label class="form-label" for="ep_first_name">First Name</label>
-                            <input type="text" id="ep_first_name" name="first_name" class="form-input" required>
+                            <label for="ep_first_name">First Name</label>
+                            <input type="text" id="ep_first_name" name="first_name" required style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_middle_name">Middle Name</label>
-                            <input type="text" id="ep_middle_name" name="middle_name" class="form-input">
+                            <label for="ep_middle_name">Middle Name</label>
+                            <input type="text" id="ep_middle_name" name="middle_name" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_last_name">Last Name</label>
-                            <input type="text" id="ep_last_name" name="last_name" class="form-input" required>
+                            <label for="ep_last_name">Last Name</label>
+                            <input type="text" id="ep_last_name" name="last_name" required style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_date_of_birth">Date of Birth</label>
-                            <input type="date" id="ep_date_of_birth" name="date_of_birth" class="form-input" required>
+                            <label for="ep_date_of_birth">Date of Birth</label>
+                            <input type="date" id="ep_date_of_birth" name="date_of_birth" required style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_gender">Gender</label>
-                            <select id="ep_gender" name="gender" class="form-select" required>
+                            <label for="ep_gender">Gender</label>
+                            <select id="ep_gender" name="gender" required style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                                 <option value="">Select...</option>
                                 <option value="male">Male</option>
                                 <option value="female">Female</option>
@@ -548,8 +588,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="form-label" for="ep_civil_status">Civil Status</label>
-                            <select id="ep_civil_status" name="civil_status" class="form-select" required>
+                            <label for="ep_civil_status">Civil Status</label>
+                            <select id="ep_civil_status" name="civil_status" required style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                                 <option value="">Select...</option>
                                 <option value="single">Single</option>
                                 <option value="married">Married</option>
@@ -558,52 +598,50 @@
                             </select>
                         </div>
                         <div>
-                            <label class="form-label" for="ep_phone">Phone</label>
-                            <input type="tel" id="ep_phone" name="phone" class="form-input">
+                            <label for="ep_phone">Phone</label>
+                            <input type="tel" id="ep_phone" name="phone" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_email">Email</label>
-                            <input type="email" id="ep_email" name="email" class="form-input">
+                            <label for="ep_email">Email</label>
+                            <input type="email" id="ep_email" name="email" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
-                        <div class="full">
-                            <label class="form-label" for="ep_address">Address</label>
-                            <input type="text" id="ep_address" name="address" class="form-input">
-                        </div>
-                        <div>
-                            <label class="form-label" for="ep_province">Province</label>
-                            <input type="text" id="ep_province" name="province" class="form-input">
+                        <div style="grid-column: 1 / -1;">
+                            <label for="ep_address">Address</label>
+                            <input type="text" id="ep_address" name="address" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_city">City/Municipality</label>
-                            <input type="text" id="ep_city" name="city" class="form-input">
+                            <label for="ep_province">Province</label>
+                            <input type="text" id="ep_province" name="province" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_barangay">Barangay</label>
-                            <input type="text" id="ep_barangay" name="barangay" class="form-input">
+                            <label for="ep_city">City/Municipality</label>
+                            <input type="text" id="ep_city" name="city" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_zip_code">ZIP Code</label>
-                            <input type="text" id="ep_zip_code" name="zip_code" class="form-input">
+                            <label for="ep_barangay">Barangay</label>
+                            <input type="text" id="ep_barangay" name="barangay" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_insurance_provider">Insurance Provider</label>
-                            <input type="text" id="ep_insurance_provider" name="insurance_provider" class="form-input">
+                            <label for="ep_zip_code">ZIP Code</label>
+                            <input type="text" id="ep_zip_code" name="zip_code" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_insurance_number">Insurance Number</label>
-                            <input type="text" id="ep_insurance_number" name="insurance_number" class="form-input">
+                            <label for="ep_insurance_provider">Insurance Provider</label>
+                            <input type="text" id="ep_insurance_provider" name="insurance_provider" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_department">Department</label>
-                            <input type="text" id="ep_department" name="department" class="form-input">
+                            <label for="ep_insurance_number">Insurance Number</label>
+                            <input type="text" id="ep_insurance_number" name="insurance_number" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_room">Room</label>
-                            <input type="text" id="ep_room" name="room" class="form-input">
+                            <label for="ep_primary_doctor_id">Assign Doctor</label>
+                            <select id="ep_primary_doctor_id" name="primary_doctor_id" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
+                                <option value="">Loading doctors...</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="form-label" for="ep_patient_type">Patient Type</label>
-                            <select id="ep_patient_type" name="patient_type" class="form-select">
+                            <label for="ep_patient_type">Patient Type</label>
+                            <select id="ep_patient_type" name="patient_type" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                                 <option value="">Select...</option>
                                 <option value="outpatient">Outpatient</option>
                                 <option value="inpatient">Inpatient</option>
@@ -611,28 +649,28 @@
                             </select>
                         </div>
                         <div>
-                            <label class="form-label" for="ep_status">Status</label>
-                            <select id="ep_status" name="status" class="form-select">
+                            <label for="ep_status">Status</label>
+                            <select id="ep_status" name="status" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
                         <div>
-                            <label class="form-label" for="ep_emergency_contact_name">Emergency Contact Name</label>
-                            <input type="text" id="ep_emergency_contact_name" name="emergency_contact_name" class="form-input">
+                            <label for="ep_emergency_contact_name">Emergency Contact Name</label>
+                            <input type="text" id="ep_emergency_contact_name" name="emergency_contact_name" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div>
-                            <label class="form-label" for="ep_emergency_contact_phone">Emergency Contact Phone</label>
-                            <input type="tel" id="ep_emergency_contact_phone" name="emergency_contact_phone" class="form-input">
+                            <label for="ep_emergency_contact_phone">Emergency Contact Phone</label>
+                            <input type="tel" id="ep_emergency_contact_phone" name="emergency_contact_phone" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;">
                         </div>
                         <div class="full">
-                            <label class="form-label" for="ep_medical_notes">Medical Notes</label>
-                            <textarea id="ep_medical_notes" name="medical_notes" rows="3" class="form-textarea"></textarea>
+                            <label for="ep_medical_notes">Medical Notes</label>
+                            <textarea id="ep_medical_notes" name="medical_notes" rows="3" style="width:100%; padding:0.5rem; border:1px solid #ddd; border-radius:4px;"></textarea>
                         </div>
                     </div>
-                    <div class="hms-modal-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeEditPatientModal()">Cancel</button>
-                        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+                    <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1.5rem; position:sticky; bottom:0; background:#fff; padding-top:1rem; border-top:1px solid #e5e7eb;">
+                        <button type="button" onclick="closeEditPatientModal()" style="background:#6b7280; color:#fff; border:none; padding:0.75rem 1.5rem; border-radius:4px; cursor:pointer;">Cancel</button>
+                        <button type="submit" id="saveEditPatientBtn" style="background:#2563eb; color:#fff; border:none; padding:0.75rem 1.5rem; border-radius:4px; cursor:pointer;">Save Changes</button>
                     </div>
                 </form>
                 <button aria-label="Close" onclick="closeEditPatientModal()" style="position:absolute; top:10px; right:10px; background:transparent; border:none; font-size:1.25rem; color:#6b7280; cursor:pointer;">
@@ -673,13 +711,18 @@
                 setVal('vp_phone', p.contact_no || p.phone || '');
                 setVal('vp_email', p.email || '');
                 setVal('vp_address', p.address || '');
-                setVal('vp_department', p.department || '');
-                setVal('vp_room', p.room || '');
+                
                 setVal('vp_type', (p.patient_type||'').toLowerCase());
-                setVal('vp_status', p.status || '');
+                setVal('vp_status', (p.status||'').toLowerCase());
                 setVal('vp_emergency_name', p.emergency_contact || '');
                 setVal('vp_emergency_phone', p.emergency_phone || '');
                 setVal('vp_notes', p.medical_notes || '');
+                // derive assigned doctor label
+                var docLabel = '';
+                if (p.primary_doctor_name) { docLabel = p.primary_doctor_name; }
+                else if (p.doctor_name) { docLabel = p.doctor_name; }
+                else if (p.primary_doctor_id) { docLabel = 'Doctor #' + p.primary_doctor_id; }
+                setVal('vp_doctor', docLabel);
                 openViewPatientModal();
             }
             // Edit Patient modal
@@ -705,86 +748,27 @@
                 set('ep_zip_code', p.zip_code || '');
                 set('ep_insurance_provider', p.insurance_provider || '');
                 set('ep_insurance_number', p.insurance_number || '');
-                set('ep_department', p.department || '');
-                set('ep_room', p.room || '');
                 set('ep_patient_type', p.patient_type || '');
                 set('ep_status', (p.status||'').toLowerCase());
                 set('ep_emergency_contact_name', p.emergency_contact || '');
                 set('ep_emergency_contact_phone', p.emergency_phone || '');
                 set('ep_medical_notes', p.medical_notes || '');
+                // load doctors and preselect
+                loadDoctors('ep_primary_doctor_id', p.primary_doctor_id || '');
                 openEditPatientModal();
             }
-            (function(){
-                var form = document.getElementById('editPatientForm');
-                if (!form) return;
-                form.addEventListener('submit', async function(e){
-                    e.preventDefault();
-                    var btn = form.querySelector('button[type="submit"]');
-                    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving'; }
-                    // Build payload mirroring backend expectations
-                    var val = function(id){ var el=document.getElementById(id); return el? el.value : null; };
-                    var payload = {
-                        patient_id: val('ep_patient_id'),
-                        first_name: val('ep_first_name'),
-                        middle_name: val('ep_middle_name'),
-                        last_name: val('ep_last_name'),
-                        date_of_birth: val('ep_date_of_birth'),
-                        gender: val('ep_gender'),
-                        civil_status: val('ep_civil_status'),
-                        phone: val('ep_phone'),
-                        email: val('ep_email'),
-                        address: val('ep_address'),
-                        province: val('ep_province'),
-                        city: val('ep_city'),
-                        barangay: val('ep_barangay'),
-                        zip_code: val('ep_zip_code'),
-                        insurance_provider: val('ep_insurance_provider'),
-                        insurance_number: val('ep_insurance_number'),
-                        department: val('ep_department'),
-                        room: val('ep_room'),
-                        patient_type: val('ep_patient_type'),
-                        status: val('ep_status'),
-                        emergency_contact_name: val('ep_emergency_contact_name'),
-                        emergency_contact_phone: val('ep_emergency_contact_phone'),
-                        medical_notes: val('ep_medical_notes')
-                    };
-                    try {
-                        var res = await fetch('<?= base_url('admin/patients/update') ?>', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                            body: JSON.stringify(payload),
-                            credentials: 'same-origin'
-                        });
-                        var result = await res.json().catch(function(){ return {}; });
-                        if (res.ok && result.status === 'success'){
-                            alert('Patient updated successfully');
-                            closeEditPatientModal();
-                            window.location.reload();
-                        } else {
-                            var msg = result.message || 'Failed to update patient';
-                            if (result.errors){ msg += '\n\n' + Object.values(result.errors).join('\n'); }
-                            alert(msg);
-                        }
-                    } catch (err){
-                        console.error('Error updating patient', err);
-                        alert('Network error. Please try again.');
-                    } finally {
-                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save'; }
-                    }
-                });
-                // Close on overlay click
-                document.addEventListener('click', function(e){ var m=document.getElementById('editPatientModal'); if(m && e.target===m){ closeEditPatientModal(); }});
-                // Close on ESC
-                document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeEditPatientModal(); }});
-            })();
+
             function openAddPatientsModal() {
                 var m = document.getElementById('patientModal');
                 if (m) { m.style.display = 'flex'; }
+                // Load doctors for add form
+                loadDoctors('primary_doctor_id');
             }
             function closeAddPatientsModal() {
                 var m = document.getElementById('patientModal');
                 if (m) { m.style.display = 'none'; }
             }
+
             // Button handler to open modal
             function addPatient() {
                 openAddPatientsModal();
@@ -823,12 +807,49 @@
                 }
             })();
 
+            // Load doctors into a select element
+            async function loadDoctors(selectId, selectedValue){
+                var sel = document.getElementById(selectId);
+                if (!sel) return;
+                // Set loading state
+                sel.innerHTML = '<option value="">Loading doctors...</option>';
+                try {
+                    var res = await fetch('<?= base_url('admin/doctors/api') ?>', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+                    var result = await res.json().catch(function(){ return {}; });
+                    sel.innerHTML = '';
+                    if (res.ok && result.status === 'success' && Array.isArray(result.data) && result.data.length){
+                        var opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = '— Select doctor —';
+                        sel.appendChild(opt);
+                        result.data.forEach(function(d){
+                            var o = document.createElement('option');
+                            o.value = d.doctor_id;
+                            var label = (d.name || ('Doctor #' + d.doctor_id));
+                            if (d.department) { label += ' — ' + d.department; }
+                            if (d.specialization) { label += ' (' + d.specialization + ')'; }
+                            o.textContent = label;
+                            if (selectedValue && String(selectedValue) === String(d.doctor_id)) o.selected = true;
+                            sel.appendChild(o);
+                        });
+                    } else {
+                        var none = document.createElement('option');
+                        none.value = '';
+                        none.textContent = 'No doctors found';
+                        sel.appendChild(none);
+                    }
+                } catch (e){
+                    sel.innerHTML = '<option value="">Failed to load</option>';
+                }
+            }
+
             // Submit patient form to backend
             (function(){
                 var form = document.getElementById('patientForm');
                 if (!form) return;
                 form.addEventListener('submit', async function(e){
                     e.preventDefault();
+
                     var btn = document.getElementById('savePatientBtn');
                     if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
 
@@ -853,6 +874,7 @@
                         insurance_number: getVal('insurance_number'),
                         emergency_contact_name: getVal('emergency_contact_name'),
                         emergency_contact_phone: getVal('emergency_contact_phone'),
+                        primary_doctor_id: getVal('primary_doctor_id'),
                         patient_type: getVal('patient_type'),
                         status: getVal('status'),
                         medical_notes: getVal('medical_notes')

@@ -391,7 +391,7 @@
         // Logout functionality
         function handleLogout() {
             if(confirm('Are you sure you want to logout?')) {
-                window.location.href = '<?= base_url('auth/logout') ?>';
+                window.location.href = '<?= base_url('logout') ?>';
             }
         }
     </script>

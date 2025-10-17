@@ -84,64 +84,6 @@
                 </div>
             </div>
 
-            <!--Recent activity table-->
-            <div class="table-container">
-                <h3 style="margin-bottom: 1.5rem;">Recent Patient Activities</h3>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Patient</th>
-                            <th>Action</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>09:15 AM</td>
-                            <td>Maria Santos</td>
-                            <td>Consultation Completed</td>
-                            <td>Appointment</td>
-                            <td><span class="badge badge-success">Completed</span></td>
-                            <td><a href="#" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</a></td>
-                        </tr>
-                        <tr>
-                            <td>09:00 AM</td>
-                            <td>John Doe</td>
-                            <td>Prescription Updated</td>
-                            <td>Medication</td>
-                            <td><span class="badge badge-success">Updated</span></td>
-                            <td><a href="#" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</a></td>
-                        </tr>
-                        <tr>
-                            <td>08:45 AM</td>
-                            <td>Sarah Johnson</td>
-                            <td>Lab Results Reviewed</td>
-                            <td>Laboratory</td>
-                            <td><span class="badge badge-success">Reviewed</span></td>
-                            <td><a href="#" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</a></td>
-                        </tr>
-                        <tr>
-                            <td>08:30 AM</td>
-                            <td>Michael Brown</td>
-                            <td>Appointment Scheduled</td>
-                            <td>Appointment</td>
-                            <td><span class="badge badge-warning">Scheduled</span></td>
-                            <td><a href="#" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</a></td>
-                        </tr>
-                        <tr>
-                            <td>08:15 AM</td>
-                            <td>Emma Wilson</td>
-                            <td>Medical Record Updated</td>
-                            <td>Record</td>
-                            <td><span class="badge badge-success">Updated</span></td>
-                            <td><a href="#" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">View</a></td>
-                        </tr>             
-                    </tbody>
-                </table>
-            </div>
      
         </main>
     </div>
@@ -158,7 +100,7 @@
         // Logout functionality
         function handleLogout() {
             if (confirm('Are you sure you want to logout?')) {
-                window.location.href = '<?= base_url('auth/logout') ?>';
+                window.location.href = '<?= base_url('logout') ?>';
             }
         }
     </script>

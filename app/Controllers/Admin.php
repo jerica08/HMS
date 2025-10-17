@@ -851,15 +851,19 @@ class Admin extends BaseController
 
     public function createResource()
     {
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        $input = $this->request->getPost();
+        $ct = strtolower($this->request->getHeaderLine('Content-Type'));
+        if (strpos($ct, 'application/json') !== false) {
+            try { $json = $this->request->getJSON(true); if (is_array($json)) { $input = $json; } } catch (\Throwable $e) { /* ignore */ }
+        }
         if (!is_array($input)) { $input = []; }
 
         $validation = \Config\Services::validation();
         $validation->setRules([
             'name' => 'required|min_length[1]|max_length[100]',
             'category' => 'required|max_length[50]',
-            'quantity' => 'required|integer',
-            'status' => 'required|max_length[30]',
+            'quantity' => 'required|integer|greater_than_equal_to[0]',
+            'status' => 'required|in_list[available,in_use,maintenance,retired]',
             'location' => 'permit_empty|max_length[100]',
             'supplier' => 'permit_empty|max_length[100]',
             'date_acquired' => 'permit_empty|valid_date',
@@ -872,8 +876,8 @@ class Admin extends BaseController
         // Normalize optional fields: convert empty strings to null where appropriate
         $dateAcquired = isset($input['date_acquired']) && $input['date_acquired'] !== '' ? $input['date_acquired'] : null;
         $maintenanceSchedule = isset($input['maintenance_schedule']) && $input['maintenance_schedule'] !== '' ? $input['maintenance_schedule'] : null;
-        $location = isset($input['location']) ? (string)$input['location'] : null; // allow empty string for non-nullable VARCHAR
-        $supplier = isset($input['supplier']) ? (string)$input['supplier'] : null; // allow empty string for non-nullable VARCHAR
+        $location = array_key_exists('location', $input) ? (string)$input['location'] : '';
+        $supplier = array_key_exists('supplier', $input) ? (string)$input['supplier'] : '';
 
         $data = [
             'equipment_name' => isset($input['name']) ? trim((string)$input['name']) : null,
@@ -892,15 +896,32 @@ class Admin extends BaseController
                 return $this->response->setJSON(['status' => 'success', 'id' => $this->db->insertID()]);
             }
             $err = $this->db->error();
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'db' => $err]);
+            $lastQuery = null;
+            try { $lastQuery = (string)$this->db->getLastQuery(); } catch (\Throwable $__) {}
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => !empty($err['message']) ? $err['message'] : 'Database insert failed',
+                'db' => $err,
+                'lastQuery' => $lastQuery,
+            ]);
         } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+            $lastQuery = null;
+            try { $lastQuery = (string)$this->db->getLastQuery(); } catch (\Throwable $__) {}
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'lastQuery' => $lastQuery,
+            ]);
         }
     }
 
     public function updateResource()
     {
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        $input = $this->request->getPost();
+        $ct = strtolower($this->request->getHeaderLine('Content-Type'));
+        if (strpos($ct, 'application/json') !== false) {
+            try { $json = $this->request->getJSON(true); if (is_array($json)) { $input = $json; } } catch (\Throwable $e) { /* ignore */ }
+        }
         if (!is_array($input) || empty($input['id'])) {
             return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'id is required']);
         }
@@ -933,7 +954,11 @@ class Admin extends BaseController
 
     public function deleteResource()
     {
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        $input = $this->request->getPost();
+        $ct = strtolower($this->request->getHeaderLine('Content-Type'));
+        if (strpos($ct, 'application/json') !== false) {
+            try { $json = $this->request->getJSON(true); if (is_array($json)) { $input = $json; } } catch (\Throwable $e) { /* ignore */ }
+        }
         if (!is_array($input) || empty($input['id'])) {
             return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'id is required']);
         }

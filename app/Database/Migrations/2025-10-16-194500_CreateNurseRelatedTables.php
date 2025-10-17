@@ -45,8 +45,9 @@ class CreateNurseRelatedTables extends Migration
             ],
         ]);
         $this->forge->addKey('id', true);
-        $this->forge->addForeignKey('nurse_id', 'nurses', 'nurse_id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('patient_id', 'patients', 'patient_id', 'CASCADE', 'CASCADE');
+        // Fix FK targets: tables are 'nurse' and 'patient'
+        $this->forge->addForeignKey('nurse_id', 'nurse', 'nurse_id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('patient_id', 'patient', 'patient_id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('patient_nurse');
 
         // Vital Signs Table
@@ -133,8 +134,8 @@ class CreateNurseRelatedTables extends Migration
             ],
         ]);
         $this->forge->addKey('vital_id', true);
-        $this->forge->addForeignKey('patient_id', 'patients', 'patient_id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('nurse_id', 'nurses', 'nurse_id', 'SET NULL', 'SET NULL');
+        $this->forge->addForeignKey('patient_id', 'patient', 'patient_id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('nurse_id', 'nurse', 'nurse_id', 'SET NULL', 'SET NULL');
         $this->forge->createTable('vital_signs');
 
         // Medication Schedule Table
@@ -193,8 +194,12 @@ class CreateNurseRelatedTables extends Migration
             ],
         ]);
         $this->forge->addKey('schedule_id', true);
-        $this->forge->addForeignKey('patient_id', 'patients', 'patient_id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('medication_id', 'medications', 'medication_id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('patient_id', 'patient', 'patient_id', 'CASCADE', 'CASCADE');
+        // Only add FK to medications if the table exists to avoid migration failure
+        $db = \Config\Database::connect();
+        if ($db->tableExists('medications')) {
+            $this->forge->addForeignKey('medication_id', 'medications', 'medication_id', 'CASCADE', 'CASCADE');
+        }
         $this->forge->createTable('medication_schedule');
 
         // Medication Administration Table
@@ -287,7 +292,7 @@ class CreateNurseRelatedTables extends Migration
             ],
         ]);
         $this->forge->addKey('report_id', true);
-        $this->forge->addForeignKey('nurse_id', 'nurses', 'nurse_id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('nurse_id', 'nurse', 'nurse_id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('nurse_shift_reports');
     }
 

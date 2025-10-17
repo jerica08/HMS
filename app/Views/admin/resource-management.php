@@ -21,6 +21,19 @@
       .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
       .form-grid .full { grid-column: 1 / -1; }
       @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+
+      /* Match Users table styles */
+      .table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.95rem; }
+      .table thead th { text-align: left; background: #f8fafc; color: #374151; font-weight: 600; padding: 0.75rem 1.25rem; border-bottom: 1px solid #e5e7eb; }
+      .table tbody td { padding: 0.75rem 1.25rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+      .table tbody tr:last-child td { border-bottom: none; }
+      .user-table { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 1rem; }
+      .table-header { background: #f8fafc; padding: 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+      @media (max-width: 640px) {
+        .table thead { display: none; }
+        .table tbody tr { display: grid; grid-template-columns: 1fr; gap: 0.25rem; padding: 0.5rem 0; }
+        .table tbody td { border: none; padding: 0.25rem 1rem; }
+      }
     </style>
 </head>
 <body class="admin">
@@ -169,7 +182,7 @@
                             <div class="form-grid">
                                 <div>
                                     <label class="form-label" for="res_name">Equipment Name</label>
-                                    <input id="res_name" name="name" type="text" class="form-input" required>
+                                    <input id="res_name" name="name" type="text" class="form-input" required autocomplete="off">
                                 </div>
                                 <div>
                                     <label class="form-label" for="res_category">Category</label>
@@ -184,7 +197,7 @@
                                 </div>
                                 <div>
                                     <label class="form-label" for="res_quantity">Quantity</label>
-                                    <input id="res_quantity" name="quantity" type="number" class="form-input" min="0" required>
+                                    <input id="res_quantity" name="quantity" type="number" class="form-input" min="0" required autocomplete="off">
                                 </div>
                                 <div>
                                     <label class="form-label" for="res_status">Status</label>
@@ -197,23 +210,23 @@
                                 </div>
                                 <div>
                                     <label class="form-label" for="res_location">Location</label>
-                                    <input id="res_location" name="location" type="text" class="form-input">
+                                    <input id="res_location" name="location" type="text" class="form-input" autocomplete="off">
                                 </div>
                                 <div>
                                     <label class="form-label" for="res_date_acquired">Date Acquired</label>
-                                    <input id="res_date_acquired" name="date_acquired" type="date" class="form-input">
+                                    <input id="res_date_acquired" name="date_acquired" type="date" class="form-input" autocomplete="off">
                                 </div>
                                 <div>
                                     <label class="form-label" for="res_supplier">Supplier</label>
-                                    <input id="res_supplier" name="supplier" type="text" class="form-input">
+                                    <input id="res_supplier" name="supplier" type="text" class="form-input" autocomplete="off">
                                 </div>
                                 <div>
                                     <label class="form-label" for="res_maintenance">Maintenance Schedule</label>
-                                    <input id="res_maintenance" name="maintenance_schedule" type="date" class="form-input">
+                                    <input id="res_maintenance" name="maintenance_schedule" type="date" class="form-input" autocomplete="off">
                                 </div>
                                 <div class="full">
                                     <label class="form-label" for="res_notes">Remarks</label>
-                                    <textarea id="res_notes" name="notes" rows="3" class="form-textarea"></textarea>
+                                    <textarea id="res_notes" name="notes" rows="3" class="form-textarea" autocomplete="off"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -243,7 +256,7 @@
                             <div class="form-grid">
                                 <div>
                                     <label class="form-label" for="er_name">Name</label>
-                                    <input id="er_name" name="name" type="text" class="form-input" required>
+                                    <input id="er_name" name="name" type="text" class="form-input" required autocomplete="off">
                                 </div>
                                 <div>
                                     <label class="form-label" for="er_category">Category</label>
@@ -251,7 +264,7 @@
                                 </div>
                                 <div>
                                     <label class="form-label" for="er_quantity">Quantity</label>
-                                    <input id="er_quantity" name="quantity" type="number" class="form-input" min="0" required>
+                                    <input id="er_quantity" name="quantity" type="number" class="form-input" min="0" required autocomplete="off">
                                 </div>
                                 <div>
                                     <label class="form-label" for="er_status">Status</label>
@@ -264,11 +277,11 @@
                                 </div>
                                 <div>
                                     <label class="form-label" for="er_location">Location</label>
-                                    <input id="er_location" name="location" type="text" class="form-input">
+                                    <input id="er_location" name="location" type="text" class="form-input" autocomplete="off">
                                 </div>
                                 <div class="full">
                                     <label class="form-label" for="er_notes">Notes</label>
-                                    <textarea id="er_notes" name="notes" rows="3" class="form-textarea"></textarea>
+                                    <textarea id="er_notes" name="notes" rows="3" class="form-textarea" autocomplete="off"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -292,10 +305,10 @@
                 })();
 
                 // Modal controls (aligned with user-management.php)
-                function openAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m) m.classList.add('active'); }
-                function closeAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m) m.classList.remove('active'); }
-                function openEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m) m.classList.add('active'); }
-                function closeEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m) m.classList.remove('active'); }
+                function openAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m){ m.classList.add('active'); m.setAttribute('aria-hidden','false'); } }
+                function closeAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m){ m.classList.remove('active'); m.setAttribute('aria-hidden','true'); } }
+                function openEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m){ m.classList.add('active'); m.setAttribute('aria-hidden','false'); } }
+                function closeEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m){ m.classList.remove('active'); m.setAttribute('aria-hidden','true'); } }
 
                 document.getElementById('addResourceBtn')?.addEventListener('click', openAddResourceModal);
                 document.addEventListener('click', function(e){ var m=document.getElementById('addResourceModal'); if(m && e.target===m) closeAddResourceModal(); });
@@ -310,8 +323,19 @@
                     return p;
                 }
                 function postForm(url, form){
-                    return fetch(url, { method:'POST', headers:{ 'Accept':'application/json' }, body: toParams(form) })
-                        .then(r=>r.json().catch(()=>({status:'error'})));
+                    return fetch(url, { method:'POST', headers:{ 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' }, credentials:'same-origin', body: toParams(form) })
+                        .then(async function(r){
+                            try {
+                                return await r.json();
+                            } catch(e) {
+                                try {
+                                    var t = await r.text();
+                                    return { status:'error', message: t && t.trim() ? t : ('HTTP '+r.status) };
+                                } catch(_) {
+                                    return { status:'error', message: 'HTTP '+r.status };
+                                }
+                            }
+                        });
                 }
 
                 // Add Resource submit -> POST admin/resources/create
@@ -322,10 +346,18 @@
                         e.preventDefault();
                         postForm('<?= base_url('admin/resources/create') ?>', form)
                             .then(function(res){
-                                if(res && res.status==='success'){ window.location.reload(); return; }
-                                alert('Failed to save resource');
+                                if(res && res.status==='success'){ alert('Resource added successfully.'); window.location.reload(); return; }
+                                var msg = 'Failed to save resource';
+                                try {
+                                    if (res) {
+                                        if (res.message) { msg = res.message; }
+                                        if (res.db && res.db.message) { msg = res.db.message; }
+                                        if (res.errors) { msg += '\n' + JSON.stringify(res.errors); }
+                                    }
+                                } catch(e){}
+                                alert(msg);
                             })
-                            .catch(function(){ alert('Failed to save resource'); });
+                            .catch(function(err){ alert('Failed to save resource'); });
                     });
                 })();
 
@@ -363,7 +395,15 @@
                         postForm('<?= base_url('admin/resources/update') ?>', form)
                             .then(function(res){
                                 if(res && res.status==='success'){ window.location.reload(); return; }
-                                alert('Failed to update resource');
+                                var msg = 'Failed to update resource';
+                                try {
+                                    if (res) {
+                                        if (res.message) { msg = res.message; }
+                                        if (res.db && res.db.message) { msg = res.db.message; }
+                                        if (res.errors) { msg += '\n' + JSON.stringify(res.errors); }
+                                    }
+                                } catch(e){}
+                                alert(msg);
                             })
                             .catch(function(){ alert('Failed to update resource'); });
                     });

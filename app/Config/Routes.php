@@ -50,6 +50,12 @@ $routes->group('admin', function($routes) {
 
     // Resource Management
     $routes->get('resource', 'Admin::resourceManagement');
+    // Resources CRUD
+    $routes->get('resources/api', 'Admin::getResourcesAPI');
+    $routes->get('resources/get/(:num)', 'Admin::getResource/$1');
+    $routes->post('resources/create', 'Admin::createResource');
+    $routes->post('resources/update', 'Admin::updateResource');
+    $routes->post('resources/delete', 'Admin::deleteResource');
 
     // Patient Management
     $routes->get('patient-management', 'Admin::patientManagement');

@@ -302,16 +302,30 @@
                 document.addEventListener('click', function(e){ var m=document.getElementById('editResourceModal'); if(m && e.target===m) closeEditResourceModal(); });
                 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeAddResourceModal(); closeEditResourceModal(); }});
 
-                // Add Resource submit (UI stub)
+                // Helpers
+                function toParams(form){
+                    var fd=new FormData(form); var p=new URLSearchParams();
+                    fd.forEach((v,k)=>{ if(v!==undefined && v!==null) p.append(k, v); });
+                    try { p.append('<?= csrf_token() ?>','<?= csrf_hash() ?>'); } catch(e) {}
+                    return p;
+                }
+                function postForm(url, form){
+                    return fetch(url, { method:'POST', headers:{ 'Accept':'application/json' }, body: toParams(form) })
+                        .then(r=>r.json().catch(()=>({status:'error'})));
+                }
+
+                // Add Resource submit -> POST admin/resources/create
                 (function(){
                     var form=document.getElementById('addResourceForm');
                     if(!form) return;
                     form.addEventListener('submit', function(e){
                         e.preventDefault();
-                        alert('Resource saved (UI only). Hook this to a backend endpoint to persist.');
-                        closeAddResourceModal();
-                        // Optionally refresh
-                        // window.location.reload();
+                        postForm('<?= base_url('admin/resources/create') ?>', form)
+                            .then(function(res){
+                                if(res && res.status==='success'){ window.location.reload(); return; }
+                                alert('Failed to save resource');
+                            })
+                            .catch(function(){ alert('Failed to save resource'); });
                     });
                 })();
 
@@ -332,17 +346,26 @@
 
                 function deleteResource(id){
                     if(!confirm('Delete this resource?')) return;
-                    alert('Deleted (UI only). Hook to backend to persist.');
+                    var p=new URLSearchParams(); p.append('id', id);
+                    try { p.append('<?= csrf_token() ?>','<?= csrf_hash() ?>'); } catch(e) {}
+                    fetch('<?= base_url('admin/resources/delete') ?>', { method:'POST', headers:{ 'Accept':'application/json' }, body:p })
+                        .then(r=>r.json().catch(()=>({status:'error'})))
+                        .then(function(res){ if(res && res.status==='success'){ window.location.reload(); } else { alert('Failed to delete'); } })
+                        .catch(function(){ alert('Failed to delete'); });
                 }
 
+                // Edit Resource -> POST admin/resources/update
                 (function(){
                     var form=document.getElementById('editResourceForm');
                     if(!form) return;
                     form.addEventListener('submit', function(e){
                         e.preventDefault();
-                        alert('Resource updated (UI only). Hook this to a backend endpoint to persist.');
-                        closeEditResourceModal();
-                        // window.location.reload();
+                        postForm('<?= base_url('admin/resources/update') ?>', form)
+                            .then(function(res){
+                                if(res && res.status==='success'){ window.location.reload(); return; }
+                                alert('Failed to update resource');
+                            })
+                            .catch(function(){ alert('Failed to update resource'); });
                     });
                 })();
             </script>

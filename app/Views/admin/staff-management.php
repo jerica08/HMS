@@ -432,6 +432,50 @@
                         </table>
                     </div>
                 </div><br>
+                <script>
+                    (function(){
+                        const body = document.getElementById('doctorShiftsBody');
+                        function fmt(t){ return t==null || t==='' ? '-' : t; }
+                        function rowHtml(r){
+                            return `
+                                <tr>
+                                  <td style="padding:0.75rem 1rem;">${fmt(r.doctor_name)}</td>
+                                  <td style="padding:0.75rem 1rem;">${fmt(r.date)}</td>
+                                  <td style="padding:0.75rem 1rem;">${fmt(r.start)}</td>
+                                  <td style="padding:0.75rem 1rem;">${fmt(r.end)}</td>
+                                  <td style="padding:0.75rem 1rem;">${fmt(r.department)}</td>
+                                  <td style="padding:0.5rem 1rem;">
+                                    <button class="btn btn-primary btn-small" onclick="alert('Edit not implemented yet')"><i class="fas fa-pen"></i> Edit</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteDoctorShift(${Number(r.id)||0})"><i class="fas fa-trash"></i> Delete</button>
+                                  </td>
+                                </tr>`;
+                        }
+                        function render(list){
+                            if(!Array.isArray(list) || list.length===0){
+                                body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">No doctor shifts found.</td></tr>';
+                                return;
+                            }
+                            body.innerHTML = list.map(rowHtml).join('');
+                        }
+                        window.deleteDoctorShift = function(id){
+                            if(!id || !confirm('Delete this shift?')) return;
+                            const p = new URLSearchParams();
+                            p.append('id', id);
+                            try { p.append('<?= csrf_token() ?>','<?= csrf_hash() ?>'); } catch(e){}
+                            fetch('<?= base_url('admin/doctor-shifts/delete') ?>', { method:'POST', headers:{ 'Accept':'application/json' }, body:p })
+                              .then(r=>r.json().catch(()=>({status:'error'})))
+                              .then(res=>{ if(res && res.status==='success'){ load(); } else { alert('Failed to delete shift'); } })
+                              .catch(()=>alert('Failed to delete shift'));
+                        };
+                        function load(){
+                            fetch('<?= base_url('admin/doctor-shifts/api') ?>', { headers:{ 'Accept':'application/json' }})
+                              .then(r=>r.json())
+                              .then(res=>{ if(res && res.status==='success'){ render(res.data||[]); } else { render([]); } })
+                              .catch(()=>{ render([]); });
+                        }
+                        document.addEventListener('DOMContentLoaded', load);
+                    })();
+                </script>
 
                 <!-- View/Edit Doctor Shift Modal -->
                 <div id="doctorShiftAdminModal" class="hms-modal-overlay" aria-hidden="true">

@@ -48,7 +48,6 @@
                     </div>
                     <div class="card-actions">
                         <a href="<?= base_url('doctor/appointments') ?>" class="action-btn primary">View Schedule</a>
-                        <button class="action-btn secondary" onclick="alert('Add Appointment functionality not implemented yet')">Add Appointment</button>
                     </div>
                 </div>
 
@@ -65,21 +64,20 @@
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value purple">0</div>
+                            <div class="metric-value purple"><?= $totalPatients ?? 0 ?></div>
                             <div class="metric-label">Total Patients</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value purple">0</div>
+                            <div class="metric-value purple"><?= $newPatientsThisWeek ?? 0 ?></div>
                             <div class="metric-label">New This Week</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value red">0</div>
+                            <div class="metric-value red"><?= $criticalPatients ?? 0 ?></div>
                             <div class="metric-label">Critical</div>
                         </div>
                     </div>
                     <div class="card-actions">
-                        <button class="action-btn primary">View Patients</button>
-                        <button class="action-btn secondary">Add Patient</button>
+                        <a href="<?= base_url('doctor/patients') ?>" class="action-btn primary">View Patients</a>
                     </div>
                 </div>
             </div>

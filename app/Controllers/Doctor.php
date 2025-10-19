@@ -37,7 +37,22 @@ class Doctor extends BaseController
 
     public function dashboard()
     {
-        return view ('doctor/dashboard');
+        // Get today's appointment statistics
+        $todayStats = $this->getTodayAppointmentStats();
+        
+        // Get patient statistics
+        $patientStats = $this->getPatientStats();
+        
+        $data = [
+            'scheduledToday' => $todayStats['scheduled'],
+            'completedToday' => $todayStats['completed'], 
+            'pendingToday' => $todayStats['pending'],
+            'totalPatients' => $patientStats['total'],
+            'newPatientsThisWeek' => $patientStats['newThisWeek'],
+            'criticalPatients' => $patientStats['critical']
+        ];
+        
+        return view('doctor/dashboard', $data);
     }
 
     public function labResults()
@@ -157,6 +172,82 @@ class Doctor extends BaseController
                 'success' => false,
                 'message' => 'Database error: ' . $e->getMessage()
             ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Get today's appointment statistics
+     */
+    private function getTodayAppointmentStats()
+    {
+        try {
+            $today = date('Y-m-d');
+            $staffId = session()->get('staff_id');
+            
+            // Get total scheduled appointments for today
+            $scheduled = $this->db->table('appointments')
+                ->where('doctor_id', $staffId)
+                ->where('appointment_date', $today)
+                ->where('status', 'scheduled')
+                ->countAllResults();
+            
+            // Get completed appointments for today
+            $completed = $this->db->table('appointments')
+                ->where('doctor_id', $staffId)
+                ->where('appointment_date', $today)
+                ->where('status', 'completed')
+                ->countAllResults();
+            
+            // Get pending appointments (scheduled but not completed)
+            $pending = $this->db->table('appointments')
+                ->where('doctor_id', $staffId)
+                ->where('appointment_date', $today)
+                ->whereIn('status', ['scheduled', 'in-progress'])
+                ->countAllResults();
+            
+            return [
+                'scheduled' => $scheduled,
+                'completed' => $completed,
+                'pending' => $pending
+            ];
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to fetch appointment stats: ' . $e->getMessage());
+            return ['scheduled' => 0, 'completed' => 0, 'pending' => 0];
+        }
+    }
+
+    /**
+     * Get patient statistics
+     */
+    private function getPatientStats()
+    {
+        try {
+            // Get total patients assigned to this doctor
+            $total = $this->db->table('patient')
+                ->where('primary_doctor_id', $this->doctorId)
+                ->countAllResults();
+            
+            // Get new patients this week (registered in the last 7 days)
+            $weekAgo = date('Y-m-d', strtotime('-7 days'));
+            $newThisWeek = $this->db->table('patient')
+                ->where('primary_doctor_id', $this->doctorId)
+                ->where('date_registered >=', $weekAgo)
+                ->countAllResults();
+            
+            // Get critical patients (assuming we have a field for this, or use patient_type = 'emergency')
+            $critical = $this->db->table('patient')
+                ->where('primary_doctor_id', $this->doctorId)
+                ->where('patient_type', 'emergency')
+                ->countAllResults();
+            
+            return [
+                'total' => $total,
+                'newThisWeek' => $newThisWeek,
+                'critical' => $critical
+            ];
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to fetch patient stats: ' . $e->getMessage());
+            return ['total' => 0, 'newThisWeek' => 0, 'critical' => 0];
         }
     }
 }

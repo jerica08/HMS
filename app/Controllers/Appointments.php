@@ -27,11 +27,26 @@ class Appointments extends BaseController
             exit();
         }
 
-        // Get doctor_id from staff_id
+        // Get doctor_id (which is actually staff_id in appointments table)
         $staffId = $session->get('staff_id');
         if ($staffId) {
-            $doctor = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
-            $this->doctorId = $doctor ? $doctor['doctor_id'] : null;
+            // Verify this staff member is actually a doctor
+            $doctor = $this->db->table('staff')
+                ->where('staff_id', $staffId)
+                ->where('role', 'doctor')
+                ->get()
+                ->getRowArray();
+            
+            if ($doctor) {
+                // For appointments table, doctor_id is actually the staff_id
+                $this->doctorId = $staffId;
+            } else {
+                log_message('error', 'Staff member with ID ' . $staffId . ' is not a doctor or does not exist');
+                $this->doctorId = null;
+            }
+        } else {
+            log_message('error', 'No staff_id found in session for doctor authentication');
+            $this->doctorId = null;
         }
     }
 
@@ -40,15 +55,14 @@ class Appointments extends BaseController
      */
     public function appointments()
     {
-        // Get doctor ID from session
-        $doctorId = session()->get('staff_id');
-
-        // Fetch patients assigned to this doctor for the dropdown
+        // Fetch all patients for the dropdown (doctors can schedule appointments for any patient)
         $patients = [];
         try {
             $patients = $this->db->table('patient')
-                ->select('patient_id, first_name, last_name')
-                ->where('primary_doctor_id', $this->doctorId)
+                ->select('patient_id, first_name, last_name, patient_type')
+                ->where('status', 'active') // Only show active patients
+                ->orderBy('first_name', 'ASC')
+                ->orderBy('last_name', 'ASC')
                 ->get()
                 ->getResultArray();
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
@@ -56,12 +70,12 @@ class Appointments extends BaseController
         }
 
         // Get today's appointments
-        $todayAppointments = $this->getTodayAppointments($doctorId);
-        
+        $todayAppointments = $this->getTodayAppointments($this->doctorId);
+
         // Calculate statistics
-        $todayStats = $this->calculateTodayStats($doctorId);
-        $weekStats = $this->calculateWeekStats($doctorId);
-        $scheduleStats = $this->calculateScheduleStats($doctorId);
+        $todayStats = $this->calculateTodayStats($this->doctorId);
+        $weekStats = $this->calculateWeekStats($this->doctorId);
+        $scheduleStats = $this->calculateScheduleStats($this->doctorId);
 
         $data = [
             'patients' => $patients,
@@ -101,9 +115,8 @@ class Appointments extends BaseController
             ])->setStatusCode(422);
         }
 
-        // Get doctor_id from session
-        $doctorId = session()->get('staff_id');
-        if (!$doctorId) {
+        // Use the doctor_id set in constructor
+        if (!$this->doctorId) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Doctor not authenticated',
@@ -113,7 +126,7 @@ class Appointments extends BaseController
         // Prepare data for insertion
         $data = [
             'patient_id'        => $input['patient_id'],
-            'doctor_id'         => $doctorId,
+            'doctor_id'         => $this->doctorId,
             'appointment_date'  => $input['date'],
             'appointment_time'  => $input['time'],
             'appointment_type'  => $input['type'],
@@ -152,36 +165,42 @@ class Appointments extends BaseController
      */
     public function getAppointmentData()
     {
-        $doctorId = session()->get('staff_id');
+        if (!$this->doctorId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Doctor not authenticated'
+            ])->setStatusCode(401);
+        }
+
         $view = $this->request->getGet('view') ?? 'today';
         $date = $this->request->getGet('date') ?? date('Y-m-d');
-        
+
         $appointments = [];
         $stats = [];
-        
+
         try {
             switch ($view) {
                 case 'today':
-                    $appointments = $this->getAppointmentsByDate($doctorId, $date);
+                    $appointments = $this->getAppointmentsByDate($this->doctorId, $date);
                     break;
                 case 'week':
-                    $appointments = $this->getAppointmentsByWeek($doctorId, $date);
+                    $appointments = $this->getAppointmentsByWeek($this->doctorId, $date);
                     break;
                 case 'month':
-                    $appointments = $this->getAppointmentsByMonth($doctorId, $date);
+                    $appointments = $this->getAppointmentsByMonth($this->doctorId, $date);
                     break;
             }
-            
+
             // Recalculate stats
             $stats = [
-                'today' => $this->calculateTodayStats($doctorId),
-                'week' => $this->calculateWeekStats($doctorId)
+                'today' => $this->calculateTodayStats($this->doctorId),
+                'week' => $this->calculateWeekStats($this->doctorId)
             ];
-            
+
         } catch (\Throwable $e) {
             log_message('error', 'Failed to get appointment data: ' . $e->getMessage());
         }
-        
+
         return $this->response->setJSON([
             'success' => true,
             'appointments' => $appointments,
@@ -195,18 +214,17 @@ class Appointments extends BaseController
     public function updateAppointmentStatus()
     {
         $input = $this->request->getJSON(true);
-        
+
         if (!isset($input['appointment_id']) || !isset($input['status'])) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Missing required fields'
             ])->setStatusCode(400);
         }
-        
+
         $appointmentId = $input['appointment_id'];
         $status = $input['status'];
-        $doctorId = session()->get('staff_id');
-        
+
         // Validate status
         $validStatuses = ['scheduled', 'in-progress', 'completed', 'cancelled', 'no-show'];
         if (!in_array($status, $validStatuses)) {
@@ -215,22 +233,22 @@ class Appointments extends BaseController
                 'message' => 'Invalid status'
             ])->setStatusCode(400);
         }
-        
+
         try {
             // Verify appointment belongs to this doctor
             $appointment = $this->db->table('appointments')
                 ->where('id', $appointmentId)
-                ->where('doctor_id', $doctorId)
+                ->where('doctor_id', $this->doctorId)
                 ->get()
                 ->getRowArray();
-            
+
             if (!$appointment) {
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Appointment not found'
                 ])->setStatusCode(404);
             }
-            
+
             // Update status
             $updated = $this->db->table('appointments')
                 ->where('id', $appointmentId)
@@ -238,7 +256,7 @@ class Appointments extends BaseController
                     'status' => $status,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
-            
+
             if ($updated) {
                 return $this->response->setJSON([
                     'success' => true,
@@ -250,7 +268,7 @@ class Appointments extends BaseController
                     'message' => 'Failed to update appointment status'
                 ])->setStatusCode(500);
             }
-            
+
         } catch (\Throwable $e) {
             log_message('error', 'Failed to update appointment status: ' . $e->getMessage());
             return $this->response->setJSON([

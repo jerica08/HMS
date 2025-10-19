@@ -27,11 +27,26 @@ class Doctor extends BaseController
             exit();
         }
 
-        // Get doctor_id from staff_id
+        // Get doctor_id (which is actually staff_id for most operations)
         $staffId = $session->get('staff_id');
         if ($staffId) {
-            $doctor = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
-            $this->doctorId = $doctor ? $doctor['doctor_id'] : null;
+            // Verify this staff member is actually a doctor
+            $doctor = $this->db->table('staff')
+                ->where('staff_id', $staffId)
+                ->where('role', 'doctor')
+                ->get()
+                ->getRowArray();
+            
+            if ($doctor) {
+                // For most operations, doctor_id is actually the staff_id
+                $this->doctorId = $staffId;
+            } else {
+                log_message('error', 'Staff member with ID ' . $staffId . ' is not a doctor or does not exist');
+                $this->doctorId = null;
+            }
+        } else {
+            log_message('error', 'No staff_id found in session for doctor authentication');
+            $this->doctorId = null;
         }
     }
 

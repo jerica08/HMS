@@ -797,10 +797,181 @@ class Admin extends BaseController
      */
     public function resourceManagement()
     {
+        $resources = [];
+        try {
+            $rows = $this->db->table('resources')->get()->getResultArray();
+            foreach ($rows as $r) {
+                $r['name'] = $r['equipment_name'] ?? null;
+                $r['notes'] = $r['remarks'] ?? null;
+                $resources[] = $r;
+            }
+        } catch (\Throwable $e) {
+            $resources = [];
+        }
         $data = [
             'title' => 'Resource Management',
+            'resources' => $resources,
         ];
         return view('admin/resource-management', $data);
+    }
+
+    public function getResourcesAPI()
+    {
+        try {
+            $rows = $this->db->table('resources')->get()->getResultArray();
+            $data = [];
+            foreach ($rows as $r) {
+                $r['name'] = $r['equipment_name'] ?? null;
+                $r['notes'] = $r['remarks'] ?? null;
+                $data[] = $r;
+            }
+            return $this->response->setJSON(['status' => 'success', 'data' => $data]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
+        }
+    }
+
+    public function getResource($id = null)
+    {
+        if (!$id) {
+            return $this->response->setStatusCode(400)->setJSON(['status' => 'error']);
+        }
+        try {
+            $r = $this->db->table('resources')->where('id', (int)$id)->get()->getRowArray();
+            if (!$r) {
+                return $this->response->setStatusCode(404)->setJSON(['status' => 'error']);
+            }
+            $r['name'] = $r['equipment_name'] ?? null;
+            $r['notes'] = $r['remarks'] ?? null;
+            return $this->response->setJSON(['status' => 'success', 'data' => $r]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
+        }
+    }
+
+    public function createResource()
+    {
+        $input = $this->request->getPost();
+        $ct = strtolower($this->request->getHeaderLine('Content-Type'));
+        if (strpos($ct, 'application/json') !== false) {
+            try { $json = $this->request->getJSON(true); if (is_array($json)) { $input = $json; } } catch (\Throwable $e) { /* ignore */ }
+        }
+        if (!is_array($input)) { $input = []; }
+
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'name' => 'required|min_length[1]|max_length[100]',
+            'category' => 'required|max_length[50]',
+            'quantity' => 'required|integer|greater_than_equal_to[0]',
+            'status' => 'required|in_list[available,in_use,maintenance,retired]',
+            'location' => 'permit_empty|max_length[100]',
+            'supplier' => 'permit_empty|max_length[100]',
+            'date_acquired' => 'permit_empty|valid_date',
+            'maintenance_schedule' => 'permit_empty|valid_date',
+        ]);
+        if (!$validation->run($input)) {
+            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'errors' => $validation->getErrors()]);
+        }
+
+        // Normalize optional fields: convert empty strings to null where appropriate
+        $dateAcquired = isset($input['date_acquired']) && $input['date_acquired'] !== '' ? $input['date_acquired'] : null;
+        $maintenanceSchedule = isset($input['maintenance_schedule']) && $input['maintenance_schedule'] !== '' ? $input['maintenance_schedule'] : null;
+        $location = array_key_exists('location', $input) ? (string)$input['location'] : '';
+        $supplier = array_key_exists('supplier', $input) ? (string)$input['supplier'] : '';
+
+        $data = [
+            'equipment_name' => isset($input['name']) ? trim((string)$input['name']) : null,
+            'category' => isset($input['category']) ? trim((string)$input['category']) : null,
+            'quantity' => isset($input['quantity']) ? (int)$input['quantity'] : 0,
+            'status' => isset($input['status']) ? trim((string)$input['status']) : null,
+            'location' => $location,
+            'date_acquired' => $dateAcquired,
+            'supplier' => $supplier,
+            'maintenance_schedule' => $maintenanceSchedule,
+            'remarks' => isset($input['notes']) ? (string)$input['notes'] : null,
+        ];
+        try {
+            $ok = $this->db->table('resources')->insert($data);
+            if ($ok) {
+                return $this->response->setJSON(['status' => 'success', 'id' => $this->db->insertID()]);
+            }
+            $err = $this->db->error();
+            $lastQuery = null;
+            try { $lastQuery = (string)$this->db->getLastQuery(); } catch (\Throwable $__) {}
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => !empty($err['message']) ? $err['message'] : 'Database insert failed',
+                'db' => $err,
+                'lastQuery' => $lastQuery,
+            ]);
+        } catch (\Throwable $e) {
+            $lastQuery = null;
+            try { $lastQuery = (string)$this->db->getLastQuery(); } catch (\Throwable $__) {}
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'lastQuery' => $lastQuery,
+            ]);
+        }
+    }
+
+    public function updateResource()
+    {
+        $input = $this->request->getPost();
+        $ct = strtolower($this->request->getHeaderLine('Content-Type'));
+        if (strpos($ct, 'application/json') !== false) {
+            try { $json = $this->request->getJSON(true); if (is_array($json)) { $input = $json; } } catch (\Throwable $e) { /* ignore */ }
+        }
+        if (!is_array($input) || empty($input['id'])) {
+            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'id is required']);
+        }
+        $id = (int)$input['id'];
+
+        $data = [
+            'equipment_name' => $input['name'] ?? null,
+            'category' => $input['category'] ?? null,
+            'quantity' => isset($input['quantity']) ? (int)$input['quantity'] : null,
+            'status' => $input['status'] ?? null,
+            'location' => $input['location'] ?? null,
+            'supplier' => $input['supplier'] ?? null,
+            'remarks' => $input['notes'] ?? null,
+        ];
+        $data = array_filter($data, function($v){ return $v !== null; });
+        if (empty($data)) {
+            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'No fields to update']);
+        }
+        try {
+            $ok = $this->db->table('resources')->where('id', $id)->update($data);
+            if ($ok) {
+                return $this->response->setJSON(['status' => 'success']);
+            }
+            $err = $this->db->error();
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'db' => $err]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
+        }
+    }
+
+    public function deleteResource()
+    {
+        $input = $this->request->getPost();
+        $ct = strtolower($this->request->getHeaderLine('Content-Type'));
+        if (strpos($ct, 'application/json') !== false) {
+            try { $json = $this->request->getJSON(true); if (is_array($json)) { $input = $json; } } catch (\Throwable $e) { /* ignore */ }
+        }
+        if (!is_array($input) || empty($input['id'])) {
+            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'id is required']);
+        }
+        $id = (int)$input['id'];
+        try {
+            $ok = $this->db->table('resources')->where('id', $id)->delete();
+            if ($ok) {
+                return $this->response->setJSON(['status' => 'success']);
+            }
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
+        }
     }
 
     /**

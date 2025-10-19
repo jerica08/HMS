@@ -13,7 +13,7 @@
                     <?= \App\Helpers\UserHelper::getDisplayRole() ?>
                 </div>
             </div>
-            <a href="#" class="logout-btn" onclick="handleLogout()">
+            <a href="<?= base_url('logout') ?>" class="logout-btn">
                 <i class="fas fa-sign-out-alt"></i>
                 Logout
             </a>

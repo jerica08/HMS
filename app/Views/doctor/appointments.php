@@ -320,12 +320,6 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="closeViewAppointmentBtn">Close</button>
-                <button class="btn btn-success" id="markCompletedFromModal" style="display: none;">
-                    <i class="fas fa-check"></i> Mark Completed
-                </button>
-                <button class="btn btn-secondary" id="rescheduleFromModal" style="display: none;">
-                    <i class="fas fa-calendar-alt"></i> Reschedule
-                </button>
             </div>
         </div>
     </div>
@@ -509,8 +503,6 @@
         const viewModal = document.getElementById('viewAppointmentModal');
         const closeViewModal = document.getElementById('closeViewModal');
         const closeViewAppointmentBtn = document.getElementById('closeViewAppointmentBtn');
-        const markCompletedFromModal = document.getElementById('markCompletedFromModal');
-        const rescheduleFromModal = document.getElementById('rescheduleFromModal');
         let currentAppointmentId = null;
 
         // View appointment modal event handlers
@@ -527,22 +519,6 @@
         viewModal.addEventListener('click', (e) => {
             if (e.target === viewModal) {
                 viewModal.classList.remove('show');
-                currentAppointmentId = null;
-            }
-        });
-
-        markCompletedFromModal.addEventListener('click', () => {
-            if (currentAppointmentId && confirm('Mark this appointment as completed?')) {
-                updateAppointmentStatus(currentAppointmentId, 'completed');
-                viewModal.classList.remove('show');
-                currentAppointmentId = null;
-            }
-        });
-
-        rescheduleFromModal.addEventListener('click', () => {
-            if (currentAppointmentId) {
-                viewModal.classList.remove('show');
-                rescheduleAppointment(currentAppointmentId);
                 currentAppointmentId = null;
             }
         });
@@ -596,17 +572,6 @@
 
         function displayAppointmentDetails(appointment) {
             const detailsBody = document.getElementById('appointmentDetailsBody');
-            const markCompletedBtn = document.getElementById('markCompletedFromModal');
-            const rescheduleBtn = document.getElementById('rescheduleFromModal');
-            
-            // Show/hide action buttons based on status
-            if (appointment.status && appointment.status.toLowerCase() !== 'completed') {
-                markCompletedBtn.style.display = 'inline-block';
-                rescheduleBtn.style.display = 'inline-block';
-            } else {
-                markCompletedBtn.style.display = 'none';
-                rescheduleBtn.style.display = 'inline-block';
-            }
             
             detailsBody.innerHTML = `
                 <div style="display: grid; gap: 1.5rem;">

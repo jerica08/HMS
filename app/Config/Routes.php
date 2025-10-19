@@ -105,6 +105,7 @@ $routes->get('doctor/appointments', 'Appointments::appointments');
 $routes->post('doctor/schedule-appointment', 'Appointments::postScheduleAppointment');
 $routes->get('doctor/appointment-data', 'Appointments::getAppointmentData');
 $routes->post('doctor/update-appointment-status', 'Appointments::updateAppointmentStatus');
+$routes->get('doctor/appointment/details/(:num)', 'Appointments::getAppointmentDetails/$1');
 
 $routes->get('doctor/prescriptions', 'Prescriptions::prescriptions');
 $routes->post('doctor/create-prescription', 'Prescriptions::createPrescription');

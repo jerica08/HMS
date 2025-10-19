@@ -305,6 +305,31 @@
         </div>
     </div>
 
+    <!-- View Appointment Modal -->
+    <div id="viewAppointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Appointment Details</h3>
+                <button class="modal-close" id="closeViewModal">&times;</button>
+            </div>
+            <div class="modal-body" id="appointmentDetailsBody">
+                <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>Loading appointment details...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="closeViewAppointmentBtn">Close</button>
+                <button class="btn btn-success" id="markCompletedFromModal" style="display: none;">
+                    <i class="fas fa-check"></i> Mark Completed
+                </button>
+                <button class="btn btn-secondary" id="rescheduleFromModal" style="display: none;">
+                    <i class="fas fa-calendar-alt"></i> Reschedule
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="<?= base_url('js/logout.js') ?>"></script>
     <script>
         // Global variables
@@ -480,10 +505,213 @@
             }
         }
 
+        // View Appointment Modal functionality
+        const viewModal = document.getElementById('viewAppointmentModal');
+        const closeViewModal = document.getElementById('closeViewModal');
+        const closeViewAppointmentBtn = document.getElementById('closeViewAppointmentBtn');
+        const markCompletedFromModal = document.getElementById('markCompletedFromModal');
+        const rescheduleFromModal = document.getElementById('rescheduleFromModal');
+        let currentAppointmentId = null;
+
+        // View appointment modal event handlers
+        closeViewModal.addEventListener('click', () => {
+            viewModal.classList.remove('show');
+            currentAppointmentId = null;
+        });
+
+        closeViewAppointmentBtn.addEventListener('click', () => {
+            viewModal.classList.remove('show');
+            currentAppointmentId = null;
+        });
+
+        viewModal.addEventListener('click', (e) => {
+            if (e.target === viewModal) {
+                viewModal.classList.remove('show');
+                currentAppointmentId = null;
+            }
+        });
+
+        markCompletedFromModal.addEventListener('click', () => {
+            if (currentAppointmentId && confirm('Mark this appointment as completed?')) {
+                updateAppointmentStatus(currentAppointmentId, 'completed');
+                viewModal.classList.remove('show');
+                currentAppointmentId = null;
+            }
+        });
+
+        rescheduleFromModal.addEventListener('click', () => {
+            if (currentAppointmentId) {
+                viewModal.classList.remove('show');
+                rescheduleAppointment(currentAppointmentId);
+                currentAppointmentId = null;
+            }
+        });
+
         // Appointment management functions
         function viewAppointment(appointmentId) {
-            // Open appointment details modal
-            window.location.href = `<?= base_url('doctor/appointment/view/') ?>${appointmentId}`;
+            currentAppointmentId = appointmentId;
+            const detailsBody = document.getElementById('appointmentDetailsBody');
+            
+            // Show loading state
+            detailsBody.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>Loading appointment details...</p>
+                </div>
+            `;
+            
+            // Show modal
+            viewModal.classList.add('show');
+            
+            // Fetch appointment details
+            fetch(`<?= base_url('doctor/appointment/details/') ?>${appointmentId}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayAppointmentDetails(data.appointment);
+                } else {
+                    detailsBody.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: #ef4444;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>Error loading appointment details: ${data.message || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                detailsBody.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #ef4444;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>Failed to load appointment details. Please try again.</p>
+                    </div>
+                `;
+            });
+        }
+
+        function displayAppointmentDetails(appointment) {
+            const detailsBody = document.getElementById('appointmentDetailsBody');
+            const markCompletedBtn = document.getElementById('markCompletedFromModal');
+            const rescheduleBtn = document.getElementById('rescheduleFromModal');
+            
+            // Show/hide action buttons based on status
+            if (appointment.status && appointment.status.toLowerCase() !== 'completed') {
+                markCompletedBtn.style.display = 'inline-block';
+                rescheduleBtn.style.display = 'inline-block';
+            } else {
+                markCompletedBtn.style.display = 'none';
+                rescheduleBtn.style.display = 'inline-block';
+            }
+            
+            detailsBody.innerHTML = `
+                <div style="display: grid; gap: 1.5rem;">
+                    <!-- Appointment Information -->
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                        <h4 style="margin: 0 0 0.75rem 0; color: #1e40af; font-size: 1.1rem;">
+                            <i class="fas fa-calendar-check"></i> Appointment Information
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                            <div>
+                                <strong>Date:</strong><br>
+                                <span>${appointment.formatted_date || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <strong>Time:</strong><br>
+                                <span>${appointment.formatted_time || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <strong>Type:</strong><br>
+                                <span>${appointment.appointment_type || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <strong>Duration:</strong><br>
+                                <span>${appointment.duration || '30'} minutes</span>
+                            </div>
+                            <div>
+                                <strong>Status:</strong><br>
+                                <span class="badge ${getBadgeClass(appointment.status || 'scheduled')}">
+                                    ${(appointment.status || 'scheduled').charAt(0).toUpperCase() + (appointment.status || 'scheduled').slice(1)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Patient Information -->
+                    <div style="background: #f0fdf4; padding: 1rem; border-radius: 8px; border-left: 4px solid #10b981;">
+                        <h4 style="margin: 0 0 0.75rem 0; color: #047857; font-size: 1.1rem;">
+                            <i class="fas fa-user"></i> Patient Information
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                            <div>
+                                <strong>Name:</strong><br>
+                                <span>${(appointment.patient_first_name || '') + ' ' + (appointment.patient_last_name || '')}</span>
+                            </div>
+                            <div>
+                                <strong>Patient ID:</strong><br>
+                                <span>${appointment.patient_id || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <strong>Age:</strong><br>
+                                <span>${appointment.patient_age || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <strong>Gender:</strong><br>
+                                <span>${appointment.gender || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <strong>Phone:</strong><br>
+                                <span>${appointment.patient_phone || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <strong>Email:</strong><br>
+                                <span>${appointment.patient_email || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reason for Visit -->
+                    <div style="background: #fefce8; padding: 1rem; border-radius: 8px; border-left: 4px solid #eab308;">
+                        <h4 style="margin: 0 0 0.75rem 0; color: #a16207; font-size: 1.1rem;">
+                            <i class="fas fa-stethoscope"></i> Reason for Visit
+                        </h4>
+                        <p style="margin: 0; line-height: 1.5;">${appointment.reason || 'General consultation'}</p>
+                    </div>
+
+                    ${appointment.medical_history ? `
+                    <!-- Medical History -->
+                    <div style="background: #fdf2f8; padding: 1rem; border-radius: 8px; border-left: 4px solid #ec4899;">
+                        <h4 style="margin: 0 0 0.75rem 0; color: #be185d; font-size: 1.1rem;">
+                            <i class="fas fa-file-medical"></i> Medical History
+                        </h4>
+                        <p style="margin: 0; line-height: 1.5;">${appointment.medical_history}</p>
+                    </div>
+                    ` : ''}
+
+                    ${appointment.emergency_contact_name ? `
+                    <!-- Emergency Contact -->
+                    <div style="background: #fef2f2; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444;">
+                        <h4 style="margin: 0 0 0.75rem 0; color: #dc2626; font-size: 1.1rem;">
+                            <i class="fas fa-phone-alt"></i> Emergency Contact
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                            <div>
+                                <strong>Name:</strong><br>
+                                <span>${appointment.emergency_contact_name}</span>
+                            </div>
+                            <div>
+                                <strong>Phone:</strong><br>
+                                <span>${appointment.emergency_contact_phone || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
         }
 
         function markCompleted(appointmentId) {
@@ -663,6 +891,18 @@
                 showNotification('Please fill in all required fields.', 'error');
             }
         });
+
+        // Escape HTML function for XSS protection
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text ? text.replace(/[&<>"']/g, function(m) { return map[m]; }) : '';
+        }
     </script>
 </body>
 </html>

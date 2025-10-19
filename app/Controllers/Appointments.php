@@ -532,4 +532,115 @@ class Appointments extends BaseController
             return [];
         }
     }
+
+    /**
+     * Get appointment details for viewing
+     */
+    public function getAppointmentDetails($appointmentId)
+    {
+        if (!$this->doctorId) {
+            return $this->response->setStatusCode(401)->setJSON([
+                'success' => false,
+                'message' => 'Doctor not authenticated'
+            ]);
+        }
+
+        try {
+            // Determine the correct primary key field
+            $fields = $this->db->getFieldNames('appointments');
+            $primaryKeyField = in_array('appointment_id', $fields) ? 'appointment_id' : 'id';
+            
+            // Build the select statement dynamically based on available fields
+            $selectFields = [
+                'a.' . $primaryKeyField . ' as appointment_id',
+                'a.appointment_date',
+                'a.appointment_time', 
+                'a.appointment_type',
+                'a.reason',
+                'a.duration',
+                'a.status',
+                'a.doctor_id',
+                'a.patient_id',
+                'p.first_name as patient_first_name',
+                'p.last_name as patient_last_name',
+                'p.date_of_birth'
+            ];
+            
+            // Add patient fields that exist
+            $patientFields = $this->db->getFieldNames('patient');
+            if (in_array('contact_no', $patientFields)) {
+                $selectFields[] = 'p.contact_no as patient_phone';
+            }
+            if (in_array('email', $patientFields)) {
+                $selectFields[] = 'p.email as patient_email';
+            }
+            if (in_array('address', $patientFields)) {
+                $selectFields[] = 'p.address';
+            }
+            if (in_array('gender', $patientFields)) {
+                $selectFields[] = 'p.gender';
+            }
+            if (in_array('blood_group', $patientFields)) {
+                $selectFields[] = 'p.blood_group as blood_type';
+            }
+            if (in_array('medical_notes', $patientFields)) {
+                $selectFields[] = 'p.medical_notes as medical_history';
+            }
+            if (in_array('emergency_contact', $patientFields)) {
+                $selectFields[] = 'p.emergency_contact as emergency_contact_name';
+            }
+            if (in_array('emergency_phone', $patientFields)) {
+                $selectFields[] = 'p.emergency_phone as emergency_contact_phone';
+            }
+            
+            // Fetch appointment with patient information
+            $appointment = $this->db->table('appointments a')
+                ->select(implode(', ', $selectFields))
+                ->join('patient p', 'p.patient_id = a.patient_id', 'left')
+                ->where('a.' . $primaryKeyField, $appointmentId)
+                ->where('a.doctor_id', $this->doctorId)
+                ->get()
+                ->getRowArray();
+
+            if (!$appointment) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Appointment not found or access denied'
+                ]);
+            }
+
+            // Calculate patient age
+            if (!empty($appointment['date_of_birth'])) {
+                try {
+                    $dob = new \DateTime($appointment['date_of_birth']);
+                    $now = new \DateTime();
+                    $appointment['patient_age'] = $now->diff($dob)->y;
+                } catch (\Exception $e) {
+                    $appointment['patient_age'] = 'N/A';
+                }
+            } else {
+                $appointment['patient_age'] = 'N/A';
+            }
+
+            // Format date and time for display
+            if (!empty($appointment['appointment_date'])) {
+                $appointment['formatted_date'] = date('F j, Y', strtotime($appointment['appointment_date']));
+            }
+            if (!empty($appointment['appointment_time'])) {
+                $appointment['formatted_time'] = date('g:i A', strtotime($appointment['appointment_time']));
+            }
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'appointment' => $appointment
+            ]);
+
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to fetch appointment details: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

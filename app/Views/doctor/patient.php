@@ -5,16 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Patient Management - HMS Doctor</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
+    <link rel="stylesheet" href="<?= base_url('assets/css/doctor/patient.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <style>
-        .patient-table { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
-        .table-header { background:#f8fafc; padding:1rem; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
-        .table { width:100%; border-collapse:separate; border-spacing:0; }
-        .table thead th { background:#f8fafc; color:#374151; font-weight:600; text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; }
-        .table tbody td { padding:0.75rem 1rem; border-bottom:1px solid #f3f4f6; }
-        .patient-avatar { width:40px; height:40px; border-radius:50%; background:#4299e1; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:0.9rem; }
-        .btn-small { padding:0.3rem 0.8rem; font-size:0.8rem; }
-    </style>
 </head>
 <body class="doctor">
      <!--header-->

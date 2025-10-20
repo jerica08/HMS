@@ -176,8 +176,8 @@ const AppointmentManager = {
                                     <i class="fas fa-check"></i> Complete
                                 </button>
                             ` : ''}
-                            <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="rescheduleAppointment(${appointment.appointment_id})">
-                                <i class="fas fa-calendar-alt"></i> Reschedule
+                            <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="deleteAppointment(${appointment.appointment_id})">
+                                <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
                     </td>
@@ -217,8 +217,33 @@ function markCompleted(appointmentId) {
     }
 }
 
-function rescheduleAppointment(appointmentId) {
-    window.location.href = `${getBaseUrl()}doctor/appointment/reschedule/${appointmentId}`;
+function deleteAppointment(appointmentId) {
+    if (confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
+        fetch(`${getBaseUrl()}doctor/delete-appointment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                appointment_id: appointmentId,
+                csrf_token: getCsrfToken()
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                AppointmentManager.refreshAppointments();
+                showNotification('Appointment deleted successfully', 'success');
+            } else {
+                showNotification(result.message || 'Error deleting appointment', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred while deleting appointment', 'error');
+        });
+    }
 }
 
 function updateAppointmentStatus(appointmentId, status) {

@@ -643,4 +643,75 @@ class Appointments extends BaseController
             ]);
         }
     }
+
+    /**
+     * Delete an appointment
+     */
+    public function deleteAppointment()
+    {
+        try {
+            // Check if doctor is authenticated
+            if (!$this->doctorId) {
+                return $this->response->setStatusCode(401)->setJSON([
+                    'success' => false,
+                    'message' => 'Doctor not authenticated'
+                ]);
+            }
+
+            // Get JSON input
+            $input = $this->request->getJSON(true);
+            $appointmentId = $input['appointment_id'] ?? null;
+
+            if (!$appointmentId) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Appointment ID is required'
+                ]);
+            }
+
+            // Determine the correct primary key field
+            $fields = $this->db->getFieldNames('appointments');
+            $primaryKeyField = in_array('appointment_id', $fields) ? 'appointment_id' : 'id';
+
+            // Verify appointment exists and belongs to this doctor
+            $appointment = $this->db->table('appointments')
+                ->where($primaryKeyField, $appointmentId)
+                ->where('doctor_id', $this->doctorId)
+                ->get()
+                ->getRowArray();
+
+            if (!$appointment) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Appointment not found or access denied'
+                ]);
+            }
+
+            // Delete the appointment
+            $deleted = $this->db->table('appointments')
+                ->where($primaryKeyField, $appointmentId)
+                ->where('doctor_id', $this->doctorId)
+                ->delete();
+
+            if ($deleted) {
+                log_message('info', 'Appointment deleted successfully: ID ' . $appointmentId . ' by doctor ' . $this->doctorId);
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Appointment deleted successfully'
+                ]);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to delete appointment'
+                ]);
+            }
+
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to delete appointment: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

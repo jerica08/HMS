@@ -188,8 +188,8 @@
                                                     <i class="fas fa-check"></i> Complete
                                                 </button>
                                             <?php endif; ?>
-                                            <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="rescheduleAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
-                                                <i class="fas fa-calendar-alt"></i> Reschedule
+                                            <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="deleteAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
+                                                <i class="fas fa-trash"></i> Delete
                                             </button>
                                         </div>
                                     </td>

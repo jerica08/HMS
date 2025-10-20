@@ -92,10 +92,16 @@ const PatientList = {
                 <td>${assigned}</td>
                 <td>${status}</td>
                 <td>
-                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                        <button class="btn btn-secondary btn-small" data-action="view" data-id="${id}">View</button>
-                        <button class="btn btn-primary btn-small" data-action="edit" data-id="${id}">Edit</button>
-                        <button class="btn btn-success btn-small" data-action="assign" data-id="${id}">Assign Doctor</button>
+                    <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" data-action="view" data-id="${id}">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn btn-warning" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" data-action="edit" data-id="${id}">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" data-action="assign" data-id="${id}">
+                            <i class="fas fa-user-md"></i> Assign
+                        </button>
                     </div>
                 </td>
             </tr>`;

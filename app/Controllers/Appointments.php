@@ -237,7 +237,7 @@ class Appointments extends BaseController
         try {
             // Verify appointment belongs to this doctor
             $appointment = $this->db->table('appointments')
-                ->where('id', $appointmentId)
+                ->where('appointment_id', $appointmentId)
                 ->where('doctor_id', $this->doctorId)
                 ->get()
                 ->getRowArray();
@@ -251,7 +251,7 @@ class Appointments extends BaseController
 
             // Update status
             $updated = $this->db->table('appointments')
-                ->where('id', $appointmentId)
+                ->where('appointment_id', $appointmentId)
                 ->update([
                     'status' => $status,
                     'updated_at' => date('Y-m-d H:i:s')

@@ -100,13 +100,8 @@
 
             <div class="patient-table">
                 <div class="search-filters">
-                    <h3 style="margin-bottom: 1rem;">View Options</h3>
+                    <h3 style="margin-bottom: 1rem;">Filter Options</h3>
                     <div class="filter-row">
-                        <div class="btn-group">
-                            <button class="btn btn-primary active" id="todayView">Today</button>
-                            <button class="btn btn-secondary" id="weekView">Week</button>
-                            <button class="btn btn-secondary" id="monthView">Month</button>
-                        </div>
                         <div>
                             <input type="date" class="filter-input" id="dateSelector" value="2025-08-20">
                         </div>

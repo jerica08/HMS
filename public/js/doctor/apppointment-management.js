@@ -3,23 +3,18 @@
 
 const AppointmentManager = {
     // Global variables
-    currentView: 'today',
     currentDate: new Date(),
     
     // DOM elements
-    todayViewBtn: null,
-    weekViewBtn: null,
-    monthViewBtn: null,
     dateSelector: null,
+    statusFilter: null,
     refreshBtn: null,
     scheduleTitle: null,
 
     init() {
         // Get DOM elements
-        this.todayViewBtn = document.getElementById('todayView');
-        this.weekViewBtn = document.getElementById('weekView');
-        this.monthViewBtn = document.getElementById('monthView');
         this.dateSelector = document.getElementById('dateSelector');
+        this.statusFilter = document.getElementById('statusFilter');
         this.refreshBtn = document.getElementById('refreshBtn');
         this.scheduleTitle = document.getElementById('scheduleTitle');
 
@@ -30,14 +25,14 @@ const AppointmentManager = {
     },
 
     setupEventListeners() {
-        // View switching
-        this.todayViewBtn?.addEventListener('click', () => this.switchView('today'));
-        this.weekViewBtn?.addEventListener('click', () => this.switchView('week'));
-        this.monthViewBtn?.addEventListener('click', () => this.switchView('month'));
-        
         // Date selector
         this.dateSelector?.addEventListener('change', () => {
             this.currentDate = new Date(this.dateSelector.value);
+            this.refreshAppointments();
+        });
+        
+        // Status filter
+        this.statusFilter?.addEventListener('change', () => {
             this.refreshAppointments();
         });
         
@@ -87,15 +82,17 @@ const AppointmentManager = {
         if (!this.scheduleTitle) return;
         
         let title = '';
+        const statusText = this.statusFilter?.value ? ` (${this.statusFilter.value})` : '';
+        
         switch(this.currentView) {
             case 'today':
-                title = "Today's Schedule - " + formatDateDisplay(this.currentDate);
+                title = "Today's Schedule - " + formatDateDisplay(this.currentDate) + statusText;
                 break;
             case 'week':
-                title = "Weekly Schedule - " + getWeekRange(this.currentDate);
+                title = "Weekly Schedule - " + getWeekRange(this.currentDate) + statusText;
                 break;
             case 'month':
-                title = "Monthly Schedule - " + this.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                title = "Monthly Schedule - " + this.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) + statusText;
                 break;
         }
         this.scheduleTitle.textContent = title;
@@ -107,8 +104,11 @@ const AppointmentManager = {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading appointments...</td></tr>';
         }
         
+        // Get status filter value
+        const statusFilter = this.statusFilter?.value || '';
+        
         // AJAX call to fetch appointments
-        fetch(`${getBaseUrl()}doctor/appointment-data?view=${this.currentView}&date=${formatDate(this.currentDate)}`, {
+        fetch(`${getBaseUrl()}doctor/appointment-data?view=${this.currentView}&date=${formatDate(this.currentDate)}&status=${statusFilter}`, {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
@@ -136,7 +136,7 @@ const AppointmentManager = {
                 <tr>
                     <td colspan="7" style="text-align: center; padding: 2rem; color: #6b7280;">
                         <i class="fas fa-calendar-times" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                        <p>No appointments found for the selected ${this.currentView}.</p>
+                        <p>No appointments found for the selected date.</p>
                         <button class="btn btn-primary" onclick="document.getElementById('scheduleAppointmentBtn').click()">
                             <i class="fas fa-plus"></i> Schedule New Appointment
                         </button>

@@ -139,9 +139,9 @@
 
     <?php include APPPATH . 'Views/doctor/components/create-prescriptions-modal.php'; ?>
 
-<script src="<?= base_url('js/doctor/modals/prescription-utils.js') ?>"></script>
-<script src="<?= base_url('js/doctor/modals/new-prescription-modal.js') ?>"></script>
-<script src="<?= base_url('js/doctor/modals/view-prescription-modal.js') ?>"></script>
+<script src="<?= base_url('js/doctor/prescriptions-utils.js') ?>"></script>
+<script src="<?= base_url('js/doctor/new-prescription-modal.js') ?>"></script>
+<script src="<?= base_url('js/doctor/view-prescriptions-modal.js') ?>"></script>
 <script src="<?= base_url('js/doctor/prescriptions-management.js') ?>"></script>
 
 </body>

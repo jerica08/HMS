@@ -99,7 +99,6 @@ $routes->get('doctor/patient', 'Patients::patients');
 $routes->put('doctor/patient/(:num)', 'Patients::updatePatient/$1');
 $routes->post('doctor/patient/(:num)', 'Patients::updatePatient/$1');
 $routes->get('doctor/doctors/api', 'Doctor::getDoctorsAPI');
-$routes->post('doctor/assign-doctor', 'Doctor::assignDoctor');
 
 $routes->get('doctor/appointments', 'Appointments::appointments');
 $routes->post('doctor/schedule-appointment', 'Appointments::postScheduleAppointment');

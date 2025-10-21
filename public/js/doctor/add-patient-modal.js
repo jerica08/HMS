@@ -126,7 +126,6 @@ const PatientAdd = {
             last_name: getVal('last_name'),
             date_of_birth: getVal('date_of_birth'),
             age: getVal('age'),
-            gender: getVal('gender'),
             civil_status: getVal('civil_status'),
             phone: getVal('phone'),
             email: getVal('email'),

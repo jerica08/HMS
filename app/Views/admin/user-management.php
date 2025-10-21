@@ -6,39 +6,6 @@
     <title>User Management - HMS Admin</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <style>
-      .table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.95rem; }
-      .table thead th { text-align: left; background: #f8fafc; color: #374151; font-weight: 600; padding: 0.75rem 1.25rem; border-bottom: 1px solid #e5e7eb; }
-      .table tbody td { padding: 0.75rem 1.25rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
-      .table tbody tr:last-child td { border-bottom: none; }
-      .role-badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
-      .role-admin { background: #fee2e2; color: #991b1b; }
-      .role-doctor { background: #dbeafe; color: #1e40af; }
-      .role-nurse { background: #dcfce7; color: #166534; }
-      .role-receptionist { background: #fef3c7; color: #92400e; }
-      .role-laboratorist { background: #fae8ff; color: #6b21a8; }
-      .role-pharmacist { background: #e0f2fe; color: #075985; }
-      .role-accountant { background: #f0fdf4; color: #166534; }
-      .role-it-staff { background: #eef2ff; color: #3730a3; }
-      .status-active { color: #16a34a; }
-      .status-inactive { color: #9ca3af; }
-      .action-buttons { display: flex; gap: 0.5rem;  margin-top: 1rem; flex-wrap: wrap; }
-      .btn-small { padding: 0.5rem 1rem; font-size: 0.8rem; }
-      .dashboard-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; }
-      .overview-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 0.75rem; }
-      .card-header-modern { display: flex; align-items: center; gap: 0.75rem; }
-      .card-icon-modern.blue { background: #eff6ff; color: #1d4ed8; border-radius: 10px; padding: 0.5rem; }
-      .card-icon-modern.purple { background: #f5f3ff; color: #7c3aed; border-radius: 10px; padding: 0.5rem; }
-      .card-title-modern { margin: 0; font-size: 1rem; }
-      .card-subtitle { margin: 0; font-size: 0.8rem; color: #6b7280; }
-      .user-table { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-      .table-header { background: #f8fafc; padding: 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-      @media (max-width: 640px) {
-        .table thead { display: none; }
-        .table tbody tr { display: grid; grid-template-columns: 1fr; gap: 0.25rem; padding: 0.5rem 0; }
-        .table tbody td { border: none; padding: 0.25rem 1rem; }
-      }
-    </style>
     <?php
       // Initialize optional filter vars to avoid notices
       $search = $search ?? null;
@@ -75,10 +42,7 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <script>
-                function dismissFlash(){ const n = document.getElementById('flashNotice'); if(n){ n.style.display='none'; } }
-                setTimeout(() => dismissFlash(), 4000);
-            </script>
+            
         <?php endif; ?>
 
         <?php $errors = session()->get('errors'); ?>
@@ -232,68 +196,16 @@
       </main>
 </div>
 <script>
-function editUser(id) {
-    fetch('<?= base_url('admin/users/get/') ?>' + id)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert('Error: ' + data.error);
-                return;
-            }
-            // Populate edit modal
-            document.getElementById('edit_user_id').value = data.user_id;
-            document.getElementById('edit_username').value = data.username;
-            document.getElementById('edit_role').value = data.role;
-            document.getElementById('edit_status').value = data.status;
-            // Show modal
-            document.getElementById('editUserModal').classList.add('active');
-        })
-        .catch(error => {
-            console.error('Error fetching user:', error);
-            alert('Failed to load user data.');
-        });
-}
-
-function resetPassword(id) {
-    if (!id) return;
-    if (!confirm('Reset this user\'s password? A temporary password will be generated.')) return;
-    const form = document.createElement('form');
-    form.method = 'GET';
-    form.action = '<?= base_url('admin/users/reset/') ?>' + id;
-    document.body.appendChild(form);
-    form.submit();
-}
-
-function deleteUser(id) {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-        // Create a form to submit GET request to the delete route
-        const form = document.createElement('form');
-        form.method = 'GET';
-        form.action = '<?= base_url('admin/users/delete/') ?>' + id;
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
+  window.USER_MGMT_CFG = {
+    getUserBase: '<?= base_url('admin/users/get/') ?>',
+    resetUserBase: '<?= base_url('admin/users/reset/') ?>',
+    deleteUserBase: '<?= base_url('admin/users/delete/') ?>',
+    hasErrors: <?= json_encode(!empty(session()->get('errors'))) ?>
+  };
 </script>
+<script src="<?= base_url('js/admin/user-management.js') ?>"></script>
 
 <!-- Add User Modal -->
-<style>
-/* Modal and form styles */
-.hms-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 9990; }
-.hms-modal-overlay.active { display: flex; }
-.hms-modal { width: 100%; max-width: 900px; background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid #f1f5f9; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); max-height: 90vh; overflow: auto; box-sizing: border-box; }
-.hms-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; background: #f8f9ff; }
-.hms-modal-title { font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
-.hms-modal-body { padding: 1rem 1.25rem; color: #475569; }
-.hms-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 0.75rem 1.25rem 1.25rem; background: #fff; }
-.form-input, .form-select, .form-textarea { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.95rem; background: #fff; transition: border-color 0.2s; }
-.form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
-.form-label { font-size: 0.9rem; color: #374151; margin-bottom: 0.25rem; display: block; font-weight: 500; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-.form-grid .full { grid-column: 1 / -1; }
-@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } 
-}
-</style>
   <div id="addUserModal" class="hms-modal-overlay" aria-hidden="true">
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
       <div class="hms-modal-header">
@@ -498,20 +410,7 @@ function deleteUser(id) {
   </div>
 </div>
 
-<script>
-function closeEditUserModal() {
-    const overlay = document.getElementById('editUserModal');
-    if (overlay) overlay.classList.remove('active');
-}
 
-// Close modal when clicking the overlay background
-window.addEventListener('click', function(event) {
-    const overlay = document.getElementById('editUserModal');
-    if (overlay && event.target === overlay) {
-        overlay.classList.remove('active');
-    }
-});
-</script>
 
 </body>
 </html>

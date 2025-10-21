@@ -75,10 +75,10 @@
                         <button type="button" id="openBillingBtn" class="btn btn-primary" onclick="openBillingModal()">
                             <i class="fas fa-plus"></i> Billing
                         </button>
-                        <button type="button" id="" class="btn btn-success" onclick="">
+                        <button type="button" id="openPaymentBtn" class="btn btn-success" onclick="openPaymentModal()">
                             <i class="fas fa-plus"></i> Process Payment
                         </button>
-                        <button class="btn btn-warning">
+                        <button type="button" id="openExpenseBtn" class="btn btn-warning" onclick="openExpenseModal()">
                             <i class="fas fa-plus"></i> Expenses
                         </button>
                 </div><br>
@@ -95,6 +95,57 @@
                 <div class="stat-card profit">
                     <div class="stat-number">₱0</div>
                     <div class="stat-label">Net Balance</div>
+                </div>
+            </div>
+
+            <!-- Expenses Modal -->
+            <div id="expenseModal" class="hms-modal-overlay" aria-hidden="true">
+                <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="expenseTitle">
+                    <div class="hms-modal-header">
+                        <div class="hms-modal-title" id="expenseTitle">
+                            <i class="fas fa-receipt" style="color:#eab308"></i>
+                            Add Expense
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="closeExpenseModal()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="expenseForm">
+                        <div class="hms-modal-body">
+                            <div class="form-grid">
+                                <div>
+                                    <label class="form-label" for="exp_name">Expense Name</label>
+                                    <input id="exp_name" name="name" type="text" class="form-input" required autocomplete="off">
+                                </div>
+                                <div>
+                                    <label class="form-label" for="exp_amount">Amount</label>
+                                    <input id="exp_amount" name="amount" type="number" class="form-input" min="0" step="0.01" required>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="exp_category">Category</label>
+                                    <select id="exp_category" name="category" class="form-select" required>
+                                        <option value="supplies">Supplies</option>
+                                        <option value="utilities">Utilities</option>
+                                        <option value="salary">Salary</option>
+                                        <option value="maintenance">Maintenance</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="exp_date">Date</label>
+                                    <input id="exp_date" name="date" type="date" class="form-input">
+                                </div>
+                                <div class="full">
+                                    <label class="form-label" for="exp_notes">Notes</label>
+                                    <textarea id="exp_notes" name="notes" rows="3" class="form-textarea" autocomplete="off"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hms-modal-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeExpenseModal()">Cancel</button>
+                            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -163,6 +214,58 @@
                         </div>
                         <div class="hms-modal-actions">
                             <button type="button" class="btn btn-secondary" onclick="closeBillingModal()">Cancel</button>
+                            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Process Payment Modal -->
+            <div id="paymentModal" class="hms-modal-overlay" aria-hidden="true">
+                <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="paymentTitle">
+                    <div class="hms-modal-header">
+                        <div class="hms-modal-title" id="paymentTitle">
+                            <i class="fas fa-credit-card" style="color:#10b981"></i>
+                            Process Payment
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="closePaymentModal()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="paymentForm">
+                        <div class="hms-modal-body">
+                            <div class="form-grid">
+                                <div>
+                                    <label class="form-label" for="pay_patient_identifier">Patient Name / ID</label>
+                                    <input id="pay_patient_identifier" name="patient_identifier" type="text" class="form-input" required autocomplete="off">
+                                </div>
+                                <div>
+                                    <label class="form-label" for="pay_bill_ref">Bill Reference</label>
+                                    <input id="pay_bill_ref" name="bill_ref" type="text" class="form-input" placeholder="Bill ID / Number" required autocomplete="off">
+                                </div>
+                                <div>
+                                    <label class="form-label" for="pay_amount">Amount</label>
+                                    <input id="pay_amount" name="amount" type="number" class="form-input" min="0" step="0.01" required>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="pay_method">Payment Method</label>
+                                    <select id="pay_method" name="method" class="form-select" required>
+                                        <option value="cash">Cash</option>
+                                        <option value="card">Card</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="pay_date">Payment Date</label>
+                                    <input id="pay_date" name="date" type="date" class="form-input">
+                                </div>
+                                <div class="full">
+                                    <label class="form-label" for="pay_notes">Notes</label>
+                                    <textarea id="pay_notes" name="notes" rows="3" class="form-textarea" autocomplete="off"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hms-modal-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Cancel</button>
                             <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
                         </div>
                     </form>
@@ -248,12 +351,34 @@
             openBillingModal();
         });
     }
+    // Wire Process Payment button
+    var payBtn = document.getElementById('openPaymentBtn');
+    if(payBtn){
+        payBtn.addEventListener('click', function(){
+            try { console.log('[Payment] Button clicked'); } catch(e){}
+            openPaymentModal();
+        });
+    }
+    // Wire Expenses button
+    var expBtn = document.getElementById('openExpenseBtn');
+    if(expBtn){
+        expBtn.addEventListener('click', function(){
+            try { console.log('[Expense] Button clicked'); } catch(e){}
+            openExpenseModal();
+        });
+    }
     // Delegated binding in case button is re-rendered
     document.addEventListener('click', function(e){
         var t = e.target;
         if(!t) return;
         if (t.id === 'openBillingBtn' || (t.closest && t.closest('#openBillingBtn'))){
             openBillingModal();
+        }
+        if (t.id === 'openPaymentBtn' || (t.closest && t.closest('#openPaymentBtn'))){
+            openPaymentModal();
+        }
+        if (t.id === 'openExpenseBtn' || (t.closest && t.closest('#openExpenseBtn'))){
+            openExpenseModal();
         }
     });
     // Close when clicking outside modal content
@@ -262,8 +387,73 @@
             if(e.target === billingModal){ closeBillingModal(); }
         });
     }
+    const paymentModal = document.getElementById('paymentModal');
+    function openPaymentModal(){
+        if(paymentModal){
+            paymentModal.classList.add('active');
+            paymentModal.style.display = 'flex';
+            paymentModal.setAttribute('aria-hidden','false');
+            try { document.body.style.overflow = 'hidden'; } catch(e){}
+            try { console.log('[Payment] Modal opened'); } catch(e){}
+            // default date to today if empty
+            try {
+                var d = document.getElementById('pay_date');
+                if(d && !d.value){
+                    var now = new Date();
+                    var m = String(now.getMonth()+1).padStart(2,'0');
+                    var day = String(now.getDate()).padStart(2,'0');
+                    d.value = now.getFullYear()+'-'+m+'-'+day;
+                }
+            } catch(e){}
+        }
+    }
+    function closePaymentModal(){
+        if(paymentModal){
+            paymentModal.classList.remove('active');
+            paymentModal.style.display = '';
+            paymentModal.setAttribute('aria-hidden','true');
+            try { document.body.style.overflow = ''; } catch(e){}
+            try { console.log('[Payment] Modal closed'); } catch(e){}
+        }
+    }
+    if(paymentModal){
+        paymentModal.addEventListener('click', function(e){ if(e.target === paymentModal){ closePaymentModal(); } });
+    }
+    // Expense modal controls
+    const expenseModal = document.getElementById('expenseModal');
+    function openExpenseModal(){
+        if(expenseModal){
+            expenseModal.classList.add('active');
+            expenseModal.style.display = 'flex';
+            expenseModal.setAttribute('aria-hidden','false');
+            try { document.body.style.overflow = 'hidden'; } catch(e){}
+            try { console.log('[Expense] Modal opened'); } catch(e){}
+            // default date to today if empty
+            try {
+                var d = document.getElementById('exp_date');
+                if(d && !d.value){
+                    var now = new Date();
+                    var m = String(now.getMonth()+1).padStart(2,'0');
+                    var day = String(now.getDate()).padStart(2,'0');
+                    d.value = now.getFullYear()+'-'+m+'-'+day;
+                }
+            } catch(e){}
+        }
+    }
+    function closeExpenseModal(){
+        if(expenseModal){
+            expenseModal.classList.remove('active');
+            expenseModal.style.display = '';
+            expenseModal.setAttribute('aria-hidden','true');
+            try { document.body.style.overflow = ''; } catch(e){}
+            try { console.log('[Expense] Modal closed'); } catch(e){}
+        }
+    }
+    if(expenseModal){
+        expenseModal.addEventListener('click', function(e){ if(e.target === expenseModal){ closeExpenseModal(); } });
+    }
     // Escape to close
-    document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ closeBillingModal(); } });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ closeBillingModal(); closePaymentModal(); closeExpenseModal(); } });
     // Start with one service row on load
     document.addEventListener('DOMContentLoaded', function(){ addServiceRow(); });
     </script>

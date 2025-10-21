@@ -643,3 +643,131 @@ btn-primary:hover {
             align-items: center;
             gap: 0.5rem;
         }
+
+/* ------------------- Staff management other styles ------------------- */
+.staff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+.staff-section {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+.section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: #3b82f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+.staff-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+.staff-item:last-child { border-bottom: none; }
+.staff-info { flex: 1; }
+.staff-name { font-weight: 500; color: #1f2937; margin-bottom: 0.25rem; }
+.staff-details { font-size: 0.8rem; color: #6b7280; }
+.staff-status { padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem; font-weight: 500; }
+.status-on-duty { background: #dcfce7; color: #166534; }
+.status-off-duty { background: #f3f4f6; color: #6b7280; }
+.status-break { background: #fef3c7; color: #92400e; }
+.status-leave { background: #fecaca; color: #991b1b; }
+.status-overtime { background: #dbeafe; color: #1e40af; }
+.schedule-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-top: 1rem; }
+.schedule-day { text-align: center; padding: 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 500; }
+.day-header { background: #f3f4f6; color: #6b7280; font-weight: 600; }
+.day-scheduled { background: #dcfce7; color: #166534; }
+.day-off { background: #f3f4f6; color: #9ca3af; }
+.day-overtime { background: #dbeafe; color: #1e40af; }
+.performance-metric { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6; }
+.performance-metric:last-child { border-bottom: none; }
+.metric-label { font-weight: 500; color: #1f2937; }
+.metric-value { font-weight: bold; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 2rem; }
+.metric-excellent { background: #dcfce7; color: #166534; }
+.metric-good { background: #dbeafe; color: #1e40af; }
+.metric-average { background: #fef3c7; color: #92400e; }
+.metric-poor { background: #fecaca; color: #991b1b; }
+.certification-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8fafc; border-radius: 6px; margin: 0.5rem 0; font-size: 0.9rem; }
+.cert-status { padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500; }
+.cert-valid { background: #dcfce7; color: #166534; }
+.cert-expiring { background: #fef3c7; color: #92400e; }
+.cert-expired { background: #fecaca; color: #991b1b; }
+.payroll-summary { background: #f8fafc; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+.payroll-item { display: flex; justify-content: space-between; margin: 0.5rem 0; font-size: 0.9rem; }
+.payroll-total { font-weight: bold; border-top: 1px solid #e2e8f0; padding-top: 0.5rem; margin-top: 0.5rem; }
+.action-buttons { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.btn-small { padding: 0.5rem 1rem; font-size: 0.8rem; }
+.staff-alert { background: #fef3c7; border: 1px solid #fbbf24; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+.alert-header { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: #92400e; margin-bottom: 0.5rem; }
+.alert-content { color: #78350f; font-size: 0.9rem; }
+.quick-actions { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+.actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; padding: 1.5rem; text-align: center; }
+.metric-card.revenue { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.metric-card.patients { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.metric-card.efficiency { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+
+/* Enhanced modal styles aligned with dashboard theme (prefixed to avoid conflicts) */
+.hms-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 9990;
+}
+.hms-modal-overlay.active { display: flex; }
+.hms-modal {
+    width: 100%;
+    max-width: 96vw;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    overflow: hidden;
+    border: 1px solid #f1f5f9;
+    display: block !important;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    min-height: 120px;
+    max-height: 90vh;
+    overflow: auto;
+    box-sizing: border-box;
+}
+@media (min-width: 1024px) { .hms-modal { max-width: 900px; } }
+.hms-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; background: #f8f9ff; }
+.hms-modal-title { font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
+.hms-modal-body { padding: 1rem 1.25rem; color: #475569; }
+.hms-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 0.75rem 1.25rem 1.25rem; background: #fff; }
+.form-input, .form-select, .form-textarea { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.95rem; background: #fff; transition: border-color 0.2s; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+.form-label { font-size: 0.9rem; color: #374151; margin-bottom: 0.25rem; display: block; font-weight: 500; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.form-grid .full { grid-column: 1 / -1; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }

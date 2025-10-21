@@ -18,77 +18,59 @@ $routes->post('login', 'Auth::login');
 $routes->get('logout', 'Auth::logout');
 $routes->get('auth/logout', 'Auth::logout');
 
-// Admin Dashboard Routes
+// Admin Dashboard
 $routes->get('admin/dashboard', 'Admin::dashboard');
-$routes->get('admin/users', 'Admin::users');
+$routes->get('admin', 'Admin::dashboard'); // Default admin route
+
+// User Management Routes
+$routes->get('admin/user-management', 'UserManagement::index');
+$routes->post('admin/user-management/create', 'UserManagement::create');
+$routes->post('admin/user-management/update', 'UserManagement::update');
+$routes->get('admin/user-management/delete/(:num)', 'UserManagement::delete/$1');
+$routes->get('admin/user-management/reset-password/(:num)', 'UserManagement::resetPassword/$1');
+$routes->get('admin/user-management/users', 'UserManagement::getUsers');
+$routes->get('admin/user-management/user/(:num)', 'UserManagement::getUser/$1');
+$routes->get('admin/user-management/staff/(:num)', 'UserManagement::getStaff/$1');
 
 // Staff Management Routes
-$routes->group('admin', function($routes) {
-    // Staff listing and management
-    $routes->get('staff-management', 'Admin::staffManagement');
-    
-    // Staff CRUD operations
-    $routes->get('add-staff', 'Admin::addStaff');
-    $routes->post('add-staff', 'Admin::addStaff');
-    $routes->post('staff/create', 'Admin::addStaff');
-    $routes->get('staff/api', 'Admin::getStaffAPI');
-    // Get single staff by ID (for AJAX modals)
-    $routes->get('staff/get/(:num)', 'Admin::getStaff/$1');
-    
-    // Individual staff operations
-    $routes->get('edit-staff/(:num)', 'Admin::editStaff/$1');
-    $routes->post('edit-staff/(:num)', 'Admin::editStaff/$1');
-    $routes->get('delete-staff/(:num)', 'Admin::deleteStaff/$1');
-    $routes->get('view-staff/(:num)', 'Admin::viewStaff/$1');
+$routes->get('admin/staff-management', 'StaffManagement::index');
+$routes->match(['get', 'post'], 'admin/staff-management/create', 'StaffManagement::create');
+$routes->post('admin/staff-management/update/(:num)', 'StaffManagement::update/$1');
+$routes->get('admin/staff-management/delete/(:num)', 'StaffManagement::delete/$1');
+$routes->get('admin/staff-management/view/(:num)', 'StaffManagement::view/$1');
+$routes->get('admin/staff-management/api', 'StaffManagement::getStaffAPI');
+$routes->get('admin/staff-management/doctors/api', 'StaffManagement::getDoctorsAPI');
 
-    // Users Management
-    $routes->get('user-management', 'Admin::userManagement');
-    $routes->post('users/saveUser', 'Admin::saveUser');
-    $routes->post('users/updateUser', 'Admin::updateUser');
-    $routes->get('users/get/(:num)', 'Admin::getUser/$1');
-    $routes->get('users/delete/(:num)', 'Admin::deleteUser/$1');
-    $routes->get('users/reset/(:num)', 'Admin::resetUserPassword/$1');
 
-    // Resource Management
-    $routes->get('resource', 'Admin::resourceManagement');
-    // Resources CRUD
-    $routes->get('resources/api', 'Admin::getResourcesAPI');
-    $routes->get('resources/get/(:num)', 'Admin::getResource/$1');
-    $routes->post('resources/create', 'Admin::createResource');
-    $routes->post('resources/update', 'Admin::updateResource');
-    $routes->post('resources/delete', 'Admin::deleteResource');
+// Resource Management Routes
+$routes->get('admin/resource-management', 'ResourceManagement::index');
+$routes->get('admin/resource-management/api', 'ResourceManagement::getResourcesAPI');
+$routes->get('admin/resource-management/(:num)', 'ResourceManagement::getResource/$1');
+$routes->post('admin/resource-management/create', 'ResourceManagement::create');
+$routes->post('admin/resource-management/update', 'ResourceManagement::update');
+$routes->post('admin/resource-management/delete', 'ResourceManagement::delete');
 
-    // Patient Management
-    $routes->get('patient-management', 'Admin::patientManagement');
-    $routes->post('patients', 'Admin::createPatient');
-    $routes->post('patients/update', 'Admin::updatePatient');
+// Doctor Shift Management Routes
+$routes->get('admin/doctor-shift-management', 'DoctorShiftManagement::index');
+$routes->get('admin/doctor-shifts/api', 'DoctorShiftManagement::getDoctorShiftsAPI');
+$routes->get('admin/doctor-shifts/(:num)', 'DoctorShiftManagement::getDoctorShift/$1');
+$routes->post('admin/doctor-shifts/create', 'DoctorShiftManagement::create');
+$routes->post('admin/doctor-shifts/update', 'DoctorShiftManagement::update');
+$routes->post('admin/doctor-shifts/delete', 'DoctorShiftManagement::delete');
 
-    // Financial Management
-    $routes->get('financial', 'Admin::financialManagement');
+// Legacy redirects (backward compatibility)
+$routes->get('admin/users', 'Admin::users');
+$routes->get('admin/staff', 'Admin::staffManagement');
+$routes->get('admin/resources', 'Admin::resourceManagement');
+$routes->get('admin/patients', 'Admin::patientManagement');
 
-    // Communication
-    $routes->get('communication', 'Admin::communication');
-
-    // Analytics & Reports
-    $routes->get('analytics', 'Admin::analytics');
-
-    // System Settings
-    $routes->get('systemSettings', 'Admin::systemSettings');
-
-    // Security & Access
-    $routes->get('securityAccess', 'Admin::securityAccess');
-
-    // Audit Logs
-    $routes->get('auditLogs', 'Admin::auditLogs');
-
-    // Doctor Shifts APIs
-    $routes->get('doctor-shifts/api', 'DoctorShift::index');
-    $routes->post('doctor-shifts/create', 'DoctorShift::create');
-    $routes->post('doctor-shifts/delete', 'DoctorShift::delete');
-
-    // Doctors list API
-    $routes->get('doctors/api', 'Admin::getDoctorsAPI');
-});
+// Navigation pages (still in Admin controller)
+$routes->get('admin/financial-management', 'Admin::financialManagement');
+$routes->get('admin/communication', 'Admin::communication');
+$routes->get('admin/analytics', 'Admin::analytics');
+$routes->get('admin/system-settings', 'Admin::systemSettings');
+$routes->get('admin/security-access', 'Admin::securityAccess');
+$routes->get('admin/audit-logs', 'Admin::auditLogs');
 // ===================================================================
 // DOCTOR ROUTES
 // ===================================================================

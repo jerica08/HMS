@@ -26,23 +26,16 @@ class Doctor extends BaseController
             exit();
         }
 
-        // Identify logged-in doctor (by staff_id)
+        // Get doctor_id from staff_id (ensuring valid doctor account)
         $staffId = $session->get('staff_id');
         if ($staffId) {
-            $doctor = $this->db->table('staff')
+            $doctor = $this->db->table('doctor')
                 ->where('staff_id', $staffId)
-                ->where('role', 'doctor')
                 ->get()
                 ->getRowArray();
 
-            if ($doctor) {
-                $this->doctorId = $staffId;
-            } else {
-                log_message('error', "Staff ID {$staffId} is not registered as a doctor.");
-                $this->doctorId = null;
-            }
+            $this->doctorId = $doctor ? $doctor['doctor_id'] : null;
         } else {
-            log_message('error', 'Doctor authentication failed: no staff_id in session.');
             $this->doctorId = null;
         }
     }
@@ -114,9 +107,13 @@ class Doctor extends BaseController
     {
         try {
             $today = date('Y-m-d');
-            $staffId = session()->get('staff_id');
+            $staffId = session()->get('staff_id'); // Use staff_id like Appointments controller
 
-            return [
+            if (!$staffId) {
+                return ['scheduled' => 0, 'completed' => 0, 'pending' => 0];
+            }
+
+            $stats = [
                 'scheduled' => $this->db->table('appointments')
                     ->where(['doctor_id' => $staffId, 'appointment_date' => $today, 'status' => 'scheduled'])
                     ->countAllResults(),
@@ -129,6 +126,11 @@ class Doctor extends BaseController
                     ->whereIn('status', ['scheduled', 'in-progress'])
                     ->countAllResults(),
             ];
+            
+            // Debug logging
+            log_message('info', 'Appointment stats for staff_id ' . $staffId . ' on ' . $today . ': ' . json_encode($stats));
+            
+            return $stats;
         } catch (\Throwable $e) {
             log_message('error', 'Error fetching today appointment stats: ' . $e->getMessage());
             return ['scheduled' => 0, 'completed' => 0, 'pending' => 0];

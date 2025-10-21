@@ -89,8 +89,14 @@ $routes->group('admin', function($routes) {
     // Doctors list API
     $routes->get('doctors/api', 'Admin::getDoctorsAPI');
 });
-// Doctor Routes
+// ===================================================================
+// DOCTOR ROUTES
+// ===================================================================
+
+// Dashboard
 $routes->get('doctor/dashboard', 'Doctor::dashboard');
+
+// Patient Management
 $routes->get('doctor/patients', 'Patients::patients');
 $routes->post('doctor/patients', 'Patients::createPatient');
 $routes->get('doctor/patients/api', 'Patients::getPatientsAPI');
@@ -98,8 +104,8 @@ $routes->get('doctor/patient/(:num)', 'Patients::getPatient/$1');
 $routes->get('doctor/patient', 'Patients::patients');
 $routes->put('doctor/patient/(:num)', 'Patients::updatePatient/$1');
 $routes->post('doctor/patient/(:num)', 'Patients::updatePatient/$1');
-$routes->get('doctor/doctors/api', 'Doctor::getDoctorsAPI');
 
+// Appointment Management
 $routes->get('doctor/appointments', 'Appointments::appointments');
 $routes->post('doctor/schedule-appointment', 'Appointments::postScheduleAppointment');
 $routes->get('doctor/appointment-data', 'Appointments::getAppointmentData');
@@ -107,6 +113,7 @@ $routes->post('doctor/update-appointment-status', 'Appointments::updateAppointme
 $routes->post('doctor/delete-appointment', 'Appointments::deleteAppointment');
 $routes->get('doctor/appointment/details/(:num)', 'Appointments::getAppointmentDetails/$1');
 
+// Prescription Management
 $routes->get('doctor/prescriptions', 'Prescriptions::prescriptions');
 $routes->post('doctor/create-prescription', 'Prescriptions::createPrescription');
 $routes->get('doctor/prescriptions/api', 'Prescriptions::getPrescriptionsAPI');
@@ -114,6 +121,10 @@ $routes->post('doctor/update-prescription-status', 'Prescriptions::updatePrescri
 $routes->get('doctor/prescription/(:any)', 'Prescriptions::getPrescription/$1');
 $routes->put('doctor/prescription/(:any)', 'Prescriptions::updatePrescription/$1');
 
+// Doctor APIs
+$routes->get('doctor/doctors/api', 'Doctor::getDoctorsAPI');
+
+// Other Doctor Features
 $routes->get('doctor/lab-results', 'Doctor::labResults');
 $routes->get('doctor/EHR', 'Doctor::ehr');
 $routes->get('doctor/schedule', 'Doctor::schedule');

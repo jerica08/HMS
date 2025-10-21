@@ -325,16 +325,14 @@
 
     <div class="main-container">
         <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>
-       
-
-        
+      
             <main class="content">
                 <h1 class="page-title"> Staff Management</h1>
                 <div class="page-actions">
-                        <button type="button" id="openAddStaffBtn" class="btn btn-success" onclick="openAddStaffModal()">
+                        <button type="button" id="openAddStaffBtn" class="btn btn-primary" onclick="openAddStaffModal()">
                             <i class="fas fa-plus"></i> Add Staff
                         </button>
-                        <button type="button" id="openAssignShiftBtn" class="btn btn-primary" onclick="openAssignShiftModal()">
+                        <button type="button" id="openAssignShiftBtn" class="btn btn-success" onclick="openAssignShiftModal()">
                             <i class="fas fa-plus"></i> Assign Shift
                         </button>
                         <button class="btn btn-warning">

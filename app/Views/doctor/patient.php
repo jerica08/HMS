@@ -88,7 +88,6 @@
     </div> 
 
  <?php include APPPATH . 'Views/doctor/components/add-patient-modal.php'; ?>
- <?php include APPPATH . 'Views/doctor/components/assign-doctor-modal.php'; ?>
  <?php include APPPATH . 'Views/doctor/components/view-patient-modal.php'; ?>
  <?php include APPPATH . 'Views/doctor/components/edit-patient-modal.php'; ?>
         

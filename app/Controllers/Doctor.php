@@ -26,23 +26,16 @@ class Doctor extends BaseController
             exit();
         }
 
-        // Identify logged-in doctor (by staff_id)
+        // Get doctor_id from staff_id (ensuring valid doctor account)
         $staffId = $session->get('staff_id');
         if ($staffId) {
-            $doctor = $this->db->table('staff')
+            $doctor = $this->db->table('doctor')
                 ->where('staff_id', $staffId)
-                ->where('role', 'doctor')
                 ->get()
                 ->getRowArray();
 
-            if ($doctor) {
-                $this->doctorId = $staffId;
-            } else {
-                log_message('error', "Staff ID {$staffId} is not registered as a doctor.");
-                $this->doctorId = null;
-            }
+            $this->doctorId = $doctor ? $doctor['doctor_id'] : null;
         } else {
-            log_message('error', 'Doctor authentication failed: no staff_id in session.');
             $this->doctorId = null;
         }
     }
@@ -106,76 +99,6 @@ class Doctor extends BaseController
         }
     }
 
-    /**
-     * Assign a doctor to a patient
-     */
-    public function assignDoctor()
-    {
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
-
-        if (empty($input['patient_id']) || empty($input['doctor_id'])) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Missing required fields: patient_id and doctor_id',
-            ])->setStatusCode(400);
-        }
-
-        $patientId = (int)$input['patient_id'];
-        $doctorId = (int)$input['doctor_id'];
-
-        try {
-            // Validate patient
-            $patient = $this->db->table('patient')
-                ->where('patient_id', $patientId)
-                ->get()
-                ->getRowArray();
-
-            if (!$patient) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Patient not found',
-                ])->setStatusCode(404);
-            }
-
-            // Validate doctor
-            $doctor = $this->db->table('staff')
-                ->where('staff_id', $doctorId)
-                ->where('role', 'doctor')
-                ->get()
-                ->getRowArray();
-
-            if (!$doctor) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Doctor not found',
-                ])->setStatusCode(404);
-            }
-
-            // Assign doctor to patient
-            $updated = $this->db->table('patient')
-                ->where('patient_id', $patientId)
-                ->update(['primary_doctor_id' => $doctorId]);
-
-            if ($updated !== false) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Doctor assigned successfully',
-                    'doctor_name' => trim($doctor['first_name'] . ' ' . $doctor['last_name']),
-                ]);
-            }
-
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update patient record',
-            ])->setStatusCode(500);
-        } catch (\Throwable $e) {
-            log_message('error', 'Doctor assignment error: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Database error occurred',
-            ])->setStatusCode(500);
-        }
-    }
 
     /**
      * Compute today's appointment statistics
@@ -184,9 +107,13 @@ class Doctor extends BaseController
     {
         try {
             $today = date('Y-m-d');
-            $staffId = session()->get('staff_id');
+            $staffId = session()->get('staff_id'); // Use staff_id like Appointments controller
 
-            return [
+            if (!$staffId) {
+                return ['scheduled' => 0, 'completed' => 0, 'pending' => 0];
+            }
+
+            $stats = [
                 'scheduled' => $this->db->table('appointments')
                     ->where(['doctor_id' => $staffId, 'appointment_date' => $today, 'status' => 'scheduled'])
                     ->countAllResults(),
@@ -199,6 +126,11 @@ class Doctor extends BaseController
                     ->whereIn('status', ['scheduled', 'in-progress'])
                     ->countAllResults(),
             ];
+            
+            // Debug logging
+            log_message('info', 'Appointment stats for staff_id ' . $staffId . ' on ' . $today . ': ' . json_encode($stats));
+            
+            return $stats;
         } catch (\Throwable $e) {
             log_message('error', 'Error fetching today appointment stats: ' . $e->getMessage());
             return ['scheduled' => 0, 'completed' => 0, 'pending' => 0];

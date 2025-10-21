@@ -10,7 +10,6 @@ const CONFIG = {
         patientsApi: 'doctor/patients/api',
         patients: 'doctor/patients',
         doctorsApi: 'doctor/doctors/api',
-        assignDoctor: 'doctor/assign-doctor',
         patient: 'doctor/patient/'
     }
 };
@@ -99,9 +98,6 @@ const PatientList = {
                         <button class="btn btn-warning" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" data-action="edit" data-id="${id}">
                             <i class="fas fa-edit"></i> Edit
                         </button>
-                        <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" data-action="assign" data-id="${id}">
-                            <i class="fas fa-user-md"></i> Assign
-                        </button>
                     </div>
                 </td>
             </tr>`;
@@ -121,23 +117,16 @@ const PatientList = {
             case 'edit':
                 if (window.PatientEdit) window.PatientEdit.open(id);
                 break;
-            case 'assign':
-                if (window.DoctorAssignment) window.DoctorAssignment.open(id);
-                break;
         }
     }
 };
 
 // Global functions for backward compatibility
 window.openAddPatientsModal = () => window.PatientAdd?.open();
-window.closeAddPatientsModal = () => window.PatientAdd?.close();
-window.closeAssignDoctorModal = () => window.DoctorAssignment?.close();
 window.closeViewPatientModal = () => window.PatientView?.close();
 window.closeEditPatientModal = () => window.PatientEdit?.close();
 window.viewPatient = (id) => window.PatientView?.open(id);
 window.editPatient = (id) => window.PatientEdit?.open(id);
-window.openAssignDoctorModal = (id) => window.DoctorAssignment?.open(id);
-window.loadPatients = () => PatientList.loadPatients();
 
 // Export global objects
 window.CONFIG = CONFIG;
@@ -150,7 +139,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize modal modules if they exist
     if (window.PatientAdd) window.PatientAdd.init();
-    if (window.DoctorAssignment) window.DoctorAssignment.init();
     if (window.PatientView) window.PatientView.init();
     if (window.PatientEdit) window.PatientEdit.init();
 });

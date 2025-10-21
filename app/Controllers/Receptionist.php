@@ -216,92 +216,47 @@ class Receptionist extends BaseController
      * Create new appointment (AJAX)
      */
     public function createAppointment()
-    {
-        if (!$this->request->isAJAX()) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
-        }
-
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'patient_id' => 'required',
-            'patient_name' => 'required|min_length[3]',
-            'doctor_id' => 'required',
-            'appointment_date' => 'required|valid_date',
-            'appointment_time' => 'required',
-            'reason' => 'required|min_length[5]'
-        ]);
-
-        if (!$validation->withRequest($this->request)->run()) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validation->getErrors()
-            ]);
-        }
-
-        try {
-            $appointmentData = [
-                'patient_id' => $this->request->getPost('patient_id'),
-                'patient_name' => $this->request->getPost('patient_name'),
-                'doctor_id' => $this->request->getPost('doctor_id'),
-                'appointment_date' => $this->request->getPost('appointment_date'),
-                'appointment_time' => $this->request->getPost('appointment_time'),
-                'reason' => $this->request->getPost('reason'),
-                'status' => 'scheduled',
-                'notes' => $this->request->getPost('notes')
-            ];
-
-            // For now, return success (would save to database in real implementation)
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Appointment scheduled successfully',
-                'appointment_id' => 'APT-' . date('Ymd') . '-' . rand(100, 999)
-            ]);
-
-        } catch (Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to schedule appointment'
-            ]);
-        }
+{
+    if (!$this->request->isAJAX()) {
+        return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
     }
+
+    $input = $this->request->getJSON(true) ?? $this->request->getPost();
+    $session = session();
+    
+    $appointmentService = new \App\Services\AppointmentService();
+    $result = $appointmentService->createAppointment(
+        $input, 
+        $session->get('role'), 
+        $session->get('staff_id')
+    );
+    
+    return $this->response->setJSON($result);
+}
+
 
     /**
      * Get available time slots (AJAX)
      */
     public function getTimeSlots()
-    {
-        if (!$this->request->isAJAX()) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
-        }
-
-        $date = $this->request->getPost('date');
-        $doctor_id = $this->request->getPost('doctor_id');
-
-        if (empty($date) || empty($doctor_id)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Date and doctor are required'
-            ]);
-        }
-
-        try {
-            // Sample time slots (would come from database in real implementation)
-            $timeSlots = [
-                '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-                '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
-            ];
-
-            return $this->response->setJSON([
-                'success' => true,
-                'time_slots' => $timeSlots
-            ]);
-
-        } catch (Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to get time slots'
-            ]);
-        }
+{
+    if (!$this->request->isAJAX()) {
+        return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
     }
+
+    $date = $this->request->getPost('date');
+    $doctor_id = $this->request->getPost('doctor_id');
+
+    if (empty($date) || empty($doctor_id)) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Date and doctor are required'
+        ]);
+    }
+    
+    $appointmentService = new \App\Services\AppointmentService();
+    $result = $appointmentService->getAvailableTimeSlots($doctor_id, $date);
+    
+    return $this->response->setJSON($result);
+}
 }

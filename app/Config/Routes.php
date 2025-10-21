@@ -140,6 +140,10 @@ $routes->get('doctor/schedule', 'Doctor::schedule');
     $routes->get('receptionist/dashboard', 'Receptionist::dashboard');
     $routes->get('receptionist/appointment-booking', 'Receptionist::appointmentBooking');
     $routes->get('receptionist/patient-registration', 'Receptionist::patientRegistration');
+    // Receptionist Patient Management Routes
+    $routes->post('receptionist/register-patient', 'Receptionist::registerPatient');
+    $routes->get('receptionist/patients/api', 'Receptionist::getPatientsAPI');
+    $routes->post('receptionist/patient-registration/store', 'Receptionist::storePatient');
 
     // Accountant Routes
     $routes->get('accountant/dashboard', 'Accountant::dashboard');

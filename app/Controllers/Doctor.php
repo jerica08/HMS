@@ -163,10 +163,4 @@ class Doctor extends BaseController
             return ['total' => 0, 'newThisWeek' => 0, 'critical' => 0];
         }
     }
-
-    /* 
-    // Optional future features:
-    public function deleteDoctor($id) { ... }
-    public function searchDoctor($keyword) { ... }
-    */
 }

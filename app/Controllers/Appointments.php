@@ -77,61 +77,20 @@ class Appointments extends BaseController
      * Schedule a new appointment
      */
     public function postScheduleAppointment()
-    {
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
-
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'patient_id' => 'required|numeric',
-            'date' => 'required|valid_date',
-            'time' => 'required',
-            'type' => 'required|in_list[Consultation,Follow-up,Check-up,Emergency]',
-            'reason' => 'permit_empty|max_length[255]',
-            'duration' => 'required|numeric|greater_than[0]'
-        ]);
-
-        if (!$validation->run($input)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validation->getErrors()
-            ])->setStatusCode(422);
-        }
-
-        if (!$this->doctorId) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Doctor not authenticated'
-            ])->setStatusCode(401);
-        }
-
-        $data = [
-            'patient_id' => $input['patient_id'],
-            'doctor_id' => $this->doctorId,
-            'appointment_date' => $input['date'],
-            'appointment_time' => $input['time'],
-            'appointment_type' => $input['type'],
-            'reason' => $input['reason'] ?? null,
-            'duration' => $input['duration'],
-            'status' => 'scheduled',
-            'created_at' => date('Y-m-d H:i:s')
-        ];
-
-        try {
-            $this->db->table('appointments')->insert($data);
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Appointment scheduled successfully',
-                'id' => $this->db->insertID()
-            ]);
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to schedule appointment: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Database error: ' . $e->getMessage()
-            ])->setStatusCode(500);
-        }
-    }
+{
+    $input = $this->request->getJSON(true) ?? $this->request->getPost();
+    $session = session();
+    
+    $appointmentService = new \App\Services\AppointmentService();
+    $result = $appointmentService->createAppointment(
+        $input, 
+        $session->get('role'), 
+        $session->get('staff_id')
+    );
+    
+    return $this->response->setJSON($result)
+        ->setStatusCode($result['success'] ? 200 : 422);
+}
 
     /**
      * Get appointment data for AJAX requests (Today/Week/Month view)
@@ -188,115 +147,51 @@ class Appointments extends BaseController
      * Update appointment status
      */
     public function updateAppointmentStatus()
-    {
-        if (!$this->doctorId) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Doctor not authenticated'
-            ])->setStatusCode(401);
-        }
-
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
-        $appointmentId = $input['appointment_id'] ?? null;
-        $status = $input['status'] ?? null;
-
-        if (!$appointmentId || !$status) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Missing appointment ID or status'
-            ])->setStatusCode(400);
-        }
-
-        try {
-            // Verify appointment belongs to this doctor
-            $appointment = $this->db->table('appointments')
-                ->where('appointment_id', $appointmentId)
-                ->where('doctor_id', $this->doctorId)
-                ->get()
-                ->getRowArray();
-
-            if (!$appointment) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Appointment not found or access denied'
-                ])->setStatusCode(404);
-            }
-
-            // Update appointment status
-            $this->db->table('appointments')
-                ->where('appointment_id', $appointmentId)
-                ->update([
-                    'status' => $status,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
-
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Appointment status updated successfully'
-            ]);
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to update appointment status: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Database error: ' . $e->getMessage()
-            ])->setStatusCode(500);
-        }
+{
+    $input = $this->request->getJSON(true) ?? $this->request->getPost();
+    $session = session();
+    
+    if (!isset($input['appointment_id']) || !isset($input['status'])) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Appointment ID and status are required'
+        ])->setStatusCode(422);
     }
-
+    
+    $appointmentService = new \App\Services\AppointmentService();
+    $result = $appointmentService->updateAppointmentStatus(
+        $input['appointment_id'],
+        $input['status'],
+        $session->get('role'),
+        $session->get('staff_id')
+    );
+    
+    return $this->response->setJSON($result);
+}
     /**
-     * Delete appointment
-     */
-    public function deleteAppointment()
-    {
-        if (!$this->doctorId) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Doctor not authenticated'
-            ])->setStatusCode(401);
-        }
-
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
-        $appointmentId = $input['appointment_id'] ?? null;
-
-        if (!$appointmentId) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Missing appointment ID'
-            ])->setStatusCode(400);
-        }
-
-        try {
-            // Verify appointment belongs to this doctor
-            $appointment = $this->db->table('appointments')
-                ->where('appointment_id', $appointmentId)
-                ->where('doctor_id', $this->doctorId)
-                ->get()
-                ->getRowArray();
-
-            if (!$appointment) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Appointment not found or access denied'
-                ])->setStatusCode(404);
-            }
-
-            // Delete appointment
-            $this->db->table('appointments')
-                ->where('appointment_id', $appointmentId)
-                ->delete();
-
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Appointment deleted successfully'
-            ]);
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to delete appointment: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Database error: ' . $e->getMessage()
-            ])->setStatusCode(500);
-        }
+ * Delete appointment - Using unified service
+ */
+public function deleteAppointment()
+{
+    $input = $this->request->getJSON(true) ?? $this->request->getPost();
+    $session = session();
+    
+    if (!isset($input['appointment_id'])) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Appointment ID is required'
+        ])->setStatusCode(422);
     }
+    
+    $appointmentService = new \App\Services\AppointmentService();
+    $result = $appointmentService->deleteAppointment(
+        $input['appointment_id'],
+        $session->get('role'),
+        $session->get('staff_id')
+    );
+    
+    return $this->response->setJSON($result);
+}
 
     /**
      * Get appointment details for modal view

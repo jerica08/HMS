@@ -14,11 +14,7 @@ class StaffManagement extends BaseController
         $this->db = \Config\Database::connect();
         $this->builder = $this->db->table('staff');
 
-        $session = session();
-        if (!$session->get('isLoggedIn') || $session->get('role') !== 'admin') {
-            redirect()->to(base_url('/login'))->send();
-            exit();
-        }
+        // Authentication is now handled by the roleauth filter in routes
     }
 
     public function index()

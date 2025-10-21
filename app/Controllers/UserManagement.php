@@ -17,12 +17,7 @@ class UserManagement extends BaseController
         $this->db = \Config\Database::connect();
         $this->userModel = new UserModel();
         $this->staffModel = new StaffModel();
-
-        $session = session();
-        if (!$session->get('isLoggedIn') || $session->get('role') !== 'admin') {
-            redirect()->to(base_url('/login'))->send();
-            exit();
-        }
+        // Authentication is now handled by the roleauth filter in routes
     }
 
     public function index() 

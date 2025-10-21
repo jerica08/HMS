@@ -12,11 +12,7 @@ class ResourceManagement extends BaseController
     {
         $this->db = \Config\Database::connect();
 
-        $session = session();
-        if (!$session->get('isLoggedIn') || $session->get('role') !== 'admin') {
-            redirect()->to(base_url('/login'))->send();
-            exit();
-        }
+        // Authentication is now handled by the roleauth filter in routes
     }
 
     public function index()

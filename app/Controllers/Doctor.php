@@ -19,12 +19,8 @@ class Doctor extends BaseController
         $this->db = \Config\Database::connect();
         $this->builder = $this->db->table('patient');
 
-        // Session check for doctor authentication
+        // Authentication is now handled by the roleauth filter in routes
         $session = session();
-        if (!$session->get('isLoggedIn') || $session->get('role') !== 'doctor') {
-            redirect()->to(base_url('/login'))->send();
-            exit();
-        }
 
         // Get doctor_id from staff_id (ensuring valid doctor account)
         $staffId = $session->get('staff_id');

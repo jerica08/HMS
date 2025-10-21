@@ -19,44 +19,44 @@ $routes->get('logout', 'Auth::logout');
 $routes->get('auth/logout', 'Auth::logout');
 
 // Admin Dashboard
-$routes->get('admin/dashboard', 'Admin::dashboard');
-$routes->get('admin', 'Admin::dashboard'); // Default admin route
+$routes->get('admin/dashboard', 'Admin::dashboard', ['filter' => 'roleauth:admin']);
+$routes->get('admin', 'Admin::dashboard', ['filter' => 'roleauth:admin']); // Default admin route
 
 // User Management Routes
-$routes->get('admin/user-management', 'UserManagement::index');
-$routes->post('admin/user-management/create', 'UserManagement::create');
-$routes->post('admin/user-management/update', 'UserManagement::update');
-$routes->get('admin/user-management/delete/(:num)', 'UserManagement::delete/$1');
-$routes->get('admin/user-management/reset-password/(:num)', 'UserManagement::resetPassword/$1');
-$routes->get('admin/user-management/users', 'UserManagement::getUsers');
-$routes->get('admin/user-management/user/(:num)', 'UserManagement::getUser/$1');
-$routes->get('admin/user-management/staff/(:num)', 'UserManagement::getStaff/$1');
+$routes->get('admin/user-management', 'UserManagement::index', ['filter' => 'roleauth:admin']);
+$routes->post('admin/user-management/create', 'UserManagement::create', ['filter' => 'roleauth:admin']);
+$routes->post('admin/user-management/update', 'UserManagement::update', ['filter' => 'roleauth:admin']);
+$routes->get('admin/user-management/delete/(:num)', 'UserManagement::delete/$1', ['filter' => 'roleauth:admin']);
+$routes->get('admin/user-management/reset-password/(:num)', 'UserManagement::resetPassword/$1', ['filter' => 'roleauth:admin']);
+$routes->get('admin/user-management/users', 'UserManagement::getUsers', ['filter' => 'roleauth:admin']);
+$routes->get('admin/user-management/user/(:num)', 'UserManagement::getUser/$1', ['filter' => 'roleauth:admin']);
+$routes->get('admin/user-management/staff/(:num)', 'UserManagement::getStaff/$1', ['filter' => 'roleauth:admin']);
 
 // Staff Management Routes
-$routes->get('admin/staff-management', 'StaffManagement::index');
-$routes->match(['get', 'post'], 'admin/staff-management/create', 'StaffManagement::create');
-$routes->post('admin/staff-management/update/(:num)', 'StaffManagement::update/$1');
-$routes->get('admin/staff-management/delete/(:num)', 'StaffManagement::delete/$1');
-$routes->get('admin/staff-management/view/(:num)', 'StaffManagement::view/$1');
-$routes->get('admin/staff-management/api', 'StaffManagement::getStaffAPI');
-$routes->get('admin/staff-management/doctors/api', 'StaffManagement::getDoctorsAPI');
+$routes->get('admin/staff-management', 'StaffManagement::index', ['filter' => 'roleauth:admin']);
+$routes->match(['get', 'post'], 'admin/staff-management/create', 'StaffManagement::create', ['filter' => 'roleauth:admin']);
+$routes->post('admin/staff-management/update/(:num)', 'StaffManagement::update/$1', ['filter' => 'roleauth:admin']);
+$routes->get('admin/staff-management/delete/(:num)', 'StaffManagement::delete/$1', ['filter' => 'roleauth:admin']);
+$routes->get('admin/staff-management/view/(:num)', 'StaffManagement::view/$1', ['filter' => 'roleauth:admin']);
+$routes->get('admin/staff-management/api', 'StaffManagement::getStaffAPI', ['filter' => 'roleauth:admin']);
+$routes->get('admin/staff-management/doctors/api', 'StaffManagement::getDoctorsAPI', ['filter' => 'roleauth:admin']);
 
 
 // Resource Management Routes
-$routes->get('admin/resource-management', 'ResourceManagement::index');
-$routes->get('admin/resource-management/api', 'ResourceManagement::getResourcesAPI');
-$routes->get('admin/resource-management/(:num)', 'ResourceManagement::getResource/$1');
-$routes->post('admin/resource-management/create', 'ResourceManagement::create');
-$routes->post('admin/resource-management/update', 'ResourceManagement::update');
-$routes->post('admin/resource-management/delete', 'ResourceManagement::delete');
+$routes->get('admin/resource-management', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/resource-management/api', 'ResourceManagement::getResourcesAPI', ['filter' => 'roleauth:admin']);
+$routes->get('admin/resource-management/(:num)', 'ResourceManagement::getResource/$1', ['filter' => 'roleauth:admin']);
+$routes->post('admin/resource-management/create', 'ResourceManagement::create', ['filter' => 'roleauth:admin']);
+$routes->post('admin/resource-management/update', 'ResourceManagement::update', ['filter' => 'roleauth:admin']);
+$routes->post('admin/resource-management/delete', 'ResourceManagement::delete', ['filter' => 'roleauth:admin']);
 
 // Doctor Shift Management Routes
-$routes->get('admin/doctor-shift-management', 'DoctorShiftManagement::index');
-$routes->get('admin/doctor-shifts/api', 'DoctorShiftManagement::getDoctorShiftsAPI');
-$routes->get('admin/doctor-shifts/(:num)', 'DoctorShiftManagement::getDoctorShift/$1');
-$routes->post('admin/doctor-shifts/create', 'DoctorShiftManagement::create');
-$routes->post('admin/doctor-shifts/update', 'DoctorShiftManagement::update');
-$routes->post('admin/doctor-shifts/delete', 'DoctorShiftManagement::delete');
+$routes->get('admin/doctor-shift-management', 'DoctorShiftManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/doctor-shifts/api', 'DoctorShiftManagement::getDoctorShiftsAPI', ['filter' => 'roleauth:admin']);
+$routes->get('admin/doctor-shifts/(:num)', 'DoctorShiftManagement::getDoctorShift/$1', ['filter' => 'roleauth:admin']);
+$routes->post('admin/doctor-shifts/create', 'DoctorShiftManagement::create', ['filter' => 'roleauth:admin']);
+$routes->post('admin/doctor-shifts/update', 'DoctorShiftManagement::update', ['filter' => 'roleauth:admin']);
+$routes->post('admin/doctor-shifts/delete', 'DoctorShiftManagement::delete', ['filter' => 'roleauth:admin']);
 
 // Legacy redirects (backward compatibility)
 $routes->get('admin/users', 'Admin::users');

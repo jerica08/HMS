@@ -6,26 +6,6 @@
         <title>Patient Management - HMS Admin</title>
         <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-        <style>
-            /* Table style */
-            .table { width: 100%; border-collapse: separate; border-spacing: 0; }
-            .table thead th { background: #f8fafc; color: #374151; font-weight: 600; text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid #e5e7eb; }
-            .table tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6; }
-            .patient-flow {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 0.75rem;
-                background: #f8fafc;
-                border-radius: 6px;
-                margin: 0.5rem 0;
-                font-size: 0.9rem;
-            }
-            .flow-number {
-                font-weight: bold;
-                color: #3b82f6;
-            }
-        </style>
     </head>
 <?php include APPPATH . 'Views/template/header.php'; ?> 
     <div class="main-container">

@@ -20,12 +20,6 @@
                         <button type="button" id="openAddStaffBtn" class="btn btn-primary" onclick="openAddStaffModal()">
                             <i class="fas fa-plus"></i> Add Staff
                         </button>
-                        <button type="button" id="openAssignShiftBtn" class="btn btn-success" onclick="openAssignShiftModal()">
-                            <i class="fas fa-plus"></i> Assign Shift
-                        </button>
-                        <button class="btn btn-warning">
-                            <i class="fas fa-plus"></i> Approve Leave
-                        </button>
                 </div><br>
 
 
@@ -37,6 +31,18 @@
                             <div class="card-icon-modern blue">
                                 <i class="fas fa-users"></i>
                             </div>
+
+                <script>
+                  window.STAFF_CFG = {
+                    staffApiUrl: '<?= base_url('admin/staff-management/api') ?>',
+                    staffGetBase: '<?= base_url('admin/staff-management/staff') ?>',
+                    staffCreateUrl: '<?= base_url('admin/staff-management/create') ?>',
+                    staffUpdateUrl: '<?= base_url('admin/staff-management/update') ?>',
+                    csrfToken: '<?= csrf_token() ?>',
+                    csrfHash: '<?= csrf_hash() ?>'
+                  };
+                </script>
+                <script src="<?= base_url('js/admin/staff-management.js') ?>"></script>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Staff</h3>
                                 <p class="card-subtitle">Active Employees</p>
@@ -48,139 +54,9 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- On Duty Card -->
-                    <div class="overview-card">
-                        <div class="card-header-modern">
-                            <div class="card-icon-modern purple">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="card-info">
-                                <h3 class="card-title-modern">On Duty</h3>
-                                <p class="card-subtitle">Currently working</p>
-                            </div>
-                        </div>
-                        <div class="card-metrics">
-                            <div class="metric">
-                                <div class="metric-value purple">0</div>
-                            </div>
-                        </div>   
-                    </div>
-
-                    <!-- Overtime Card -->
-                    <div class="overview-card">
-                        <div class="card-header-modern">
-                            <div class="card-icon-modern purple">
-                                <i class="fas fa-user-times"></i>
-                            </div>
-                            <div class="card-info">
-                                <h3 class="card-title-modern">Overtime Hours</h3>
-                                <p class="card-subtitle">This week</p>
-                            </div>
-                        </div>
-                        <div class="card-metrics">
-                            <div class="metric">
-                                <div class="metric-value purple">0</div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Doctor Shifts Table -->
-                <div class="staff-section">
-                    <div class="section-header">
-                        <div class="section-icon" style="background:#2563eb;">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <div>
-                            <div class="section-title">Doctor Shifts</div>
-                            <div style="color:#6b7280;font-size:0.9rem;">All scheduled doctor shifts</div>
-                        </div>
-                    </div>
 
-                    <div style="overflow:auto;">
-                        <table style="width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-                            <thead>
-                                <tr style="background:#f8fafc; color:#374151;">
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Doctor</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Date</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Start</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">End</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Department</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="doctorShiftsBody">
-                                <tr>
-                                    <td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">Loading doctor shifts...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div><br>
-                <script>
-                    window.STAFF_CFG = {
-                        apiUrl: '<?= base_url('admin/doctor-shifts/api') ?>',
-                        deleteUrl: '<?= base_url('admin/doctor-shifts/delete') ?>',
-                        doctorsUrl: '<?= base_url('admin/doctors/api') ?>',
-                        shiftsUrl: '<?= base_url('admin/doctor-shifts/api') ?>',
-                        createShiftUrl: '<?= base_url('admin/doctor-shifts/create') ?>',
-                        shiftShowBase: '<?= base_url('admin/doctor-shifts') ?>',
-                        shiftUpdateUrl: '<?= base_url('admin/doctor-shifts/update') ?>',
-                        staffApiUrl: '<?= base_url('admin/staff/api') ?>',
-                        staffGetBase: '<?= base_url('admin/staff/get') ?>',
-                        staffCreateUrl: '<?= base_url('admin/staff/create') ?>',
-                        staffUpdateUrl: '<?= base_url('admin/staff/update') ?>',
-                        csrfToken: '<?= csrf_token() ?>',
-                        csrfHash: '<?= csrf_hash() ?>'
-                    };
-                </script>
-                <script src="<?= base_url('js/admin/staff-management.js') ?>"></script>
-
-                <!-- View/Edit Doctor Shift Modal -->
-                <div id="doctorShiftAdminModal" class="hms-modal-overlay" aria-hidden="true">
-                    <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="doctorShiftAdminTitle">
-                        <div class="hms-modal-header">
-                            <div class="hms-modal-title" id="doctorShiftAdminTitle">
-                                <i class="fas fa-user-md" style="color:#4f46e5"></i>
-                                <span id="doctorShiftAdminMode">View Shift</span>
-                            </div>
-                            <button type="button" class="btn btn-secondary btn-small" onclick="closeDoctorShiftAdminModal()" aria-label="Close">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <form id="doctorShiftAdminForm">
-                            <?= csrf_field() ?>
-                            <input type="hidden" id="doctor_shift_id" name="id">
-                            <div class="hms-modal-body">
-                                <div class="form-grid">
-                                    <div>
-                                        <label class="form-label" for="adm_shift_date">Date</label>
-                                        <input type="date" id="adm_shift_date" name="shift_date" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="adm_shift_start">Start</label>
-                                        <input type="time" id="adm_shift_start" name="shift_start" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="adm_shift_end">End</label>
-                                        <input type="time" id="adm_shift_end" name="shift_end" class="form-input" required>
-                                    </div>
-                                    <div class="full">
-                                        <label class="form-label" for="adm_department">Department</label>
-                                        <input type="text" id="adm_department" name="department" class="form-input" placeholder="e.g., Emergency, Cardiology">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="hms-modal-actions">
-                                <button type="button" class="btn btn-secondary" onclick="closeDoctorShiftAdminModal()">Close</button>
-                                <button type="submit" class="btn btn-success" id="doctorShiftAdminSaveBtn">
-                                    <i class="fas fa-save"></i> Save
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
         
                 <!-- Staff List Table -->
                 <div class="staff-section">
@@ -189,7 +65,7 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div>
-                            <div class="section-title">Staffs Directory</div>
+                            <div class="section-title">Staffs</div>
                             <div style="color:#6b7280;font-size:0.9rem;">All registered staffs</div>
                         </div>
                     </div>
@@ -206,9 +82,43 @@
                                 </tr>
                             </thead>
                             <tbody id="staffTableBody">
-                                <tr>
-                                    <td colspan="5" style="text-align:center; color:#6b7280; padding:1rem;">Loading staff...</td>
-                                </tr>
+                                <?php if (!empty($staff) && is_array($staff)): ?>
+                                    <?php foreach ($staff as $s): ?>
+                                        <tr>
+                                            <td>
+                                                <div style="font-weight:600;">
+                                                    <?= esc(trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''))) ?>
+                                                </div>
+                                                <div style="font-size:0.85rem; color:#6b7280;">
+                                                    ID: <?= esc($s['employee_id'] ?? '-') ?>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <?php $role = $s['role'] ?? $s['designation'] ?? 'staff'; ?>
+                                                <span class="role-badge role-<?= esc(str_replace('_','-', strtolower($role))) ?>"><?= ucfirst(str_replace('_',' ', esc($role))) ?></span>
+                                            </td>
+                                            <td><?= esc($s['department'] ?? 'N/A') ?></td>
+                                            <td><?= esc($s['email'] ?? 'N/A') ?></td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button type="button" class="btn btn-secondary btn-small" onclick="openStaffViewModal(<?= (int)($s['staff_id'] ?? 0) ?>)">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </button>
+                                                    <button type="button" class="btn btn-warning btn-small" onclick="openStaffEditModal(<?= (int)($s['staff_id'] ?? 0) ?>)">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </button>
+                                                    <a class="btn btn-danger btn-small" href="<?= base_url('admin/staff-management/delete/' . ($s['staff_id'] ?? '')) ?>" onclick="return confirm('Delete this staff?')">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="5" style="text-align:center; padding:2rem;">No staff found.</td>
+                                    </tr>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -228,14 +138,38 @@
                         </div>
                         <div class="hms-modal-body">
                             <div class="form-grid">
-                                <div class="full"><strong>Name:</strong> <span id="v_name">-</span></div>
-                                <div><strong>Role:</strong> <span id="v_role">-</span></div>
-                                <div><strong>Department:</strong> <span id="v_department">-</span></div>
-                                <div><strong>Email:</strong> <span id="v_email">-</span></div>
-                                <div><strong>Contact No:</strong> <span id="v_contact">-</span></div>
-                                <div><strong>Gender:</strong> <span id="v_gender">-</span></div>
-                                <div><strong>DOB:</strong> <span id="v_dob">-</span></div>
-                                <div class="full"><strong>Address:</strong><br><span id="v_address">-</span></div>
+                                <div class="full">
+                                    <label class="form-label">Full Name</label>
+                                    <input type="text" id="v_full_name" class="form-input" readonly disabled>
+                                </div>
+                                <div>
+                                    <label class="form-label">Role</label>
+                                    <input type="text" id="v_role_input" class="form-input" readonly disabled>
+                                </div>
+                                <div>
+                                    <label class="form-label">Department</label>
+                                    <input type="text" id="v_department_input" class="form-input" readonly disabled>
+                                </div>
+                                <div>
+                                    <label class="form-label">Email</label>
+                                    <input type="email" id="v_email_input" class="form-input" readonly disabled>
+                                </div>
+                                <div>
+                                    <label class="form-label">Contact No</label>
+                                    <input type="text" id="v_contact_input" class="form-input" readonly disabled>
+                                </div>
+                                <div>
+                                    <label class="form-label">Gender</label>
+                                    <input type="text" id="v_gender_input" class="form-input" readonly disabled>
+                                </div>
+                                <div>
+                                    <label class="form-label">Date of Birth</label>
+                                    <input type="text" id="v_dob_input" class="form-input" readonly disabled>
+                                </div>
+                                <div class="full">
+                                    <label class="form-label">Address</label>
+                                    <textarea id="v_address_input" class="form-textarea" rows="2" readonly disabled></textarea>
+                                </div>
                                 <input type="hidden" id="v_staff_id" value="">
                             </div>
                         </div>

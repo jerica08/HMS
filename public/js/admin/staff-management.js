@@ -65,16 +65,13 @@
       var fd = new FormData(form);
       try{
         var res = await fetch(createShiftUrl, { method:'POST', headers:{ 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' }, body: fd, credentials:'same-origin' });
-        var ctype = res.headers.get('content-type') || '';
-        if (!ctype.includes('application/json')){
-          var txt = await res.text().catch(function(){ return ''; });
-          alert('Failed to create shift (HTTP '+res.status+').\n'+(txt ? txt.slice(0,300) : 'Non-JSON response'));
-          return;
-        }
-        var json = await res.json();
+        var bodyText = await res.text().catch(function(){ return ''; });
+        var json = {};
+        try { json = bodyText ? JSON.parse(bodyText) : {}; } catch(_) { json = {}; }
         if (!res.ok || !(json && json.status === 'success')){
-          var msg = (json && json.message) || ('Failed to create shift (HTTP '+res.status+')');
-          alert(msg);
+          var dbErr = json && json.db_error ? ('\nDB: '+(JSON.stringify(json.db_error))) : '';
+          var serverMsg = (json && json.message) ? json.message : '';
+          alert((serverMsg || ('Failed to create shift (HTTP '+res.status+')')) + dbErr);
           return;
         }
         alert('Shift created successfully.');
@@ -140,10 +137,10 @@
   }
 
   function populateViewStaffFields(clear){
-    const set = function(id, val){ var el = document.getElementById(id); if (el) el.textContent = val; };
+    const setVal = function(id, val){ var el = document.getElementById(id); if (el) el.value = val; };
     if (clear){
-      set('v_name','-'); set('v_role','-'); set('v_department','-'); set('v_email','-');
-      set('v_contact','-'); set('v_gender','-'); set('v_dob','-'); set('v_address','-');
+      setVal('v_full_name',''); setVal('v_role_input',''); setVal('v_department_input',''); setVal('v_email_input','');
+      setVal('v_contact_input',''); setVal('v_gender_input',''); setVal('v_dob_input',''); setVal('v_address_input','');
     }
   }
 
@@ -161,14 +158,15 @@
         const name = (s.full_name || (first + ' ' + last)).trim();
         const role = (s.role || '').toString().toLowerCase();
         const roleDisplay = role ? role.replace('_',' ') : '';
-        document.getElementById('v_name').textContent = name || '-';
-        document.getElementById('v_role').textContent = roleDisplay || '-';
-        document.getElementById('v_department').textContent = s.department || '-';
-        document.getElementById('v_email').textContent = s.email || '-';
-        document.getElementById('v_contact').textContent = s.contact_no || '-';
-        document.getElementById('v_gender').textContent = s.gender || '-';
-        document.getElementById('v_dob').textContent = s.dob || '-';
-        document.getElementById('v_address').textContent = s.address || '-';
+        const set = function(id, val){ var el = document.getElementById(id); if (el) el.value = (val || ''); };
+        set('v_full_name', name);
+        set('v_role_input', roleDisplay);
+        set('v_department_input', s.department);
+        set('v_email_input', s.email);
+        set('v_contact_input', s.contact_no);
+        set('v_gender_input', s.gender);
+        set('v_dob_input', s.dob);
+        var addr = document.getElementById('v_address_input'); if (addr) addr.value = (s.address || '');
       })
       .catch(function(err){ console.error(err); });
     showOverlay('viewStaffModal');

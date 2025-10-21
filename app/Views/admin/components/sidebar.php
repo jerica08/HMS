@@ -25,6 +25,18 @@
             </a>
         </li>
         <li class="nav-item">
+            <a href="<?= base_url('admin/shifts') ?>" class="nav-link <?= (uri_string() === 'admin/shifts') ? 'active' : '' ?>">
+                <i class="fas fa-calendar-days nav-icon"></i>
+                Shifts Management
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="<?= base_url('admin/appointments') ?>" class="nav-link <?= (uri_string() === 'admin/appointments') ? 'active' : '' ?>">
+                <i class="fas fa-calendar-check nav-icon"></i>
+                Appointments
+            </a>
+        </li>
+        <li class="nav-item">
             <a href="<?= base_url('admin/resource') ?>" class="nav-link <?= (uri_string() === 'admin/resource') ? 'active' : '' ?>">
                 <i class="fas fa-hospital nav-icon"></i>
                 Resource Management

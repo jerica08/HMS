@@ -17,6 +17,21 @@ class StaffManagement extends BaseController
         // Authentication is now handled by the roleauth filter in routes
     }
 
+    // Fetch a single staff member as JSON (for modals)
+    public function getStaff($id = null)
+    {
+        $id = (int)($id ?? 0);
+        if ($id <= 0) {
+            return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
+        }
+        $row = $this->builder->where('staff_id', $id)->get()->getRowArray();
+        if (!$row) {
+            return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Staff not found']);
+        }
+        $row['id'] = $row['staff_id'];
+        return $this->response->setJSON($row);
+    }
+
     public function index()
     {
         $staff = $this->builder->get()->getResultArray();
@@ -191,7 +206,7 @@ class StaffManagement extends BaseController
 
     public function update($id = null)
     {
-        $id = (int) ($id ?? 0);
+        $id = (int) ($id ?? ($this->request->getPost('staff_id') ?? 0));
         if ($id <= 0) {
             return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
         }

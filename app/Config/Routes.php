@@ -36,10 +36,14 @@ $routes->get('admin/user-management/staff/(:num)', 'UserManagement::getStaff/$1'
 $routes->get('admin/staff-management', 'StaffManagement::index', ['filter' => 'roleauth:admin']);
 $routes->match(['get', 'post'], 'admin/staff-management/create', 'StaffManagement::create', ['filter' => 'roleauth:admin']);
 $routes->post('admin/staff-management/update/(:num)', 'StaffManagement::update/$1', ['filter' => 'roleauth:admin']);
+$routes->post('admin/staff-management/update', 'StaffManagement::update', ['filter' => 'roleauth:admin']);
 $routes->get('admin/staff-management/delete/(:num)', 'StaffManagement::delete/$1', ['filter' => 'roleauth:admin']);
 $routes->get('admin/staff-management/view/(:num)', 'StaffManagement::view/$1', ['filter' => 'roleauth:admin']);
 $routes->get('admin/staff-management/api', 'StaffManagement::getStaffAPI', ['filter' => 'roleauth:admin']);
+$routes->get('admin/staff-management/staff/(:num)', 'StaffManagement::getStaff/$1', ['filter' => 'roleauth:admin']);
 $routes->get('admin/staff-management/doctors/api', 'StaffManagement::getDoctorsAPI', ['filter' => 'roleauth:admin']);
+// Alias used by Shifts page for doctor selection
+$routes->get('admin/doctors/api', 'StaffManagement::getDoctorsAPI', ['filter' => 'roleauth:admin']);
 
 
 // Resource Management Routes
@@ -69,6 +73,10 @@ $routes->get('admin/patients', 'PatientManagement::index', ['filter' => 'roleaut
 // -------------------------------------------------------------------
 // Patient Management (admin/patient-management)
 $routes->get('admin/patient-management', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
+// Shifts Management (admin/shifts)
+$routes->get('admin/shifts', 'Shifts::index', ['filter' => 'roleauth:admin']);
+// Appointments (admin/appointments)
+$routes->get('admin/appointments', 'AdminAppointments::index', ['filter' => 'roleauth:admin']);
 // Resource Management (sidebar uses admin/resource)
 $routes->get('admin/resource', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
 // Financial Management (sidebar uses admin/financial)

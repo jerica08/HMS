@@ -69,33 +69,39 @@ class DoctorShiftManagement extends BaseController
 
     public function create()
     {
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
-
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'doctor_id'    => 'required|integer',
-            'shift_date'   => 'required|valid_date',
-            'shift_start'  => 'required',
-            'shift_end'    => 'required',
-            'department'   => 'permit_empty|max_length[100]',
-            'status'       => 'permit_empty|in_list[Scheduled,Completed,Cancelled]',
-            'shift_type'   => 'permit_empty|max_length[50]',
-            'room_ward'    => 'permit_empty|max_length[100]',
-            'notes'        => 'permit_empty',
-        ]);
-        
-        if (!$validation->run($input)) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $validation->getErrors(),
-                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
-            ]);
-        }
-
-        $duration = $this->calculateDuration($input['shift_date'], $input['shift_start'], $input['shift_end']);
-
         try {
+            $input = $this->request->getJSON(true) ?? $this->request->getPost();
+
+            $validation = \Config\Services::validation();
+            $validation->setRules([
+                'doctor_id'    => 'required|integer',
+                'shift_date'   => 'required|valid_date',
+                'shift_start'  => 'required',
+                'shift_end'    => 'required',
+                'department'   => 'permit_empty|max_length[100]',
+                'status'       => 'permit_empty|in_list[Scheduled,Completed,Cancelled]',
+                'shift_type'   => 'permit_empty|max_length[50]',
+                'room_ward'    => 'permit_empty|max_length[100]',
+                'notes'        => 'permit_empty',
+            ]);
+
+            if (!$validation->run($input)) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validation->getErrors(),
+                    'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                ]);
+            }
+
+            // Normalize times to HH:MM:SS to avoid DB strict errors
+            $start = $input['shift_start'];
+            $end   = $input['shift_end'];
+            if (preg_match('/^\d{2}:\d{2}$/', $start)) { $start .= ':00'; }
+            if (preg_match('/^\d{2}:\d{2}$/', $end))   { $end   .= ':00'; }
+
+            $duration = $this->calculateDuration($input['shift_date'], $start, $end);
+
             $doctorId = (int)$input['doctor_id'];
             $exists = $this->db->table('doctor')->where('doctor_id', $doctorId)->countAllResults();
             if ($exists === 0) {
@@ -111,8 +117,8 @@ class DoctorShiftManagement extends BaseController
             $data = [
                 'doctor_id'      => $doctorId,
                 'shift_date'     => $input['shift_date'],
-                'shift_start'    => $input['shift_start'],
-                'shift_end'      => $input['shift_end'],
+                'shift_start'    => $start,
+                'shift_end'      => $end,
                 'department'     => $dept,
                 'status'         => $input['status'] ?? 'Scheduled',
                 'shift_type'     => $input['shift_type'] ?? null,
@@ -120,22 +126,35 @@ class DoctorShiftManagement extends BaseController
                 'notes'          => $input['notes'] ?? null,
                 'duration_hours' => $duration,
             ];
-            
-            if ($this->db->table('doctor_shift')->insert($data)) {
-                return $this->response->setJSON([
-                    'status'  => 'success',
-                    'message' => 'Shift created',
-                    'id'      => $this->db->insertID(),
-                    'csrf'    => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+
+            try {
+                if ($this->db->table('doctor_shift')->insert($data)) {
+                    return $this->response->setJSON([
+                        'status'  => 'success',
+                        'message' => 'Shift created',
+                        'id'      => $this->db->insertID(),
+                        'csrf'    => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                    ]);
+                }
+
+                $dbError = $this->db->error();
+                log_message('error', 'doctor_shift insert failed: ' . json_encode($dbError));
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Failed to create shift',
+                    'db_error' => $dbError,
+                    'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
+                ]);
+            } catch (\Throwable $e) {
+                log_message('error', 'DoctorShiftManagement::create exception: ' . $e->getMessage());
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Failed to create shift',
+                    'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
                 ]);
             }
-            
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to create shift',
-                'csrf' => [ 'name' => csrf_token(), 'value' => csrf_hash() ],
-            ]);
         } catch (\Throwable $e) {
+            log_message('error', 'DoctorShiftManagement::create exception: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
                 'message' => 'Failed to create shift',

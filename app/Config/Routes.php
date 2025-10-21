@@ -58,11 +58,21 @@ $routes->post('admin/doctor-shifts/create', 'DoctorShiftManagement::create', ['f
 $routes->post('admin/doctor-shifts/update', 'DoctorShiftManagement::update', ['filter' => 'roleauth:admin']);
 $routes->post('admin/doctor-shifts/delete', 'DoctorShiftManagement::delete', ['filter' => 'roleauth:admin']);
 
-// Legacy redirects (backward compatibility)
+// Legacy routes (backward compatibility) – map directly to correct handlers
 $routes->get('admin/users', 'Admin::users');
 $routes->get('admin/staff', 'Admin::staffManagement');
-$routes->get('admin/resources', 'Admin::resourceManagement');
-$routes->get('admin/patients', 'Admin::patientManagement');
+$routes->get('admin/resources', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/patients', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
+
+// -------------------------------------------------------------------
+// Admin aliases to match sidebar links (fix 404s)
+// -------------------------------------------------------------------
+// Patient Management (admin/patient-management)
+$routes->get('admin/patient-management', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
+// Resource Management (sidebar uses admin/resource)
+$routes->get('admin/resource', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
+// Financial Management (sidebar uses admin/financial)
+$routes->get('admin/financial', 'Admin::financialManagement', ['filter' => 'roleauth:admin']);
 
 // Navigation pages (still in Admin controller)
 $routes->get('admin/financial-management', 'Admin::financialManagement');

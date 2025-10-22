@@ -38,17 +38,30 @@ class StaffManagement extends BaseController
         return $this->response->setJSON($row);
     }
 
+    /**
+     * Main unified staff management - Role-based
+     */
     public function index()
     {
-        $staff = $this->builder->get()->getResultArray();
-
+        $session = session();
+        $userRole = $session->get('role');
+        $staffId = $session->get('staff_id');
+        
+        // Get staff data based on role permissions
+        $staff = $this->getStaffByRole($userRole, $staffId);
+        $stats = $this->getStaffStats($userRole, $staffId);
+        
         $data = [
             'title' => 'Staff Management',
+            'userRole' => $userRole,
             'staff' => $staff,
+            'staffStats' => $stats,
+            'permissions' => $this->getStaffPermissions($userRole),
             'total_staff' => count($staff),
         ];
 
-        return view('admin/staff-management', $data);
+        // Use unified view that adapts to user role
+        return view('staff-management/staff-management', $data);
     }
 
     public function create()
@@ -335,5 +348,157 @@ class StaffManagement extends BaseController
         } catch (\Throwable $e) {
             return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load doctors']);
         }
+    }
+
+    // ===================================================================
+    // UNIFIED STAFF MANAGEMENT HELPER METHODS
+    // ===================================================================
+
+    /**
+     * Get staff data based on user role and permissions
+     */
+    private function getStaffByRole($userRole, $staffId)
+    {
+        try {
+            $builder = $this->db->table('staff s');
+            
+            switch ($userRole) {
+                case 'admin':
+                    // Admin can see all staff
+                    $staff = $builder->orderBy('first_name', 'ASC')->get()->getResultArray();
+                    break;
+                    
+                case 'doctor':
+                    // Doctors can see staff in their department
+                    $doctorInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
+                    $department = $doctorInfo['department'] ?? null;
+                    
+                    if ($department) {
+                        $staff = $builder->where('department', $department)
+                                        ->orderBy('first_name', 'ASC')
+                                        ->get()->getResultArray();
+                    } else {
+                        $staff = [];
+                    }
+                    break;
+                    
+                case 'nurse':
+                    // Nurses can see staff in their department
+                    $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
+                    $department = $nurseInfo['department'] ?? null;
+                    
+                    if ($department) {
+                        $staff = $builder->where('department', $department)
+                                        ->whereIn('designation', ['doctor', 'nurse', 'receptionist'])
+                                        ->orderBy('first_name', 'ASC')
+                                        ->get()->getResultArray();
+                    } else {
+                        $staff = [];
+                    }
+                    break;
+                    
+                case 'receptionist':
+                    // Receptionists can see doctors and other receptionists
+                    $staff = $builder->whereIn('designation', ['doctor', 'receptionist'])
+                                    ->orderBy('first_name', 'ASC')
+                                    ->get()->getResultArray();
+                    break;
+                    
+                default:
+                    // Other roles see limited staff info
+                    $staff = $builder->whereIn('designation', ['doctor', 'receptionist'])
+                                    ->select('staff_id, first_name, last_name, designation, department')
+                                    ->orderBy('first_name', 'ASC')
+                                    ->get()->getResultArray();
+            }
+            
+            // Add full name and format data
+            return array_map(function($s) {
+                $s['full_name'] = trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''));
+                $s['id'] = $s['staff_id'] ?? null;
+                return $s;
+            }, $staff);
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'Staff data fetch error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get staff statistics based on user role
+     */
+    private function getStaffStats($userRole, $staffId)
+    {
+        try {
+            $stats = [];
+            
+            switch ($userRole) {
+                case 'admin':
+                    $stats = [
+                        'total_staff' => $this->db->table('staff')->countAllResults(),
+                        'total_doctors' => $this->db->table('staff')->where('designation', 'doctor')->countAllResults(),
+                        'total_nurses' => $this->db->table('staff')->where('designation', 'nurse')->countAllResults(),
+                        'total_receptionists' => $this->db->table('staff')->where('designation', 'receptionist')->countAllResults(),
+                        'total_pharmacists' => $this->db->table('staff')->where('designation', 'pharmacist')->countAllResults(),
+                        'total_laboratorists' => $this->db->table('staff')->where('designation', 'laboratorist')->countAllResults(),
+                        'active_staff' => $this->db->table('staff')->where('status', 'Active')->countAllResults(),
+                        'new_staff_month' => $this->db->table('staff')->where('date_joined >=', date('Y-m-01'))->countAllResults(),
+                    ];
+                    break;
+                    
+                case 'doctor':
+                case 'nurse':
+                    // Get department-based stats
+                    $userInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
+                    $department = $userInfo['department'] ?? null;
+                    
+                    if ($department) {
+                        $stats = [
+                            'department_staff' => $this->db->table('staff')->where('department', $department)->countAllResults(),
+                            'department_doctors' => $this->db->table('staff')->where('department', $department)->where('designation', 'doctor')->countAllResults(),
+                            'department_nurses' => $this->db->table('staff')->where('department', $department)->where('designation', 'nurse')->countAllResults(),
+                        ];
+                    }
+                    break;
+                    
+                case 'receptionist':
+                    $stats = [
+                        'total_doctors' => $this->db->table('staff')->where('designation', 'doctor')->countAllResults(),
+                        'total_receptionists' => $this->db->table('staff')->where('designation', 'receptionist')->countAllResults(),
+                        'active_doctors' => $this->db->table('doctor')->where('status', 'Active')->countAllResults(),
+                    ];
+                    break;
+                    
+                default:
+                    $stats = [
+                        'total_staff' => $this->db->table('staff')->countAllResults(),
+                        'total_doctors' => $this->db->table('staff')->where('designation', 'doctor')->countAllResults(),
+                    ];
+            }
+            
+            return $stats;
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'Staff stats error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get staff permissions based on user role
+     */
+    private function getStaffPermissions($userRole)
+    {
+        return [
+            'canCreate' => in_array($userRole, ['admin']),
+            'canEdit' => in_array($userRole, ['admin']),
+            'canDelete' => in_array($userRole, ['admin']),
+            'canView' => in_array($userRole, ['admin', 'doctor', 'nurse', 'receptionist']),
+            'canViewSalary' => in_array($userRole, ['admin', 'accountant']),
+            'canManageSchedule' => in_array($userRole, ['admin', 'doctor']),
+            'canViewDepartment' => in_array($userRole, ['admin', 'doctor', 'nurse']),
+            'canExport' => in_array($userRole, ['admin']),
+        ];
     }
 }

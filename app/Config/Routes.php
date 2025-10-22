@@ -18,9 +18,20 @@ $routes->post('login', 'Auth::login');
 $routes->get('logout', 'Auth::logout');
 $routes->get('auth/logout', 'Auth::logout');
 
-// Admin Dashboard
-$routes->get('admin/dashboard', 'Admin::dashboard', ['filter' => 'roleauth:admin']);
-$routes->get('admin', 'Admin::dashboard', ['filter' => 'roleauth:admin']); // Default admin route
+// ===================================================================
+// UNIFIED DASHBOARD MANAGEMENT - All roles use DashboardManagement controller
+// ===================================================================
+
+// Dashboard Views - Role-specific entry points
+$routes->get('admin/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin', 'DashboardManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('doctor/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:receptionist']);
+$routes->get('accountant/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:accountant']);
+$routes->get('it/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:it']);
+$routes->get('laboratorists/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:laboratorist']);
+$routes->get('pharmacists/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:pharmacist']);
 
 // User Management Routes
 $routes->get('admin/user-management', 'UserManagement::index', ['filter' => 'roleauth:admin']);
@@ -68,12 +79,6 @@ $routes->get('admin/staff', 'Admin::staffManagement');
 $routes->get('admin/resources', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('admin/patients', 'Patients::index', ['filter' => 'roleauth:admin']);
 
-// -------------------------------------------------------------------
-// Admin aliases to match sidebar links (fix 404s)
-// -------------------------------------------------------------------
-// ===================================================================
-// SIDEBAR-BASED ROUTES (Consolidated Architecture)
-// ===================================================================
 
 // Patient Management Sidebar - All roles use PatientManagement controller
 $routes->get('admin/patient-management', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
@@ -110,16 +115,16 @@ $routes->post('appointments/(:num)', 'AppointmentManagement::updateAppointment/$
 $routes->delete('appointments/(:num)', 'AppointmentManagement::deleteAppointment/$1', ['filter' => 'roleauth:admin']);
 $routes->post('appointments/(:num)/status', 'AppointmentManagement::updateAppointmentStatus/$1', ['filter' => 'roleauth:admin,doctor,nurse']);
 
-// Legacy compatibility routes
-$routes->get('admin/patients', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
-$routes->post('admin/patients', 'PatientManagement::createPatient', ['filter' => 'roleauth:admin']);
-// Appointments (admin/appointments)
-$routes->get('admin/appointments', 'AdminAppointments::index', ['filter' => 'roleauth:admin']);
-// Prescriptions (admin/prescriptions)
-$routes->get('admin/prescriptions', 'Admin::prescriptions', ['filter' => 'roleauth:admin']);
-// Resource Management (sidebar uses admin/resource)
+// ===================================================================
+// LEGACY COMPATIBILITY ROUTES
+// ===================================================================
+
+// Legacy admin routes for backward compatibility
+$routes->get('admin/users', 'UserManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/staff', 'StaffManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/resources', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('admin/resource', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
-// Financial Management (sidebar uses admin/financial)
+$routes->get('admin/prescriptions', 'Admin::prescriptions', ['filter' => 'roleauth:admin']);
 $routes->get('admin/financial', 'Admin::financialManagement', ['filter' => 'roleauth:admin']);
 
 // Navigation pages (still in Admin controller)
@@ -136,13 +141,8 @@ $routes->get('doctor/dashboard', 'Doctor::dashboard');
 // Patient Management - REMOVED: Now using unified PatientManagement controller
 // Legacy routes removed to prevent conflicts with unified approach
 
-// Appointment Management
-$routes->get('doctor/appointments', 'Appointments::appointments');
-$routes->post('doctor/schedule-appointment', 'Appointments::postScheduleAppointment');
-$routes->get('doctor/appointment-data', 'Appointments::getAppointmentData');
-$routes->post('doctor/update-appointment-status', 'Appointments::updateAppointmentStatus');
-$routes->post('doctor/delete-appointment', 'Appointments::deleteAppointment');
-$routes->get('doctor/appointment/details/(:num)', 'Appointments::getAppointmentDetails/$1');
+// Appointment Management - REMOVED: Now using unified AppointmentManagement controller
+// Legacy routes removed to prevent conflicts with unified approach
 
 // Prescription Management
 $routes->get('doctor/prescriptions', 'Prescriptions::prescriptions');

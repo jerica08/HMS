@@ -13,9 +13,6 @@ class PatientService
         $this->db = \Config\Database::connect();
     }
 
-    /**
-     * Create patient with role-based doctor assignment
-     */
     public function createPatient($input, $userRole, $staffId = null)
     {
         // Determine primary doctor assignment
@@ -131,9 +128,6 @@ class PatientService
         }
     }
 
-    /**
-     * Update patient
-     */
     public function updatePatient($id, $input)
     {
         // Validation

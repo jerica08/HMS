@@ -3,16 +3,22 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
+use App\Models\UserModel;
+use App\Models\StaffModel;
 
 class StaffManagement extends BaseController
 {
     protected $db;
     protected $builder;
+    protected $userModel;
+    protected $staffModel;
 
     public function __construct()
     {
         $this->db = \Config\Database::connect();
         $this->builder = $this->db->table('staff');
+        $this->userModel = new UserModel();
+        $this->staffModel = new StaffModel();
 
         // Authentication is now handled by the roleauth filter in routes
     }

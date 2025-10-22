@@ -66,15 +66,53 @@ $routes->post('admin/doctor-shifts/delete', 'DoctorShiftManagement::delete', ['f
 $routes->get('admin/users', 'Admin::users');
 $routes->get('admin/staff', 'Admin::staffManagement');
 $routes->get('admin/resources', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
-$routes->get('admin/patients', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/patients', 'Patients::index', ['filter' => 'roleauth:admin']);
 
 // -------------------------------------------------------------------
 // Admin aliases to match sidebar links (fix 404s)
 // -------------------------------------------------------------------
-// Patient Management (admin/patient-management)
+// ===================================================================
+// SIDEBAR-BASED ROUTES (Consolidated Architecture)
+// ===================================================================
+
+// Patient Management Sidebar - All roles use PatientManagement controller
 $routes->get('admin/patient-management', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
-// Shifts Management (admin/shifts)
-$routes->get('admin/shifts', 'Shifts::index', ['filter' => 'roleauth:admin']);
+$routes->get('doctor/patients', 'PatientManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/patients', 'PatientManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/patients', 'PatientManagement::index', ['filter' => 'roleauth:receptionist']);
+
+// Patient Management API Routes
+$routes->post('patients/create', 'PatientManagement::createPatient', ['filter' => 'roleauth:admin,doctor,receptionist']);
+$routes->get('patients/api', 'PatientManagement::getPatientsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist']);
+$routes->get('patients/(:num)', 'PatientManagement::getPatient/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist']);
+$routes->put('patients/(:num)', 'PatientManagement::updatePatient/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
+$routes->post('patients/(:num)', 'PatientManagement::updatePatient/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
+$routes->delete('patients/(:num)', 'PatientManagement::deletePatient/$1', ['filter' => 'roleauth:admin']);
+$routes->post('patients/(:num)/status', 'PatientManagement::updatePatientStatus/$1', ['filter' => 'roleauth:admin,doctor,nurse']);
+$routes->post('patients/(:num)/assign-doctor', 'PatientManagement::assignDoctor/$1', ['filter' => 'roleauth:admin,receptionist']);
+
+// ===================================================================
+// UNIFIED APPOINTMENT MANAGEMENT - All roles use AppointmentManagement controller
+// ===================================================================
+
+// Appointment Management Views - Role-specific entry points
+$routes->get('admin/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('doctor/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:receptionist']);
+
+// Appointment Management API Routes - Unified endpoints
+$routes->post('appointments/create', 'AppointmentManagement::createAppointment', ['filter' => 'roleauth:admin,doctor,receptionist']);
+$routes->get('appointments/api', 'AppointmentManagement::getAppointmentsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist']);
+$routes->get('appointments/(:num)', 'AppointmentManagement::getAppointment/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist']);
+$routes->put('appointments/(:num)', 'AppointmentManagement::updateAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
+$routes->post('appointments/(:num)', 'AppointmentManagement::updateAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
+$routes->delete('appointments/(:num)', 'AppointmentManagement::deleteAppointment/$1', ['filter' => 'roleauth:admin']);
+$routes->post('appointments/(:num)/status', 'AppointmentManagement::updateAppointmentStatus/$1', ['filter' => 'roleauth:admin,doctor,nurse']);
+
+// Legacy compatibility routes
+$routes->get('admin/patients', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
+$routes->post('admin/patients', 'PatientManagement::createPatient', ['filter' => 'roleauth:admin']);
 // Appointments (admin/appointments)
 $routes->get('admin/appointments', 'AdminAppointments::index', ['filter' => 'roleauth:admin']);
 // Prescriptions (admin/prescriptions)
@@ -95,14 +133,8 @@ $routes->get('admin/system-settings', 'Admin::systemSettings');
 // Dashboard
 $routes->get('doctor/dashboard', 'Doctor::dashboard');
 
-// Patient Management
-$routes->get('doctor/patients', 'Patients::patients');
-$routes->post('doctor/patients', 'Patients::createPatient');
-$routes->get('doctor/patients/api', 'Patients::getPatientsAPI');
-$routes->get('doctor/patient/(:num)', 'Patients::getPatient/$1');
-$routes->get('doctor/patient', 'Patients::patients');
-$routes->put('doctor/patient/(:num)', 'Patients::updatePatient/$1');
-$routes->post('doctor/patient/(:num)', 'Patients::updatePatient/$1');
+// Patient Management - REMOVED: Now using unified PatientManagement controller
+// Legacy routes removed to prevent conflicts with unified approach
 
 // Appointment Management
 $routes->get('doctor/appointments', 'Appointments::appointments');

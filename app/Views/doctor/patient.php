@@ -17,12 +17,16 @@
         <?php include APPPATH . 'Views/doctor/components/sidebar.php'; ?>
 
         <main class="content">
-            <h1 class="page-title">My Patient</h1>
+            <h1 class="page-title"><?= $title ?></h1>
+            
+            <!-- Role-based actions -->
+            <?php if ($permissions['canCreate']): ?>
             <div class="page-actions">
                 <button class="btn btn-success" id="addPatientBtn">
                     <i class="fas fa-plus"></i> Add New Patient
                 </button>
-            </div><br>
+            </div>
+            <?php endif; ?><br>
 
             <div class="dashboard-overview">
                 <div class="overview-card">
@@ -35,7 +39,22 @@
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue"><?= $totalPatients ?? 0 ?></div>
+                            <div class="metric-value blue"><?= $stats['total_patients'] ?? 0 ?></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overview-card">
+                    <div class="card-header-modern">
+                        <div class="card-icon-modern green"><i class="fas fa-user-check"></i></div>
+                        <div class="card-info">
+                            <h3 class="card-title-modern">Active Patients</h3>
+                            <p class="card-subtitle"><?= $userRole === 'doctor' ? 'Under your care' : 'In the system' ?></p>
+                        </div>
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric">
+                            <div class="metric-value green"><?= $stats['active_patients'] ?? 0 ?></div>
                         </div>
                     </div>
                 </div>
@@ -44,18 +63,22 @@
                     <div class="card-header-modern">
                         <div class="card-icon-modern blue"><i class="fas fa-calendar-week"></i></div>
                         <div class="card-info">
-                            <h3 class="card-title-modern">Patient Type</h3>
-                            <p class="card-subtitle">Under your care</p>
+                            <h3 class="card-title-modern">Patient Types</h3>
+                            <p class="card-subtitle">Distribution</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue"><?= $inPatients ?? 0 ?></div>
+                            <div class="metric-value blue"><?= $stats['inpatients'] ?? 0 ?></div>
                             <div class="metric-label">In-Patient</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value green"><?= $outPatients ?? 0 ?></div>
+                            <div class="metric-value green"><?= $stats['outpatients'] ?? 0 ?></div>
                             <div class="metric-label">Out-Patient</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value red"><?= $stats['emergency_patients'] ?? 0 ?></div>
+                            <div class="metric-label">Emergency</div>
                         </div>
                     </div>
                 </div>

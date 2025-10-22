@@ -197,9 +197,9 @@
 </div>
 <script>
   window.USER_MGMT_CFG = {
-    getUserBase: '<?= base_url('admin/users/get/') ?>',
-    resetUserBase: '<?= base_url('admin/users/reset/') ?>',
-    deleteUserBase: '<?= base_url('admin/users/delete/') ?>',
+    getUserBase: '<?= base_url('admin/user-management/user/') ?>',
+    resetUserBase: '<?= base_url('admin/user-management/reset-password/') ?>',
+    deleteUserBase: '<?= base_url('admin/user-management/delete/') ?>',
     hasErrors: <?= json_encode(!empty(session()->get('errors'))) ?>
   };
 </script>
@@ -217,7 +217,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <form id="addUserForm" action="<?= base_url('admin/users/saveUser') ?>" method="post">
+      <form id="addUserForm" action="<?= base_url('admin/user-management/create') ?>" method="post">
         <?= csrf_field() ?>
         <div class="hms-modal-body">
           <div class="form-grid">
@@ -370,7 +370,7 @@
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <form id="editUserForm" action="<?= base_url('admin/users/updateUser') ?>" method="post">
+    <form id="editUserForm" action="<?= base_url('admin/user-management/update') ?>" method="post">
       <?= csrf_field() ?>
       <input type="hidden" name="user_id" id="edit_user_id">
       <div class="hms-modal-body">

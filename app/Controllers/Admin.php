@@ -101,12 +101,6 @@ class Admin extends BaseController
         return view('admin/financial-management', $data);
     }
 
-    public function communication()
-    {
-        $data = ['title' => 'Communication & Notifications'];
-        return view('admin/communication', $data);
-    }
-
     public function analytics()
     {
         $data = ['title' => 'Analytics & Reports'];
@@ -116,18 +110,12 @@ class Admin extends BaseController
     public function systemSettings()
     {
         $data = ['title' => 'System Settings'];
-        return view('admin/system-settings', $data);
+        return view('admin/system-setting', $data);
     }
 
-    public function securityAccess()
+    public function prescriptions()
     {
-        $data = ['title' => 'Security & Access'];
-        return view('admin/security-access', $data);
-    }
-
-    public function auditLogs()
-    {
-        $data = ['title' => 'Audit Logs'];
-        return view('admin/audit-logs', $data);
+        $data = ['title' => 'Prescriptions'];
+        return view('admin/prescriptions', $data);
     }
 }

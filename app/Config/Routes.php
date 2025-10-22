@@ -77,6 +77,8 @@ $routes->get('admin/patient-management', 'PatientManagement::index', ['filter' =
 $routes->get('admin/shifts', 'Shifts::index', ['filter' => 'roleauth:admin']);
 // Appointments (admin/appointments)
 $routes->get('admin/appointments', 'AdminAppointments::index', ['filter' => 'roleauth:admin']);
+// Prescriptions (admin/prescriptions)
+$routes->get('admin/prescriptions', 'Admin::prescriptions', ['filter' => 'roleauth:admin']);
 // Resource Management (sidebar uses admin/resource)
 $routes->get('admin/resource', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
 // Financial Management (sidebar uses admin/financial)
@@ -84,11 +86,8 @@ $routes->get('admin/financial', 'Admin::financialManagement', ['filter' => 'role
 
 // Navigation pages (still in Admin controller)
 $routes->get('admin/financial-management', 'Admin::financialManagement');
-$routes->get('admin/communication', 'Admin::communication');
 $routes->get('admin/analytics', 'Admin::analytics');
 $routes->get('admin/system-settings', 'Admin::systemSettings');
-$routes->get('admin/security-access', 'Admin::securityAccess');
-$routes->get('admin/audit-logs', 'Admin::auditLogs');
 // ===================================================================
 // DOCTOR ROUTES
 // ===================================================================

@@ -37,6 +37,12 @@
             </a>
         </li>
         <li class="nav-item">
+            <a href="<?= base_url('admin/prescriptions') ?>" class="nav-link <?= (uri_string() === 'admin/prescriptions') ? 'active' : '' ?>">
+                <i class="fas fa-prescription-bottle nav-icon"></i>
+                Prescriptions
+            </a>
+        </li>
+        <li class="nav-item">
             <a href="<?= base_url('admin/resource') ?>" class="nav-link <?= (uri_string() === 'admin/resource') ? 'active' : '' ?>">
                 <i class="fas fa-hospital nav-icon"></i>
                 Resource Management
@@ -49,33 +55,15 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="<?= base_url('admin/communication') ?>" class="nav-link <?= (uri_string() === 'admin/communication') ? 'active' : '' ?>">
-                <i class="fas fa-comments nav-icon"></i>
-                Communication
-            </a>
-        </li>
-        <li class="nav-item">
             <a href="<?= base_url('admin/analytics') ?>" class="nav-link <?= (uri_string() === 'admin/analytics') ? 'active' : '' ?>">
                 <i class="fas fa-chart-bar nav-icon"></i>
                 Analytics & Reports
             </a>
         </li>
         <li class="nav-item">
-            <a href="<?= base_url('admin/systemSettings') ?>" class="nav-link <?= (uri_string() === 'admin/systemSettings') ? 'active' : '' ?>">
+            <a href="<?= base_url('admin/system-settings') ?>" class="nav-link <?= (uri_string() === 'admin/system-settings') ? 'active' : '' ?>">
                 <i class="fas fa-cogs nav-icon"></i>
                 System Settings
-            </a>
-        </li>
-        <li class="nav-item">
-            <a href="<?= base_url('admin/securityAccess') ?>" class="nav-link <?= (uri_string() === 'admin/securityAccess') ? 'active' : '' ?>">
-                <i class="fas fa-shield-alt nav-icon"></i>
-                Security & Access
-            </a>
-        </li>
-        <li class="nav-item">
-            <a href="<?= base_url('admin/auditLogs') ?>" class="nav-link <?= (uri_string() === 'admin/auditLogs') ? 'active' : '' ?>">
-                <i class="fas fa-clipboard-list nav-icon"></i>
-                Audit Logs
             </a>
         </li>
     </ul>

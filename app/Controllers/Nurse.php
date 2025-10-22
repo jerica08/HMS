@@ -54,10 +54,10 @@ class Nurse extends BaseController
                 'assigned_patients' => [] // Patients assigned to this nurse
             ];
 
-            return view('nurse/patient', $data);
+            return view('nurse/patient-management', $data);
 
         } catch (Exception $e) {
-            return view('nurse/patient', [
+            return view('nurse/patient-management', [
                 'title' => 'Patient Management',
                 'page' => 'patient',
                 'patients' => [],
@@ -401,6 +401,47 @@ class Nurse extends BaseController
                 'success' => false,
                 'message' => 'Failed to add patient note'
             ]);
+        }
+    }
+
+    /**
+     * Get doctors list from doctor table (joined with staff) for nurse selection (AJAX)
+     */
+    public function getDoctorsAPI()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
+        }
+
+        try {
+            $db = \Config\Database::connect();
+            $builder = $db->table('staff s')
+                ->select('COALESCE(d.doctor_id, s.staff_id) AS doctor_id, s.staff_id, s.first_name, s.last_name, s.department, s.designation')
+                ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
+                ->orderBy('s.first_name', 'ASC');
+
+            // Match staff with role 'doctor' (common casings) OR those present in doctor table
+            $builder->groupStart()
+                ->whereIn('s.role', ['doctor', 'Doctor'])
+                ->orWhere('d.doctor_id IS NOT NULL', null, false)
+            ->groupEnd();
+
+            $rows = $builder->get()->getResultArray();
+
+            foreach ($rows as &$row) {
+                $row['full_name'] = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $rows,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Unable to load doctors list',
+                'data' => []
+            ])->setStatusCode(500);
         }
     }
 }

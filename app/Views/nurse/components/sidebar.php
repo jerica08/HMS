@@ -7,9 +7,9 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="<?= base_url('nurse/patient') ?>" class="nav-link <?= (uri_string() === 'nurse/patient') ? 'active' : '' ?>">
+            <a href="<?= base_url('nurse/patient-management') ?>" class="nav-link <?= (in_array(uri_string(), ['nurse/patient','nurse/patient-management'])) ? 'active' : '' ?>">
                 <i class="fas fa-heart nav-icon"></i>
-              Patient
+              Patient Management
             </a>
         </li>
         <li class="nav-item">

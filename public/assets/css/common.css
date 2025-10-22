@@ -813,7 +813,7 @@ btn-primary:hover {
 .table tbody td { border: none; padding: 0.25rem 1rem; }
 }
 
-/* ------------------- Resource Management extracted styles ------------------- */
+/* ------------------- Resource Management styles ------------------- */
 .toolbar-row { margin: 0.75rem 0 1rem; display: flex; justify-content: flex-start; }
 
 /* Simple card shell reused by pages */
@@ -830,3 +830,30 @@ btn-primary:hover {
 .text-capitalize { text-transform: capitalize; }
 .text-primary { color: #4f46e5; }
 .mt-6 { margin-top: 1.5rem; }
+
+/* ------------------- Financial Management extracted styles ------------------- */
+.quick-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.quick-stats .stat-card { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; border: 1px solid #f1f5f9; }
+.quick-stats .stat-number { font-size: 1.8rem; font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; }
+.quick-stats .stat-label { font-size: 0.9rem; color: #6b7280; margin-bottom: 0.5rem; }
+.quick-stats .stat-change { font-size: 0.8rem; font-weight: 500; }
+.quick-stats .change-positive { color: #22c55e; }
+.quick-stats .change-negative { color: #ef4444; }
+.quick-stats .stat-card.revenue .stat-number { color: #10b981; }
+.quick-stats .stat-card.expenses .stat-number { color: #eab308; }
+.quick-stats .stat-card.profit .stat-number { color: #4f46e5; }
+
+/* Billing services table */
+.bill-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.95rem; }
+.bill-table thead th { text-align: left; background: #f8fafc; color: #374151; font-weight: 600; padding: 0.75rem 1rem; border-bottom: 1px solid #e5e7eb; }
+.bill-table tbody td { padding: 0.6rem 1rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+.bill-table tbody tr:last-child td { border-bottom: none; }
+
+/* Small layout utilities for finance page */
+.overflow-auto { overflow: auto; }
+.justify-end-row { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
+.totals-row { display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; }
+.text-right { text-align: right; }
+.text-warning { color: #eab308; }
+.text-success { color: #10b981; }
+.m-0 { margin: 0; }

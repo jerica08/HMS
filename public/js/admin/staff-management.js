@@ -1,7 +1,15 @@
 (function(){
   // Staff Management – Doctor Shifts module
-  // Config bootstrap (injected by PHP view into window.STAFF_CFG)
-  const cfg = (window.STAFF_CFG || {});
+  // Config bootstrap: prefer JSON from #staff-config, fallback to window.STAFF_CFG
+  const cfg = (function(){
+    try {
+      var tag = document.getElementById('staff-config');
+      if (tag) {
+        return JSON.parse(tag.textContent || '{}');
+      }
+    } catch (_) {}
+    return (window.STAFF_CFG || {});
+  })();
   // API endpoints
   const apiUrl = cfg.apiUrl; // legacy/simple list
   const deleteUrl = cfg.deleteUrl;
@@ -26,6 +34,7 @@
   // ---------------------------------------------------------
   // Modal helpers & public API used by inline HTML handlers
   // ---------------------------------------------------------
+  // showOverlay: activates a modal overlay by id
   function showOverlay(id){
     var el = document.getElementById(id);
     if (el) { el.classList.add('active'); el.setAttribute('aria-hidden','false'); }
@@ -34,6 +43,7 @@
   // ---------------------------------------------------------
   // Assign Shift (Doctors) modal open/close + submit
   // ---------------------------------------------------------
+  // prefillAssignDate: sets today's date on assign shift form
   function prefillAssignDate(){
     try{
       var dateEl = document.getElementById('shift_date');
@@ -45,16 +55,19 @@
       dateEl.value = yyyy + '-' + mm + '-' + dd;
     }catch(_){ /* noop */ }
   }
+  // openAssignShiftModal: prepares and opens the Assign Shift modal
   window.openAssignShiftModal = function(){
     prefillAssignDate();
     if (doctorsUrl) loadDoctors();
     showOverlay('assignShiftModal');
   };
+  // closeAssignShiftModal: closes Assign Shift modal and resets form
   window.closeAssignShiftModal = function(){
     hideOverlay('assignShiftModal');
     var f = document.getElementById('assignShiftForm');
     if (f) f.reset();
   };
+  // bindAssignShiftForm: wires submit/close behaviors for Assign Shift form
   function bindAssignShiftForm(){
     var form = document.getElementById('assignShiftForm');
     if (!form || form.__boundSubmit) return;
@@ -97,6 +110,7 @@
   // ---------------------------------------------------------
   // Staff list (table), Add staff, View/Edit staff modals
   // ---------------------------------------------------------
+  // loadStaffTable: fetches and renders staff rows in table
   async function loadStaffTable(){
     const tbody = document.getElementById('staffTableBody');
     if (!tbody || !staffApiUrl) return;
@@ -136,6 +150,7 @@
     }
   }
 
+  // populateViewStaffFields: clears or sets values for view-staff modal inputs
   function populateViewStaffFields(clear){
     const setVal = function(id, val){ var el = document.getElementById(id); if (el) el.value = val; };
     if (clear){
@@ -144,6 +159,7 @@
     }
   }
 
+  // openStaffViewModal: loads staff details and opens the view modal
   window.openStaffViewModal = function(id){
     const overlay = document.getElementById('viewStaffModal');
     if (!overlay || !staffGetBase) return;
@@ -172,6 +188,7 @@
     showOverlay('viewStaffModal');
   };
 
+  // openStaffEditModal: loads staff details and opens the edit modal
   window.openStaffEditModal = function(id){
     const overlay = document.getElementById('editStaffModal');
     const form = document.getElementById('editStaffForm');
@@ -195,6 +212,7 @@
     showOverlay('editStaffModal');
   };
 
+  // bindAddStaffForm: wires submit for Add Staff form and fallback open button
   function bindAddStaffForm(){
     const form = document.getElementById('addStaffForm');
     if (!form || form.__boundSubmit) return;
@@ -226,6 +244,7 @@
     });
   }
 
+  // bindEditStaffForm: wires submit for Edit Staff form
   function bindEditStaffForm(){
     const form = document.getElementById('editStaffForm');
     if (!form || form.__boundSubmit) return;
@@ -249,22 +268,28 @@
       }
     });
   }
+  // hideOverlay: deactivates a modal overlay by id
   function hideOverlay(id){
     var el = document.getElementById(id);
     if (el) { el.classList.remove('active'); el.setAttribute('aria-hidden','true'); }
   }
 
   // Doctor Shift admin modal (view/edit existing)
+  // closeDoctorShiftAdminModal: closes the doctor shift admin modal
   window.closeDoctorShiftAdminModal = function(){ hideOverlay('doctorShiftAdminModal'); };
 
   // View staff modal
+  // closeStaffViewModal: closes the view staff modal
   window.closeStaffViewModal = function(){ hideOverlay('viewStaffModal'); };
 
   // Edit staff modal
+  // closeStaffEditModal: closes the edit staff modal
   window.closeStaffEditModal = function(){ hideOverlay('editStaffModal'); };
 
   // Add staff modal
+  // openAddStaffModal: opens the add staff modal
   window.openAddStaffModal = function(){ showOverlay('addStaffModal'); };
+  // closeAddStaffModal: closes the add staff modal
   window.closeAddStaffModal = function(){ hideOverlay('addStaffModal'); };
 
   // Close on overlay background click for Add Staff
@@ -276,6 +301,7 @@
   // ---------------------------------------------------------
   // Role-based dynamic fields (Add/Edit Staff)
   // ---------------------------------------------------------
+  // getRoleBlocks: returns map of role -> container element
   function getRoleBlocks(){
     return {
       'doctor': document.getElementById('role-fields-doctor'),
@@ -287,6 +313,7 @@
       'it_staff': document.getElementById('role-fields-it_staff')
     };
   }
+  // updateRoleFieldsForSelect: toggles role-specific blocks based on selection
   function updateRoleFieldsForSelect(selectEl){
     if (!selectEl) return;
     const roleBlocks = getRoleBlocks();
@@ -294,6 +321,7 @@
     Object.values(roleBlocks).forEach(function(b){ if (b) b.style.display = 'none'; });
     if (roleBlocks[v]) roleBlocks[v].style.display = 'block';
   }
+  // bindRoleSelect: attaches change handler and sets initial visibility
   function bindRoleSelect(id){
     const sel = document.getElementById(id);
     if (!sel) return;
@@ -305,9 +333,11 @@
   }
 
   // Helpers: formatting utilities
+  // fmt: formats empty values to '-'
   function fmt(t){ return t==null || t==='' ? '-' : t; }
 
   // Renderer: build a table row's HTML for a shift
+  // rowHtml: renders one shift row HTML string
   function rowHtml(r){
     const idNum = Number(r.id) || 0;
     return (
@@ -326,6 +356,7 @@
   }
 
   // Render controller: inject rows into the table body
+  // render: replaces shifts table body with provided list
   function render(list){
     if(!Array.isArray(list) || list.length===0){
       body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:1rem;">No doctor shifts found.</td></tr>';
@@ -335,6 +366,7 @@
   }
 
   // Data loading (simple): fetch shifts from API and render
+  // load: loads shifts using legacy apiUrl (fallback)
   function load(){
     if (!apiUrl) { render([]); return; }
     fetch(apiUrl, { headers:{ 'Accept':'application/json' }})
@@ -350,6 +382,7 @@
   }
 
   // Actions: delete shift (uses CSRF)
+  // deleteDoctorShift: deletes a shift by id with CSRF support
   window.deleteDoctorShift = function(id){
     if(!id || !confirm('Delete this shift?')) return;
     var p = new URLSearchParams();
@@ -370,6 +403,7 @@
   // ---------------------------------------------------------
   // Advanced doctor shifts handling (externalized from view)
   // ---------------------------------------------------------
+  // loadDoctors: populates doctor select with options from API
   async function loadDoctors(){
     const select = document.getElementById('doctor_id');
     if (!select || !doctorsUrl) return;
@@ -400,10 +434,12 @@
     }
   }
 
+  // getAssignDepartment: returns the department select from Assign Shift form
   function getAssignDepartment(){
     const form = document.getElementById('assignShiftForm');
     return form ? form.querySelector('select[name="department"]') : null;
   }
+  // syncDepartmentFromDoctor: sets department based on selected doctor's department
   function syncDepartmentFromDoctor(){
     try{
       const docSel = document.getElementById('doctor_id');
@@ -423,6 +459,7 @@
   }
 
   // Advanced load of shifts list with delegated actions
+  // loadDoctorShifts: fetches and renders advanced shifts list
   async function loadDoctorShifts(){
     if (!body || !shiftsUrl) return;
     try{
@@ -459,6 +496,7 @@
     }
   }
 
+  // openDoctorShiftAdminModal: loads one shift and opens admin modal
   async function openDoctorShiftAdminModal(id){
     if (!shiftShowBase) return;
     try{
@@ -484,6 +522,7 @@
     }
   }
 
+  // bindShiftActions: delegates edit/delete actions in shifts table
   function bindShiftActions(){
     if (!body || body.__boundShiftActions) return;
     body.__boundShiftActions = true;
@@ -517,6 +556,7 @@
     });
   }
 
+  // bindAdminForm: wires submit for doctor shift admin form
   function bindAdminForm(){
     const form = document.getElementById('doctorShiftAdminForm');
     if (!form || form.__boundSubmit) return;
@@ -547,6 +587,7 @@
   }
 
   // Init: bind role fields, doctor change sync, actions, and load lists
+  // DOMContentLoaded: entry point to initialize bindings and load data
   document.addEventListener('DOMContentLoaded', function(){
     bindRoleSelect('designation');
     bindRoleSelect('e_designation');

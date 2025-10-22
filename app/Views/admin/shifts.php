@@ -54,22 +54,22 @@
                         </table>
                     </div>
                 </div><br>
-                <script>
-                    window.STAFF_CFG = {
-                        apiUrl: '<?= base_url('admin/doctor-shifts/api') ?>',
-                        deleteUrl: '<?= base_url('admin/doctor-shifts/delete') ?>',
-                        doctorsUrl: '<?= base_url('admin/doctors/api') ?>',
-                        shiftsUrl: '<?= base_url('admin/doctor-shifts/api') ?>',
-                        createShiftUrl: '<?= base_url('admin/doctor-shifts/create') ?>',
-                        shiftShowBase: '<?= base_url('admin/doctor-shifts') ?>',
-                        shiftUpdateUrl: '<?= base_url('admin/doctor-shifts/update') ?>',
-                        staffApiUrl: '<?= base_url('admin/staff/api') ?>',
-                        staffGetBase: '<?= base_url('admin/staff/get') ?>',
-                        staffCreateUrl: '<?= base_url('admin/staff/create') ?>',
-                        staffUpdateUrl: '<?= base_url('admin/staff/update') ?>',
-                        csrfToken: '<?= csrf_token() ?>',
-                        csrfHash: '<?= csrf_hash() ?>'
-                    };
+                <script id="staff-config" type="application/json">
+<?= json_encode([
+    'apiUrl'         => base_url('admin/doctor-shifts/api'),
+    'deleteUrl'      => base_url('admin/doctor-shifts/delete'),
+    'doctorsUrl'     => base_url('admin/doctors/api'),
+    'shiftsUrl'      => base_url('admin/doctor-shifts/api'),
+    'createShiftUrl' => base_url('admin/doctor-shifts/create'),
+    'shiftShowBase'  => base_url('admin/doctor-shifts'),
+    'shiftUpdateUrl' => base_url('admin/doctor-shifts/update'),
+    'staffApiUrl'    => base_url('admin/staff/api'),
+    'staffGetBase'   => base_url('admin/staff/get'),
+    'staffCreateUrl' => base_url('admin/staff/create'),
+    'staffUpdateUrl' => base_url('admin/staff/update'),
+    'csrfToken'      => csrf_token(),
+    'csrfHash'       => csrf_hash(),
+], JSON_UNESCAPED_SLASHES) ?>
                 </script>
                 <script src="<?= base_url('js/admin/staff-management.js') ?>"></script>
 

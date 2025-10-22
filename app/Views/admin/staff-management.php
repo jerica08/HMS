@@ -31,18 +31,17 @@
                             <div class="card-icon-modern blue">
                                 <i class="fas fa-users"></i>
                             </div>
-
-                <script>
-                  window.STAFF_CFG = {
-                    staffApiUrl: '<?= base_url('admin/staff-management/api') ?>',
-                    staffGetBase: '<?= base_url('admin/staff-management/staff') ?>',
-                    staffCreateUrl: '<?= base_url('admin/staff-management/create') ?>',
-                    staffUpdateUrl: '<?= base_url('admin/staff-management/update') ?>',
-                    csrfToken: '<?= csrf_token() ?>',
-                    csrfHash: '<?= csrf_hash() ?>'
-                  };
-                </script>
-                <script src="<?= base_url('js/admin/staff-management.js') ?>"></script>
+                            <script id="staff-config" type="application/json">
+<?= json_encode([
+    'staffApiUrl'    => base_url('admin/staff-management/api'),
+    'staffGetBase'   => base_url('admin/staff-management/staff'),
+    'staffCreateUrl' => base_url('admin/staff-management/create'),
+    'staffUpdateUrl' => base_url('admin/staff-management/update'),
+    'csrfToken'      => csrf_token(),
+    'csrfHash'       => csrf_hash(),
+], JSON_UNESCAPED_SLASHES) ?>
+                            </script>
+                            <script src="<?= base_url('js/admin/staff-management.js') ?>"></script>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Staff</h3>
                                 <p class="card-subtitle">Active Employees</p>
@@ -537,9 +536,6 @@
                         </form>
                     </div>
                 </div>
-
-                
-
             </main>
         </div>
     </body>

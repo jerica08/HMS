@@ -6,35 +6,6 @@
     <title>Resource Management - HMS Admin</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <style>
-      /* Modal and form styles (aligned with user-management.php) */
-      .hms-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 9990; }
-      .hms-modal-overlay.active { display: flex; }
-      .hms-modal { width: 100%; max-width: 900px; background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid #f1f5f9; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); max-height: 90vh; overflow: auto; box-sizing: border-box; }
-      .hms-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; background: #f8f9ff; }
-      .hms-modal-title { font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
-      .hms-modal-body { padding: 1rem 1.25rem; color: #475569; }
-      .hms-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 0.75rem 1.25rem 1.25rem; background: #fff; }
-      .form-input, .form-select, .form-textarea { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.95rem; background: #fff; transition: border-color 0.2s; }
-      .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
-      .form-label { font-size: 0.9rem; color: #374151; margin-bottom: 0.25rem; display: block; font-weight: 500; }
-      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-      .form-grid .full { grid-column: 1 / -1; }
-      @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
-
-      /* Match Users table styles */
-      .table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.95rem; }
-      .table thead th { text-align: left; background: #f8fafc; color: #374151; font-weight: 600; padding: 0.75rem 1.25rem; border-bottom: 1px solid #e5e7eb; }
-      .table tbody td { padding: 0.75rem 1.25rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
-      .table tbody tr:last-child td { border-bottom: none; }
-      .user-table { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 1rem; }
-      .table-header { background: #f8fafc; padding: 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-      @media (max-width: 640px) {
-        .table thead { display: none; }
-        .table tbody tr { display: grid; grid-template-columns: 1fr; gap: 0.25rem; padding: 0.5rem 0; }
-        .table tbody td { border: none; padding: 0.25rem 1rem; }
-      }
-    </style>
 </head>
 <body class="admin">
 
@@ -45,7 +16,7 @@
 
         <main class="content">
             <h1 class="page-title">Resource Management</h1>
-            <div style="margin:0.75rem 0 1rem; display:flex; justify-content:flex-start;">
+            <div class="toolbar-row">
                 <button id="addResourceBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Resource</button>
             </div>
 
@@ -120,11 +91,11 @@
             </div>
 
             <!-- Basic Resource Management -->
-            <div class="hms-card" style="margin-top:1.5rem;">
-                <div class="hms-card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h2 style="margin:0; font-size:1.1rem;">Resources</h2>
+            <div class="hms-card mt-6">
+                <div class="hms-card-header">
+                    <h2 class="hms-card-title">Resources</h2>
                 </div>
-                <div class="hms-card-body" style="margin-top:0.75rem;">
+                <div class="hms-card-body">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -144,10 +115,10 @@
                                             <td><?= esc($r['name'] ?? '-') ?></td>
                                             <td><?= esc($r['category'] ?? '-') ?></td>
                                             <td><?= esc($r['quantity'] ?? '-') ?></td>
-                                            <td style="text-transform:capitalize;"><?= esc($r['status'] ?? '-') ?></td>
+                                            <td class="text-capitalize"><?= esc($r['status'] ?? '-') ?></td>
                                             <td><?= esc($r['location'] ?? '-') ?></td>
                                             <td>
-                                                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                                <div class="inline-actions">
                                                     <button class="btn btn-secondary btn-small" onclick="editResource(<?= esc($r['id'] ?? 0) ?>)"><i class="fas fa-edit"></i> Edit</button>
                                                     <button class="btn btn-danger btn-small" onclick="deleteResource(<?= esc($r['id'] ?? 0) ?>)"><i class="fas fa-trash"></i> Delete</button>
                                                 </div>
@@ -156,7 +127,7 @@
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" style="text-align:center; padding:1.5rem; color:#6b7280;">No resources found.</td>
+                                        <td colspan="6" class="empty-state-cell">No resources found.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -170,7 +141,7 @@
                 <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addResourceTitle">
                     <div class="hms-modal-header">
                         <div class="hms-modal-title" id="addResourceTitle">
-                            <i class="fas fa-plus-circle" style="color:#4f46e5"></i>
+                            <i class="fas fa-plus-circle text-primary"></i>
                             Add Resource
                         </div>
                         <button type="button" class="btn btn-secondary btn-small" onclick="closeAddResourceModal()" aria-label="Close">
@@ -243,7 +214,7 @@
                 <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="editResourceTitle">
                     <div class="hms-modal-header">
                         <div class="hms-modal-title" id="editResourceTitle">
-                            <i class="fas fa-edit" style="color:#4f46e5"></i>
+                            <i class="fas fa-edit text-primary"></i>
                             Edit Resource
                         </div>
                         <button type="button" class="btn btn-secondary btn-small" onclick="closeEditResourceModal()" aria-label="Close">
@@ -294,121 +265,13 @@
             </div>
 
             <script>
-                // preload data to map if provided by controller
-                (function(){
-                    try {
-                        var list = <?php echo json_encode($resources ?? []); ?>;
-                        var byId = {};
-                        if (Array.isArray(list)) { for (var i=0;i<list.length;i++){ var r=list[i]; if(r && (r.id||r.resource_id)){ byId[r.id||r.resource_id]=r; } } }
-                        window.resourcesById = byId;
-                    } catch(e){ window.resourcesById = {}; }
-                })();
-
-                // Modal controls (aligned with user-management.php)
-                function openAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m){ m.classList.add('active'); m.setAttribute('aria-hidden','false'); } }
-                function closeAddResourceModal(){ var m=document.getElementById('addResourceModal'); if(m){ m.classList.remove('active'); m.setAttribute('aria-hidden','true'); } }
-                function openEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m){ m.classList.add('active'); m.setAttribute('aria-hidden','false'); } }
-                function closeEditResourceModal(){ var m=document.getElementById('editResourceModal'); if(m){ m.classList.remove('active'); m.setAttribute('aria-hidden','true'); } }
-
-                document.getElementById('addResourceBtn')?.addEventListener('click', openAddResourceModal);
-                document.addEventListener('click', function(e){ var m=document.getElementById('addResourceModal'); if(m && e.target===m) closeAddResourceModal(); });
-                document.addEventListener('click', function(e){ var m=document.getElementById('editResourceModal'); if(m && e.target===m) closeEditResourceModal(); });
-                document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeAddResourceModal(); closeEditResourceModal(); }});
-
-                // Helpers
-                function toParams(form){
-                    var fd=new FormData(form); var p=new URLSearchParams();
-                    fd.forEach((v,k)=>{ if(v!==undefined && v!==null) p.append(k, v); });
-                    try { p.append('<?= csrf_token() ?>','<?= csrf_hash() ?>'); } catch(e) {}
-                    return p;
-                }
-                function postForm(url, form){
-                    return fetch(url, { method:'POST', headers:{ 'Accept':'application/json', 'X-Requested-With':'XMLHttpRequest' }, credentials:'same-origin', body: toParams(form) })
-                        .then(async function(r){
-                            try {
-                                return await r.json();
-                            } catch(e) {
-                                try {
-                                    var t = await r.text();
-                                    return { status:'error', message: t && t.trim() ? t : ('HTTP '+r.status) };
-                                } catch(_) {
-                                    return { status:'error', message: 'HTTP '+r.status };
-                                }
-                            }
-                        });
-                }
-
-                // Add Resource submit -> POST admin/resources/create
-                (function(){
-                    var form=document.getElementById('addResourceForm');
-                    if(!form) return;
-                    form.addEventListener('submit', function(e){
-                        e.preventDefault();
-                        postForm('<?= base_url('admin/resources/create') ?>', form)
-                            .then(function(res){
-                                if(res && res.status==='success'){ alert('Resource added successfully.'); window.location.reload(); return; }
-                                var msg = 'Failed to save resource';
-                                try {
-                                    if (res) {
-                                        if (res.message) { msg = res.message; }
-                                        if (res.db && res.db.message) { msg = res.db.message; }
-                                        if (res.errors) { msg += '\n' + JSON.stringify(res.errors); }
-                                    }
-                                } catch(e){}
-                                alert(msg);
-                            })
-                            .catch(function(err){ alert('Failed to save resource'); });
-                    });
-                })();
-
-                // Edit button and submit (UI stub)
-                function editResource(id){
-                    var r=(window.resourcesById||{})[id];
-                    if(!r){ alert('Resource not found'); return; }
-                    var set=function(id,val){ var el=document.getElementById(id); if(!el) return; if(el.tagName==='SELECT' || el.tagName==='INPUT' || el.tagName==='TEXTAREA'){ el.value = val ?? ''; } else { el.textContent = val ?? ''; } };
-                    set('er_id', r.id || r.resource_id || '');
-                    set('er_name', r.name || '');
-                    set('er_category', r.category || '');
-                    set('er_quantity', r.quantity || '');
-                    set('er_status', r.status || '');
-                    set('er_location', r.location || '');
-                    set('er_notes', r.notes || '');
-                    openEditResourceModal();
-                }
-
-                function deleteResource(id){
-                    if(!confirm('Delete this resource?')) return;
-                    var p=new URLSearchParams(); p.append('id', id);
-                    try { p.append('<?= csrf_token() ?>','<?= csrf_hash() ?>'); } catch(e) {}
-                    fetch('<?= base_url('admin/resources/delete') ?>', { method:'POST', headers:{ 'Accept':'application/json' }, body:p })
-                        .then(r=>r.json().catch(()=>({status:'error'})))
-                        .then(function(res){ if(res && res.status==='success'){ window.location.reload(); } else { alert('Failed to delete'); } })
-                        .catch(function(){ alert('Failed to delete'); });
-                }
-
-                // Edit Resource -> POST admin/resources/update
-                (function(){
-                    var form=document.getElementById('editResourceForm');
-                    if(!form) return;
-                    form.addEventListener('submit', function(e){
-                        e.preventDefault();
-                        postForm('<?= base_url('admin/resources/update') ?>', form)
-                            .then(function(res){
-                                if(res && res.status==='success'){ window.location.reload(); return; }
-                                var msg = 'Failed to update resource';
-                                try {
-                                    if (res) {
-                                        if (res.message) { msg = res.message; }
-                                        if (res.db && res.db.message) { msg = res.db.message; }
-                                        if (res.errors) { msg += '\n' + JSON.stringify(res.errors); }
-                                    }
-                                } catch(e){}
-                                alert(msg);
-                            })
-                            .catch(function(){ alert('Failed to update resource'); });
-                    });
-                })();
+                window.HMS = {
+                    baseUrl: '<?= rtrim(base_url(), '/') ?>',
+                    csrf: { token: '<?= csrf_token() ?>', hash: '<?= csrf_hash() ?>' }
+                };
+                window.__RESOURCES__ = <?php echo json_encode($resources ?? []); ?>;
             </script>
+            <script src="<?= base_url('js/admin/resource-management.js') ?>"></script>
         </main>
     </div>
 

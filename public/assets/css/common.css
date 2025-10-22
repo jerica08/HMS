@@ -812,3 +812,21 @@ btn-primary:hover {
 .table tbody tr { display: grid; grid-template-columns: 1fr; gap: 0.25rem; padding: 0.5rem 0; }
 .table tbody td { border: none; padding: 0.25rem 1rem; }
 }
+
+/* ------------------- Resource Management extracted styles ------------------- */
+.toolbar-row { margin: 0.75rem 0 1rem; display: flex; justify-content: flex-start; }
+
+/* Simple card shell reused by pages */
+.hms-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+.hms-card-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #e2e8f0; }
+.hms-card-title { margin: 0; font-size: 1.1rem; }
+.hms-card-body { margin-top: 0.75rem; }
+
+/* Inline actions inside table cells */
+.inline-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Utilities */
+.empty-state-cell { text-align: center; padding: 1.5rem; color: #6b7280; }
+.text-capitalize { text-transform: capitalize; }
+.text-primary { color: #4f46e5; }
+.mt-6 { margin-top: 1.5rem; }

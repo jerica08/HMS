@@ -18,16 +18,8 @@
 </head>
 <?php include APPPATH . 'Views/template/header.php'; ?> 
 <div class="main-container">
-    <!-- Sidebar -->
-    <?php if ($userRole === 'admin'): ?>
-        <?= $this->include('admin/components/sidebar') ?>
-    <?php elseif ($userRole === 'doctor'): ?>
-        <?= $this->include('doctor/components/sidebar') ?>
-    <?php elseif ($userRole === 'receptionist'): ?>
-        <?= $this->include('receptionist/components/sidebar') ?>
-    <?php elseif ($userRole === 'it_staff'): ?>
-        <?= $this->include('IT-staff/components/sidebar') ?>
-    <?php endif; ?>
+    <!-- Unified Sidebar -->
+    <?= $this->include('unified/components/sidebar') ?>
 
     <main class="content" role="main">
         <h1 class="page-title"><?= esc($title ?? 'Patient Management') ?></h1>

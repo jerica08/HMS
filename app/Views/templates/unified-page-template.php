@@ -6,14 +6,14 @@
     <meta name="base-url" content="<?= base_url() ?>">
     <meta name="csrf-token" content="<?= csrf_token() ?>">
     <meta name="user-role" content="<?= esc($userRole ?? 'admin') ?>">
-    <title><?= esc($title ?? 'User Management') ?> - HMS</title>
+    <title><?= esc($title ?? 'HMS') ?> - HMS</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <?php
       // Initialize optional filter vars to avoid notices
       $search = $search ?? null;
-      $roleFilter = $roleFilter ?? null;
       $statusFilter = $statusFilter ?? null;
+      $typeFilter = $typeFilter ?? null;
     ?>
 </head>
 <?php include APPPATH . 'Views/template/header.php'; ?> 
@@ -22,11 +22,11 @@
     <?= $this->include('unified/components/sidebar') ?>
 
     <main class="content" role="main">
-        <h1 class="page-title"><?= esc($title ?? 'User Management') ?></h1>
+        <h1 class="page-title"><?= esc($title ?? 'Page Title') ?></h1>
         <div class="page-actions">
             <?php if (($permissions['canCreate'] ?? false)): ?>
-                <button type="button" class="btn btn-primary" id="addUserBtn" aria-label="Add New User">
-                    <i class="fas fa-plus" aria-hidden="true"></i> Add New User
+                <button type="button" class="btn btn-primary" id="addBtn" aria-label="Add New Item">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Add New
                 </button>
             <?php endif; ?>
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
@@ -36,6 +36,7 @@
             <?php endif; ?>
         </div>
 
+        <!-- Flash Messages -->
         <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
             <div id="flashNotice" role="alert" aria-live="polite" style="
                 margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px;
@@ -52,6 +53,7 @@
             </div>
         <?php endif; ?>
 
+        <!-- Error Messages -->
         <?php $errors = session()->get('errors'); ?>
         <?php if (!empty($errors) && is_array($errors)): ?>
             <div role="alert" aria-live="polite" style="margin-top:0.75rem; padding:0.75rem 1rem; border-radius:8px; border:1px solid #fecaca; background:#fee2e2; color:#991b1b;">
@@ -66,102 +68,67 @@
 
         <br />
 
+        <!-- Dashboard Overview Cards -->
         <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
-                <!-- Total Users Card -->
+                <!-- Example Card 1 -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
                         <div class="card-icon-modern blue" aria-hidden="true">
-                            <i class="fas fa-users"></i>
+                            <i class="fas fa-chart-bar"></i>
                         </div>
                         <div class="card-info">
-                            <h3 class="card-title-modern">Total Users</h3>
-                            <p class="card-subtitle">All Registered Users</p>
+                            <h3 class="card-title-modern">Total Items</h3>
+                            <p class="card-subtitle">All Items</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue"><?= esc($userStats['total_users'] ?? 0) ?></div>
+                            <div class="metric-value blue"><?= esc($stats['total'] ?? 0) ?></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Admin Users Card -->
+                <!-- Example Card 2 -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
                         <div class="card-icon-modern purple" aria-hidden="true">
-                            <i class="fas fa-user-shield"></i>
+                            <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="card-info">
-                            <h3 class="card-title-modern">Admin Users</h3>
-                            <p class="card-subtitle">System Administrators</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value purple"><?= esc($userStats['admin_users'] ?? 0) ?></div>
-                        </div>
-                    </div>
-                </div>
-            <?php elseif ($userRole === 'doctor'): ?>
-                <!-- Department Users Card -->
-                <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern blue" aria-hidden="true">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Department Users</h3>
-                            <p class="card-subtitle">My Department</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= esc($userStats['department_users'] ?? 0) ?></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Active Users Card -->
-                <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple" aria-hidden="true">
-                            <i class="fas fa-user-check"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Active Users</h3>
+                            <h3 class="card-title-modern">Active Items</h3>
                             <p class="card-subtitle">Currently Active</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value purple"><?= esc($userStats['department_active'] ?? 0) ?></div>
+                            <div class="metric-value purple"><?= esc($stats['active'] ?? 0) ?></div>
                         </div>
                     </div>
                 </div>
             <?php endif; ?>
         </div>
 
-        <div class="user-table">
+        <!-- Data Table -->
+        <div class="data-table">
             <div class="table-header">
-                <h3>Users</h3>
+                <h3>Data Table</h3>
             </div>
-            <table class="table" id="usersTable" aria-describedby="usersTableCaption">
+            <table class="table" id="dataTable" aria-describedby="dataTableCaption">
                 <thead>
                     <tr>
-                        <th scope="col">User</th>
-                        <th scope="col">Role</th>
-                        <th scope="col">Department</th>
+                        <th scope="col">Item</th>
+                        <th scope="col">Type</th>
                         <th scope="col">Status</th>
-                        <th scope="col">Last Login</th>
+                        <th scope="col">Date</th>
                         <th scope="col">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="usersTableBody">
+                <tbody id="dataTableBody">
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 2rem;">
+                        <td colspan="5" style="text-align: center; padding: 2rem;">
                             <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
-                            <p>Loading users...</p>
+                            <p>Loading data...</p>
                         </td>
                     </tr>
                 </tbody>
@@ -170,12 +137,51 @@
     </main>
 </div>
 
-<!-- Modals -->
-<?= $this->include('unified/modals/add-user-modal') ?>
-<?= $this->include('unified/modals/view-user-modal') ?>
-<?= $this->include('unified/modals/edit-user-modal') ?>
+<!-- Example Modal -->
+<div id="exampleModal" class="hms-modal-overlay" aria-hidden="true">
+    <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="exampleModalTitle">
+        <div class="hms-modal-header">
+            <div class="hms-modal-title" id="exampleModalTitle">
+                <i class="fas fa-plus" style="color:#4f46e5"></i>
+                Add New Item
+            </div>
+            <button type="button" class="btn btn-secondary btn-small" onclick="closeModal()" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="exampleForm">
+            <div class="hms-modal-body">
+                <div class="form-grid">
+                    <div>
+                        <label class="form-label" for="item_name">Item Name*</label>
+                        <input type="text" id="item_name" name="item_name" class="form-input" required>
+                        <small id="err_item_name" style="color:#dc2626"></small>
+                    </div>
+                    <div>
+                        <label class="form-label" for="item_type">Type</label>
+                        <select id="item_type" name="item_type" class="form-select">
+                            <option value="">Select type...</option>
+                            <option value="type1">Type 1</option>
+                            <option value="type2">Type 2</option>
+                        </select>
+                        <small id="err_item_type" style="color:#dc2626"></small>
+                    </div>
+                    <div class="full">
+                        <label class="form-label" for="description">Description</label>
+                        <textarea id="description" name="description" class="form-input" rows="3"></textarea>
+                        <small id="err_description" style="color:#dc2626"></small>
+                    </div>
+                </div>
+            </div>
+            <div class="hms-modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" id="saveBtn" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-<!-- User Management Scripts -->
+<!-- Scripts -->
 <script>
 function dismissFlash() {
     const flashNotice = document.getElementById('flashNotice');
@@ -183,11 +189,19 @@ function dismissFlash() {
         flashNotice.style.display = 'none';
     }
 }
+
+function closeModal() {
+    const modal = document.getElementById('exampleModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+}
+
+// Add your page-specific JavaScript here
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize page functionality
+});
 </script>
-<script src="<?= base_url('assets/js/unified/user-utils.js') ?>"></script>
-<script src="<?= base_url('assets/js/unified/modals/add-user-modal.js') ?>"></script>
-<script src="<?= base_url('assets/js/unified/modals/view-user-modal.js') ?>"></script>
-<script src="<?= base_url('assets/js/unified/modals/edit-user-modal.js') ?>"></script>
-<script src="<?= base_url('assets/js/unified/user-management.js') ?>"></script>
 </body>
 </html>

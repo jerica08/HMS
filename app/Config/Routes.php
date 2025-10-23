@@ -19,19 +19,26 @@ $routes->get('logout', 'Auth::logout');
 $routes->get('auth/logout', 'Auth::logout');
 
 // ===================================================================
-// UNIFIED DASHBOARD MANAGEMENT - All roles use DashboardManagement controller
+// UNIFIED DASHBOARD MANAGEMENT - All roles use Unified\DashboardController
 // ===================================================================
 
 // Dashboard Views - Role-specific entry points
-$routes->get('admin/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:admin']);
-$routes->get('admin', 'DashboardManagement::index', ['filter' => 'roleauth:admin']);
-$routes->get('doctor/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:doctor']);
-$routes->get('nurse/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:nurse']);
-$routes->get('receptionist/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:receptionist']);
-$routes->get('accountant/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:accountant']);
-$routes->get('it/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:it']);
-$routes->get('laboratorists/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:laboratorist']);
-$routes->get('pharmacists/dashboard', 'DashboardManagement::index', ['filter' => 'roleauth:pharmacist']);
+$routes->get('admin/dashboard', 'Unified\DashboardController::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin', 'Unified\DashboardController::index', ['filter' => 'roleauth:admin']);
+$routes->get('doctor/dashboard', 'Unified\DashboardController::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/dashboard', 'Unified\DashboardController::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/dashboard', 'Unified\DashboardController::index', ['filter' => 'roleauth:receptionist']);
+$routes->get('accountant/dashboard', 'Unified\DashboardController::index', ['filter' => 'roleauth:accountant']);
+$routes->get('it-staff/dashboard', 'Unified\DashboardController::index', ['filter' => 'roleauth:it_staff']);
+$routes->get('laboratorist/dashboard', 'Unified\DashboardController::index', ['filter' => 'roleauth:laboratorist']);
+$routes->get('pharmacist/dashboard', 'Unified\DashboardController::index', ['filter' => 'roleauth:pharmacist']);
+
+// Dashboard API Routes
+$routes->get('api/dashboard-data', 'Unified\DashboardController::getDashboardData', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,accountant,it_staff,laboratorist,pharmacist']);
+$routes->get('api/system-health', 'Unified\DashboardController::getSystemHealth', ['filter' => 'roleauth:admin']);
+$routes->get('api/today-schedule', 'Unified\DashboardController::getTodaySchedule', ['filter' => 'roleauth:doctor,nurse']);
+$routes->get('api/quick-stats', 'Unified\DashboardController::getQuickStats', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,accountant,it_staff,laboratorist,pharmacist']);
+$routes->post('api/dashboard-preferences', 'Unified\DashboardController::updatePreferences', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,accountant,it_staff,laboratorist,pharmacist']);
 
 // User Management Routes
 $routes->get('admin/user-management', 'UserManagement::index', ['filter' => 'roleauth:admin']);
@@ -110,6 +117,7 @@ $routes->get('admin/patients', 'Patients::index', ['filter' => 'roleauth:admin']
 // Patient Management Sidebar - All roles use PatientManagement controller
 $routes->get('admin/patient-management', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('doctor/patients', 'PatientManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('doctor/patient-management', 'PatientManagement::index', ['filter' => 'roleauth:doctor']);
 $routes->get('nurse/patients', 'PatientManagement::index', ['filter' => 'roleauth:nurse']);
 $routes->get('receptionist/patients', 'PatientManagement::index', ['filter' => 'roleauth:receptionist']);
 $routes->get('it-staff/patients', 'PatientManagement::index', ['filter' => 'roleauth:it_staff']);

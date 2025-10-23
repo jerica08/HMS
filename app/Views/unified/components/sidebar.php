@@ -27,7 +27,7 @@ if ($userRole === 'admin') {
 elseif ($userRole === 'doctor') {
     $navigationItems = [
         ['url' => 'doctor/dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
-        ['url' => 'doctor/patients', 'icon' => 'fas fa-users', 'label' => 'Patients'],
+        ['url' => 'doctor/patient-management', 'icon' => 'fas fa-users', 'label' => 'Patient Management'],
         ['url' => 'doctor/appointments', 'icon' => 'fas fa-calendar-alt', 'label' => 'Appointments'],
         ['url' => 'doctor/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         ['url' => 'doctor/lab-results', 'icon' => 'fas fa-flask', 'label' => 'Lab-Results'],

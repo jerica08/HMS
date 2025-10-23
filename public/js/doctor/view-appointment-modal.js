@@ -38,7 +38,7 @@ const ViewAppointmentModal = {
 
         // Escape key to close
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal.classList.contains('show')) {
+            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
                 this.close();
             }
         });
@@ -51,15 +51,17 @@ const ViewAppointmentModal = {
         // Show loading state
         if (detailsBody) {
             detailsBody.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: #6b7280;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                    <p>Loading appointment details...</p>
+                <div class="loading-state" style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6366f1; margin-bottom: 1rem;"></i>
+                    <p style="color: #6b7280;">Loading appointment details...</p>
                 </div>
             `;
         }
         
         // Show modal
-        this.modal.classList.add('show');
+        this.modal.classList.add('active');
+        this.modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
         
         // Fetch appointment details
         this.fetchAppointmentDetails(appointmentId);
@@ -67,13 +69,15 @@ const ViewAppointmentModal = {
 
     close() {
         if (this.modal) {
-            this.modal.classList.remove('show');
+            this.modal.classList.remove('active');
+            this.modal.style.display = 'none';
+            document.body.style.overflow = '';
             this.currentAppointmentId = null;
         }
     },
 
     fetchAppointmentDetails(appointmentId) {
-        fetch(`${getBaseUrl()}doctor/appointment/details/${appointmentId}`, {
+        fetch(`${getBaseUrl()}appointments/${appointmentId}`, {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
@@ -81,8 +85,8 @@ const ViewAppointmentModal = {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                this.displayAppointmentDetails(data.appointment);
+            if (data.status === 'success') {
+                this.displayAppointmentDetails(data.data);
             } else {
                 this.showError(data.message || 'Unknown error');
             }

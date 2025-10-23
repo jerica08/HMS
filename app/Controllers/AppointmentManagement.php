@@ -27,19 +27,38 @@ class AppointmentManagement extends BaseController
      */
     public function index()
     {
-        $stats = $this->getAppointmentStats();
-        $appointments = $this->getAppointments();
-        
-        $data = [
-            'title' => 'Appointment Management',
-            'appointmentStats' => $stats,
-            'appointments' => $appointments,
-            'userRole' => $this->userRole,
-            'permissions' => $this->getUserPermissions()
-        ];
+        try {
+            $stats = $this->getAppointmentStats();
+            $appointments = $this->getAppointments();
+            $doctors = $this->userRole === 'admin' ? $this->getDoctorsList() : [];
+            
+            $data = [
+                'title' => $this->getPageTitle(),
+                'appointmentStats' => $stats,
+                'appointments' => $appointments,
+                'doctors' => $doctors,
+                'userRole' => $this->userRole,
+                'permissions' => $this->getUserPermissions()
+            ];
 
-        // Use unified view that adapts to user role
-        return view('apppointments/appointments', $data);
+            // Use unified view that adapts to user role
+            return view('unified/appointments', $data);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'AppointmentManagement index error: ' . $e->getMessage());
+            
+            // Fallback data
+            $data = [
+                'title' => 'Appointments',
+                'appointmentStats' => [],
+                'appointments' => [],
+                'doctors' => [],
+                'userRole' => $this->userRole ?? 'guest',
+                'permissions' => []
+            ];
+            
+            return view('unified/appointments', $data);
+        }
     }
 
     /**
@@ -188,6 +207,37 @@ class AppointmentManagement extends BaseController
         if ($this->request->getGet('patient_id')) {
             $filters['patient_id'] = $this->request->getGet('patient_id');
         }
+        if ($this->request->getGet('doctor_id') && $this->userRole === 'admin') {
+            $filters['doctor_id'] = $this->request->getGet('doctor_id');
+        }
+        
+        $result = $this->appointmentService->getAppointments($filters);
+        
+        return $this->response->setJSON([
+            'status' => $result['success'] ? 'success' : 'error',
+            'data' => $result['data'] ?? [],
+            'message' => $result['message'] ?? null
+        ]);
+    }
+
+    /**
+     * Get appointments for a specific patient
+     */
+    public function getPatientAppointments($patientId)
+    {
+        if (!$this->canViewPatientAppointments($patientId)) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Permission denied'
+            ]);
+        }
+
+        $filters = ['patient_id' => $patientId];
+        
+        // Role-based filtering
+        if ($this->userRole === 'doctor') {
+            $filters['doctor_id'] = $this->staffId;
+        }
         
         $result = $this->appointmentService->getAppointments($filters);
         
@@ -248,26 +298,76 @@ class AppointmentManagement extends BaseController
     private function getAppointmentStats()
     {
         $stats = [
-            'total_appointments' => 0,
-            'scheduled_appointments' => 0,
-            'completed_appointments' => 0,
-            'cancelled_appointments' => 0,
-            'today_appointments' => 0
+            'today_total' => 0,
+            'today_completed' => 0,
+            'today_pending' => 0,
+            'week_total' => 0,
+            'week_cancelled' => 0,
+            'week_no_shows' => 0,
+            'next_appointment' => 'None',
+            'hours_scheduled' => 0
         ];
         
         try {
+            $today = date('Y-m-d');
+            $weekStart = date('Y-m-d', strtotime('monday this week'));
+            $weekEnd = date('Y-m-d', strtotime('sunday this week'));
+            
             $builder = $this->db->table('appointments');
             
             // Apply role-based filtering
             if ($this->userRole === 'doctor') {
                 $builder->where('doctor_id', $this->staffId);
+            } elseif ($this->userRole === 'nurse') {
+                // Filter by department
+                $builder->join('staff', 'staff.staff_id = appointments.doctor_id')
+                        ->join('staff as nurse_staff', 'nurse_staff.staff_id = ' . $this->staffId)
+                        ->where('staff.department = nurse_staff.department');
             }
             
-            $stats['total_appointments'] = $builder->countAllResults(false);
-            $stats['scheduled_appointments'] = $builder->where('status', 'scheduled')->countAllResults(false);
-            $stats['completed_appointments'] = $builder->where('status', 'completed')->countAllResults(false);
-            $stats['cancelled_appointments'] = $builder->where('status', 'cancelled')->countAllResults(false);
-            $stats['today_appointments'] = $builder->where('appointment_date', date('Y-m-d'))->countAllResults();
+            // Today's stats
+            $todayBuilder = clone $builder;
+            $stats['today_total'] = $todayBuilder->where('appointment_date', $today)->countAllResults(false);
+            $stats['today_completed'] = $todayBuilder->where('status', 'completed')->countAllResults(false);
+            $stats['today_pending'] = $todayBuilder->whereIn('status', ['scheduled', 'in-progress'])->countAllResults();
+            
+            // Week stats
+            $weekBuilder = clone $builder;
+            $stats['week_total'] = $weekBuilder->where('appointment_date >=', $weekStart)
+                                             ->where('appointment_date <=', $weekEnd)
+                                             ->countAllResults(false);
+            $stats['week_cancelled'] = $weekBuilder->where('status', 'cancelled')->countAllResults(false);
+            $stats['week_no_shows'] = $weekBuilder->where('status', 'no-show')->countAllResults();
+            
+            // Next appointment
+            $nextBuilder = clone $builder;
+            $nextAppointment = $nextBuilder->select('appointment_time')
+                                          ->where('appointment_date', $today)
+                                          ->where('appointment_time >', date('H:i:s'))
+                                          ->whereIn('status', ['scheduled', 'in-progress'])
+                                          ->orderBy('appointment_time', 'ASC')
+                                          ->limit(1)
+                                          ->get()
+                                          ->getRow();
+            
+            if ($nextAppointment) {
+                $stats['next_appointment'] = date('g:i A', strtotime($nextAppointment->appointment_time));
+            }
+            
+            // Hours scheduled today
+            $hoursBuilder = clone $builder;
+            $appointments = $hoursBuilder->select('duration')
+                                        ->where('appointment_date', $today)
+                                        ->whereIn('status', ['scheduled', 'in-progress', 'completed'])
+                                        ->get()
+                                        ->getResultArray();
+            
+            $totalMinutes = 0;
+            foreach ($appointments as $appointment) {
+                $totalMinutes += (int)($appointment['duration'] ?? 30);
+            }
+            $stats['hours_scheduled'] = round($totalMinutes / 60, 1);
+            
         } catch (\Throwable $e) {
             log_message('error', 'Appointment stats error: ' . $e->getMessage());
         }
@@ -341,6 +441,39 @@ class AppointmentManagement extends BaseController
     }
 
     /**
+     * Get page title based on user role
+     */
+    private function getPageTitle()
+    {
+        $titles = [
+            'admin' => 'System Appointments',
+            'doctor' => 'My Appointments',
+            'nurse' => 'Department Appointments',
+            'receptionist' => 'Appointment Booking'
+        ];
+        
+        return $titles[$this->userRole] ?? 'Appointments';
+    }
+
+    /**
+     * Get doctors list for admin filtering
+     */
+    private function getDoctorsList()
+    {
+        try {
+            return $this->db->table('staff')
+                ->select('staff_id, first_name, last_name, department')
+                ->where('role', 'doctor')
+                ->where('status', 'active')
+                ->get()
+                ->getResultArray();
+        } catch (\Exception $e) {
+            log_message('error', 'Get doctors list error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Check if appointment is in nurse's department
      */
     private function isAppointmentInNurseDepartment($appointmentId)
@@ -357,6 +490,38 @@ class AppointmentManagement extends BaseController
         } catch (\Throwable $e) {
             log_message('error', 'Check nurse department error: ' . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Check if user can view patient appointments
+     */
+    private function canViewPatientAppointments($patientId)
+    {
+        switch ($this->userRole) {
+            case 'admin':
+            case 'receptionist':
+                return true;
+            case 'doctor':
+                // Check if patient is assigned to this doctor
+                $patient = $this->db->table('patient')
+                    ->where('patient_id', $patientId)
+                    ->where('primary_doctor_id', $this->staffId)
+                    ->get()
+                    ->getRow();
+                return !empty($patient);
+            case 'nurse':
+                // Check if patient's doctor is in same department
+                $result = $this->db->table('patient p')
+                    ->join('staff ps', 'ps.staff_id = p.primary_doctor_id')
+                    ->join('staff ns', 'ns.staff_id = ' . $this->staffId)
+                    ->where('p.patient_id', $patientId)
+                    ->where('ps.department = ns.department')
+                    ->get()
+                    ->getRow();
+                return !empty($result);
+            default:
+                return false;
         }
     }
 }

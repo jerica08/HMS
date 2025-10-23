@@ -54,7 +54,7 @@ const NewAppointmentModal = {
 
         // Escape key to close
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal.classList.contains('show')) {
+            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
                 this.close();
             }
         });
@@ -62,13 +62,21 @@ const NewAppointmentModal = {
 
     open() {
         if (this.modal) {
-            this.modal.classList.add('show');
+            this.modal.classList.add('active');
+            this.modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            
+            // Load patients and doctors when modal opens
+            this.loadPatients();
+            this.loadDoctors();
         }
     },
 
     close() {
         if (this.modal) {
-            this.modal.classList.remove('show');
+            this.modal.classList.remove('active');
+            this.modal.style.display = 'none';
+            document.body.style.overflow = ''; // Restore scrolling
             this.form?.reset();
         }
     },
@@ -95,7 +103,7 @@ const NewAppointmentModal = {
         this.saveBtn.textContent = 'Scheduling...';
         this.saveBtn.disabled = true;
 
-        fetch(`${getBaseUrl()}doctor/schedule-appointment`, {
+        fetch(`${getBaseUrl()}appointments/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -105,12 +113,16 @@ const NewAppointmentModal = {
         })
         .then(response => response.json())
         .then(result => {
-            if (result.success) {
+            if (result.status === 'success') {
                 showNotification('Appointment scheduled successfully!', 'success');
                 this.close();
                 // Refresh appointments if the function exists
                 if (typeof window.AppointmentManager?.refreshAppointments === 'function') {
                     window.AppointmentManager.refreshAppointments();
+                }
+                // Refresh page if no appointment manager
+                else {
+                    window.location.reload();
                 }
             } else {
                 showNotification('Error scheduling appointment: ' + (result.message || 'Unknown error'), 'error');
@@ -124,6 +136,68 @@ const NewAppointmentModal = {
             // Reset button state
             this.saveBtn.textContent = originalText;
             this.saveBtn.disabled = false;
+        });
+    },
+
+    loadPatients() {
+        const patientSelect = document.getElementById('patientSelect');
+        if (!patientSelect) return;
+
+        patientSelect.innerHTML = '<option value="">Loading patients...</option>';
+
+        fetch(`${getBaseUrl()}patients/api`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            patientSelect.innerHTML = '<option value="">Select Patient</option>';
+            
+            if (data.status === 'success' && data.data) {
+                data.data.forEach(patient => {
+                    const option = document.createElement('option');
+                    option.value = patient.patient_id;
+                    option.textContent = `${patient.full_name} - ID: ${patient.patient_id}`;
+                    patientSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading patients:', error);
+            patientSelect.innerHTML = '<option value="">Error loading patients</option>';
+        });
+    },
+
+    loadDoctors() {
+        const doctorSelect = document.getElementById('doctorSelect');
+        if (!doctorSelect) return; // Only load if doctor select exists (admin/receptionist)
+
+        doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+
+        fetch(`${getBaseUrl()}staff/api?role=doctor`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+            
+            if (data.status === 'success' && data.data) {
+                data.data.forEach(doctor => {
+                    const option = document.createElement('option');
+                    option.value = doctor.staff_id;
+                    option.textContent = `Dr. ${doctor.first_name} ${doctor.last_name} - ${doctor.department}`;
+                    doctorSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading doctors:', error);
+            doctorSelect.innerHTML = '<option value="">Error loading doctors</option>';
         });
     }
 };

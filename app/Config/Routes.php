@@ -99,13 +99,33 @@ $routes->post('admin/resource-management/create', 'ResourceManagement::create', 
 $routes->post('admin/resource-management/update', 'ResourceManagement::update', ['filter' => 'roleauth:admin']);
 $routes->post('admin/resource-management/delete', 'ResourceManagement::delete', ['filter' => 'roleauth:admin']);
 
-// Doctor Shift Management Routes
-$routes->get('admin/doctor-shift-management', 'DoctorShiftManagement::index', ['filter' => 'roleauth:admin']);
-$routes->get('admin/doctor-shifts/api', 'DoctorShiftManagement::getDoctorShiftsAPI', ['filter' => 'roleauth:admin']);
-$routes->get('admin/doctor-shifts/(:num)', 'DoctorShiftManagement::getDoctorShift/$1', ['filter' => 'roleauth:admin']);
-$routes->post('admin/doctor-shifts/create', 'DoctorShiftManagement::create', ['filter' => 'roleauth:admin']);
-$routes->post('admin/doctor-shifts/update', 'DoctorShiftManagement::update', ['filter' => 'roleauth:admin']);
-$routes->post('admin/doctor-shifts/delete', 'DoctorShiftManagement::delete', ['filter' => 'roleauth:admin']);
+// ===================================================================
+// UNIFIED SHIFT MANAGEMENT - All roles use ShiftManagement controller
+// ===================================================================
+
+// Shift Management Views - Role-specific entry points
+$routes->get('admin/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('doctor/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:receptionist']);
+$routes->get('it-staff/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:it_staff']);
+
+// Shift Management API Routes - Unified endpoints
+$routes->get('shifts/api', 'ShiftManagement::getShiftsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->post('shifts/create', 'ShiftManagement::create', ['filter' => 'roleauth:admin,it_staff']);
+$routes->post('shifts/update', 'ShiftManagement::update', ['filter' => 'roleauth:admin,doctor,it_staff']);
+$routes->post('shifts/delete', 'ShiftManagement::delete', ['filter' => 'roleauth:admin']);
+$routes->get('shifts/(:num)', 'ShiftManagement::getShift/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->post('shifts/(:num)/status', 'ShiftManagement::updateStatus/$1', ['filter' => 'roleauth:admin,doctor,it_staff']);
+$routes->get('shifts/available-staff', 'ShiftManagement::getAvailableStaffAPI', ['filter' => 'roleauth:admin,it_staff']);
+
+// Legacy Doctor Shift Management Routes (for backward compatibility)
+$routes->get('admin/doctor-shift-management', 'ShiftManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/doctor-shifts/api', 'ShiftManagement::getShiftsAPI', ['filter' => 'roleauth:admin']);
+$routes->get('admin/doctor-shifts/(:num)', 'ShiftManagement::getShift/$1', ['filter' => 'roleauth:admin']);
+$routes->post('admin/doctor-shifts/create', 'ShiftManagement::create', ['filter' => 'roleauth:admin']);
+$routes->post('admin/doctor-shifts/update', 'ShiftManagement::update', ['filter' => 'roleauth:admin']);
+$routes->post('admin/doctor-shifts/delete', 'ShiftManagement::delete', ['filter' => 'roleauth:admin']);
 
 // Legacy routes (backward compatibility) – map directly to correct handlers
 $routes->get('admin/users', 'Admin::users');

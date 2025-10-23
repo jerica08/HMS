@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?> - HMS <?= ucfirst($userRole) ?></title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/css/dashboard.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <meta name="base-url" content="<?= base_url() ?>">
     <meta name="csrf-token" content="<?= csrf_token() ?>">
@@ -368,7 +367,6 @@
         </main>
     </div>
 
-    <!-- Scripts -->
-    <script src="<?= base_url('assets/js/unified/dashboard.js') ?>"></script>
+
 </body>
 </html>

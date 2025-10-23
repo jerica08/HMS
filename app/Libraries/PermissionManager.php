@@ -19,17 +19,20 @@ class PermissionManager
         'doctor' => [
             'patients' => ['view', 'create', 'edit', 'view_assigned'],
             'appointments' => ['view', 'create', 'edit', 'reschedule', 'view_own'],
+            'shifts' => ['view', 'edit', 'view_own', 'edit_own'],
             'prescriptions' => ['view', 'create', 'edit', 'view_own'],
             'reports' => ['view', 'generate_own']
         ],
         'receptionist' => [
             'patients' => ['view', 'create', 'edit', 'assign_doctor', 'view_all'],
             'appointments' => ['view', 'create', 'edit', 'reschedule', 'view_all'],
+            'shifts' => ['view', 'view_all'],
             'reports' => ['view']
         ],
         'nurse' => [
             'patients' => ['view', 'edit', 'view_assigned'],
             'appointments' => ['view', 'view_assigned'],
+            'shifts' => ['view', 'view_department'],
             'prescriptions' => ['view', 'view_assigned']
         ],
         'pharmacist' => [

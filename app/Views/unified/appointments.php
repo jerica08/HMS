@@ -34,9 +34,9 @@
             
             <?php if (in_array($userRole, ['admin', 'doctor', 'receptionist'])): ?>
             <div class="page-actions">
-                <button class="btn btn-success" id="scheduleAppointmentBtn">
+                <button class="btn btn-primary" id="scheduleAppointmentBtn">
                     <i class="fas fa-plus"></i> 
-                    <?= $userRole === 'receptionist' ? 'Book Appointment' : 'Schedule Appointment' ?>
+                    <?= $userRole === 'receptionist' ? 'Add Appointment' : 'Add Appointment' ?>
                 </button>
             </div><br>
             <?php endif; ?>
@@ -71,7 +71,7 @@
                 <!-- This Week Card -->
                 <div class="overview-card">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern purple"><i class="fas fa-calendar-week"></i></div>
+                        <div class="card-icon-modern purple"><i class="fas fa-calendar-alt"></i></div>
                         <div class="card-info">
                             <h3 class="card-title-modern">This Week</h3>
                             <p class="card-subtitle">Weekly overview</p>

@@ -36,7 +36,7 @@ class PermissionManager
             'prescriptions' => ['view', 'view_assigned']
         ],
         'pharmacist' => [
-            'prescriptions' => ['view', 'fulfill', 'view_all'],
+            'prescriptions' => ['view', 'edit', 'fulfill', 'view_all'],
             'patients' => ['view']
         ],
         'accountant' => [
@@ -52,7 +52,7 @@ class PermissionManager
             'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
             'resources' => ['view', 'create', 'edit', 'delete'],
             'shifts' => ['view', 'create', 'edit', 'delete'],
-            'prescriptions' => ['view', 'view_all'],
+            'prescriptions' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'reports' => ['view', 'generate', 'export'],
             'system' => ['settings', 'backup', 'maintenance', 'database_management']
         ]

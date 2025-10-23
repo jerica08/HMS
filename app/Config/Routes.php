@@ -181,7 +181,7 @@ $routes->get('admin/users', 'UserManagement::index', ['filter' => 'roleauth:admi
 $routes->get('admin/staff', 'StaffManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('admin/resources', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('admin/resource', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);
-$routes->get('admin/prescriptions', 'Admin::prescriptions', ['filter' => 'roleauth:admin']);
+// $routes->get('admin/prescriptions', 'Admin::prescriptions', ['filter' => 'roleauth:admin']); // REMOVED: Now using unified PrescriptionManagement
 $routes->get('admin/financial', 'Admin::financialManagement', ['filter' => 'roleauth:admin']);
 
 // Navigation pages (still in Admin controller)
@@ -201,13 +201,34 @@ $routes->get('doctor/dashboard', 'Doctor::dashboard');
 // Appointment Management - REMOVED: Now using unified AppointmentManagement controller
 // Legacy routes removed to prevent conflicts with unified approach
 
-// Prescription Management
-$routes->get('doctor/prescriptions', 'Prescriptions::prescriptions');
-$routes->post('doctor/create-prescription', 'Prescriptions::createPrescription');
-$routes->get('doctor/prescriptions/api', 'Prescriptions::getPrescriptionsAPI');
-$routes->post('doctor/update-prescription-status', 'Prescriptions::updatePrescriptionStatus');
-$routes->get('doctor/prescription/(:any)', 'Prescriptions::getPrescription/$1');
-$routes->put('doctor/prescription/(:any)', 'Prescriptions::updatePrescription/$1');
+// ===================================================================
+// UNIFIED PRESCRIPTION MANAGEMENT - All roles use PrescriptionManagement controller
+// ===================================================================
+
+// Prescription Management Views - Role-specific entry points
+$routes->get('admin/prescriptions', 'PrescriptionManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('doctor/prescriptions', 'PrescriptionManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/prescriptions', 'PrescriptionManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('pharmacist/prescriptions', 'PrescriptionManagement::index', ['filter' => 'roleauth:pharmacist']);
+$routes->get('receptionist/prescriptions', 'PrescriptionManagement::index', ['filter' => 'roleauth:receptionist']);
+$routes->get('it-staff/prescriptions', 'PrescriptionManagement::index', ['filter' => 'roleauth:it_staff']);
+
+// Prescription Management API Routes - Unified endpoints
+$routes->get('prescriptions/api', 'PrescriptionManagement::getPrescriptionsAPI', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,receptionist,it_staff']);
+$routes->post('prescriptions/create', 'PrescriptionManagement::create', ['filter' => 'roleauth:admin,doctor,it_staff']);
+$routes->post('prescriptions/update', 'PrescriptionManagement::update', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
+$routes->post('prescriptions/delete', 'PrescriptionManagement::delete', ['filter' => 'roleauth:admin,doctor']);
+$routes->get('prescriptions/(:num)', 'PrescriptionManagement::getPrescription/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,receptionist,it_staff']);
+$routes->post('prescriptions/(:num)/status', 'PrescriptionManagement::updateStatus/$1', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
+$routes->get('prescriptions/available-patients', 'PrescriptionManagement::getAvailablePatientsAPI', ['filter' => 'roleauth:admin,doctor,it_staff']);
+
+// Legacy Prescription Management Routes (for backward compatibility)
+$routes->get('doctor/create-prescription', 'PrescriptionManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->post('doctor/create-prescription', 'PrescriptionManagement::create', ['filter' => 'roleauth:doctor']);
+$routes->get('doctor/prescriptions/api', 'PrescriptionManagement::getPrescriptionsAPI', ['filter' => 'roleauth:doctor']);
+$routes->post('doctor/update-prescription-status', 'PrescriptionManagement::updateStatus', ['filter' => 'roleauth:doctor']);
+$routes->get('doctor/prescription/(:any)', 'PrescriptionManagement::getPrescription/$1', ['filter' => 'roleauth:doctor']);
+$routes->put('doctor/prescription/(:any)', 'PrescriptionManagement::update', ['filter' => 'roleauth:doctor']);
 
 // Doctor APIs
 $routes->get('doctor/doctors/api', 'Doctor::getDoctorsAPI');

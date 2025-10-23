@@ -37,7 +37,7 @@
             <div class="page-actions">
                 <?php if ($permissions['canCreate']): ?>
                     <button type="button" id="createShiftBtn" class="btn btn-primary" aria-label="Create New Shift">
-                        <i class="fas fa-plus" aria-hidden="true"></i> Create Shift
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add Shift
                     </button>
                 <?php endif; ?>
                 <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
@@ -53,7 +53,7 @@
                     <!-- Total Shifts Card -->
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern blue"><i class="fas fa-calendar-day"></i></div>
+                            <div class="card-icon-modern blue"><i class="fas fa-calendar-alt"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Shifts</h3>
                                 <p class="card-subtitle">All scheduled shifts</p>
@@ -95,7 +95,7 @@
                     <!-- My Shifts Card -->
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern blue"><i class="fas fa-calendar-day"></i></div>
+                            <div class="card-icon-modern blue"><i class="fas fa-user-clock"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">My Shifts</h3>
                                 <p class="card-subtitle">Personal schedule</p>
@@ -116,7 +116,7 @@
                     <!-- Weekly Overview Card -->
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern green"><i class="fas fa-calendar-day"></i></div>
+                            <div class="card-icon-modern green"><i class="fas fa-calendar-week"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Weekly Overview</h3>
                                 <p class="card-subtitle">This week's schedule</p>
@@ -137,7 +137,7 @@
                     <!-- Department Shifts Card -->
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern blue"><i class="fas fa-calendar-day"></i></div>
+                            <div class="card-icon-modern blue"><i class="fas fa-hospital"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Department Shifts</h3>
                                 <p class="card-subtitle"><?= esc($stats['department'] ?? 'Your department') ?></p>
@@ -158,7 +158,7 @@
                     <!-- Schedule Status Card -->
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern green"><i class="fas fa-calendar-day"></i></div>
+                            <div class="card-icon-modern green"><i class="fas fa-chart-line"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Schedule Status</h3>
                                 <p class="card-subtitle">Current status</p>
@@ -179,7 +179,7 @@
                     <!-- General Shifts Overview -->
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern blue"><i class="fas fa-calendar-day"></i></div>
+                            <div class="card-icon-modern blue"><i class="fas fa-clock"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Shifts Overview</h3>
                                 <p class="card-subtitle">General statistics</p>
@@ -200,7 +200,7 @@
                     <!-- Schedule Status -->
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern green"><i class="fas fa-calendar-day"></i></div>
+                            <div class="card-icon-modern green"><i class="fas fa-tasks"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Schedule Status</h3>
                                 <p class="card-subtitle">Current status</p>

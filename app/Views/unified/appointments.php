@@ -285,6 +285,5 @@
     <script src="<?= base_url('js/doctor/new-appointment-modal.js') ?>"></script>
     <script src="<?= base_url('js/doctor/view-appointment-modal.js') ?>"></script>
     <script src="<?= base_url('js/doctor/apppointment-management.js') ?>"></script>
-    <script src="<?= base_url('js/unified/patient-appointments.js') ?>"></script>
 </body>
 </html>

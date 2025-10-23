@@ -40,9 +40,6 @@ $routes->get('api/today-schedule', 'Unified\DashboardController::getTodaySchedul
 $routes->get('api/quick-stats', 'Unified\DashboardController::getQuickStats', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,accountant,it_staff,laboratorist,pharmacist']);
 $routes->post('api/dashboard-preferences', 'Unified\DashboardController::updatePreferences', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,accountant,it_staff,laboratorist,pharmacist']);
 
-// Patient-Appointment Connection Routes
-$routes->get('appointments/patient/(:num)', 'AppointmentManagement::getPatientAppointments/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist']);
-
 // User Management Routes
 $routes->get('admin/user-management', 'UserManagement::index', ['filter' => 'roleauth:admin']);
 $routes->post('admin/user-management/create', 'UserManagement::create', ['filter' => 'roleauth:admin']);

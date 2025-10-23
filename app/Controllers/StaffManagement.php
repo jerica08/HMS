@@ -3,24 +3,26 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
-use App\Models\UserModel;
-use App\Models\StaffModel;
+use App\Services\StaffService;
 
 class StaffManagement extends BaseController
 {
     protected $db;
     protected $builder;
-    protected $userModel;
-    protected $staffModel;
+    protected $staffService;
+    protected $userRole;
+    protected $staffId;
 
     public function __construct()
     {
         $this->db = \Config\Database::connect();
         $this->builder = $this->db->table('staff');
-        $this->userModel = new UserModel();
-        $this->staffModel = new StaffModel();
+        $this->staffService = new StaffService();
 
-        // Authentication is now handled by the roleauth filter in routes
+        // Get user session data
+        $session = session();
+        $this->userRole = $session->get('role');
+        $this->staffId = $session->get('staff_id');
     }
 
     // Fetch a single staff member as JSON (for modals)
@@ -43,120 +45,47 @@ class StaffManagement extends BaseController
      */
     public function index()
     {
-        $session = session();
-        $userRole = $session->get('role');
-        $staffId = $session->get('staff_id');
-        
-        // Get staff data based on role permissions
-        $staff = $this->getStaffByRole($userRole, $staffId);
-        $stats = $this->getStaffStats($userRole, $staffId);
+        // Get staff data using service
+        $staffResult = $this->staffService->getStaffByRole($this->userRole, $this->staffId);
+        $stats = $this->staffService->getStaffStats($this->userRole, $this->staffId);
         
         $data = [
-            'title' => 'Staff Management',
-            'userRole' => $userRole,
-            'staff' => $staff,
+            'title' => $this->getPageTitle(),
+            'userRole' => $this->userRole,
+            'staff' => $staffResult['data'] ?? [],
             'staffStats' => $stats,
-            'permissions' => $this->getStaffPermissions($userRole),
-            'total_staff' => count($staff),
+            'permissions' => $this->getStaffPermissions($this->userRole),
+            'total_staff' => count($staffResult['data'] ?? []),
         ];
 
-        // Use unified view that adapts to user role
         return view('unified/staff-management', $data);
     }
 
     public function create()
     {
         if ($this->request->getMethod() === 'POST') {
-            $validation = \Config\Services::validation();
-
-            $validation->setRules([
-                'employee_id' => 'required|min_length[3]|max_length[255]|is_unique[staff.employee_id]',
-                'first_name'  => 'required|min_length[2]|max_length[100]',
-                'last_name'   => 'permit_empty|max_length[100]',
-                'gender'      => 'permit_empty|in_list[Male,Female,Other]',
-                'dob'         => 'permit_empty|valid_date',
-                'contact_no'  => 'permit_empty|max_length[255]',
-                'email'       => 'permit_empty|valid_email',
-                'address'     => 'permit_empty',
-                'department'  => 'permit_empty|max_length[255]',
-                'designation' => 'required|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,it_staff,accountant]',
-                'date_joined' => 'permit_empty|valid_date'
-            ]);
-
-            $designation = $this->request->getPost('designation');
-            if ($designation === 'doctor') {
-                $validation->setRules([
-                    'doctor_specialization' => 'required|min_length[2]|max_length[100]',
-                    'doctor_license_no'     => 'permit_empty|max_length[50]',
-                    'doctor_consultation_fee' => 'permit_empty|decimal'
-                ]);
-            } elseif ($designation === 'nurse') {
-                $validation->setRules(['nurse_license_no' => 'required|max_length[100]']);
-            } elseif ($designation === 'pharmacist') {
-                $validation->setRules(['pharmacist_license_no' => 'required|max_length[100]']);
-            } elseif ($designation === 'laboratorist') {
-                $validation->setRules([
-                    'laboratorist_license_no' => 'required|max_length[100]',
-                    'laboratorist_specialization' => 'permit_empty|max_length[150]',
-                    'laboratorist_lab_room_no' => 'permit_empty|max_length[50]'
-                ]);
-            } elseif ($designation === 'accountant') {
-                $validation->setRules(['accountant_license_no' => 'required|max_length[100]']);
-            } elseif ($designation === 'receptionist') {
-                $validation->setRules(['receptionist_desk_no' => 'permit_empty|max_length[50]']);
-            } elseif ($designation === 'it_staff') {
-                $validation->setRules(['it_expertise' => 'permit_empty|max_length[150]']);
-            }
-
+            $input = $this->request->getPost();
             $isAjax = $this->request->isAJAX() || 
                       $this->request->getHeaderLine('Accept') == 'application/json' ||
                       $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
 
-            if (!$validation->withRequest($this->request)->run()) {
-                if ($isAjax) {
-                    return $this->response->setJSON([
-                        'status' => 'error',
-                        'message' => 'Validation failed',
-                        'errors' => $validation->getErrors()
-                    ]);
-                }
-                session()->setFlashdata('errors', $validation->getErrors());
-                return redirect()->back()->withInput();
+            // Use service to create staff
+            $result = $this->staffService->createStaff($input, $this->userRole);
+
+            if ($isAjax) {
+                return $this->response->setJSON($result);
             }
 
-            $data = [
-                'employee_id' => $this->request->getPost('employee_id'),
-                'first_name'  => $this->request->getPost('first_name'),
-                'last_name'   => $this->request->getPost('last_name') ?: null,
-                'gender'      => $this->request->getPost('gender') ? strtolower($this->request->getPost('gender')) : null,
-                'dob'         => $this->request->getPost('dob') ?: null,
-                'contact_no'  => $this->request->getPost('contact_no') ?: null,
-                'email'       => $this->request->getPost('email') ?: null,
-                'address'     => $this->request->getPost('address') ?: null,
-                'department'  => $this->request->getPost('department') ?: null,
-                'designation' => $this->request->getPost('designation'),
-                'role'        => $this->request->getPost('designation'),
-                'date_joined' => $this->request->getPost('date_joined') ?: date('Y-m-d')
-            ];
-
-            if ($this->builder->insert($data)) {
-                $staffId = (int)$this->db->insertID();
-                $this->insertRoleSpecificData($designation, $staffId);
-                
-                if ($isAjax) {
-                    return $this->response->setJSON(['status' => 'success', 'message' => 'Staff member added successfully!']);
-                }
-                session()->setFlashdata('success', 'Staff member added successfully!');
+            if ($result['success']) {
+                session()->setFlashdata('success', $result['message']);
             } else {
-                if ($isAjax) {
-                    return $this->response->setJSON(['status' => 'error', 'message' => 'Failed to add staff member.']);
+                session()->setFlashdata('error', $result['message']);
+                if (isset($result['errors'])) {
+                    session()->setFlashdata('errors', $result['errors']);
                 }
-                session()->setFlashdata('error', 'Failed to add staff member.');
             }
 
-            if (!$isAjax) {
-                return redirect()->to(base_url('admin/staff-management'));
-            }
+            return redirect()->to(base_url('admin/staff-management'));
         }
 
         $data = ['title' => 'Add Staff'];
@@ -230,71 +159,35 @@ class StaffManagement extends BaseController
             return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
         }
 
-        $existing = $this->builder->where('staff_id', $id)->get()->getRowArray();
-        if (!$existing) {
-            return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Staff not found']);
-        }
-
         $input = $this->request->getPost() ?: $this->request->getJSON(true) ?? [];
-
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'first_name'  => 'permit_empty|min_length[1]|max_length[100]',
-            'last_name'   => 'permit_empty|max_length[100]',
-            'gender'      => 'permit_empty|in_list[male,female,other,Male,Female,Other]',
-            'dob'         => 'permit_empty|valid_date',
-            'contact_no'  => 'permit_empty|max_length[255]',
-            'email'       => 'permit_empty|valid_email',
-            'address'     => 'permit_empty',
-            'department'  => 'permit_empty|max_length[255]',
-            'designation' => 'permit_empty|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,it_staff,accountant]'
-        ]);
-
-        if (!$validation->run($input)) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $validation->getErrors(),
-            ]);
+        
+        // Use service to update staff
+        $result = $this->staffService->updateStaff($id, $input, $this->userRole);
+        
+        if ($result['success']) {
+            return $this->response->setJSON($result);
+        } else {
+            $statusCode = ($result['message'] === 'Permission denied') ? 403 : 422;
+            return $this->response->setStatusCode($statusCode)->setJSON($result);
         }
-
-        $data = [];
-        $fields = ['employee_id', 'first_name', 'last_name', 'gender', 'dob', 'contact_no', 'email', 'address', 'department', 'designation'];
-        foreach ($fields as $field) {
-            if (array_key_exists($field, $input) && $input[$field] !== '') {
-                $data[$field] = $input[$field];
-            }
-        }
-
-        if (isset($data['gender'])) {
-            $data['gender'] = strtolower($data['gender']);
-        }
-        if (isset($data['designation'])) {
-            $data['role'] = $data['designation'];
-        }
-
-        if (empty($data)) {
-            return $this->response->setJSON(['status' => 'success', 'message' => 'No changes submitted']);
-        }
-
-        try {
-            if ($this->builder->where('staff_id', $id)->update($data)) {
-                return $this->response->setJSON(['status' => 'success', 'message' => 'Staff updated successfully', 'id' => $id]);
-            }
-        } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
-        }
-
-        return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to update staff']);
     }
 
     public function delete($id = null)
     {
-        if ($id && $this->builder->where('staff_id', $id)->delete()) {
-            session()->setFlashdata('success', 'Staff member deleted successfully!');
-        } else {
-            session()->setFlashdata('error', 'Failed to delete staff member.');
+        if (!$id) {
+            session()->setFlashdata('error', 'Invalid staff ID.');
+            return redirect()->to(base_url('admin/staff-management'));
         }
+
+        // Use service to delete staff
+        $result = $this->staffService->deleteStaff($id, $this->userRole);
+        
+        if ($result['success']) {
+            session()->setFlashdata('success', $result['message']);
+        } else {
+            session()->setFlashdata('error', $result['message']);
+        }
+        
         return redirect()->to(base_url('admin/staff-management'));
     }
 
@@ -318,21 +211,27 @@ class StaffManagement extends BaseController
     public function getStaffAPI()
     {
         try {
-            $session = session();
-            $userRole = $session->get('role');
-            $staffId = $session->get('staff_id');
+            // Get filters from request
+            $filters = [
+                'department' => $this->request->getGet('department'),
+                'role' => $this->request->getGet('role'),
+                'status' => $this->request->getGet('status'),
+                'search' => $this->request->getGet('search'),
+            ];
             
-            // Get role-based staff data
-            $staff = $this->getStaffByRole($userRole, $staffId);
+            // Remove empty filters
+            $filters = array_filter($filters, function($value) {
+                return !empty($value);
+            });
             
-            // Format staff data
-            $formattedStaff = array_map(function ($s) {
-                $s['id'] = $s['staff_id'] ?? null;
-                $s['full_name'] = trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''));
-                return $s;
-            }, $staff);
+            // Get staff using service
+            $result = $this->staffService->getStaffByRole($this->userRole, $this->staffId, $filters);
             
-            return $this->response->setJSON(['status' => 'success', 'data' => $formattedStaff]);
+            if ($result['success']) {
+                return $this->response->setJSON(['status' => 'success', 'data' => $result['data']]);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => $result['message']]);
+            }
         } catch (\Throwable $e) {
             return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load staff']);
         }
@@ -363,134 +262,54 @@ class StaffManagement extends BaseController
     // ===================================================================
 
     /**
-     * Get staff data based on user role and permissions
+     * Get page title based on user role
      */
-    private function getStaffByRole($userRole, $staffId)
+    private function getPageTitle()
     {
-        try {
-            $builder = $this->db->table('staff s');
-            
-            switch ($userRole) {
-                case 'admin':
-                    // Admin can see all staff
-                    $staff = $builder->orderBy('first_name', 'ASC')->get()->getResultArray();
-                    break;
-                    
-                case 'doctor':
-                    // Doctors can see staff in their department
-                    $doctorInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                    $department = $doctorInfo['department'] ?? null;
-                    
-                    if ($department) {
-                        $staff = $builder->where('department', $department)
-                                        ->orderBy('first_name', 'ASC')
-                                        ->get()->getResultArray();
-                    } else {
-                        $staff = [];
-                    }
-                    break;
-                    
-                case 'nurse':
-                    // Nurses can see staff in their department
-                    $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                    $department = $nurseInfo['department'] ?? null;
-                    
-                    if ($department) {
-                        $staff = $builder->where('department', $department)
-                                        ->whereIn('designation', ['doctor', 'nurse', 'receptionist'])
-                                        ->orderBy('first_name', 'ASC')
-                                        ->get()->getResultArray();
-                    } else {
-                        $staff = [];
-                    }
-                    break;
-                    
-                case 'receptionist':
-                    // Receptionists can see doctors and other receptionists
-                    $staff = $builder->whereIn('designation', ['doctor', 'receptionist'])
-                                    ->orderBy('first_name', 'ASC')
-                                    ->get()->getResultArray();
-                    break;
-                    
-                default:
-                    // Other roles see limited staff info
-                    $staff = $builder->whereIn('designation', ['doctor', 'receptionist'])
-                                    ->select('staff_id, first_name, last_name, designation, department')
-                                    ->orderBy('first_name', 'ASC')
-                                    ->get()->getResultArray();
-            }
-            
-            // Add full name and format data
-            return array_map(function($s) {
-                $s['full_name'] = trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''));
-                $s['id'] = $s['staff_id'] ?? null;
-                return $s;
-            }, $staff);
-            
-        } catch (\Throwable $e) {
-            log_message('error', 'Staff data fetch error: ' . $e->getMessage());
-            return [];
+        switch ($this->userRole) {
+            case 'admin':
+                return 'Staff Management';
+            case 'doctor':
+                return 'Department Team';
+            case 'nurse':
+                return 'Department Staff';
+            case 'receptionist':
+                return 'Staff Directory';
+            default:
+                return 'Staff Information';
         }
     }
 
     /**
-     * Get staff statistics based on user role
+     * Check if user can create staff
      */
-    private function getStaffStats($userRole, $staffId)
+    private function canCreateStaff()
     {
-        try {
-            $stats = [];
-            
-            switch ($userRole) {
-                case 'admin':
-                    $stats = [
-                        'total_staff' => $this->db->table('staff')->countAllResults(),
-                        'total_doctors' => $this->db->table('staff')->where('designation', 'doctor')->countAllResults(),
-                        'total_nurses' => $this->db->table('staff')->where('designation', 'nurse')->countAllResults(),
-                        'total_receptionists' => $this->db->table('staff')->where('designation', 'receptionist')->countAllResults(),
-                        'total_pharmacists' => $this->db->table('staff')->where('designation', 'pharmacist')->countAllResults(),
-                        'total_laboratorists' => $this->db->table('staff')->where('designation', 'laboratorist')->countAllResults(),
-                        'active_staff' => $this->db->table('staff')->where('status', 'Active')->countAllResults(),
-                        'new_staff_month' => $this->db->table('staff')->where('date_joined >=', date('Y-m-01'))->countAllResults(),
-                    ];
-                    break;
-                    
-                case 'doctor':
-                case 'nurse':
-                    // Get department-based stats
-                    $userInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                    $department = $userInfo['department'] ?? null;
-                    
-                    if ($department) {
-                        $stats = [
-                            'department_staff' => $this->db->table('staff')->where('department', $department)->countAllResults(),
-                            'department_doctors' => $this->db->table('staff')->where('department', $department)->where('designation', 'doctor')->countAllResults(),
-                            'department_nurses' => $this->db->table('staff')->where('department', $department)->where('designation', 'nurse')->countAllResults(),
-                        ];
-                    }
-                    break;
-                    
-                case 'receptionist':
-                    $stats = [
-                        'total_doctors' => $this->db->table('staff')->where('designation', 'doctor')->countAllResults(),
-                        'total_receptionists' => $this->db->table('staff')->where('designation', 'receptionist')->countAllResults(),
-                        'active_doctors' => $this->db->table('doctor')->where('status', 'Active')->countAllResults(),
-                    ];
-                    break;
-                    
-                default:
-                    $stats = [
-                        'total_staff' => $this->db->table('staff')->countAllResults(),
-                        'total_doctors' => $this->db->table('staff')->where('designation', 'doctor')->countAllResults(),
-                    ];
-            }
-            
-            return $stats;
-            
-        } catch (\Throwable $e) {
-            log_message('error', 'Staff stats error: ' . $e->getMessage());
-            return [];
-        }
+        return in_array($this->userRole, ['admin', 'it_staff']);
+    }
+
+    /**
+     * Check if user can edit staff
+     */
+    private function canEditStaff($staffId = null)
+    {
+        return in_array($this->userRole, ['admin', 'it_staff']);
+    }
+
+    /**
+     * Check if user can delete staff
+     */
+    private function canDeleteStaff()
+    {
+        return $this->userRole === 'admin';
+    }
+
+    /**
+     * Check if user can view staff details
+     */
+    private function canViewStaff()
+    {
+        return in_array($this->userRole, ['admin', 'doctor', 'nurse', 'receptionist', 'it_staff']);
     }
 
     /**

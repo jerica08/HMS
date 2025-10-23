@@ -133,31 +133,10 @@ class AppointmentService
     {
         try {
             $appointment = $this->db->table('appointments a')
-                ->select('a.*, 
-                         a.id as appointment_id,
-                         p.patient_id,
-                         p.first_name as patient_first_name, 
-                         p.last_name as patient_last_name,
-                         p.contact_no as patient_phone, 
-                         p.email as patient_email,
-                         p.date_of_birth,
-                         p.gender,
-                         p.address,
-                         p.emergency_contact_name,
-                         p.emergency_contact_phone,
-                         p.medical_history,
-                         TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) as patient_age,
-                         CONCAT(p.first_name, " ", p.last_name) as patient_full_name,
-                         s.staff_id as doctor_id,
-                         s.first_name as doctor_first_name,
-                         s.last_name as doctor_last_name,
-                         s.department as doctor_department,
-                         CONCAT(s.first_name, " ", s.last_name) as doctor_name,
-                         DATE_FORMAT(a.appointment_date, "%W, %M %d, %Y") as formatted_date,
-                         TIME_FORMAT(a.appointment_time, "%h:%i %p") as formatted_time')
+                ->select('a.*, p.*, CONCAT(s.first_name, " ", s.last_name) as doctor_name')
                 ->join('patient p', 'p.patient_id = a.patient_id', 'left')
                 ->join('staff s', 's.staff_id = a.doctor_id', 'left')
-                ->where('a.id', $id)
+                ->where('a.appointment_id', $id)
                 ->get()
                 ->getRowArray();
 

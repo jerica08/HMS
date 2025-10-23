@@ -4,57 +4,50 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Services\PatientService;
+use App\Libraries\PermissionManager;
 
 class PatientManagement extends BaseController
 {
-    protected $db;
     protected $patientService;
+    protected $session;
     protected $userRole;
     protected $staffId;
+    protected $db;
 
     public function __construct()
     {
-        $this->db = \Config\Database::connect();
         $this->patientService = new PatientService();
+        $this->session = session();
+        $this->userRole = $this->session->get('role');
+        $this->staffId = $this->session->get('staff_id');
+        $this->db = \Config\Database::connect();
         
-        $session = session();
-        $this->userRole = $session->get('role');
-        $this->staffId = $session->get('staff_id');
+        // Authentication is now handled by the roleauth filter in routes
     }
 
+    /**
+     * Main unified patient management - Role-based
+     */
     public function index()
     {
-        $stats = [
-            'total_patients' => 0,
-            'in_patients'    => 0,
-            'out_patients'   => 0,
-        ];
-        $patients = [];
-
-        try {
-            // Stats
-            $stats['total_patients'] = $this->db->table('patient')->countAllResults();
-            $stats['in_patients']    = $this->db->table('patient')->where('patient_type', 'inpatient')->countAllResults();
-            $stats['out_patients']   = $this->db->table('patient')->where('patient_type', 'outpatient')->countAllResults();
-
-            // Patients list with optional assigned doctor name
-            $builder = $this->db->table('patient p')
-                ->select('p.patient_id, p.first_name, p.last_name, p.email, p.date_of_birth, p.patient_type, p.status, p.primary_doctor_id, CONCAT(s.first_name, " ", s.last_name) AS primary_doctor_name')
-                ->join('doctor d', 'd.doctor_id = p.primary_doctor_id', 'left')
-                ->join('staff s', 's.staff_id = d.staff_id', 'left')
-                ->orderBy('p.patient_id', 'DESC');
-            $patients = $builder->get()->getResultArray();
-        } catch (\Throwable $e) {
-            log_message('error', 'PatientManagement index error: '.$e->getMessage());
-        }
+        // Get patient data based on role permissions
+        $patients = $this->patientService->getPatientsByRole($this->userRole, $this->staffId);
+        $stats = $this->patientService->getPatientStats($this->userRole, $this->staffId);
+        $availableDoctors = $this->patientService->getAvailableDoctors();
+        $permissions = PermissionManager::getRolePermissions($this->userRole);
 
         $data = [
-            'title'         => 'Patient Management',
-            'patientStats'  => $stats,
-            'patients'      => $patients,
+            'title' => $this->getPageTitle(),
+            'userRole' => $this->userRole,
+            'patients' => $patients,
+            'patientStats' => $stats,
+            'availableDoctors' => $availableDoctors,
+            'permissions' => $permissions['patients'] ?? [],
+            'total_patients' => count($patients),
         ];
 
-        return view('admin/patient-management', $data);
+        // Use unified view for all roles
+        return view('unified/patient-management', $data);
     }
 
     /**
@@ -62,15 +55,38 @@ class PatientManagement extends BaseController
      */
     public function createPatient()
     {
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
-        
-        $result = $this->patientService->createPatient(
-            $input,
-            $this->userRole,
-            $this->staffId
-        );
-        
-        return $this->response->setJSON($result);
+        if (!$this->canCreate()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
+        }
+
+        if ($this->request->getMethod() === 'POST') {
+            $isAjax = $this->request->isAJAX() || 
+                      $this->request->getHeaderLine('Accept') == 'application/json' ||
+                      $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
+
+            $input = $this->request->getJSON(true) ?? $this->request->getPost();
+            
+            $result = $this->patientService->createPatient(
+                $input,
+                $this->userRole,
+                $this->staffId
+            );
+            
+            if ($isAjax) {
+                return $this->response->setJSON($result);
+            }
+            
+            if ($result['status'] === 'success') {
+                session()->setFlashdata('success', $result['message']);
+            } else {
+                session()->setFlashdata('error', $result['message']);
+            }
+            
+            return redirect()->to($this->getRedirectUrl());
+        }
+
+        $data = ['title' => 'Add Patient'];
+        return view($this->getCreateViewPath(), $data);
     }
 
     /**
@@ -78,25 +94,25 @@ class PatientManagement extends BaseController
      */
     public function updatePatient($patientId = null)
     {
+        if (!$this->canEdit()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
+        }
+
         $patientId = $patientId ?? $this->request->getPost('patient_id');
         
-        if (!$this->canEditPatient($patientId)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Permission denied'
-            ]);
+        if (!$patientId) {
+            return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid patient ID']);
         }
 
         $input = $this->request->getJSON(true) ?? $this->request->getPost();
         
-        $result = $this->patientService->updatePatient(
-            $patientId,
-            $input,
-            $this->userRole,
-            $this->staffId
-        );
+        $result = $this->patientService->updatePatient($patientId, $input);
         
-        return $this->response->setJSON($result);
+        if ($result['status'] === 'success') {
+            return $this->response->setJSON(['status' => 'success', 'message' => $result['message']]);
+        }
+        
+        return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => $result['message']]);
     }
 
     /**
@@ -104,38 +120,21 @@ class PatientManagement extends BaseController
      */
     public function getPatient($patientId)
     {
-        if (!$this->canViewPatient($patientId)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Permission denied'
-            ]);
+        if (!$this->canView()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
         }
 
-        try {
-            $patient = $this->db->table('patient p')
-                ->select('p.*, CONCAT(s.first_name, " ", s.last_name) AS primary_doctor_name')
-                ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
-                ->where('p.patient_id', $patientId)
-                ->get()->getRowArray();
-                
-            if (!$patient) {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Patient not found'
-                ]);
-            }
-            
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => $patient
-            ]);
-        } catch (\Throwable $e) {
-            log_message('error', 'Get patient error: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to load patient'
-            ]);
+        if (!$patientId) {
+            return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid patient ID']);
         }
+
+        $result = $this->patientService->getPatient($patientId);
+        
+        if ($result['status'] === 'success') {
+            return $this->response->setJSON(['status' => 'success', 'data' => $result['patient']]);
+        }
+        
+        return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => $result['message']]);
     }
 
     /**
@@ -143,28 +142,43 @@ class PatientManagement extends BaseController
      */
     public function deletePatient($patientId)
     {
-        if ($this->userRole !== 'admin') {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Only administrators can delete patients'
-            ]);
+        if (!$this->canDelete()) {
+            // Check if this is an AJAX request
+            if ($this->request->isAJAX() || $this->request->getHeaderLine('Accept') == 'application/json') {
+                return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
+            }
+            session()->setFlashdata('error', 'Insufficient permissions');
+            return redirect()->to($this->getRedirectUrl());
         }
 
-        try {
-            if ($this->db->table('patient')->where('patient_id', $patientId)->delete()) {
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'message' => 'Patient deleted successfully'
-                ]);
+        if (!$patientId) {
+            // Check if this is an AJAX request
+            if ($this->request->isAJAX() || $this->request->getHeaderLine('Accept') == 'application/json') {
+                return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid patient ID']);
             }
-        } catch (\Throwable $e) {
-            log_message('error', 'Delete patient error: ' . $e->getMessage());
+            session()->setFlashdata('error', 'Invalid patient ID');
+            return redirect()->to($this->getRedirectUrl());
+        }
+
+        $result = $this->patientService->deletePatient($patientId, $this->userRole);
+        
+        // Check if this is an AJAX request
+        if ($this->request->isAJAX() || $this->request->getHeaderLine('Accept') == 'application/json') {
+            if ($result['success']) {
+                return $this->response->setJSON(['status' => 'success', 'message' => $result['message']]);
+            } else {
+                return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => $result['message']]);
+            }
         }
         
-        return $this->response->setJSON([
-            'status' => 'error',
-            'message' => 'Failed to delete patient'
-        ]);
+        // For non-AJAX requests, use redirect
+        if ($result['success']) {
+            session()->setFlashdata('success', $result['message']);
+        } else {
+            session()->setFlashdata('error', $result['message']);
+        }
+        
+        return redirect()->to($this->getRedirectUrl());
     }
 
     /**
@@ -172,10 +186,16 @@ class PatientManagement extends BaseController
      */
     public function getPatientsAPI()
     {
-        return $this->response->setJSON([
-            'status' => 'success',
-            'data' => $this->getPatients()
-        ]);
+        if (!$this->canView()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
+        }
+
+        try {
+            $patients = $this->patientService->getAllPatients($this->userRole, $this->staffId);
+            return $this->response->setJSON(['status' => 'success', 'data' => $patients]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load patients']);
+        }
     }
 
     /**
@@ -183,7 +203,7 @@ class PatientManagement extends BaseController
      */
     public function updatePatientStatus($patientId)
     {
-        if (!$this->canEditPatient($patientId)) {
+        if (!$this->canEdit()) {
             return $this->response->setJSON([
                 'status' => 'error',
                 'message' => 'Permission denied'
@@ -216,11 +236,28 @@ class PatientManagement extends BaseController
     }
 
     /**
+     * Get Available Doctors API
+     */
+    public function getDoctorsAPI()
+    {
+        if (!$this->canView()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
+        }
+
+        try {
+            $doctors = $this->patientService->getAvailableDoctors();
+            return $this->response->setJSON(['status' => 'success', 'data' => $doctors]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load doctors']);
+        }
+    }
+
+    /**
      * Assign Doctor to Patient
      */
     public function assignDoctor($patientId)
     {
-        if (!in_array($this->userRole, ['admin', 'receptionist'])) {
+        if (!in_array($this->userRole, ['admin', 'receptionist', 'it_staff'])) {
             return $this->response->setJSON([
                 'status' => 'error',
                 'message' => 'Permission denied'
@@ -247,150 +284,135 @@ class PatientManagement extends BaseController
     }
 
     // ===================================================================
-    // PRIVATE HELPER METHODS
+    // PERMISSION AND HELPER METHODS
     // ===================================================================
 
     /**
-     * Get Patients based on user role
+     * Check if user can create patients
      */
-    private function getPatients()
+    private function canCreate()
     {
-        try {
-            $builder = $this->db->table('patient p')
-                ->select('p.*, CONCAT(s.first_name, " ", s.last_name) AS primary_doctor_name')
-                ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left');
-
-            // Role-based filtering
-            switch ($this->userRole) {
-                case 'admin':
-                case 'receptionist':
-                    // Can see all patients
-                    break;
-                case 'doctor':
-                    // Only see assigned patients
-                    $builder->where('p.primary_doctor_id', $this->staffId);
-                    break;
-                case 'nurse':
-                    // See patients in their department/ward
-                    $builder->join('staff ns', 'ns.staff_id', $this->staffId)
-                            ->join('staff ds', 'ds.staff_id = p.primary_doctor_id')
-                            ->where('ns.department = ds.department');
-                    break;
-            }
-
-            return $builder->orderBy('p.patient_id', 'DESC')->get()->getResultArray();
-        } catch (\Throwable $e) {
-            log_message('error', 'Get patients error: ' . $e->getMessage());
-            return [];
-        }
+        return PermissionManager::hasPermission($this->userRole, 'patients', 'create');
     }
 
     /**
-     * Get Patient Statistics
+     * Check if user can edit patients
      */
-    private function getPatientStats()
+    private function canEdit()
     {
-        $stats = [
-            'total_patients' => 0,
-            'active_patients' => 0,
-            'inactive_patients' => 0,
-            'inpatients' => 0,
-            'outpatients' => 0,
-            'emergency_patients' => 0
-        ];
-        
-        try {
-            $builder = $this->db->table('patient');
-            
-            // Apply role-based filtering
-            if ($this->userRole === 'doctor') {
-                $builder->where('primary_doctor_id', $this->staffId);
-            }
-            
-            $stats['total_patients'] = $builder->countAllResults(false);
-            $stats['active_patients'] = $builder->where('status', 'Active')->countAllResults(false);
-            $stats['inactive_patients'] = $builder->where('status', 'Inactive')->countAllResults(false);
-            $stats['inpatients'] = $builder->where('patient_type', 'inpatient')->countAllResults(false);
-            $stats['outpatients'] = $builder->where('patient_type', 'outpatient')->countAllResults(false);
-            $stats['emergency_patients'] = $builder->where('patient_type', 'emergency')->countAllResults();
-        } catch (\Throwable $e) {
-            log_message('error', 'Patient stats error: ' . $e->getMessage());
-        }
-        
-        return $stats;
+        return PermissionManager::hasPermission($this->userRole, 'patients', 'edit');
     }
 
     /**
-     * Get User Permissions for UI
+     * Check if user can delete patients
      */
-    private function getUserPermissions()
+    private function canDelete()
     {
-        return [
-            'canCreate' => in_array($this->userRole, ['admin', 'receptionist']),
-            'canEdit' => in_array($this->userRole, ['admin', 'receptionist', 'doctor']),
-            'canDelete' => in_array($this->userRole, ['admin']),
-            'canAssignDoctor' => in_array($this->userRole, ['admin', 'receptionist']),
-            'canViewAll' => in_array($this->userRole, ['admin', 'receptionist']),
-            'canViewMedicalHistory' => in_array($this->userRole, ['admin', 'doctor', 'nurse']),
-            'canDischarge' => in_array($this->userRole, ['admin', 'doctor']),
-            'canUpdateVitals' => in_array($this->userRole, ['nurse', 'doctor'])
-        ];
+        return PermissionManager::hasPermission($this->userRole, 'patients', 'delete');
     }
 
-    
-    private function canViewPatient($patientId)
+    /**
+     * Check if user can view patients
+     */
+    private function canView()
+    {
+        return PermissionManager::hasPermission($this->userRole, 'patients', 'view');
+    }
+
+    /**
+     * Get page title based on user role
+     */
+    private function getPageTitle()
     {
         switch ($this->userRole) {
             case 'admin':
-            case 'receptionist':
-                return true;
+                return 'Patient Management';
             case 'doctor':
-                $patient = $this->db->table('patient')
-                    ->where('patient_id', $patientId)
-                    ->where('primary_doctor_id', $this->staffId)
-                    ->get()->getRow();
-                return !empty($patient);
+                return 'My Patients';
             case 'nurse':
-                return $this->isPatientInNurseDepartment($patientId);
-            default:
-                return false;
-        }
-    }
-
-    
-    private function canEditPatient($patientId)
-    {
-        switch ($this->userRole) {
-            case 'admin':
+                return 'Department Patients';
             case 'receptionist':
-                return true;
-            case 'doctor':
-                return $this->canViewPatient($patientId);
-            case 'nurse':
-                // Nurses can update vitals/notes but not core patient data
-                return $this->isPatientInNurseDepartment($patientId);
+                return 'Patient Registration';
+            case 'pharmacist':
+                return 'Patient Prescriptions';
+            case 'laboratorist':
+                return 'Patient Lab Tests';
+            case 'accountant':
+                return 'Patient Billing';
+            case 'it_staff':
+                return 'Patient Records';
             default:
-                return false;
+                return 'Patient Directory';
         }
     }
 
     /**
-     * Check if patient is in nurse's department
+     * Get redirect URL based on user role
      */
-    private function isPatientInNurseDepartment($patientId)
+    private function getRedirectUrl()
     {
-        try {
-            $result = $this->db->table('patient p')
-                ->join('staff ns', 'ns.staff_id', $this->staffId)
-                ->join('staff ds', 'ds.staff_id = p.primary_doctor_id')
-                ->where('p.patient_id', $patientId)
-                ->where('ns.department = ds.department')
-                ->get()->getRow();
-                
-            return !empty($result);
-        } catch (\Throwable $e) {
-            log_message('error', 'Check nurse department error: ' . $e->getMessage());
-            return false;
+        switch ($this->userRole) {
+            case 'admin':
+                return base_url('admin/patient-management');
+            case 'doctor':
+                return base_url('doctor/patients');
+            case 'nurse':
+                return base_url('nurse/patients');
+            case 'receptionist':
+                return base_url('receptionist/patients');
+            case 'pharmacist':
+                return base_url('pharmacist/patients');
+            case 'laboratorist':
+                return base_url('laboratorist/patients');
+            case 'accountant':
+                return base_url('accountant/patients');
+            case 'it_staff':
+                return base_url('it-staff/patients');
+            default:
+                return base_url('dashboard');
+        }
+    }
+
+    /**
+     * Get view path based on user role
+     */
+    private function getViewPath()
+    {
+        switch ($this->userRole) {
+            case 'admin':
+                return 'admin/patient-management';
+            case 'doctor':
+                return 'doctor/patient';
+            case 'nurse':
+                return 'nurse/patient-management';
+            case 'receptionist':
+                return 'receptionist/patient-registration';
+            case 'pharmacist':
+            case 'laboratorist':
+            case 'accountant':
+            case 'it_staff':
+                return 'admin/patient-management'; // Use admin view for other roles
+            default:
+                return 'admin/patient-management';
+        }
+    }
+
+    /**
+     * Get create view path based on user role
+     */
+    private function getCreateViewPath()
+    {
+        switch ($this->userRole) {
+            case 'admin':
+                return 'admin/add-patient';
+            case 'doctor':
+                return 'doctor/add-patient';
+            case 'nurse':
+                return 'nurse/add-patient';
+            case 'receptionist':
+                return 'receptionist/add-patient';
+            default:
+                return 'admin/add-patient';
         }
     }
 }

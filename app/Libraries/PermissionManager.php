@@ -41,6 +41,17 @@ class PermissionManager
             'appointments' => ['view'],
             'billing' => ['view', 'create', 'edit', 'process'],
             'reports' => ['view', 'generate', 'export']
+        ],
+        'it_staff' => [
+            'patients' => ['view', 'create', 'edit', 'delete', 'assign_doctor', 'view_all'],
+            'appointments' => ['view', 'create', 'edit', 'delete', 'reschedule', 'view_all'],
+            'staff' => ['view', 'create', 'edit', 'delete', 'manage_roles'],
+            'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
+            'resources' => ['view', 'create', 'edit', 'delete'],
+            'shifts' => ['view', 'create', 'edit', 'delete'],
+            'prescriptions' => ['view', 'view_all'],
+            'reports' => ['view', 'generate', 'export'],
+            'system' => ['settings', 'backup', 'maintenance', 'database_management']
         ]
     ];
 

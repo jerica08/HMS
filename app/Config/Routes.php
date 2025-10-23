@@ -39,9 +39,24 @@ $routes->post('admin/user-management/create', 'UserManagement::create', ['filter
 $routes->post('admin/user-management/update', 'UserManagement::update', ['filter' => 'roleauth:admin']);
 $routes->get('admin/user-management/delete/(:num)', 'UserManagement::delete/$1', ['filter' => 'roleauth:admin']);
 $routes->get('admin/user-management/reset-password/(:num)', 'UserManagement::resetPassword/$1', ['filter' => 'roleauth:admin']);
-$routes->get('admin/user-management/users', 'UserManagement::getUsers', ['filter' => 'roleauth:admin']);
+$routes->get('admin/user-management/users', 'UserManagement::getUsersAPI', ['filter' => 'roleauth:admin']);
 $routes->get('admin/user-management/user/(:num)', 'UserManagement::getUser/$1', ['filter' => 'roleauth:admin']);
-$routes->get('admin/user-management/staff/(:num)', 'UserManagement::getStaff/$1', ['filter' => 'roleauth:admin']);
+$routes->get('admin/user-management/staff/(:num)', 'UserManagement::getAvailableStaffAPI', ['filter' => 'roleauth:admin']);
+
+// Unified User Management Routes - Multiple roles
+$routes->get('doctor/users', 'UserManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/users', 'UserManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/users', 'UserManagement::index', ['filter' => 'roleauth:receptionist']);
+$routes->get('it-staff/users', 'UserManagement::index', ['filter' => 'roleauth:it_staff']);
+
+// Unified User Management API Routes
+$routes->get('users/api', 'UserManagement::getUsersAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->get('users/(:num)', 'UserManagement::getUser/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->post('users/create', 'UserManagement::create', ['filter' => 'roleauth:admin,it_staff']);
+$routes->post('users/update/(:num)', 'UserManagement::update/$1', ['filter' => 'roleauth:admin,it_staff']);
+$routes->delete('users/delete/(:num)', 'UserManagement::delete/$1', ['filter' => 'roleauth:admin,it_staff']);
+$routes->post('users/reset-password/(:num)', 'UserManagement::resetPassword/$1', ['filter' => 'roleauth:admin,it_staff']);
+$routes->get('users/available-staff', 'UserManagement::getAvailableStaffAPI', ['filter' => 'roleauth:admin,it_staff']);
 
 // Staff Management Routes
 $routes->get('admin/staff-management', 'StaffManagement::index', ['filter' => 'roleauth:admin']);

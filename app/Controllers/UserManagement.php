@@ -3,153 +3,236 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
-use App\Models\UserModel;
-use App\Models\StaffModel;
+use App\Services\UserService;
+use App\Libraries\PermissionManager;
 
 class UserManagement extends BaseController
 {
-    protected $db;
-    protected $userModel;
-    protected $staffModel;
+    protected $userService;
 
     public function __construct()
     {
-        $this->db = \Config\Database::connect();
-        $this->userModel = new UserModel();
-        $this->staffModel = new StaffModel();
+        $this->userService = new UserService();
         // Authentication is now handled by the roleauth filter in routes
     }
 
-    public function index() 
+    /**
+     * Main unified user management - Role-based
+     */
+    public function index()
     {
-        $users = $this->userModel->getAllUsersWithStaff();
-        if (!is_array($users)) { $users = []; }
-
-        $adminCount = 0;
-        foreach ($users as $u) {
-            if (($u['role'] ?? '') === 'admin') { $adminCount++; }
-        }
-
+        $session = session();
+        $userRole = $session->get('role');
+        $staffId = $session->get('staff_id');
+        
+        // Get user data based on role permissions
+        $users = $this->userService->getUsersByRole($userRole, $staffId);
+        $stats = $this->userService->getUserStats($userRole, $staffId);
+        $availableStaff = $this->userService->getAvailableStaff($userRole);
+        
         $data = [
-            'title' => 'User Management',
+            'title' => $this->getPageTitle($userRole),
+            'userRole' => $userRole,
             'users' => $users,
-            'staff' => $this->staffModel->getStaffWithoutUsers(),
-            'stats' => [
-                'total_users' => count($users),
-                'admin_users' => $adminCount,
-            ],
+            'userStats' => $stats,
+            'availableStaff' => $availableStaff,
+            'permissions' => $this->getUserPermissions($userRole),
         ];
 
-        return view('admin/user-management', $data);
+        // Use unified view that adapts to user role
+        return view('unified/user-management', $data);
     }
 
     public function create()
     {
-        $rules = [
-            'staff_id' => 'required|integer|is_unique[users.staff_id]',
-            'username' => 'required|min_length[3]|max_length[50]|is_unique[users.username]',
-            'password' => 'required|min_length[6]',
-            'confirm_password' => 'required|matches[password]',
-            'status' => 'required|in_list[active,inactive]',
-        ];
+        $session = session();
+        $userRole = $session->get('role');
+        
+        $isAjax = $this->request->isAJAX() || 
+                  $this->request->getHeaderLine('Accept') == 'application/json' ||
+                  $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
 
-        if(!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        try {
+            $data = $this->request->getPost() ?: $this->request->getJSON(true) ?? [];
+            
+            $result = $this->userService->createUser($data, $userRole);
+            
+            if ($isAjax) {
+                return $this->response->setJSON($result);
+            }
+            
+            session()->setFlashdata('success', $result['message']);
+            return redirect()->to($this->getRedirectUrl($userRole));
+            
+        } catch (\Exception $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ]);
+            }
+            
+            session()->setFlashdata('error', $e->getMessage());
+            return redirect()->back()->withInput();
         }
-
-        $staff = $this->staffModel->find($this->request->getPost('staff_id'));
-        if (!$staff){
-            return redirect()->back()->withInput()->with('error', 'Invalid staff selected');
-        }
-
-        $staffEmail = $staff['email'] ?? null;
-        if (empty($staffEmail)) {
-            return redirect()->back()->withInput()->with('error', 'Selected staff has no email.');
-        }
-
-        $derivedRole = strtolower(trim((string)($staff['role'] ?? $staff['designation'] ?? '')));
-        $validRoles = ['admin','doctor','nurse','receptionist','laboratorist','pharmacist','accountant','it_staff'];
-        if (!in_array($derivedRole, $validRoles, true)) {
-            return redirect()->back()->withInput()->with('error', 'Selected staff has no valid role.');
-        }
-
-        $data = [
-            'staff_id'   => $this->request->getPost('staff_id'),
-            'username'   => $this->request->getPost('username'),
-            'email'      => $staff['email'],
-            'first_name' => $staff['first_name'] ?? null,
-            'last_name'  => $staff['last_name'] ?? null,
-            'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'role'       => $derivedRole,
-            'status'     => $this->request->getPost('status') ?: 'active',
-        ];
-
-        if ($this->userModel->insert($data)) {
-            return redirect()->to('admin/user-management')->with('success', 'User added successfully.');
-        }
-        return redirect()->back()->withInput()->with('error', 'Failed to add user.');
     }
 
-    public function update()
+    public function update($userId = null)
     {
-        $rules = [
-            'user_id' => 'required|integer',
-            'username' => 'required|min_length[3]|max_length[50]',
-            'role' => 'required|in_list[admin,doctor,nurse,receptionist,laboratorist,pharmacist,accountant,it_staff]',
-            'status' => 'required|in_list[active,inactive]',
-        ];
+        $session = session();
+        $userRole = $session->get('role');
+        
+        $userId = $userId ?? $this->request->getPost('user_id');
+        
+        $isAjax = $this->request->isAJAX() || 
+                  $this->request->getHeaderLine('Accept') == 'application/json' ||
+                  $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
 
-        if(!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        try {
+            $data = $this->request->getPost() ?: $this->request->getJSON(true) ?? [];
+            
+            $result = $this->userService->updateUser($userId, $data, $userRole);
+            
+            if ($isAjax) {
+                return $this->response->setJSON($result);
+            }
+            
+            session()->setFlashdata('success', $result['message']);
+            return redirect()->to($this->getRedirectUrl($userRole));
+            
+        } catch (\Exception $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ]);
+            }
+            
+            session()->setFlashdata('error', $e->getMessage());
+            return redirect()->back()->withInput();
         }
-
-        $userId = $this->request->getPost('user_id');
-        $data = [
-            'username' => $this->request->getPost('username'),
-            'role' => $this->request->getPost('role'),
-            'status' => $this->request->getPost('status'),
-        ];
-
-        if ($this->userModel->update($userId, $data)) {
-            return redirect()->to('admin/user-management')->with('success', 'User updated successfully.');
-        }
-        return redirect()->back()->withInput()->with('error', 'Failed to update user');
     }
 
-    public function delete($id = null)
+    public function delete($userId = null)
     {
-        if ($id && $this->userModel->delete($id)) {
-            session()->setFlashdata('success', 'User deleted successfully!');
-        } else {
-            session()->setFlashdata('error', 'Failed to delete user.');
+        $session = session();
+        $userRole = $session->get('role');
+        
+        try {
+            $result = $this->userService->deleteUser($userId, $userRole);
+            
+            session()->setFlashdata('success', $result['message']);
+            return redirect()->to($this->getRedirectUrl($userRole));
+            
+        } catch (\Exception $e) {
+            session()->setFlashdata('error', $e->getMessage());
+            return redirect()->to($this->getRedirectUrl($userRole));
         }
-        return redirect()->to(base_url('admin/user-management'));
     }
 
-    public function resetPassword($id = null)
+    public function resetPassword($userId = null)
     {
-        if (!$id) {
-            session()->setFlashdata('error', 'Invalid user ID.');
-            return redirect()->to(base_url('admin/user-management'));
+        $session = session();
+        $userRole = $session->get('role');
+        
+        try {
+            // Generate temporary password
+            $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^*';
+            $tempPassword = '';
+            for ($i = 0; $i < 12; $i++) {
+                $tempPassword .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+            }
+            
+            $result = $this->userService->resetPassword($userId, $tempPassword, $userRole);
+            
+            session()->setFlashdata('success', $result['message'] . ' Temporary password: ' . $tempPassword);
+            return redirect()->to($this->getRedirectUrl($userRole));
+            
+        } catch (\Exception $e) {
+            session()->setFlashdata('error', $e->getMessage());
+            return redirect()->to($this->getRedirectUrl($userRole));
         }
-
-        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^*';
-        $temp = '';
-        for ($i = 0; $i < 12; $i++) {
-            $temp .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-        }
-
-        if ($this->userModel->update($id, ['password' => password_hash($temp, PASSWORD_DEFAULT)])) {
-            session()->setFlashdata('success', 'Password reset. Temporary password: ' . $temp);
-        } else {
-            session()->setFlashdata('error', 'Failed to reset password.');
-        }
-
-        return redirect()->to(base_url('admin/user-management'));
     }
 
     // API Methods
-    public function getUsers() { return $this->response->setJSON($this->userModel->getAllUsersWithStaff()); }
-    public function getUser($id) { return $this->response->setJSON($this->userModel->find($id)); }
-    public function getStaff($id) { return $this->response->setJSON($this->staffModel->find($id)); }
+    public function getUsersAPI()
+    {
+        $session = session();
+        $userRole = $session->get('role');
+        $staffId = $session->get('staff_id');
+        
+        try {
+            $users = $this->userService->getUsersByRole($userRole, $staffId);
+            return $this->response->setJSON(['status' => 'success', 'data' => $users]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+    
+    public function getUser($userId = null)
+    {
+        $session = session();
+        $userRole = $session->get('role');
+        
+        try {
+            $user = $this->userService->getUser($userId, $userRole);
+            return $this->response->setJSON(['status' => 'success', 'data' => $user]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+    
+    public function getAvailableStaffAPI()
+    {
+        $session = session();
+        $userRole = $session->get('role');
+        
+        try {
+            $staff = $this->userService->getAvailableStaff($userRole);
+            return $this->response->setJSON(['status' => 'success', 'data' => $staff]);
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
+    // Helper Methods
+    private function getPageTitle($userRole)
+    {
+        switch ($userRole) {
+            case 'admin':
+                return 'User Management';
+            case 'it_staff':
+                return 'System User Management';
+            case 'doctor':
+                return 'Department Users';
+            default:
+                return 'User Directory';
+        }
+    }
+    
+    private function getRedirectUrl($userRole)
+    {
+        switch ($userRole) {
+            case 'admin':
+                return 'admin/user-management';
+            case 'it_staff':
+                return 'it-staff/users';
+            case 'doctor':
+                return 'doctor/users';
+            default:
+                return 'admin/user-management';
+        }
+    }
+    
+    private function getUserPermissions($userRole)
+    {
+        return [
+            'canCreate' => PermissionManager::hasPermission($userRole, 'users', 'create'),
+            'canEdit' => PermissionManager::hasPermission($userRole, 'users', 'edit'),
+            'canDelete' => PermissionManager::hasPermission($userRole, 'users', 'delete'),
+            'canView' => PermissionManager::hasPermission($userRole, 'users', 'view'),
+            'canResetPassword' => PermissionManager::hasPermission($userRole, 'users', 'edit'),
+            'canViewAll' => in_array($userRole, ['admin', 'it_staff']),
+        ];
+    }
 }

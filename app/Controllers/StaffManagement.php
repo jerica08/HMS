@@ -35,7 +35,7 @@ class StaffManagement extends BaseController
             return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Staff not found']);
         }
         $row['id'] = $row['staff_id'];
-        return $this->response->setJSON($row);
+        return $this->response->setJSON(['status' => 'success', 'data' => $row]);
     }
 
     /**
@@ -61,7 +61,7 @@ class StaffManagement extends BaseController
         ];
 
         // Use unified view that adapts to user role
-        return view('staff-management/staff-management', $data);
+        return view('unified/staff-management', $data);
     }
 
     public function create()
@@ -318,13 +318,21 @@ class StaffManagement extends BaseController
     public function getStaffAPI()
     {
         try {
-            $rows = $this->builder->orderBy('last_name', 'ASC')->orderBy('first_name', 'ASC')->get()->getResultArray();
-            $staff = array_map(function ($s) {
+            $session = session();
+            $userRole = $session->get('role');
+            $staffId = $session->get('staff_id');
+            
+            // Get role-based staff data
+            $staff = $this->getStaffByRole($userRole, $staffId);
+            
+            // Format staff data
+            $formattedStaff = array_map(function ($s) {
                 $s['id'] = $s['staff_id'] ?? null;
                 $s['full_name'] = trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''));
                 return $s;
-            }, $rows);
-            return $this->response->setJSON($staff);
+            }, $staff);
+            
+            return $this->response->setJSON(['status' => 'success', 'data' => $formattedStaff]);
         } catch (\Throwable $e) {
             return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load staff']);
         }

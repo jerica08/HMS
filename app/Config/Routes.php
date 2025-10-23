@@ -56,6 +56,18 @@ $routes->get('admin/staff-management/doctors/api', 'StaffManagement::getDoctorsA
 // Alias used by Shifts page for doctor selection
 $routes->get('admin/doctors/api', 'StaffManagement::getDoctorsAPI', ['filter' => 'roleauth:admin']);
 
+// Unified Staff Management Routes - Multiple roles
+$routes->get('doctor/staff', 'StaffManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/staff', 'StaffManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/staff', 'StaffManagement::index', ['filter' => 'roleauth:receptionist']);
+$routes->get('it-staff/staff', 'StaffManagement::index', ['filter' => 'roleauth:it_staff']);
+
+// Unified Staff Management API Routes
+$routes->get('staff/api', 'StaffManagement::getStaffAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->get('staff/(:num)', 'StaffManagement::getStaff/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->post('staff/create', 'StaffManagement::create', ['filter' => 'roleauth:admin,it_staff']);
+$routes->post('staff/update', 'StaffManagement::update', ['filter' => 'roleauth:admin,it_staff']);
+$routes->delete('staff/delete/(:num)', 'StaffManagement::delete/$1', ['filter' => 'roleauth:admin,it_staff']);
 
 // Resource Management Routes
 $routes->get('admin/resource-management', 'ResourceManagement::index', ['filter' => 'roleauth:admin']);

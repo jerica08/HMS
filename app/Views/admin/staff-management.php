@@ -4,8 +4,14 @@
      <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Management - HMS Admin</title>
-    <link rel="stylesheet" href="/assets/css/common.css"> 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <?php
+      // Initialize optional filter vars to avoid notices
+      $search = $search ?? null;
+      $roleFilter = $roleFilter ?? null;
+      $statusFilter = $statusFilter ?? null;
+    ?>
 </head>
 <body class="admin">
 
@@ -14,19 +20,48 @@
     <div class="main-container">
         <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>
       
-            <main class="content">
-                <h1 class="page-title"> Staff Management</h1>
+            <main class="content" role="main">
+                <h1 class="page-title">Staff Management</h1>
                 <div class="page-actions">
-                        <button type="button" id="openAddStaffBtn" class="btn btn-primary" onclick="openAddStaffModal()">
-                            <i class="fas fa-plus"></i> Add Staff
+                    <button type="button" id="openAddStaffBtn" class="btn btn-primary" onclick="openAddStaffModal()" aria-label="Add New Staff">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Staff
+                    </button>
+                </div>
+
+                <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
+                    <div id="flashNotice" role="alert" aria-live="polite" style="
+                        margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px;
+                        border: 1px solid <?= session()->getFlashdata('success') ? '#86efac' : '#fecaca' ?>;
+                        background: <?= session()->getFlashdata('success') ? '#dcfce7' : '#fee2e2' ?>;
+                        color: <?= session()->getFlashdata('success') ? '#166534' : '#991b1b' ?>; display:flex; align-items:center; gap:0.5rem;">
+                        <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>" aria-hidden="true"></i>
+                        <span>
+                            <?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error')) ?>
+                        </span>
+                        <button type="button" onclick="dismissFlash()" aria-label="Dismiss notification" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
+                            <i class="fas fa-times"></i>
                         </button>
-                </div><br>
+                    </div>
+                <?php endif; ?>
+
+                <?php $errors = session()->get('errors'); ?>
+                <?php if (!empty($errors) && is_array($errors)): ?>
+                    <div role="alert" aria-live="polite" style="margin-top:0.75rem; padding:0.75rem 1rem; border-radius:8px; border:1px solid #fecaca; background:#fee2e2; color:#991b1b;">
+                        <div style="font-weight:600; margin-bottom:0.25rem;"><i class="fas fa-exclamation-circle"></i> Please fix the following errors:</div>
+                        <ul style="margin:0; padding-left:1.25rem;">
+                            <?php foreach ($errors as $field => $msg): ?>
+                                <li><?= esc(is_array($msg) ? implode(', ', $msg) : $msg) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
+                <br />
 
 
-                <!--Dashboard overview cards-->
-                <div class="dashboard-overview">
+                <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
                     <!--Total Staff Cards-->
-                    <div class="overview-card">
+                    <div class="overview-card" tabindex="0">
                         <div class="card-header-modern">
                             <div class="card-icon-modern blue">
                                 <i class="fas fa-users"></i>
@@ -40,6 +75,37 @@
     'csrfToken'      => csrf_token(),
     'csrfHash'       => csrf_hash(),
 ], JSON_UNESCAPED_SLASHES) ?>
+                            </script>
+                            <script>
+                            function dismissFlash() {
+                                const flashNotice = document.getElementById('flashNotice');
+                                if (flashNotice) {
+                                    flashNotice.style.display = 'none';
+                                }
+                            }
+                            
+                            function clearFilters() {
+                                // Reset any filter controls if they exist
+                                const statusFilter = document.getElementById('statusFilter');
+                                const roleFilter = document.getElementById('roleFilter');
+                                const searchFilter = document.getElementById('searchFilter');
+                                
+                                if (statusFilter) statusFilter.value = '';
+                                if (roleFilter) roleFilter.value = '';
+                                if (searchFilter) searchFilter.value = '';
+                                
+                                // Reload page to clear filters
+                                window.location.href = window.location.pathname;
+                            }
+                            
+                            function deleteStaff(staffId) {
+                                if (!confirm('Are you sure you want to delete this staff member? This action cannot be undone.')) {
+                                    return;
+                                }
+                                
+                                // Redirect to delete URL
+                                window.location.href = '<?= base_url('admin/staff-management/delete/') ?>' + staffId;
+                            }
                             </script>
                             <script src="<?= base_url('js/admin/staff-management.js') ?>"></script>
                             <div class="card-info">
@@ -57,70 +123,104 @@
 
 
         
-                <!-- Staff List Table -->
-                <div class="staff-section">
-                    <div class="section-header">
-                        <div class="section-icon" style="background:#10b981;">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div>
-                            <div class="section-title">Staffs</div>
-                            <div style="color:#6b7280;font-size:0.9rem;">All registered staffs</div>
-                        </div>
-                    </div>
+                <div class="staff-filter" role="search" aria-label="Staff Filters">
+                    <!-- Filters here as before -->
+                </div>
 
-                    <div style="overflow:auto;">
-                        <table style="width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-                            <thead>
-                                <tr style="background:#f8fafc; color:#374151;">
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Name</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Role</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Department</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Email</th>
-                                    <th style="text-align:left; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="staffTableBody">
-                                <?php if (!empty($staff) && is_array($staff)): ?>
-                                    <?php foreach ($staff as $s): ?>
-                                        <tr>
-                                            <td>
-                                                <div style="font-weight:600;">
-                                                    <?= esc(trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''))) ?>
-                                                </div>
-                                                <div style="font-size:0.85rem; color:#6b7280;">
-                                                    ID: <?= esc($s['employee_id'] ?? '-') ?>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <?php $role = $s['role'] ?? $s['designation'] ?? 'staff'; ?>
-                                                <span class="role-badge role-<?= esc(str_replace('_','-', strtolower($role))) ?>"><?= ucfirst(str_replace('_',' ', esc($role))) ?></span>
-                                            </td>
-                                            <td><?= esc($s['department'] ?? 'N/A') ?></td>
-                                            <td><?= esc($s['email'] ?? 'N/A') ?></td>
-                                            <td>
-                                                <div class="action-buttons">
-                                                    <button type="button" class="btn btn-secondary btn-small" onclick="openStaffViewModal(<?= (int)($s['staff_id'] ?? 0) ?>)">
-                                                        <i class="fas fa-eye"></i> View
-                                                    </button>
-                                                    <button type="button" class="btn btn-warning btn-small" onclick="openStaffEditModal(<?= (int)($s['staff_id'] ?? 0) ?>)">
-                                                        <i class="fas fa-edit"></i> Edit
-                                                    </button>
-                                                    <a class="btn btn-danger btn-small" href="<?= base_url('admin/staff-management/delete/' . ($s['staff_id'] ?? '')) ?>" onclick="return confirm('Delete this staff?')">
-                                                        <i class="fas fa-trash"></i> Delete
-                                                    </a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="5" style="text-align:center; padding:2rem;">No staff found.</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+                <div class="staff-table">
+                    <div class="table-header">
+                        <h3>Staff</h3>
                     </div>
+                    <table class="table" aria-describedby="staffTableCaption">
+                        <thead>
+                            <tr>
+                                <th scope="col">Staff</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Date Joined</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffTableBody">
+                            <?php
+                            if (!empty($staff) && is_array($staff)) {
+                                usort($staff, function($a, $b) {
+                                    $aCreated = $a['created_at'] ?? null;
+                                    $bCreated = $b['created_at'] ?? null;
+                                    if ($aCreated && $bCreated) {
+                                        return strtotime($bCreated) <=> strtotime($aCreated); // newest first
+                                    }
+                                    // Fallback: sort by staff_id desc (newest IDs first)
+                                    return ((int)($b['staff_id'] ?? 0)) <=> ((int)($a['staff_id'] ?? 0));
+                                });
+                            }
+                            ?>
+                            <?php if (!empty($staff) && is_array($staff)): ?>
+                                <?php foreach ($staff as $s): ?>
+                                    <tr class="staff-row">
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <div>
+                                                    <div style="font-weight: 600;">
+                                                        <?= esc(trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''))) ?>
+                                                    </div>
+                                                    <div style="font-size: 0.8rem; color: #6b7280;">
+                                                        <?= esc($s['email'] ?? 'No email') ?>
+                                                    </div>
+                                                    <div style="font-size: 0.8rem; color: #6b7280;">
+                                                        ID: <?= esc($s['employee_id'] ?? $s['staff_id'] ?? 'N/A') ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <?php $role = $s['role'] ?? $s['designation'] ?? 'staff'; ?>
+                                            <span class="role-badge role-<?= str_replace('_', '-', esc($role)) ?>">
+                                                <?= ucfirst(str_replace('_', ' ', esc($role))) ?>
+                                            </span>
+                                        </td>
+                                        <td><?= esc($s['department'] ?? 'N/A') ?></td>
+                                        <td>
+                                            <i class="fas fa-circle status-<?= esc($s['status'] ?? 'active') ?>" aria-hidden="true"></i> 
+                                            <?= ucfirst(esc($s['status'] ?? 'Active')) ?>
+                                        </td>
+                                        <td>
+                                            <?php
+                                                $dateJoined = $s['date_joined'] ?? $s['created_at'] ?? null;
+                                                echo $dateJoined ? date('M j, Y', strtotime($dateJoined)) : 'N/A';
+                                            ?>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn btn-warning btn-small" onclick="openStaffEditModal(<?= esc($s['staff_id']) ?>)" aria-label="Edit Staff <?= esc(trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''))) ?>">
+                                                    <i class="fas fa-edit" aria-hidden="true"></i> Edit
+                                                </button>
+                                                <button class="btn btn-primary btn-small" onclick="openStaffViewModal(<?= esc($s['staff_id']) ?>)" aria-label="View Staff <?= esc(trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''))) ?>">
+                                                    <i class="fas fa-eye" aria-hidden="true"></i> View
+                                                </button>
+                                                <button class="btn btn-danger btn-small" onclick="deleteStaff(<?= esc($s['staff_id']) ?>)" aria-label="Delete Staff <?= esc(trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''))) ?>">
+                                                    <i class="fas fa-trash" aria-hidden="true"></i> Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 2rem;">
+                                        <i class="fas fa-users" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
+                                        <p>No staff found.</p>
+                                        <?php if (!empty($search) || !empty($roleFilter) || !empty($statusFilter)): ?>
+                                            <button onclick="clearFilters()" class="btn btn-secondary" aria-label="Clear Filters">
+                                                <i class="fas fa-times" aria-hidden="true"></i> Clear Filters
+                                            </button>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
 
                 <!-- View Staff Modal -->

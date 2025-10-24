@@ -10,7 +10,7 @@ class PermissionManager
             'appointments' => ['view', 'create', 'edit', 'delete', 'reschedule', 'view_all'],
             'staff' => ['view', 'create', 'edit', 'delete', 'manage_roles'],
             'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
-            'resources' => ['view', 'create', 'edit', 'delete'],
+            'resources' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'shifts' => ['view', 'create', 'edit', 'delete'],
             'prescriptions' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'reports' => ['view', 'generate', 'export'],
@@ -19,6 +19,7 @@ class PermissionManager
         'doctor' => [
             'patients' => ['view', 'create', 'edit', 'view_assigned'],
             'appointments' => ['view', 'create', 'edit', 'reschedule', 'view_own'],
+            'resources' => ['view', 'view_assigned'],
             'shifts' => ['view', 'edit', 'view_own', 'edit_own'],
             'prescriptions' => ['view', 'create', 'edit', 'view_own'],
             'reports' => ['view', 'generate_own']
@@ -26,18 +27,21 @@ class PermissionManager
         'receptionist' => [
             'patients' => ['view', 'create', 'edit', 'assign_doctor', 'view_all'],
             'appointments' => ['view', 'create', 'edit', 'reschedule', 'view_all'],
+            'resources' => ['view'],
             'shifts' => ['view', 'view_all'],
             'reports' => ['view']
         ],
         'nurse' => [
             'patients' => ['view', 'edit', 'view_assigned'],
             'appointments' => ['view', 'view_assigned'],
+            'resources' => ['view', 'view_assigned'],
             'shifts' => ['view', 'view_department'],
             'prescriptions' => ['view', 'view_assigned']
         ],
         'pharmacist' => [
             'prescriptions' => ['view', 'edit', 'fulfill', 'view_all'],
-            'patients' => ['view']
+            'patients' => ['view'],
+            'resources' => ['view', 'view_assigned']
         ],
         'accountant' => [
             'patients' => ['view'],
@@ -45,12 +49,18 @@ class PermissionManager
             'billing' => ['view', 'create', 'edit', 'process'],
             'reports' => ['view', 'generate', 'export']
         ],
+        'laboratorist' => [
+            'patients' => ['view'],
+            'appointments' => ['view'],
+            'resources' => ['view', 'view_assigned'],
+            'reports' => ['view', 'generate']
+        ],
         'it_staff' => [
             'patients' => ['view', 'create', 'edit', 'delete', 'assign_doctor', 'view_all'],
             'appointments' => ['view', 'create', 'edit', 'delete', 'reschedule', 'view_all'],
             'staff' => ['view', 'create', 'edit', 'delete', 'manage_roles'],
             'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
-            'resources' => ['view', 'create', 'edit', 'delete'],
+            'resources' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'shifts' => ['view', 'create', 'edit', 'delete'],
             'prescriptions' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'reports' => ['view', 'generate', 'export'],

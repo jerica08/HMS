@@ -2,190 +2,166 @@
 
 namespace App\Controllers;
 
-use App\Controllers\BaseController;
+use App\Services\ResourceService;
+use App\Libraries\PermissionManager;
 
 class ResourceManagement extends BaseController
 {
-    protected $db;
+    protected $resourceService;
+    protected $permissionManager;
 
     public function __construct()
     {
-        $this->db = \Config\Database::connect();
-
-        // Authentication is now handled by the roleauth filter in routes
+        $this->resourceService = new ResourceService();
+        $this->permissionManager = new PermissionManager();
     }
 
     public function index()
     {
-        $resources = [];
-        try {
-            $rows = $this->db->table('resources')->get()->getResultArray();
-            foreach ($rows as $r) {
-                $r['name'] = $r['equipment_name'] ?? null;
-                $r['notes'] = $r['remarks'] ?? null;
-                $resources[] = $r;
-            }
-        } catch (\Throwable $e) {
-            $resources = [];
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('/login');
         }
+
+        $userRole = session()->get('role');
+        $staffId = session()->get('staff_id');
+
+        if (!$this->permissionManager->hasPermission($userRole, 'resources', 'view')) {
+            return redirect()->to($this->getRedirectUrl($userRole))->with('error', 'Access denied');
+        }
+
+        $stats = $this->resourceService->getResourceStats($userRole, $staffId);
+        $categories = $this->resourceService->getCategories($userRole);
+        $staff = $this->resourceService->getStaffForAssignment();
+
         $data = [
-            'title' => 'Resource Management',
-            'resources' => $resources,
+            'title' => $this->getPageTitle($userRole),
+            'userRole' => $userRole,
+            'permissions' => $this->permissionManager->getRolePermissions($userRole),
+            'stats' => $stats,
+            'categories' => $categories,
+            'staff' => $staff,
+            'redirectUrl' => $this->getRedirectUrl($userRole)
         ];
-        return view('admin/resource-management', $data);
+
+        return view('unified/resource-management', $data);
     }
 
     public function getResourcesAPI()
     {
-        try {
-            $rows = $this->db->table('resources')->get()->getResultArray();
-            $data = [];
-            foreach ($rows as $r) {
-                $r['name'] = $r['equipment_name'] ?? null;
-                $r['notes'] = $r['remarks'] ?? null;
-                $data[] = $r;
-            }
-            return $this->response->setJSON(['status' => 'success', 'data' => $data]);
-        } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
         }
-    }
 
-    public function getResource($id = null)
-    {
-        if (!$id) {
-            return $this->response->setStatusCode(400)->setJSON(['status' => 'error']);
-        }
-        try {
-            $r = $this->db->table('resources')->where('id', (int)$id)->get()->getRowArray();
-            if (!$r) {
-                return $this->response->setStatusCode(404)->setJSON(['status' => 'error']);
-            }
-            $r['name'] = $r['equipment_name'] ?? null;
-            $r['notes'] = $r['remarks'] ?? null;
-            return $this->response->setJSON(['status' => 'success', 'data' => $r]);
-        } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
-        }
+        $userRole = session()->get('role');
+        $staffId = session()->get('staff_id');
+
+        $filters = [
+            'category' => $this->request->getGet('category'),
+            'status' => $this->request->getGet('status'),
+            'location' => $this->request->getGet('location'),
+            'search' => $this->request->getGet('search')
+        ];
+
+        $resources = $this->resourceService->getResources($userRole, $staffId, $filters);
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $resources
+        ]);
     }
 
     public function create()
     {
-        $input = $this->request->getPost();
-        $ct = strtolower($this->request->getHeaderLine('Content-Type'));
-        if (strpos($ct, 'application/json') !== false) {
-            try { 
-                $json = $this->request->getJSON(true); 
-                if (is_array($json)) { $input = $json; } 
-            } catch (\Throwable $e) { /* ignore */ }
-        }
-        if (!is_array($input)) { $input = []; }
-
-        $validation = \Config\Services::validation();
-        $validation->setRules([
-            'name' => 'required|min_length[1]|max_length[100]',
-            'category' => 'required|max_length[50]',
-            'quantity' => 'required|integer|greater_than_equal_to[0]',
-            'status' => 'required|in_list[available,in_use,maintenance,retired]',
-            'location' => 'permit_empty|max_length[100]',
-            'supplier' => 'permit_empty|max_length[100]',
-            'date_acquired' => 'permit_empty|valid_date',
-            'maintenance_schedule' => 'permit_empty|valid_date',
-        ]);
-        
-        if (!$validation->run($input)) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'status' => 'error', 
-                'errors' => $validation->getErrors()
-            ]);
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
         }
 
-        $data = [
-            'equipment_name' => trim((string)$input['name']),
-            'category' => trim((string)$input['category']),
-            'quantity' => (int)$input['quantity'],
-            'status' => trim((string)$input['status']),
-            'location' => $input['location'] ?? '',
-            'date_acquired' => !empty($input['date_acquired']) ? $input['date_acquired'] : null,
-            'supplier' => $input['supplier'] ?? '',
-            'maintenance_schedule' => !empty($input['maintenance_schedule']) ? $input['maintenance_schedule'] : null,
-            'remarks' => $input['notes'] ?? null,
-        ];
+        $userRole = session()->get('role');
+        $staffId = session()->get('staff_id');
+
+        $data = $this->request->getJSON(true) ?? $this->request->getPost();
         
-        try {
-            if ($this->db->table('resources')->insert($data)) {
-                return $this->response->setJSON(['status' => 'success', 'id' => $this->db->insertID()]);
-            }
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to create resource']);
-        } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
-        }
+        $result = $this->resourceService->createResource($data, $userRole, $staffId);
+        
+        return $this->response->setJSON($result);
     }
 
     public function update()
     {
-        $input = $this->request->getPost();
-        $ct = strtolower($this->request->getHeaderLine('Content-Type'));
-        if (strpos($ct, 'application/json') !== false) {
-            try { 
-                $json = $this->request->getJSON(true); 
-                if (is_array($json)) { $input = $json; } 
-            } catch (\Throwable $e) { /* ignore */ }
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
         }
-        
-        if (!is_array($input) || empty($input['id'])) {
-            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'id is required']);
-        }
-        $id = (int)$input['id'];
 
-        $data = [
-            'equipment_name' => $input['name'] ?? null,
-            'category' => $input['category'] ?? null,
-            'quantity' => isset($input['quantity']) ? (int)$input['quantity'] : null,
-            'status' => $input['status'] ?? null,
-            'location' => $input['location'] ?? null,
-            'supplier' => $input['supplier'] ?? null,
-            'remarks' => $input['notes'] ?? null,
-        ];
-        
-        $data = array_filter($data, function($v){ return $v !== null; });
-        if (empty($data)) {
-            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'No fields to update']);
+        $userRole = session()->get('role');
+        $staffId = session()->get('staff_id');
+
+        $data = $this->request->getJSON(true) ?? $this->request->getPost();
+        $resourceId = $data['resource_id'] ?? null;
+
+        if (!$resourceId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Resource ID is required']);
         }
+
+        $result = $this->resourceService->updateResource($resourceId, $data, $userRole, $staffId);
         
-        try {
-            if ($this->db->table('resources')->where('id', $id)->update($data)) {
-                return $this->response->setJSON(['status' => 'success']);
-            }
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
-        } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
+        return $this->response->setJSON($result);
+    }
+
+    public function delete($resourceId = null)
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+        }
+
+        $userRole = session()->get('role');
+        $staffId = session()->get('staff_id');
+
+        if (!$resourceId) {
+            $data = $this->request->getJSON(true) ?? $this->request->getPost();
+            $resourceId = $data['resource_id'] ?? null;
+        }
+
+        if (!$resourceId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Resource ID is required']);
+        }
+
+        $result = $this->resourceService->deleteResource($resourceId, $userRole, $staffId);
+        
+        return $this->response->setJSON($result);
+    }
+
+    private function getPageTitle($role)
+    {
+        switch ($role) {
+            case 'admin':
+                return 'Resource Management';
+            case 'doctor':
+            case 'nurse':
+                return 'Medical Resources';
+            case 'pharmacist':
+                return 'Pharmacy Resources';
+            case 'laboratorist':
+                return 'Lab Resources';
+            case 'receptionist':
+                return 'Office Resources';
+            case 'it_staff':
+                return 'IT Resource Management';
+            default:
+                return 'Resources';
         }
     }
 
-    public function delete()
+    private function getRedirectUrl($role)
     {
-        $input = $this->request->getPost();
-        $ct = strtolower($this->request->getHeaderLine('Content-Type'));
-        if (strpos($ct, 'application/json') !== false) {
-            try { 
-                $json = $this->request->getJSON(true); 
-                if (is_array($json)) { $input = $json; } 
-            } catch (\Throwable $e) { /* ignore */ }
-        }
-        
-        if (!is_array($input) || empty($input['id'])) {
-            return $this->response->setStatusCode(422)->setJSON(['status' => 'error', 'message' => 'id is required']);
-        }
-        $id = (int)$input['id'];
-        
-        try {
-            if ($this->db->table('resources')->where('id', $id)->delete()) {
-                return $this->response->setJSON(['status' => 'success']);
-            }
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
-        } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error']);
-        }
+        return match($role) {
+            'admin' => '/admin/dashboard',
+            'doctor' => '/doctor/dashboard',
+            'nurse' => '/nurse/dashboard',
+            'pharmacist' => '/pharmacist/dashboard',
+            'laboratorist' => '/laboratorist/dashboard',
+            'receptionist' => '/receptionist/dashboard',
+            'it_staff' => '/it-staff/dashboard',
+            default => '/login'
+        };
     }
 }

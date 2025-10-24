@@ -8,9 +8,9 @@
             <div class="modal-body">
                 <form id="scheduleForm">
                     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>" id="csrfToken">
-                    <div style="margin-bottom: 1rem;">
-                        <label for="patientSelect" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Patient</label>
-                        <select id="patientSelect" name="patient_id" class="filter-input" required style="width: 100%;">
+                    <div class="modal-form-group">
+                        <label for="patientSelect" class="modal-form-label">Patient</label>
+                        <select id="patientSelect" name="patient_id" class="filter-input modal-form-input" required>
                             <option value="">Select Patient</option>
                             <?php if (!empty($patients)): ?>
                                 <?php foreach ($patients as $patient): ?>
@@ -19,17 +19,17 @@
                             <?php endif; ?>
                         </select>
                     </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label for="appointmentDate" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Date</label>
-                        <input type="date" id="appointmentDate" name="appointmentDate" class="filter-input" required style="width: 100%;">
+                    <div class="modal-form-group">
+                        <label for="appointmentDate" class="modal-form-label">Date</label>
+                        <input type="date" id="appointmentDate" name="appointmentDate" class="filter-input modal-form-input" required>
                     </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label for="appointmentTime" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Time</label>
-                        <input type="time" id="appointmentTime" name="appointmentTime" class="filter-input" required style="width: 100%;">
+                    <div class="modal-form-group">
+                        <label for="appointmentTime" class="modal-form-label">Time</label>
+                        <input type="time" id="appointmentTime" name="appointmentTime" class="filter-input modal-form-input" required>
                     </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label for="appointmentType" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Type</label>
-                        <select id="appointmentType" name="appointmentType" class="filter-input" required style="width: 100%;">
+                    <div class="modal-form-group">
+                        <label for="appointmentType" class="modal-form-label">Type</label>
+                        <select id="appointmentType" name="appointmentType" class="filter-input modal-form-input" required>
                             <option value="">Select Type</option>
                             <option value="Consultation">Consultation</option>
                             <option value="Follow-up">Follow-up</option>
@@ -37,13 +37,13 @@
                             <option value="Emergency">Emergency</option>
                         </select>
                     </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label for="appointmentReason" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Reason/Condition</label>
-                        <textarea id="appointmentReason" name="appointmentReason" class="filter-input" rows="3" placeholder="Describe the reason for the appointment" style="width: 100%; resize: vertical;"></textarea>
+                    <div class="modal-form-group">
+                        <label for="appointmentReason" class="modal-form-label">Reason/Condition</label>
+                        <textarea id="appointmentReason" name="appointmentReason" class="filter-input modal-form-textarea" rows="3" placeholder="Describe the reason for the appointment"></textarea>
                     </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label for="appointmentDuration" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Duration (minutes)</label>
-                        <input type="number" id="appointmentDuration" name="appointmentDuration" class="filter-input" min="15" max="120" step="15" value="30" required style="width: 100%;">
+                    <div class="modal-form-group">
+                        <label for="appointmentDuration" class="modal-form-label">Duration (minutes)</label>
+                        <input type="number" id="appointmentDuration" name="appointmentDuration" class="filter-input modal-form-input" min="15" max="120" step="15" value="30" required>
                     </div>
                 </form>
             </div>

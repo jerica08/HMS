@@ -100,7 +100,7 @@
 
             <div class="patient-table">
                 <div class="search-filters">
-                    <h3 style="margin-bottom: 1rem;">Filter Options</h3>
+                    <h3>Filter Options</h3>
                     <div class="filter-row">
                         <div>
                             <input type="date" class="filter-input" id="dateSelector" value="2025-08-20">
@@ -119,7 +119,7 @@
                 </div>
                 <div class="table-header">
                     <h3 id="scheduleTitle">Today's Schedule - <?= date('F j, Y') ?></h3>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div class="table-header-actions">
                         <button class="btn btn-primary btn-small" id="printBtn">
                             <i class="fas fa-print"></i> Print Schedule
                         </button>
@@ -174,16 +174,16 @@
                                         <span class="badge <?= $badgeClass ?>"><?= esc(ucfirst($status)) ?></span>
                                     </td>
                                     <td>
-                                        <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                                            <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="viewAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
+                                        <div class="action-buttons">
+                                            <button class="btn btn-primary" onclick="viewAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
                                                 <i class="fas fa-eye"></i> View
                                             </button>
                                             <?php if (strtolower($status) !== 'completed'): ?>
-                                                <button class="btn btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="markCompleted(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
+                                                <button class="btn btn-success" onclick="markCompleted(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
                                                     <i class="fas fa-check"></i> Complete
                                                 </button>
                                             <?php endif; ?>
-                                            <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="deleteAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
+                                            <button class="btn btn-danger" onclick="deleteAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
                                                 <i class="fas fa-trash"></i> Delete
                                             </button>
                                         </div>
@@ -192,8 +192,8 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="7" style="text-align: center; padding: 2rem; color: #6b7280;">
-                                    <i class="fas fa-calendar-times" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                                <td colspan="7" class="empty-state">
+                                    <i class="fas fa-calendar-times empty-state-icon"></i>
                                     <p>No appointments scheduled for today.</p>
                                     <button class="btn btn-primary" onclick="document.getElementById('scheduleAppointmentBtn').click()">
                                         <i class="fas fa-plus"></i> Schedule New Appointment

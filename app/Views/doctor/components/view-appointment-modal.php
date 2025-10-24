@@ -6,8 +6,8 @@
                 <button class="modal-close" id="closeViewModal">&times;</button>
             </div>
             <div class="modal-body" id="appointmentDetailsBody">
-                <div style="text-align: center; padding: 2rem; color: #6b7280;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin loading-icon"></i>
                     <p>Loading appointment details...</p>
                 </div>
             </div>

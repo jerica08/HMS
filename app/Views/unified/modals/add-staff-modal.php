@@ -62,16 +62,11 @@
                         <label class="form-label" for="department">Department</label>
                         <select id="department" name="department" class="form-select">
                             <option value="">Select department</option>
-                            <option value="Administration">Administration</option>
-                            <option value="Emergency">Emergency</option>
-                            <option value="Cardiology">Cardiology</option>
-                            <option value="Intensive Care Unit">Intensive Care Unit</option>
-                            <option value="Outpatient">Outpatient</option>
-                            <option value="Pharmacy">Pharmacy</option>
-                            <option value="Laboratory">Laboratory</option>
-                            <option value="Radiology">Radiology</option>
-                            <option value="Pediatrics">Pediatrics</option>
-                            <option value="Surgery">Surgery</option>
+                            <?php if (!empty($departments)): ?>
+                                <?php foreach ($departments as $dept): ?>
+                                    <option value="<?= esc($dept['name']) ?>"><?= esc($dept['name']) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
                         <small id="err_department" style="color:#dc2626"></small>
                     </div>

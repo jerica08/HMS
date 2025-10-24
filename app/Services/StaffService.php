@@ -180,7 +180,6 @@ class StaffService
             ];
         }
 
-        // Normalize input prior to validation
         $input = $this->normalizeInput($input);
 
         // Validation
@@ -209,6 +208,9 @@ class StaffService
         }
 
         try {
+            if (!empty($input['department'])) {
+                $this->ensureDepartmentExists($input['department']);
+            }
             // Insert the core staff record in its own transaction
             $this->db->transStart();
 
@@ -282,6 +284,9 @@ class StaffService
         }
 
         try {
+            if (!empty($input['department'])) {
+                $this->ensureDepartmentExists($input['department']);
+            }
             // Prepare update data
             $staffData = $this->prepareStaffData($input);
             $staffData['updated_at'] = date('Y-m-d H:i:s');
@@ -551,7 +556,7 @@ class StaffService
     private function prepareStaffData($input)
     {
         return [
-            'employee_id' => $input['employee_id'],
+            'employee_id' => $input['employee_id'], 
             'first_name' => $input['first_name'],
             'last_name' => $input['last_name'] ?? null,
             'gender' => isset($input['gender']) ? strtolower($input['gender']) : null,
@@ -656,6 +661,22 @@ class StaffService
             $this->db->table($tables[$role])
                 ->where('staff_id', $staffId)
                 ->delete();
+        }
+    }
+
+    private function ensureDepartmentExists($name)
+    {
+        $dept = trim((string)$name);
+        if ($dept === '') {
+            return;
+        }
+        $exists = $this->db->table('department')->where('name', $dept)->get()->getRowArray();
+        if (!$exists) {
+            $this->db->table('department')->insert([
+                'name' => $dept,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
         }
     }
 }

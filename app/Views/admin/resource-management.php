@@ -18,6 +18,7 @@
             <h1 class="page-title">Resource Management</h1>
             <div class="toolbar-row">
                 <button id="addResourceBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Resource</button>
+                <button id="addDepartmentBtn" class="btn btn-primary" style="margin-left:8px" onclick="openAddDepartmentModal()"><i class="fas fa-building"></i> Add Department</button>
             </div>
 
             <div class="dashboard-overview">
@@ -209,6 +210,42 @@
                 </div>
             </div>
 
+            <!-- Add Department Modal -->
+            <div id="addDepartmentModal" class="hms-modal-overlay" aria-hidden="true">
+                <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addDepartmentTitle">
+                    <div class="hms-modal-header">
+                        <div class="hms-modal-title" id="addDepartmentTitle">
+                            <i class="fas fa-building text-primary"></i>
+                            Add Department
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="closeAddDepartmentModal()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>   
+                    </div>
+                    <form id="addDepartmentForm">
+                        <div class="hms-modal-body">
+                            <div class="form-grid">
+                                <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>" />
+                                <div class="full">
+                                    <label class="form-label" for="dept_name">Department Name*</label>
+                                    <input id="dept_name" name="name" type="text" class="form-input" required autocomplete="off" placeholder="e.g., Radiology">
+                                    <small id="err_dept_name" style="color:#dc2626"></small>
+                                </div>
+                                <div class="full">
+                                    <label class="form-label" for="dept_description">Description</label>
+                                    <textarea id="dept_description" name="description" rows="3" class="form-textarea" autocomplete="off" placeholder="Optional notes..."></textarea>
+                                    <small id="err_dept_description" style="color:#dc2626"></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hms-modal-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeAddDepartmentModal()">Cancel</button>
+                            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Edit Resource Modal (styled like Add User modal) -->
             <div id="editResourceModal" class="hms-modal-overlay" aria-hidden="true">
                 <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="editResourceTitle">
@@ -272,6 +309,73 @@
                 window.__RESOURCES__ = <?php echo json_encode($resources ?? []); ?>;
             </script>
             <script src="<?= base_url('js/admin/resource-management.js') ?>"></script>
+            <script>
+                // Department modal open/close
+                const addDepartmentBtn = document.getElementById('addDepartmentBtn');
+                const addDepartmentModal = document.getElementById('addDepartmentModal');
+                const addDepartmentForm = document.getElementById('addDepartmentForm');
+
+                function openAddDepartmentModal() {
+                    if (addDepartmentModal) {
+                        addDepartmentModal.setAttribute('aria-hidden', 'false');
+                        addDepartmentModal.style.display = 'block';
+                    }
+                }
+                function closeAddDepartmentModal() {
+                    if (addDepartmentModal) {
+                        addDepartmentModal.setAttribute('aria-hidden', 'true');
+                        addDepartmentModal.style.display = 'none';
+                    }
+                    if (addDepartmentForm) addDepartmentForm.reset();
+                    const errs = addDepartmentForm?.querySelectorAll('[id^="err_"]');
+                    errs?.forEach(e => e.textContent = '');
+                }
+                if (addDepartmentBtn) {
+                    addDepartmentBtn.addEventListener('click', openAddDepartmentModal);
+                }
+
+                // Submit department to API
+                if (addDepartmentForm) {
+                    addDepartmentForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const name = document.getElementById('dept_name')?.value?.trim();
+                        const description = document.getElementById('dept_description')?.value?.trim();
+                        document.getElementById('err_dept_name').textContent = '';
+                        if (!name) {
+                            document.getElementById('err_dept_name').textContent = 'Department name is required.';
+                            return;
+                        }
+                        try {
+                            const formData = new FormData(addDepartmentForm);
+                            // Manually ensure trimmed values
+                            formData.set('name', name || '');
+                            formData.set('description', description || '');
+                            const res = await fetch('<?= site_url('departments/create') ?>', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            let data = null;
+                            let raw = '';
+                            try {
+                                raw = await res.text();
+                                data = raw ? JSON.parse(raw) : null;
+                            } catch (e) { /* non-JSON response */ }
+                            if (!res.ok || (data && data.status === 'error')) {
+                                const detail = data?.db_error?.message || data?.message || raw || 'Failed to save department';
+                                alert(detail);
+                                return;
+                            }
+                            // Success
+                            closeAddDepartmentModal();
+                            alert('Department saved successfully');
+                            // Optional: reload to reflect in any lists on page
+                            // location.reload();
+                        } catch (err) {
+                            alert('Failed to save department');
+                        }
+                    });
+                }
+            </script>
         </main>
     </div>
 

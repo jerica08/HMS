@@ -49,6 +49,10 @@ class StaffManagement extends BaseController
         $staffResult = $this->staffService->getStaffByRole($this->userRole, $this->staffId);
         $stats = $this->staffService->getStaffStats($this->userRole, $this->staffId);
         
+        // Load departments from department table for dynamic dropdowns
+        $deptRows = $this->db->table('department')->select('name')->orderBy('name','ASC')->get()->getResultArray();
+        $departments = array_map(function($r){ return ['name' => $r['name']]; }, $deptRows);
+
         $data = [
             'title' => $this->getPageTitle(),
             'userRole' => $this->userRole,
@@ -56,6 +60,7 @@ class StaffManagement extends BaseController
             'staffStats' => $stats,
             'permissions' => $this->getStaffPermissions($this->userRole),
             'total_staff' => count($staffResult['data'] ?? []),
+            'departments' => $departments,
         ];
 
         return view('unified/staff-management', $data);

@@ -8,6 +8,11 @@ class CreateShiftTable extends Migration
 {
     public function up()
     {
+        // If table already exists, skip creation to avoid errors
+        $db = \Config\Database::connect();
+        if ($db->tableExists('doctor_shift')) {
+            return;
+        }
         $this->forge->addField([
             'shift_id' => [
                 'type'           => 'INT',
@@ -44,11 +49,13 @@ class CreateShiftTable extends Migration
         ]);
         $this->forge->addKey('shift_id', true);
         $this->forge->addForeignKey('doctor_id', 'doctor', 'doctor_id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('doctor_shift');
+        // Create with IF NOT EXISTS
+        $this->forge->createTable('doctor_shift', true);
     }
 
     public function down()
     {
-         $this->forge->dropTable('doctor_shift');
+         // Drop with IF EXISTS
+         $this->forge->dropTable('doctor_shift', true);
     }
 }

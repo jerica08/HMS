@@ -99,6 +99,9 @@ $routes->post('admin/resource-management/create', 'ResourceManagement::create', 
 $routes->post('admin/resource-management/update', 'ResourceManagement::update', ['filter' => 'roleauth:admin']);
 $routes->post('admin/resource-management/delete', 'ResourceManagement::delete', ['filter' => 'roleauth:admin']);
 
+// Department Routes (for Add Department modal)
+$routes->match(['get','post','options'], 'departments/create', 'Departments::create');
+
 // ===================================================================
 // UNIFIED SHIFT MANAGEMENT - All roles use ShiftManagement controller
 // ===================================================================

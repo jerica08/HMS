@@ -406,18 +406,16 @@ class ShiftService
     public function getAvailableStaff($date = null, $startTime = null, $endTime = null)
     {
         try {
-            $builder = $this->db->table('staff s')
+            // Pull doctors from the doctor table; join staff for names/department
+            $builder = $this->db->table('doctor d')
                 ->select([
+                    'd.doctor_id',
                     's.staff_id',
                     's.first_name',
                     's.last_name',
-                    's.department',
-                    's.role',
-                    'd.doctor_id'
+                    's.department'
                 ])
-                ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
-                ->where('s.role', 'doctor')
-                ->where('s.status', 'Active');
+                ->join('staff s', 's.staff_id = d.staff_id', 'left');
 
             // Check availability if date and time provided
             if ($date && $startTime && $endTime) {
@@ -434,7 +432,9 @@ class ShiftService
 
                 if (!empty($conflictingDoctors)) {
                     $conflictingIds = array_column($conflictingDoctors, 'doctor_id');
-                    $builder->whereNotIn('d.doctor_id', $conflictingIds);
+                    if (!empty($conflictingIds)) {
+                        $builder->whereNotIn('d.doctor_id', $conflictingIds);
+                    }
                 }
             }
 

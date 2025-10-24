@@ -62,9 +62,15 @@ class PatientService
     public function getPatientsByRole($userRole, $staffId)
     {
         try {
-            $builder = $this->db->table('patient p')
-                ->select('p.*, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
-                ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left');
+            $builder = $this->db->table('patient p');
+
+            $hasPrimaryDoctor = $this->patientTableHasColumn('primary_doctor_id');
+            if ($hasPrimaryDoctor) {
+                $builder->select('p.*, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
+                        ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left');
+            } else {
+                $builder->select('p.*');
+            }
 
             switch ($userRole) {
                 case 'admin':
@@ -74,7 +80,11 @@ class PatientService
                     
                 case 'doctor':
                     // Doctors can see only their assigned patients
-                    $builder->where('p.primary_doctor_id', $staffId);
+                    if ($hasPrimaryDoctor) {
+                        $builder->where('p.primary_doctor_id', $staffId);
+                    } else {
+                        // Without primary_doctor_id column, fallback to showing all (or none)
+                    }
                     break;
                     
                 case 'nurse':
@@ -438,8 +448,10 @@ class PatientService
             $doctors = $this->db->table('staff s')
                 ->select('s.staff_id, s.first_name, s.last_name, s.department, d.specialization')
                 ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
-                ->where('s.designation', 'doctor')
-                ->where('s.status', 'Active')
+                ->groupStart()
+                    ->where('s.role', 'doctor')
+                    ->orWhere('s.designation', 'doctor')
+                ->groupEnd()
                 ->orderBy('s.first_name', 'ASC')
                 ->get()
                 ->getResultArray();
@@ -461,22 +473,26 @@ class PatientService
         if ($userRole === 'doctor') {
             // For doctors, use their staff_id directly
             return $staffId;
-        } 
-        
-        if ($userRole === 'receptionist') {
-            // For receptionist, use assigned doctor or fallback
+        }
+
+        // Admin, Receptionist, and IT Staff can optionally choose a doctor; otherwise fallback
+        if (in_array($userRole, ['admin', 'receptionist', 'it_staff'])) {
             if (!empty($input['assigned_doctor'])) {
                 return (int)$input['assigned_doctor'];
             }
-            
-            // Fallback to first available doctor
+
+            // Fallback to first available doctor (do not filter by a non-existent status)
             $firstDoctor = $this->db->table('staff')
                 ->select('staff_id')
-                ->where('role', 'doctor')
-                ->where('status', 'active')
+                ->groupStart()
+                    ->where('role', 'doctor')
+                    ->orWhere('designation', 'doctor')
+                ->groupEnd()
+                ->orderBy('first_name', 'ASC')
                 ->get()
                 ->getRowArray();
-            return $firstDoctor ? $firstDoctor['staff_id'] : null;
+
+            return $firstDoctor['staff_id'] ?? null;
         }
 
         return null;
@@ -505,7 +521,7 @@ class PatientService
 
     private function preparePatientData($input, $primaryDoctorId)
     {
-        return [
+        $data = [
             'first_name' => $input['first_name'] ?? null,
             'middle_name' => $input['middle_name'] ?? null,
             'last_name' => $input['last_name'] ?? null,
@@ -528,7 +544,31 @@ class PatientService
             'medical_notes' => $input['medical_notes'] ?? null,
             'date_registered' => date('Y-m-d'),
             'status' => ucfirst(strtolower($input['status'] ?? 'Active')),
-            'primary_doctor_id' => $primaryDoctorId,
         ];
+
+        // Include primary_doctor_id only if the column exists in the schema
+        if ($this->patientTableHasColumn('primary_doctor_id')) {
+            $data['primary_doctor_id'] = $primaryDoctorId;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Check if a column exists on the patient table
+     */
+    private function patientTableHasColumn(string $column): bool
+    {
+        try {
+            $fields = $this->db->getFieldData('patient');
+            foreach ($fields as $field) {
+                if (($field->name ?? '') === $column) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+            // If any error occurs, assume column does not exist
+        }
+        return false;
     }
 }

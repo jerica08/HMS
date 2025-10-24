@@ -511,22 +511,23 @@ class StaffService
         // Role-specific validation
         switch ($role) {
             case 'doctor':
-                $baseRules['doctor_specialization'] = 'permit_empty|min_length[2]|max_length[100]';
+                $baseRules['doctor_specialization'] = 'required|min_length[2]|max_length[100]';
                 $baseRules['doctor_license_no'] = 'permit_empty|max_length[50]';
                 $baseRules['doctor_consultation_fee'] = 'permit_empty|decimal';
                 break;
             case 'nurse':
-                $baseRules['nurse_license_no'] = 'permit_empty|max_length[100]';
+                $baseRules['nurse_license_no'] = 'required|max_length[100]';
                 break;
             case 'pharmacist':
-                $baseRules['pharmacist_license_no'] = 'permit_empty|max_length[100]';
+                $baseRules['pharmacist_license_no'] = 'required|max_length[100]';
                 break;
             case 'laboratorist':
-                $baseRules['laboratorist_license_no'] = 'permit_empty|max_length[100]';
+                $baseRules['laboratorist_license_no'] = 'required|max_length[100]';
                 $baseRules['laboratorist_specialization'] = 'permit_empty|max_length[150]';
+                $baseRules['lab_room_no'] = 'permit_empty|max_length[50]';
                 break;
             case 'accountant':
-                $baseRules['accountant_license_no'] = 'permit_empty|max_length[100]';
+                $baseRules['accountant_license_no'] = 'required|max_length[100]';
                 break;
             case 'receptionist':
                 $baseRules['receptionist_desk_no'] = 'permit_empty|max_length[50]';
@@ -574,10 +575,22 @@ class StaffService
                 case 'doctor':
                     $this->db->table('doctor')->insert([
                         'staff_id' => $staffId,
-                        'specialization' => $input['doctor_specialization'] ?? null,
+                        // Doctor table requires specialization NOT NULL; default to 'General' when missing
+                        'specialization' => ($input['doctor_specialization'] ?? $input['specialization'] ?? 'General'),
                         'license_no' => $input['doctor_license_no'] ?? null,
                         'consultation_fee' => $input['doctor_consultation_fee'] ?? null,
                         // 'status' column may not exist depending on schema; omit
+                    ]);
+                    break;
+                case 'admin':
+                    // Create admin record with derived credentials if not provided
+                    $username = $input['username'] ?? ($input['email'] ?? $input['employee_id'] ?? ('admin_' . $staffId));
+                    $rawPassword = $input['password'] ?? ($input['employee_id'] ?? ('Adm' . $staffId . '!'));
+                    $passwordHash = password_hash($rawPassword, PASSWORD_DEFAULT);
+                    $this->db->table('admin')->insert([
+                        'staff_id' => $staffId,
+                        'username' => $username,
+                        'password' => $passwordHash,
                     ]);
                     break;
                 case 'nurse':
@@ -597,9 +610,9 @@ class StaffService
                 case 'laboratorist':
                     $this->db->table('laboratorist')->insert([
                         'staff_id' => $staffId,
-                        'license_no' => $input['laboratorist_license_no'] ?? null,
+                        'license_no' => $input['laboratorist_license_no'],
                         'specialization' => $input['laboratorist_specialization'] ?? null,
-                        'lab_room_no' => $input['laboratorist_lab_room_no'] ?? null,
+                        'lab_room_no' => $input['lab_room_no'] ?? null,
                     ]);
                     break;
                 case 'accountant':

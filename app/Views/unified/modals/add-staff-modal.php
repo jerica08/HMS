@@ -90,6 +90,86 @@
                         </select>
                         <small id="err_designation" style="color:#dc2626"></small>
                     </div>
+                    <!-- Doctor-specific fields -->
+                    <div id="doctorFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="doctor_specialization">Doctor Specialization*</label>
+                                <input type="text" id="doctor_specialization" name="doctor_specialization" class="form-input" placeholder="e.g., Cardiology">
+                                <small id="err_doctor_specialization" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="doctor_license_no">License No.</label>
+                                <input type="text" id="doctor_license_no" name="doctor_license_no" class="form-input" placeholder="e.g., PRC-1234567">
+                                <small id="err_doctor_license_no" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="doctor_consultation_fee">Consultation Fee</label>
+                                <input type="number" step="0.01" id="doctor_consultation_fee" name="doctor_consultation_fee" class="form-input" placeholder="e.g., 500.00">
+                                <small id="err_doctor_consultation_fee" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Accountant-specific fields -->
+                    <div id="accountantFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="accountant_license_no">Accountant License No.*</label>
+                                <input type="text" id="accountant_license_no" name="accountant_license_no" class="form-input" placeholder="e.g., ACC-1234567">
+                                <small id="err_accountant_license_no" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Pharmacist-specific fields -->
+                    <div id="pharmacistFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="pharmacist_license_no">Pharmacist License No.*</label>
+                                <input type="text" id="pharmacist_license_no" name="pharmacist_license_no" class="form-input" placeholder="e.g., PHA-1357924">
+                                <small id="err_pharmacist_license_no" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="pharmacist_specialization">Pharmacist Specialization</label>
+                                <input type="text" id="pharmacist_specialization" name="pharmacist_specialization" class="form-input" placeholder="e.g., Clinical Pharmacy">
+                                <small id="err_pharmacist_specialization" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Laboratorist-specific fields -->
+                    <div id="laboratoristFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="laboratorist_license_no">Laboratorist License No.*</label>
+                                <input type="text" id="laboratorist_license_no" name="laboratorist_license_no" class="form-input" placeholder="e.g., LAB-9876543">
+                                <small id="err_laboratorist_license_no" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="laboratorist_specialization">Laboratorist Specialization</label>
+                                <input type="text" id="laboratorist_specialization" name="laboratorist_specialization" class="form-input" placeholder="e.g., Hematology">
+                                <small id="err_laboratorist_specialization" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="lab_room_no">Lab Room No.</label>
+                                <input type="text" id="lab_room_no" name="lab_room_no" class="form-input" placeholder="e.g., R-201">
+                                <small id="err_lab_room_no" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Nurse-specific fields -->
+                    <div id="nurseFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="nurse_license_no">Nurse License No.*</label>
+                                <input type="text" id="nurse_license_no" name="nurse_license_no" class="form-input" placeholder="e.g., PRC-7654321">
+                                <small id="err_nurse_license_no" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="nurse_specialization">Nurse Specialization</label>
+                                <input type="text" id="nurse_specialization" name="nurse_specialization" class="form-input" placeholder="e.g., ICU">
+                                <small id="err_nurse_specialization" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
                     <div>
                         <label class="form-label" for="date_joined">Date Joined</label>
                         <input type="date" id="date_joined" name="date_joined" class="form-input">

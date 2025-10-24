@@ -29,10 +29,13 @@ class PrescriptionManagement extends BaseController
      */
     public function index()
     {
+        // Get role-specific page configuration for redirects
+        $pageConfig = $this->getPageConfig();
+
         try {
             // Check basic prescription access permission
             if (!$this->canViewPrescriptions()) {
-                return redirect()->to('/dashboard')->with('error', 'Access denied');
+                return redirect()->to($pageConfig['redirectUrl'])->with('error', 'Access denied');
             }
 
             // Get role-specific data
@@ -42,9 +45,6 @@ class PrescriptionManagement extends BaseController
 
             // Get permissions for this role
             $permissions = $this->getUserPermissions();
-
-            // Role-specific page configuration
-            $pageConfig = $this->getPageConfig();
 
             $data = [
                 'title' => $pageConfig['title'],
@@ -62,7 +62,7 @@ class PrescriptionManagement extends BaseController
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionManagement::index error: ' . $e->getMessage());
-            return redirect()->to('/dashboard')->with('error', 'Failed to load prescription management');
+            return redirect()->to($pageConfig['redirectUrl'])->with('error', 'Failed to load prescription management');
         }
     }
 

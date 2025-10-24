@@ -16,7 +16,7 @@
     <?php include APPPATH . 'Views/template/header.php'; ?>
 
     <div class="main-container">
-        <?= $this->include('unified/components/sidebar') ?>
+        <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
         <main class="content">
             <h1 class="page-title">
@@ -276,14 +276,9 @@
         </main>
     </div>
 
-    <!-- Include Modals -->
-    <?php include APPPATH . 'Views/appointments/new-appointment-modal.php'; ?>
-    <?php include APPPATH . 'Views/appointments/view-appointment-modal.php'; ?>
+  
+    <?php include APPPATH . 'Views/unified/modals/new-appointment-modal.php'; ?>
+    <?php include APPPATH . 'Views/unified/modals/view-appointment-modal.php'; ?>
 
-    <!-- Scripts -->
-    <script src="<?= base_url('js/doctor/appointmernt-utils.js') ?>"></script>
-    <script src="<?= base_url('js/doctor/new-appointment-modal.js') ?>"></script>
-    <script src="<?= base_url('js/doctor/view-appointment-modal.js') ?>"></script>
-    <script src="<?= base_url('js/doctor/apppointment-management.js') ?>"></script>
 </body>
 </html>

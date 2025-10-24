@@ -15,7 +15,7 @@
 </head>
 <body class="<?= esc($userRole) ?>">
 
-    <?php include APPPATH . 'Views/template/header.php'; ?>
+     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
     <div class="main-container">
         <?php if ($pageConfig['showSidebar']): ?>

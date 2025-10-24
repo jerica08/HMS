@@ -12,7 +12,7 @@
     <?php include APPPATH . 'Views/template/header.php'; ?>
 
     <div class="main-container">
-        <?php include APPPATH . 'Views/admin/components/sidebar.php'; ?>
+        <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
         <main class="content">
             <h1 class="page-title">Resource Management</h1>

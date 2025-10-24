@@ -16,7 +16,7 @@
     <?php include APPPATH . 'Views/template/header.php'; ?>
 
     <div class="main-container">
-        <?= $this->include('unified/components/sidebar') ?>
+         <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
         <main class="content">
             <!-- Page Header -->

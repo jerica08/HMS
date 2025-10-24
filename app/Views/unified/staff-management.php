@@ -19,7 +19,7 @@
 <?php include APPPATH . 'Views/template/header.php'; ?> 
 <div class="main-container">
     <!-- Unified Sidebar -->
-    <?= $this->include('unified/components/sidebar') ?>
+     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
     <main class="content" role="main">
         <h1 class="page-title"><?= esc($title ?? 'Staff Management') ?></h1>

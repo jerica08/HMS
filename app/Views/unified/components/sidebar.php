@@ -16,10 +16,10 @@ if ($userRole === 'admin') {
         ['url' => 'admin/shifts', 'icon' => 'fas fa-calendar-days', 'label' => 'Shifts Management'],
         ['url' => 'admin/appointments', 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
         ['url' => 'admin/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
-        ['url' => 'admin/resource', 'icon' => 'fas fa-hospital', 'label' => 'Resource Management'],
-        ['url' => 'admin/financial', 'icon' => 'fas fa-dollar-sign', 'label' => 'Financial Management'],
+        ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resource Management'],
+        ['url' => 'admin/financial-management', 'icon' => 'fas fa-dollar-sign', 'label' => 'Financial Management'],
         ['url' => 'admin/analytics', 'icon' => 'fas fa-chart-bar', 'label' => 'Analytics & Reports'],
-        ['url' => 'admin/system-settings', 'icon' => 'fas fa-cogs', 'label' => 'System Settings'],
+        
     ];
 }
 

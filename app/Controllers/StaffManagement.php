@@ -64,7 +64,14 @@ class StaffManagement extends BaseController
     public function create()
     {
         if ($this->request->getMethod() === 'POST') {
+            // Support both form-encoded and JSON payloads
             $input = $this->request->getPost();
+            if (empty($input)) {
+                $jsonInput = $this->request->getJSON(true);
+                if (is_array($jsonInput)) {
+                    $input = $jsonInput;
+                }
+            }
             $isAjax = $this->request->isAJAX() || 
                       $this->request->getHeaderLine('Accept') == 'application/json' ||
                       $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
@@ -73,7 +80,11 @@ class StaffManagement extends BaseController
             $result = $this->staffService->createStaff($input, $this->userRole);
 
             if ($isAjax) {
-                return $this->response->setJSON($result);
+                $payload = $result['success']
+                    ? ['status' => 'success', 'message' => $result['message'] ?? 'Created', 'id' => $result['id'] ?? null]
+                    : ['status' => 'error', 'message' => $result['message'] ?? 'Failed', 'errors' => $result['errors'] ?? null];
+                $statusCode = $result['success'] ? 200 : 422;
+                return $this->response->setStatusCode($statusCode)->setJSON($payload);
             }
 
             if ($result['success']) {

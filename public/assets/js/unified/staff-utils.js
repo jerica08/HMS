@@ -107,12 +107,22 @@ window.StaffUtils = {
         }
 
         const response = await fetch(url, finalOptions);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+
+        let payload = null;
+        const contentType = response.headers.get('content-type') || '';
+        try {
+            if (contentType.includes('application/json')) {
+                payload = await response.json();
+            } else {
+                const text = await response.text();
+                payload = { status: response.ok ? 'success' : 'error', message: text };
+            }
+        } catch (e) {
+            payload = { status: 'error', message: 'Failed to parse server response' };
         }
-        
-        return await response.json();
+
+        // Always return a structured object so caller can decide
+        return { ok: response.ok, statusCode: response.status, ...payload };
     },
 
     /**

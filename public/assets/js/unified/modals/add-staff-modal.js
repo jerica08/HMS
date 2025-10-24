@@ -80,6 +80,23 @@ window.AddStaffModal = {
             this.clearErrors();
             
             const formData = this.collectFormData();
+
+            // Quick client-side validation for required fields
+            const clientErrors = {};
+            if (!formData.employee_id || String(formData.employee_id).trim().length < 3) {
+                clientErrors.employee_id = 'Employee ID is required (min 3 characters).';
+            }
+            if (!formData.first_name || String(formData.first_name).trim().length < 2) {
+                clientErrors.first_name = 'First name is required (min 2 characters).';
+            }
+            if (!formData.designation) {
+                clientErrors.designation = 'Designation is required.';
+            }
+            if (Object.keys(clientErrors).length) {
+                this.displayErrors(clientErrors);
+                StaffUtils.showNotification('Please fix the highlighted errors.', 'warning');
+                return;
+            }
             
             const response = await StaffUtils.makeRequest(
                 StaffConfig.getUrl(StaffConfig.endpoints.staffCreate),
@@ -98,10 +115,14 @@ window.AddStaffModal = {
                     window.staffManager.refresh();
                 }
             } else {
+                // Gracefully handle validation and known server errors
                 if (response.errors) {
                     this.displayErrors(response.errors);
+                    StaffUtils.showNotification(response.message || 'Please fix the highlighted errors.', 'warning');
+                    return; // Don't throw for validation; let user correct
                 }
-                throw new Error(response.message || 'Failed to add staff member');
+                // Unknown error payload
+                throw new Error(response.message || `Request failed (status ${response.statusCode || 'unknown'})`);
             }
         } catch (error) {
             console.error('Error adding staff:', error);
@@ -126,7 +147,12 @@ window.AddStaffModal = {
     },
     
     displayErrors(errors) {
-        for (const [field, message] of Object.entries(errors)) {
+        for (const [rawField, message] of Object.entries(errors)) {
+            // Map backend field names to UI field IDs
+            const fieldMap = {
+                dob: 'date_of_birth'
+            };
+            const field = fieldMap[rawField] || rawField;
             const errorElement = document.getElementById(`err_${field}`);
             if (errorElement) {
                 errorElement.textContent = Array.isArray(message) ? message[0] : message;

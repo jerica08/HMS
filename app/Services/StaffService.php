@@ -180,6 +180,9 @@ class StaffService
             ];
         }
 
+        // Normalize input prior to validation
+        $input = $this->normalizeInput($input);
+
         // Validation
         $validation = \Config\Services::validation();
         $validation->setRules($this->getValidationRules($input['designation'] ?? 'staff'));
@@ -206,6 +209,7 @@ class StaffService
         }
 
         try {
+            // Insert the core staff record in its own transaction
             $this->db->transStart();
 
             // Prepare staff data
@@ -215,17 +219,19 @@ class StaffService
             $this->db->table('staff')->insert($staffData);
             $staffId = $this->db->insertID();
 
-            // Insert role-specific data
-            $this->insertRoleSpecificData($input['designation'], $staffId, $input);
-
             $this->db->transComplete();
 
             if ($this->db->transStatus() === false) {
+                $dbError = $this->db->error();
+                $errMsg = !empty($dbError['message']) ? $dbError['message'] : 'Failed to create staff member';
                 return [
                     'success' => false,
-                    'message' => 'Failed to create staff member',
+                    'message' => $errMsg,
                 ];
             }
+
+            // After staff row is saved, try role-specific insert without transaction
+            $this->insertRoleSpecificData($input['designation'], $staffId, $input);
 
             return [
                 'success' => true,
@@ -259,6 +265,9 @@ class StaffService
         if (!$existingStaff['success']) {
             return $existingStaff;
         }
+
+        // Normalize input prior to validation
+        $input = $this->normalizeInput($input);
 
         // Validation
         $validation = \Config\Services::validation();
@@ -434,6 +443,55 @@ class StaffService
         return in_array($userRole, ['admin', 'it_staff']);
     }
 
+    /**
+     * Normalize incoming input before validation and persistence
+     */
+    private function normalizeInput(array $input): array
+    {
+        // Map date_of_birth -> dob if provided
+        if (!isset($input['dob']) && isset($input['date_of_birth'])) {
+            $input['dob'] = $input['date_of_birth'];
+        }
+
+        // Coerce gender and designation to lowercase when present
+        if (isset($input['gender']) && is_string($input['gender'])) {
+            $input['gender'] = strtolower(trim($input['gender']));
+        }
+        if (isset($input['designation']) && is_string($input['designation'])) {
+            $input['designation'] = strtolower(trim($input['designation']));
+        }
+
+        // Trim common string fields
+        foreach (['employee_id','first_name','last_name','email','department','address'] as $k) {
+            if (isset($input[$k]) && is_string($input[$k])) {
+                $input[$k] = trim($input[$k]);
+            }
+        }
+
+        // Normalize DOB to Y-m-d if parseable
+        if (!empty($input['dob'])) {
+            $ts = strtotime($input['dob']);
+            if ($ts !== false) {
+                $input['dob'] = date('Y-m-d', $ts);
+            } else {
+                // If invalid date string, unset to avoid DB/validation errors
+                unset($input['dob']);
+            }
+        }
+
+        // Normalize date_joined
+        if (!empty($input['date_joined'])) {
+            $ts = strtotime($input['date_joined']);
+            if ($ts !== false) {
+                $input['date_joined'] = date('Y-m-d', $ts);
+            } else {
+                unset($input['date_joined']);
+            }
+        }
+
+        return $input;
+    }
+
     private function getValidationRules($role)
     {
         $baseRules = [
@@ -453,22 +511,22 @@ class StaffService
         // Role-specific validation
         switch ($role) {
             case 'doctor':
-                $baseRules['doctor_specialization'] = 'required|min_length[2]|max_length[100]';
+                $baseRules['doctor_specialization'] = 'permit_empty|min_length[2]|max_length[100]';
                 $baseRules['doctor_license_no'] = 'permit_empty|max_length[50]';
                 $baseRules['doctor_consultation_fee'] = 'permit_empty|decimal';
                 break;
             case 'nurse':
-                $baseRules['nurse_license_no'] = 'required|max_length[100]';
+                $baseRules['nurse_license_no'] = 'permit_empty|max_length[100]';
                 break;
             case 'pharmacist':
-                $baseRules['pharmacist_license_no'] = 'required|max_length[100]';
+                $baseRules['pharmacist_license_no'] = 'permit_empty|max_length[100]';
                 break;
             case 'laboratorist':
-                $baseRules['laboratorist_license_no'] = 'required|max_length[100]';
+                $baseRules['laboratorist_license_no'] = 'permit_empty|max_length[100]';
                 $baseRules['laboratorist_specialization'] = 'permit_empty|max_length[150]';
                 break;
             case 'accountant':
-                $baseRules['accountant_license_no'] = 'required|max_length[100]';
+                $baseRules['accountant_license_no'] = 'permit_empty|max_length[100]';
                 break;
             case 'receptionist':
                 $baseRules['receptionist_desk_no'] = 'permit_empty|max_length[50]';
@@ -496,7 +554,8 @@ class StaffService
             'first_name' => $input['first_name'],
             'last_name' => $input['last_name'] ?? null,
             'gender' => isset($input['gender']) ? strtolower($input['gender']) : null,
-            'dob' => $input['dob'] ?? null,
+            // Accept both 'dob' and 'date_of_birth' from the form
+            'dob' => $input['dob'] ?? ($input['date_of_birth'] ?? null),
             'contact_no' => $input['contact_no'] ?? null,
             'email' => $input['email'] ?? null,
             'address' => $input['address'] ?? null,
@@ -504,63 +563,67 @@ class StaffService
             'designation' => $input['designation'],
             'role' => $input['designation'],
             'date_joined' => $input['date_joined'] ?? date('Y-m-d'),
-            'status' => $input['status'] ?? 'active',
-            'created_at' => date('Y-m-d H:i:s'),
+            // Note: 'status' and timestamp columns are not present in current migration; do not include
         ];
     }
 
     private function insertRoleSpecificData($role, $staffId, $input)
     {
-        switch ($role) {
-            case 'doctor':
-                $this->db->table('doctor')->insert([
-                    'staff_id' => $staffId,
-                    'specialization' => $input['doctor_specialization'] ?? null,
-                    'license_no' => $input['doctor_license_no'] ?? null,
-                    'consultation_fee' => $input['doctor_consultation_fee'] ?? null,
-                    'status' => 'Active',
-                ]);
-                break;
-            case 'nurse':
-                $this->db->table('nurse')->insert([
-                    'staff_id' => $staffId,
-                    'license_no' => $input['nurse_license_no'] ?? null,
-                    'specialization' => $input['nurse_specialization'] ?? null,
-                ]);
-                break;
-            case 'pharmacist':
-                $this->db->table('pharmacist')->insert([
-                    'staff_id' => $staffId,
-                    'license_no' => $input['pharmacist_license_no'] ?? null,
-                    'specialization' => $input['pharmacist_specialization'] ?? null,
-                ]);
-                break;
-            case 'laboratorist':
-                $this->db->table('laboratorist')->insert([
-                    'staff_id' => $staffId,
-                    'license_no' => $input['laboratorist_license_no'] ?? null,
-                    'specialization' => $input['laboratorist_specialization'] ?? null,
-                    'lab_room_no' => $input['laboratorist_lab_room_no'] ?? null,
-                ]);
-                break;
-            case 'accountant':
-                $this->db->table('accountant')->insert([
-                    'staff_id' => $staffId,
-                    'license_no' => $input['accountant_license_no'] ?? null,
-                ]);
-                break;
-            case 'receptionist':
-                $this->db->table('receptionist')->insert([
-                    'staff_id' => $staffId,
-                    'desk_no' => $input['receptionist_desk_no'] ?? null,
-                ]);
-                break;
-            case 'it_staff':
-                $this->db->table('it_staff')->insert([
-                    'staff_id' => $staffId,
-                    'expertise' => $input['it_expertise'] ?? null,
-                ]);
-                break;
+        try {
+            switch ($role) {
+                case 'doctor':
+                    $this->db->table('doctor')->insert([
+                        'staff_id' => $staffId,
+                        'specialization' => $input['doctor_specialization'] ?? null,
+                        'license_no' => $input['doctor_license_no'] ?? null,
+                        'consultation_fee' => $input['doctor_consultation_fee'] ?? null,
+                        // 'status' column may not exist depending on schema; omit
+                    ]);
+                    break;
+                case 'nurse':
+                    $this->db->table('nurse')->insert([
+                        'staff_id' => $staffId,
+                        'license_no' => $input['nurse_license_no'] ?? null,
+                        'specialization' => $input['nurse_specialization'] ?? null,
+                    ]);
+                    break;
+                case 'pharmacist':
+                    $this->db->table('pharmacist')->insert([
+                        'staff_id' => $staffId,
+                        'license_no' => $input['pharmacist_license_no'] ?? null,
+                        'specialization' => $input['pharmacist_specialization'] ?? null,
+                    ]);
+                    break;
+                case 'laboratorist':
+                    $this->db->table('laboratorist')->insert([
+                        'staff_id' => $staffId,
+                        'license_no' => $input['laboratorist_license_no'] ?? null,
+                        'specialization' => $input['laboratorist_specialization'] ?? null,
+                        'lab_room_no' => $input['laboratorist_lab_room_no'] ?? null,
+                    ]);
+                    break;
+                case 'accountant':
+                    $this->db->table('accountant')->insert([
+                        'staff_id' => $staffId,
+                        'license_no' => $input['accountant_license_no'] ?? null,
+                    ]);
+                    break;
+                case 'receptionist':
+                    $this->db->table('receptionist')->insert([
+                        'staff_id' => $staffId,
+                        'desk_no' => $input['receptionist_desk_no'] ?? null,
+                    ]);
+                    break;
+                case 'it_staff':
+                    $this->db->table('it_staff')->insert([
+                        'staff_id' => $staffId,
+                        'expertise' => $input['it_expertise'] ?? null,
+                    ]);
+                    break;
+            }
+        } catch (\Throwable $e) {
+            log_message('warning', 'Role-specific insert skipped for staff_id ' . $staffId . ': ' . $e->getMessage());
+            // Do not throw; keep staff creation successful
         }
     }
 

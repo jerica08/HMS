@@ -281,4 +281,14 @@ $routes->get('doctor/schedule', 'Doctor::schedule');
     $routes->get('pharmacists/prescription', 'Pharmacist::prescription');
     $routes->get('pharmacists/inventory', 'Pharmacist::inventory');
 
+    // Financial Management Routes
+$routes->get('admin/financial-management', 'FinancialManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('accountant/financial', 'FinancialManagement::index', ['filter' => 'roleauth:accountant']);
+$routes->get('doctor/financial', 'FinancialManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('receptionist/financial', 'FinancialManagement::index', ['filter' => 'roleauth:receptionist']);
+
+// API Routes
+$routes->post('financial/bill/create', 'FinancialManagement::createBill', ['filter' => 'roleauth:admin,accountant,doctor,receptionist,it_staff']);
+$routes->post('financial/payment/process', 'FinancialManagement::processPayment', ['filter' => 'roleauth:admin,accountant,receptionist,it_staff']);
+$routes->post('financial/expense/create', 'FinancialManagement::createExpense', ['filter' => 'roleauth:admin,accountant,it_staff']);
 $routes->setAutoRoute(true);

@@ -77,3 +77,61 @@
                         <div class="stat-label">Net Balance</div>
                     </div>
                 </div>
+                
+                <div class="stat-card bills">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="pendingBills"><?= $stats['pending_bills'] ?? 0 ?></div>
+                        <div class="stat-label">Pending Bills</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <?php if (in_array('view_all', $permissions)): ?>
+            <div class="recent-transactions">
+                <h3><i class="fas fa-history"></i> Recent Transactions</h3>
+                <div id="recentTransactions">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin loading-icon"></i>
+                        <p>Loading transactions...</p>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+        </main>
+    </div>
+
+    <!-- Include Modal Components -->
+    <?php if (in_array('create_bill', $permissions)): ?>
+        <?php include APPPATH . 'Views/unified/components/billing-modal.php'; ?>
+    <?php endif; ?>
+    
+    <?php if (in_array('process_payment', $permissions)): ?>
+        <?php include APPPATH . 'Views/unified/components/payment-modal.php'; ?>
+    <?php endif; ?>
+    
+    <?php if (in_array('create_expense', $permissions)): ?>
+        <?php include APPPATH . 'Views/unified/components/expense-modal.php'; ?>
+    <?php endif; ?>
+
+    <!-- JavaScript Files -->
+    <script src="<?= base_url('assets/js/unified/financial-utils.js') ?>"></script>
+    
+    <?php if (in_array('create_bill', $permissions)): ?>
+        <script src="<?= base_url('assets/js/unified/billing-modal.js') ?>"></script>
+    <?php endif; ?>
+    
+    <?php if (in_array('process_payment', $permissions)): ?>
+        <script src="<?= base_url('assets/js/unified/payment-modal.js') ?>"></script>
+    <?php endif; ?>
+    
+    <?php if (in_array('create_expense', $permissions)): ?>
+        <script src="<?= base_url('assets/js/unified/expense-modal.js') ?>"></script>
+    <?php endif; ?>
+    
+    <script src="<?= base_url('assets/js/unified/financial-management.js') ?>"></script>
+</body>
+</html>

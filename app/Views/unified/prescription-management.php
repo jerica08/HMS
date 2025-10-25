@@ -15,22 +15,13 @@
 </head>
 <body class="<?= esc($userRole) ?>">
 
-     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+    <?php include APPPATH . 'Views/template/header.php'; ?>
 
     <div class="main-container">
-        <?php if ($pageConfig['showSidebar']): ?>
-            <?php 
-            $sidebarPath = match($pageConfig['sidebarType']) {
-                'admin' => 'admin/components/sidebar.php',
-                'doctor' => 'doctor/components/sidebar.php',
-                'nurse' => 'nurse/components/sidebar.php',
-                'receptionist' => 'receptionist/components/sidebar.php',
-                'pharmacist' => 'pharmacist/components/sidebar.php',
-                default => 'admin/components/sidebar.php'
-            };
-            include APPPATH . 'Views/' . $sidebarPath; 
-            ?>
-        <?php endif; ?>
+        <?php 
+        // Include unified sidebar component
+        include APPPATH . 'Views/unified/components/sidebar.php'; 
+        ?>
 
         <main class="content" role="main">
             <h1 class="page-title"><?= esc($pageConfig['title']) ?></h1>

@@ -5,6 +5,8 @@ namespace App\Services;
 class StaffService
 {
     protected $db;
+    // Cache table columns to avoid repeated metadata lookups
+    private $tableColumnsCache = [];
 
     public function __construct()
     {
@@ -217,7 +219,8 @@ class StaffService
             // Prepare staff data
             $staffData = $this->prepareStaffData($input);
             
-            // Insert staff record
+            // Insert staff record (filter to existing columns)
+            $staffData = $this->filterToExistingColumns('staff', $staffData);
             $this->db->table('staff')->insert($staffData);
             $staffId = $this->db->insertID();
 
@@ -268,6 +271,12 @@ class StaffService
             return $existingStaff;
         }
 
+        // Merge required defaults from existing record if not provided
+        $input = array_merge([
+            'employee_id' => $existingStaff['staff']['employee_id'] ?? null,
+            'role' => $existingStaff['staff']['role'] ?? null,
+        ], $input);
+
         // Normalize input prior to validation
         $input = $this->normalizeInput($input);
 
@@ -287,9 +296,14 @@ class StaffService
             if (!empty($input['department'])) {
                 $this->ensureDepartmentExists($input['department']);
             }
-            // Prepare update data
+            // Prepare update data and filter to existing columns
             $staffData = $this->prepareStaffData($input);
-            $staffData['updated_at'] = date('Y-m-d H:i:s');
+            $staffData = $this->filterToExistingColumns('staff', $staffData);
+            // Add timestamp only if column exists
+            $staffColumns = $this->getTableColumns('staff');
+            if (in_array('updated_at', $staffColumns, true)) {
+                $staffData['updated_at'] = date('Y-m-d H:i:s');
+            }
 
             // Update staff record
             $this->db->table('staff')
@@ -550,16 +564,47 @@ class StaffService
     private function getUpdateValidationRules($role, $excludeId)
     {
         $rules = $this->getValidationRules($role);
+        // Relax some rules for updates
         $rules['employee_id'] = 'permit_empty|min_length[3]|max_length[255]|is_unique[staff.employee_id,staff_id,' . $excludeId . ']';
         $rules['role'] = 'permit_empty|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,accountant,it_staff]';
+
+        // Role-specific: make required fields optional on update
+        switch ($role) {
+            case 'doctor':
+                $rules['doctor_specialization'] = 'permit_empty|max_length[100]';
+                $rules['doctor_license_no'] = 'permit_empty|max_length[50]';
+                $rules['doctor_consultation_fee'] = 'permit_empty|decimal';
+                break;
+            case 'nurse':
+                $rules['nurse_license_no'] = 'permit_empty|max_length[100]';
+                break;
+            case 'pharmacist':
+                $rules['pharmacist_license_no'] = 'permit_empty|max_length[100]';
+                break;
+            case 'laboratorist':
+                $rules['laboratorist_license_no'] = 'permit_empty|max_length[100]';
+                $rules['laboratorist_specialization'] = 'permit_empty|max_length[150]';
+                $rules['lab_room_no'] = 'permit_empty|max_length[50]';
+                break;
+            case 'accountant':
+                $rules['accountant_license_no'] = 'permit_empty|max_length[100]';
+                break;
+            case 'receptionist':
+                $rules['receptionist_desk_no'] = 'permit_empty|max_length[50]';
+                break;
+            case 'it_staff':
+                $rules['it_expertise'] = 'permit_empty|max_length[150]';
+                break;
+        }
+
         return $rules;
     }
 
     private function prepareStaffData($input)
     {
         return [
-            'employee_id' => $input['employee_id'], 
-            'first_name' => $input['first_name'],
+            'employee_id' => $input['employee_id'] ?? null, 
+            'first_name' => $input['first_name'] ?? null,
             'last_name' => $input['last_name'] ?? null,
             'gender' => isset($input['gender']) ? strtolower($input['gender']) : null,
             // Accept both 'dob' and 'date_of_birth' from the form
@@ -568,7 +613,7 @@ class StaffService
             'email' => $input['email'] ?? null,
             'address' => $input['address'] ?? null,
             'department' => $input['department'] ?? null,
-            'role' => $input['role'],
+            'role' => $input['role'] ?? null,
             'date_joined' => $input['date_joined'] ?? date('Y-m-d'),
             // Note: 'status' and timestamp columns are not present in current migration; do not include
         ];
@@ -675,9 +720,49 @@ class StaffService
         if (!$exists) {
             $this->db->table('department')->insert([
                 'name' => $dept,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
             ]);
         }
+    }
+
+    /**
+     * Get list of columns for a table, with in-memory cache
+     */
+    private function getTableColumns(string $table): array
+    {
+        if (isset($this->tableColumnsCache[$table])) {
+            return $this->tableColumnsCache[$table];
+        }
+
+        $columns = [];
+        try {
+            if (method_exists($this->db, 'getFieldNames')) {
+                $columns = $this->db->getFieldNames($table) ?? [];
+            }
+            if (empty($columns) && method_exists($this->db, 'getFieldData')) {
+                $fields = $this->db->getFieldData($table) ?? [];
+                foreach ($fields as $f) {
+                    if (is_object($f) && isset($f->name)) {
+                        $columns[] = $f->name;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // If metadata lookup fails, default to no columns
+            $columns = [];
+        }
+
+        return $this->tableColumnsCache[$table] = $columns;
+    }
+
+    /**
+     * Filter associative array to keys that match actual table columns
+     */
+    private function filterToExistingColumns(string $table, array $data): array
+    {
+        $columns = $this->getTableColumns($table);
+        if (empty($columns)) {
+            return $data; // If we cannot detect columns, fail open to avoid dropping data silently
+        }
+        return array_intersect_key($data, array_flip($columns));
     }
 }

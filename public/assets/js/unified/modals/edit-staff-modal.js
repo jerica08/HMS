@@ -138,7 +138,7 @@ window.EditStaffModal = {
                 }
             );
             
-            if (response.status === 'success') {
+            if (response.status === 'success' || response.success === true || response.ok === true) {
                 StaffUtils.showNotification('Staff member updated successfully', 'success');
                 this.close();
                 

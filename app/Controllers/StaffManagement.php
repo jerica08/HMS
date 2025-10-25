@@ -170,12 +170,14 @@ class StaffManagement extends BaseController
 
     public function update($id = null)
     {
-        $id = (int) ($id ?? ($this->request->getPost('staff_id') ?? 0));
+        // Accept staff_id from route param, form POST, or JSON body
+        $jsonInput = $this->request->getJSON(true);
+        $id = (int) ($id ?? ($this->request->getPost('staff_id') ?? ($jsonInput['staff_id'] ?? 0)));
         if ($id <= 0) {
             return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
         }
 
-        $input = $this->request->getPost() ?: $this->request->getJSON(true) ?? [];
+        $input = $this->request->getPost() ?: $jsonInput ?? [];
         
         // Use service to update staff
         $result = $this->staffService->updateStaff($id, $input, $this->userRole);

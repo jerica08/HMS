@@ -19,6 +19,13 @@ class CreateStaffTable extends Migration
                 'type'       => 'VARCHAR',
                 'constraint' => '255',
             ],
+            'department_id' => [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'unsigned'   => true,
+                'null'       => true,
+                'after'      => 'employee_id',
+            ],
             'first_name' => [
                 'type'       => 'VARCHAR',
                 'constraint' => '100',
@@ -50,16 +57,6 @@ class CreateStaffTable extends Migration
             'address' => [
                 'type' => 'TEXT',
                 'null' => true,
-            ],
-            'department' => [
-                'type'       => 'VARCHAR',
-                'constraint' => '255',
-                'null'       => true,
-            ],
-            'designation' => [
-                'type'       => 'VARCHAR',
-                'constraint' => '255',
-                'null'       => true,
             ],
             'role' => [
                 'type'       => 'ENUM',

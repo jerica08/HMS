@@ -19,7 +19,6 @@ class StaffModel extends Model
         'email',
         'address',
         'department',
-        'designation',
         'role',
         'date_joined',
     ];

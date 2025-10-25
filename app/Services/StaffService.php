@@ -184,7 +184,7 @@ class StaffService
 
         // Validation
         $validation = \Config\Services::validation();
-        $validation->setRules($this->getValidationRules($input['designation'] ?? 'staff'));
+        $validation->setRules($this->getValidationRules($input['role'] ?? 'staff'));
 
         if (!$validation->run($input)) {
             return [
@@ -233,7 +233,7 @@ class StaffService
             }
 
             // After staff row is saved, try role-specific insert without transaction
-            $this->insertRoleSpecificData($input['designation'], $staffId, $input);
+            $this->insertRoleSpecificData($input['role'], $staffId, $input);
 
             return [
                 'success' => true,
@@ -273,7 +273,7 @@ class StaffService
 
         // Validation
         $validation = \Config\Services::validation();
-        $validation->setRules($this->getUpdateValidationRules($input['designation'] ?? 'staff', $id));
+        $validation->setRules($this->getUpdateValidationRules($input['role'] ?? 'staff', $id));
 
         if (!$validation->run($input)) {
             return [
@@ -458,12 +458,14 @@ class StaffService
             $input['dob'] = $input['date_of_birth'];
         }
 
-        // Coerce gender and designation to lowercase when present
+        // Coerce gender to lowercase when present
         if (isset($input['gender']) && is_string($input['gender'])) {
             $input['gender'] = strtolower(trim($input['gender']));
         }
-        if (isset($input['designation']) && is_string($input['designation'])) {
-            $input['designation'] = strtolower(trim($input['designation']));
+
+        // Backward compatibility: map 'designation' -> 'role' if role is missing
+        if (!isset($input['role']) && isset($input['designation'])) {
+            $input['role'] = is_string($input['designation']) ? strtolower(trim($input['designation'])) : $input['designation'];
         }
 
         // Trim common string fields
@@ -509,7 +511,7 @@ class StaffService
             'email' => 'permit_empty|valid_email',
             'address' => 'permit_empty',
             'department' => 'permit_empty|max_length[255]',
-            'designation' => 'required|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,accountant,it_staff]',
+            'role' => 'required|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,accountant,it_staff]',
             'date_joined' => 'permit_empty|valid_date',
         ];
 
@@ -549,7 +551,7 @@ class StaffService
     {
         $rules = $this->getValidationRules($role);
         $rules['employee_id'] = 'permit_empty|min_length[3]|max_length[255]|is_unique[staff.employee_id,staff_id,' . $excludeId . ']';
-        $rules['designation'] = 'permit_empty|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,accountant,it_staff]';
+        $rules['role'] = 'permit_empty|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,accountant,it_staff]';
         return $rules;
     }
 
@@ -566,8 +568,7 @@ class StaffService
             'email' => $input['email'] ?? null,
             'address' => $input['address'] ?? null,
             'department' => $input['department'] ?? null,
-            'designation' => $input['designation'],
-            'role' => $input['designation'],
+            'role' => $input['role'],
             'date_joined' => $input['date_joined'] ?? date('Y-m-d'),
             // Note: 'status' and timestamp columns are not present in current migration; do not include
         ];

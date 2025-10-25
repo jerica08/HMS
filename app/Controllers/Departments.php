@@ -23,9 +23,21 @@ class Departments extends BaseController
                 return $this->response->setStatusCode(405)->setJSON(['status' => 'error', 'message' => 'Method not allowed']);
             }
 
-            // Support both JSON and form-data submissions
-            $input = $this->request->getJSON(true);
-            if (!is_array($input) || empty($input)) {
+            // Support both JSON and form-data submissions safely
+            $input = [];
+            $contentType = $this->request->getHeaderLine('Content-Type');
+            if ($contentType && stripos($contentType, 'application/json') !== false) {
+                // Only attempt JSON parsing when Content-Type is JSON
+                $rawBody = (string) $this->request->getBody();
+                if ($rawBody !== '') {
+                    $decoded = json_decode($rawBody, true);
+                    if (is_array($decoded)) {
+                        $input = $decoded;
+                    }
+                }
+            }
+            if (empty($input)) {
+                // Fallback to form fields (e.g., multipart/form-data)
                 $input = $this->request->getPost();
             }
             $name = trim(preg_replace('/\s+/', ' ', (string)($input['name'] ?? '')));
@@ -41,16 +53,18 @@ class Departments extends BaseController
 
             $db = \Config\Database::connect();
 
-            // Resolve table name dynamically: prefer 'department', else 'departments'
+            // Resolve table name dynamically: prefer 'department', support common variants
             $table = null;
             if ($db->tableExists('department')) {
                 $table = 'department';
+            } elseif ($db->tableExists('deaprtment')) { // handle misspelling
+                $table = 'deaprtment';
             } elseif ($db->tableExists('departments')) {
                 $table = 'departments';
             } else {
                 return $this->response->setStatusCode(500)->setJSON([
                     'status' => 'error',
-                    'message' => "Neither 'department' nor 'departments' table exists."
+                    'message' => "No department table found (looked for 'department', 'deaprtment', 'departments')."
                 ]);
             }
 
@@ -70,9 +84,9 @@ class Departments extends BaseController
                 ]);
             }
 
-            // Check exists (case-insensitive)
+            // Check exists (case-insensitive) with proper quoting of value
             $exists = $db->table($table)
-                ->where('LOWER(' . $nameColumn . ')', strtolower($name))
+                ->where('LOWER(' . $nameColumn . ') = ' . $db->escape(strtolower($name)), null, false)
                 ->get()->getRowArray();
             if ($exists) {
                 return $this->response->setJSON([
@@ -84,36 +98,24 @@ class Departments extends BaseController
 
             $builder = $db->table($table);
 
-            // Try full insert first (name, description, timestamps)
+            // Try a series of inserts, progressively reducing columns
             $now = date('Y-m-d H:i:s');
-            $rowFull = [
-                $nameColumn => $name,
-                'description' => $description,
-                'created_at' => $now,
-                'updated_at' => $now,
+            $attempts = [
+                [ $nameColumn => $name, 'description' => $description, 'created_at' => $now, 'updated_at' => $now ],
+                [ $nameColumn => $name, 'description' => $description ],
+                [ $nameColumn => $name ],
             ];
-            $ok = false;
-            try {
-                $ok = $builder->insert($rowFull);
-            } catch (\Throwable $e) {
-                // Fall back to fewer columns if schema lacks them
-                try {
-                    $ok = $builder->insert([$nameColumn => $name, 'description' => $description]);
-                } catch (\Throwable $e2) {
-                    try {
-                        $ok = $builder->insert([$nameColumn => $name]);
-                    } catch (\Throwable $e3) {
-                        $ok = false;
-                    }
-                }
-            }
 
-            if ($ok) {
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'message' => 'Department created',
-                    'id' => $db->insertID(),
-                ]);
+            $ok = false;
+            foreach ($attempts as $row) {
+                $ok = $builder->insert($row);
+                if ($ok) {
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'message' => 'Department created',
+                        'id' => $db->insertID(),
+                    ]);
+                }
             }
 
             // Provide DB error for diagnostics

@@ -43,8 +43,8 @@ elseif ($userRole === 'nurse') {
         ['url' => 'nurse/patients', 'icon' => 'fas fa-users', 'label' => 'Patients'],
         ['url' => 'nurse/appointments', 'icon' => 'fas fa-calendar-alt', 'label' => 'Appointments'],
         ['url' => 'nurse/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
-        ['url' => 'nurse/lab-results', 'icon' => 'fas fa-flask', 'label' => 'Lab Results'],
-        ['url' => 'nurse/schedule', 'icon' => 'fas fa-clock', 'label' => 'My Schedule'],
+        //['url' => 'nurse/lab-results', 'icon' => 'fas fa-flask', 'label' => 'Lab Results'],
+        //['url' => 'nurse/schedule', 'icon' => 'fas fa-clock', 'label' => 'My Schedule'],
     ];
 }
 
@@ -93,10 +93,11 @@ elseif ($userRole === 'accountant') {
 elseif ($userRole === 'it_staff') {
     $navigationItems = [
         ['url' => 'it-staff/dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
+        ['url' => 'it-staff/staff-management', 'icon' => 'fas fa-user-tie', 'label' => 'Staff Management'],
         ['url' => 'it-staff/users', 'icon' => 'fas fa-users', 'label' => 'User Management'],
-        ['url' => 'it-staff/system-settings', 'icon' => 'fas fa-cogs', 'label' => 'System Settings'],
-        ['url' => 'it-staff/backups', 'icon' => 'fas fa-database', 'label' => 'Backups'],
-        ['url' => 'it-staff/logs', 'icon' => 'fas fa-file-alt', 'label' => 'System Logs'],
+        //['url' => 'it-staff/system-settings', 'icon' => 'fas fa-cogs', 'label' => 'System Settings'],
+       // ['url' => 'it-staff/backups', 'icon' => 'fas fa-database', 'label' => 'Backups'],
+        //['url' => 'it-staff/logs', 'icon' => 'fas fa-file-alt', 'label' => 'System Logs'],
     ];
 }
 ?>

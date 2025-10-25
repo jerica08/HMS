@@ -32,6 +32,7 @@ class ResourceManagement extends BaseController
         $stats = $this->resourceService->getResourceStats($userRole, $staffId);
         $categories = $this->resourceService->getCategories($userRole);
         $staff = $this->resourceService->getStaffForAssignment();
+        $resources = $this->resourceService->getResources($userRole, $staffId);
 
         $data = [
             'title' => $this->getPageTitle($userRole),
@@ -40,6 +41,7 @@ class ResourceManagement extends BaseController
             'stats' => $stats,
             'categories' => $categories,
             'staff' => $staff,
+            'resources' => $resources,
             'redirectUrl' => $this->getRedirectUrl($userRole)
         ];
 
@@ -96,7 +98,7 @@ class ResourceManagement extends BaseController
         $staffId = session()->get('staff_id');
 
         $data = $this->request->getJSON(true) ?? $this->request->getPost();
-        $resourceId = $data['resource_id'] ?? null;
+        $resourceId = $data['id'] ?? null;
 
         if (!$resourceId) {
             return $this->response->setJSON(['success' => false, 'message' => 'Resource ID is required']);
@@ -118,7 +120,7 @@ class ResourceManagement extends BaseController
 
         if (!$resourceId) {
             $data = $this->request->getJSON(true) ?? $this->request->getPost();
-            $resourceId = $data['resource_id'] ?? null;
+            $resourceId = $data['id'] ?? null;
         }
 
         if (!$resourceId) {

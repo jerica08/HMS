@@ -307,4 +307,9 @@ $routes->get('pharmacists/prescription', 'Pharmacist::prescription');
 
 // Legacy admin routes for backward compatibility
 
-$routes->setAutoRoute(true);
+$routes->get('create_resources_table.php', function() {
+    require APPPATH . '../create_resources_table.php';
+});
+$routes->get('create_department_table.php', function() {
+    require APPPATH . '../create_department_table.php';
+});

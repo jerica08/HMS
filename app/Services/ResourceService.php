@@ -156,33 +156,16 @@ class ResourceService
             }
 
             $resourceData = [
-                'name' => trim($data['name']),
+                'equipment_name' => trim($data['name']),
                 'category' => $data['category'],
-                'description' => $data['description'] ?? '',
-                'serial_number' => $data['serial_number'] ?? '',
-                'model' => $data['model'] ?? '',
-                'manufacturer' => $data['manufacturer'] ?? '',
-                'purchase_date' => $data['purchase_date'] ?? null,
-                'warranty_expiry' => $data['warranty_expiry'] ?? null,
-                'cost' => $data['cost'] ?? 0,
-                'status' => $data['status'],
-                'location' => $data['location'],
-                'assigned_to' => $data['assigned_to'] ?? null,
-                'notes' => $data['notes'] ?? '',
-                'created_by' => $staffId,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'quantity' => $data['quantity'] ?? 1,
+                'status' => $data['status'] ?? 'Available',
+                'location' => $data['location'] ?? '',
+                'date_acquired' => $data['date_acquired'] ?? null,
+                'supplier' => $data['supplier'] ?? '',
+                'maintenance_schedule' => $data['maintenance_schedule'] ?? null,
+                'remarks' => $data['remarks'] ?? ''
             ];
-
-            if (!empty($resourceData['serial_number'])) {
-                $existing = $this->db->table('resources')
-                    ->where('serial_number', $resourceData['serial_number'])
-                    ->get()->getRow();
-                
-                if ($existing) {
-                    return ['success' => false, 'message' => 'Serial number already exists'];
-                }
-            }
 
             $result = $this->db->table('resources')->insert($resourceData);
 
@@ -209,15 +192,14 @@ class ResourceService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
-            $resource = $this->db->table('resources')->where('resource_id', $resourceId)->get()->getRow();
+            $resource = $this->db->table('resources')->where('id', $resourceId)->get()->getRow();
             if (!$resource) {
                 return ['success' => false, 'message' => 'Resource not found'];
             }
 
-            $updateData = ['updated_at' => date('Y-m-d H:i:s')];
-            $allowedFields = ['name', 'category', 'description', 'serial_number', 'model', 
-                            'manufacturer', 'purchase_date', 'warranty_expiry', 'cost', 
-                            'status', 'location', 'assigned_to', 'notes'];
+            $updateData = [];
+            $allowedFields = ['equipment_name', 'category', 'quantity', 'status', 'location',
+                            'date_acquired', 'supplier', 'maintenance_schedule', 'remarks'];
 
             foreach ($allowedFields as $field) {
                 if (isset($data[$field])) {
@@ -225,7 +207,7 @@ class ResourceService
                 }
             }
 
-            $result = $this->db->table('resources')->where('resource_id', $resourceId)->update($updateData);
+            $result = $this->db->table('resources')->where('id', $resourceId)->update($updateData);
 
             return $result ? 
                 ['success' => true, 'message' => 'Resource updated successfully'] :
@@ -244,7 +226,7 @@ class ResourceService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
-            $resource = $this->db->table('resources')->where('resource_id', $resourceId)->get()->getRow();
+            $resource = $this->db->table('resources')->where('id', $resourceId)->get()->getRow();
             if (!$resource) {
                 return ['success' => false, 'message' => 'Resource not found'];
             }
@@ -253,7 +235,7 @@ class ResourceService
                 return ['success' => false, 'message' => 'Cannot delete resource that is currently in use'];
             }
 
-            $result = $this->db->table('resources')->where('resource_id', $resourceId)->delete();
+            $result = $this->db->table('resources')->where('id', $resourceId)->delete();
 
             return $result ? 
                 ['success' => true, 'message' => 'Resource deleted successfully'] :
@@ -293,7 +275,7 @@ class ResourceService
 
             return $builder->select('r.*, s.first_name, s.last_name')
                 ->join('staff s', 's.staff_id = r.assigned_to', 'left')
-                ->where('r.resource_id', $resourceId)
+                ->where('r.id', $resourceId)
                 ->get()->getRow();
 
         } catch (\Exception $e) {

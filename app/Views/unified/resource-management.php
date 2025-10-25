@@ -113,7 +113,7 @@
                                 <?php if (!empty($resources) && is_array($resources)): ?>
                                     <?php foreach ($resources as $r): ?>
                                         <tr>
-                                            <td><?= esc($r['name'] ?? '-') ?></td>
+                                            <td><?= esc($r['equipment_name'] ?? '-') ?></td>
                                             <td><?= esc($r['category'] ?? '-') ?></td>
                                             <td><?= esc($r['quantity'] ?? '-') ?></td>
                                             <td class="text-capitalize"><?= esc($r['status'] ?? '-') ?></td>
@@ -142,8 +142,8 @@
                 <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addResourceTitle">
                     <div class="hms-modal-header">
                         <div class="hms-modal-title" id="addResourceTitle">
-                            <i class="fas fa-plus-circle text-primary"></i>
-                            Add Resource
+                            <i class="fas fa-plus-circle" style="color:#4f46e5"></i>
+                            Add New Resource
                         </div>
                         <button type="button" class="btn btn-secondary btn-small" onclick="closeAddResourceModal()" aria-label="Close">
                             <i class="fas fa-times"></i>
@@ -153,58 +153,45 @@
                         <div class="hms-modal-body">
                             <div class="form-grid">
                                 <div>
-                                    <label class="form-label" for="res_name">Equipment Name</label>
-                                    <input id="res_name" name="name" type="text" class="form-input" required autocomplete="off">
+                                    <label class="form-label" for="res_name">Resource Name*</label>
+                                    <input id="res_name" name="name" type="text" class="form-input" required autocomplete="off" placeholder="Enter resource name">
+                                    <small id="err_res_name" style="color:#dc2626"></small>
                                 </div>
                                 <div>
-                                    <label class="form-label" for="res_category">Category</label>
+                                    <label class="form-label" for="res_category">Category*</label>
                                     <select id="res_category" name="category" class="form-select" required>
                                         <option value="">Select category</option>
-                                        <option value="Diagnostic">Diagnostic</option>
-                                        <option value="Surgical">Surgical</option>
-                                        <option value="Furniture">Furniture</option>
-                                        <option value="IT">IT</option>
-                                        <option value="Other">Other</option>
+                                        <option value="Equipment">Equipment</option>
+                                        <option value="Facility">Facility</option>
+                                        <option value="Personnel">Personnel</option>
                                     </select>
+                                    <small id="err_res_category" style="color:#dc2626"></small>
                                 </div>
                                 <div>
-                                    <label class="form-label" for="res_quantity">Quantity</label>
-                                    <input id="res_quantity" name="quantity" type="number" class="form-input" min="0" required autocomplete="off">
+                                    <label class="form-label" for="res_quantity">Quantity*</label>
+                                    <input id="res_quantity" name="quantity" type="number" class="form-input" min="1" required autocomplete="off" placeholder="Enter quantity">
+                                    <small id="err_res_quantity" style="color:#dc2626"></small>
                                 </div>
                                 <div>
-                                    <label class="form-label" for="res_status">Status</label>
+                                    <label class="form-label" for="res_status">Status*</label>
                                     <select id="res_status" name="status" class="form-select" required>
-                                        <option value="available">Available</option>
-                                        <option value="in_use">In Use</option>
-                                        <option value="maintenance">Maintenance</option>
-                                        <option value="retired">Retired</option>
+                                        <option value="Available">Available</option>
+                                        <option value="In Use">In Use</option>
+                                        <option value="Maintenance">Maintenance</option>
+                                        <option value="Out of Order">Out of Order</option>
                                     </select>
+                                    <small id="err_res_status" style="color:#dc2626"></small>
                                 </div>
                                 <div>
-                                    <label class="form-label" for="res_location">Location</label>
-                                    <input id="res_location" name="location" type="text" class="form-input" autocomplete="off">
-                                </div>
-                                <div>
-                                    <label class="form-label" for="res_date_acquired">Date Acquired</label>
-                                    <input id="res_date_acquired" name="date_acquired" type="date" class="form-input" autocomplete="off">
-                                </div>
-                                <div>
-                                    <label class="form-label" for="res_supplier">Supplier</label>
-                                    <input id="res_supplier" name="supplier" type="text" class="form-input" autocomplete="off">
-                                </div>
-                                <div>
-                                    <label class="form-label" for="res_maintenance">Maintenance Schedule</label>
-                                    <input id="res_maintenance" name="maintenance_schedule" type="date" class="form-input" autocomplete="off">
-                                </div>
-                                <div class="full">
-                                    <label class="form-label" for="res_notes">Remarks</label>
-                                    <textarea id="res_notes" name="notes" rows="3" class="form-textarea" autocomplete="off"></textarea>
+                                    <label class="form-label" for="res_location">Location*</label>
+                                    <input id="res_location" name="location" type="text" class="form-input" required autocomplete="off" placeholder="Enter location">
+                                    <small id="err_res_location" style="color:#dc2626"></small>
                                 </div>
                             </div>
                         </div>
                         <div class="hms-modal-actions">
                             <button type="button" class="btn btn-secondary" onclick="closeAddResourceModal()">Cancel</button>
-                            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Resource</button>
                         </div>
                     </form>
                 </div>
@@ -223,9 +210,9 @@
                         </button>   
                     </div>
                     <form id="addDepartmentForm">
+                        <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>" />
                         <div class="hms-modal-body">
                             <div class="form-grid">
-                                <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>" />
                                 <div class="full">
                                     <label class="form-label" for="dept_name">Department Name*</label>
                                     <input id="dept_name" name="name" type="text" class="form-input" required autocomplete="off" placeholder="e.g., Radiology">
@@ -246,12 +233,12 @@
                 </div>
             </div>
 
-            <!-- Edit Resource Modal (styled like Add User modal) -->
+            <!-- Edit Resource Modal -->
             <div id="editResourceModal" class="hms-modal-overlay" aria-hidden="true">
                 <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="editResourceTitle">
                     <div class="hms-modal-header">
                         <div class="hms-modal-title" id="editResourceTitle">
-                            <i class="fas fa-edit text-primary"></i>
+                            <i class="fas fa-edit" style="color:#4f46e5"></i>
                             Edit Resource
                         </div>
                         <button type="button" class="btn btn-secondary btn-small" onclick="closeEditResourceModal()" aria-label="Close">
@@ -263,39 +250,45 @@
                         <div class="hms-modal-body">
                             <div class="form-grid">
                                 <div>
-                                    <label class="form-label" for="er_name">Name</label>
-                                    <input id="er_name" name="name" type="text" class="form-input" required autocomplete="off">
+                                    <label class="form-label" for="er_name">Resource Name*</label>
+                                    <input id="er_name" name="name" type="text" class="form-input" required autocomplete="off" placeholder="Enter resource name">
+                                    <small id="err_er_name" style="color:#dc2626"></small>
                                 </div>
                                 <div>
-                                    <label class="form-label" for="er_category">Category</label>
-                                    <input id="er_category" name="category" type="text" class="form-input" required>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="er_quantity">Quantity</label>
-                                    <input id="er_quantity" name="quantity" type="number" class="form-input" min="0" required autocomplete="off">
-                                </div>
-                                <div>
-                                    <label class="form-label" for="er_status">Status</label>
-                                    <select id="er_status" name="status" class="form-select" required>
-                                        <option value="available">Available</option>
-                                        <option value="in_use">In Use</option>
-                                        <option value="maintenance">Maintenance</option>
-                                        <option value="retired">Retired</option>
+                                    <label class="form-label" for="er_category">Category*</label>
+                                    <select id="er_category" name="category" class="form-select" required>
+                                        <option value="">Select category</option>
+                                        <option value="Equipment">Equipment</option>
+                                        <option value="Facility">Facility</option>
+                                        <option value="Personnel">Personnel</option>
                                     </select>
+                                    <small id="err_er_category" style="color:#dc2626"></small>
                                 </div>
                                 <div>
-                                    <label class="form-label" for="er_location">Location</label>
-                                    <input id="er_location" name="location" type="text" class="form-input" autocomplete="off">
+                                    <label class="form-label" for="er_quantity">Quantity*</label>
+                                    <input id="er_quantity" name="quantity" type="number" class="form-input" min="1" required autocomplete="off" placeholder="Enter quantity">
+                                    <small id="err_er_quantity" style="color:#dc2626"></small>
                                 </div>
-                                <div class="full">
-                                    <label class="form-label" for="er_notes">Notes</label>
-                                    <textarea id="er_notes" name="notes" rows="3" class="form-textarea" autocomplete="off"></textarea>
+                                <div>
+                                    <label class="form-label" for="er_status">Status*</label>
+                                    <select id="er_status" name="status" class="form-select" required>
+                                        <option value="Available">Available</option>
+                                        <option value="In Use">In Use</option>
+                                        <option value="Maintenance">Maintenance</option>
+                                        <option value="Out of Order">Out of Order</option>
+                                    </select>
+                                    <small id="err_er_status" style="color:#dc2626"></small>
+                                </div>
+                                <div>
+                                    <label class="form-label" for="er_location">Location*</label>
+                                    <input id="er_location" name="location" type="text" class="form-input" required autocomplete="off" placeholder="Enter location">
+                                    <small id="err_er_location" style="color:#dc2626"></small>
                                 </div>
                             </div>
                         </div>
                         <div class="hms-modal-actions">
                             <button type="button" class="btn btn-secondary" onclick="closeEditResourceModal()">Cancel</button>
-                            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Update Resource</button>
                         </div>
                     </form>
                 </div>
@@ -310,68 +303,187 @@
             </script>
             <script src="<?= base_url('js/admin/resource-management.js') ?>"></script>
             <script>
-                // Department modal open/close
-                const addDepartmentBtn = document.getElementById('addDepartmentBtn');
-                const addDepartmentModal = document.getElementById('addDepartmentModal');
-                const addDepartmentForm = document.getElementById('addDepartmentForm');
+                // Add Resource modal functions
+                function openAddResourceModal() {
+                    const modal = document.getElementById('addResourceModal');
+                    if (modal) {
+                        modal.setAttribute('aria-hidden', 'false');
+                        modal.style.display = 'block';
+                    }
+                }
+                function closeAddResourceModal() {
+                    const modal = document.getElementById('addResourceModal');
+                    const form = document.getElementById('addResourceForm');
+                    if (modal) {
+                        modal.setAttribute('aria-hidden', 'true');
+                        modal.style.display = 'none';
+                    }
+                    if (form) form.reset();
+                    // Clear errors
+                    const errors = form?.querySelectorAll('[id^="err_res_"]');
+                    errors?.forEach(e => e.textContent = '');
+                }
+                function openEditResourceModal() {
+                    const modal = document.getElementById('editResourceModal');
+                    if (modal) {
+                        modal.setAttribute('aria-hidden', 'false');
+                        modal.style.display = 'block';
+                    }
+                }
+                function closeEditResourceModal() {
+                    const modal = document.getElementById('editResourceModal');
+                    const form = document.getElementById('editResourceForm');
+                    if (modal) {
+                        modal.setAttribute('aria-hidden', 'true');
+                        modal.style.display = 'none';
+                    }
+                    if (form) form.reset();
+                    // Clear errors
+                    const errors = form?.querySelectorAll('[id^="err_er_"]');
+                    errors?.forEach(e => e.textContent = '');
+                }
 
+                // Add Department modal functions
                 function openAddDepartmentModal() {
-                    if (addDepartmentModal) {
-                        addDepartmentModal.setAttribute('aria-hidden', 'false');
-                        addDepartmentModal.style.display = 'block';
+                    const modal = document.getElementById('addDepartmentModal');
+                    if (modal) {
+                        modal.setAttribute('aria-hidden', 'false');
+                        modal.style.display = 'block';
                     }
                 }
                 function closeAddDepartmentModal() {
-                    if (addDepartmentModal) {
-                        addDepartmentModal.setAttribute('aria-hidden', 'true');
-                        addDepartmentModal.style.display = 'none';
+                    const modal = document.getElementById('addDepartmentModal');
+                    const form = document.getElementById('addDepartmentForm');
+                    if (modal) {
+                        modal.setAttribute('aria-hidden', 'true');
+                        modal.style.display = 'none';
                     }
-                    if (addDepartmentForm) addDepartmentForm.reset();
-                    const errs = addDepartmentForm?.querySelectorAll('[id^="err_"]');
-                    errs?.forEach(e => e.textContent = '');
-                }
-                if (addDepartmentBtn) {
-                    addDepartmentBtn.addEventListener('click', openAddDepartmentModal);
+                    if (form) form.reset();
+                    // Clear errors
+                    const errors = form?.querySelectorAll('[id^="err_dept_"]');
+                    errors?.forEach(e => e.textContent = '');
                 }
 
-                // Submit department to API
+                // Add Department button event listener
+                document.getElementById('addDepartmentBtn')?.addEventListener('click', openAddDepartmentModal);
+
+                // Add Department form submission
+                const addDepartmentForm = document.getElementById('addDepartmentForm');
                 if (addDepartmentForm) {
                     addDepartmentForm.addEventListener('submit', async (e) => {
                         e.preventDefault();
+
+                        // Clear previous errors
+                        const errors = addDepartmentForm.querySelectorAll('[id^="err_dept_"]');
+                        errors.forEach(error => error.textContent = '');
+
+                        // Get form values
                         const name = document.getElementById('dept_name')?.value?.trim();
                         const description = document.getElementById('dept_description')?.value?.trim();
-                        document.getElementById('err_dept_name').textContent = '';
+
+                        // Validate
+                        let hasErrors = false;
                         if (!name) {
                             document.getElementById('err_dept_name').textContent = 'Department name is required.';
-                            return;
+                            hasErrors = true;
                         }
+
+                        if (hasErrors) return;
+
                         try {
                             const formData = new FormData(addDepartmentForm);
-                            // Manually ensure trimmed values
-                            formData.set('name', name || '');
-                            formData.set('description', description || '');
-                            const res = await fetch('<?= site_url('departments/create') ?>', {
+                            const res = await fetch(window.HMS.baseUrl + '/departments/create', {
                                 method: 'POST',
                                 body: formData
                             });
+
                             let data = null;
-                            let raw = '';
                             try {
-                                raw = await res.text();
+                                const raw = await res.text();
                                 data = raw ? JSON.parse(raw) : null;
-                            } catch (e) { /* non-JSON response */ }
+                            } catch (e) {}
+
                             if (!res.ok || (data && data.status === 'error')) {
-                                const detail = data?.db_error?.message || data?.message || raw || 'Failed to save department';
+                                const detail = data?.message || 'Failed to save department';
+                                alert('Error: ' + detail);
+                                return;
+                            }
+
+                            closeAddDepartmentModal();
+                            alert('Department saved successfully');
+                            location.reload();
+                        } catch (err) {
+                            alert('Failed to save department');
+                        }
+                    });
+                }
+
+                // Add Resource form submission
+                const addResourceForm = document.getElementById('addResourceForm');
+                if (addResourceForm) {
+                    addResourceForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+
+                        // Clear previous errors
+                        const errors = addResourceForm.querySelectorAll('[id^="err_res_"]');
+                        errors.forEach(error => error.textContent = '');
+
+                        // Get form values
+                        const name = document.getElementById('res_name')?.value?.trim();
+                        const category = document.getElementById('res_category')?.value;
+                        const quantity = document.getElementById('res_quantity')?.value;
+                        const status = document.getElementById('res_status')?.value;
+                        const location = document.getElementById('res_location')?.value?.trim();
+
+                        // Validate
+                        let hasErrors = false;
+                        if (!name) {
+                            document.getElementById('err_res_name').textContent = 'Resource name is required.';
+                            hasErrors = true;
+                        }
+                        if (!category) {
+                            document.getElementById('err_res_category').textContent = 'Please select a category.';
+                            hasErrors = true;
+                        }
+                        if (!quantity || quantity < 1) {
+                            document.getElementById('err_res_quantity').textContent = 'Quantity must be at least 1.';
+                            hasErrors = true;
+                        }
+                        if (!status) {
+                            document.getElementById('err_res_status').textContent = 'Please select a status.';
+                            hasErrors = true;
+                        }
+                        if (!location) {
+                            document.getElementById('err_res_location').textContent = 'Location is required.';
+                            hasErrors = true;
+                        }
+
+                        if (hasErrors) return;
+
+                        try {
+                            const formData = new FormData(addResourceForm);
+                            const res = await fetch(window.HMS.baseUrl + '/admin/resource-management/create', {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            let data = null;
+                            try {
+                                const raw = await res.text();
+                                data = raw ? JSON.parse(raw) : null;
+                            } catch (e) {}
+
+                            if (!res.ok || (data && data.status === 'error')) {
+                                const detail = data?.db_error?.message || data?.message || 'Failed to save resource';
                                 alert(detail);
                                 return;
                             }
-                            // Success
-                            closeAddDepartmentModal();
-                            alert('Department saved successfully');
-                            // Optional: reload to reflect in any lists on page
-                            // location.reload();
+
+                            closeAddResourceModal();
+                            alert('Resource saved successfully');
+                            location.reload();
                         } catch (err) {
-                            alert('Failed to save department');
+                            alert('Failed to save resource');
                         }
                     });
                 }

@@ -221,6 +221,13 @@ $routes->put('doctor/prescription/(:any)', 'PrescriptionManagement::update', ['f
 // Financial Management Views - Role-specific entry points
 $routes->get('accountant/financial', 'FinancialManagement::index', ['filter' => 'roleauth:accountant']);
 $routes->get('admin/financial-management', 'FinancialManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/financial', 'FinancialManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/finance', 'FinancialManagement::index', ['filter' => 'roleauth:admin']);
+// Redirect common typos to the canonical route
+if (method_exists($routes, 'addRedirect')) {
+    $routes->addRedirect('admin/financial%20management', 'admin/financial-management');
+    $routes->addRedirect('admin/financial_management', 'admin/financial-management');
+}
 $routes->get('doctor/financial', 'FinancialManagement::index', ['filter' => 'roleauth:doctor']);
 $routes->get('receptionist/financial', 'FinancialManagement::index', ['filter' => 'roleauth:receptionist']);
 

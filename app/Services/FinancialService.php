@@ -13,6 +13,32 @@ class FinancialService
         $this->db = $db ?? \Config\Database::connect();
     }
 
+    // Helpers
+    private function sumIfTable(string $table, string $column, array $where = []): float
+    {
+        if (!$this->db->tableExists($table)) {
+            return 0.0;
+        }
+        $builder = $this->db->table($table)->selectSum($column);
+        foreach ($where as $k => $v) {
+            $builder->where($k, $v);
+        }
+        $row = $builder->get()->getRow();
+        return (isset($row) && isset($row->{$column})) ? (float)$row->{$column} : 0.0;
+    }
+
+    private function countIfTable(string $table, array $where = []): int
+    {
+        if (!$this->db->tableExists($table)) {
+            return 0;
+        }
+        $builder = $this->db->table($table);
+        foreach ($where as $k => $v) {
+            $builder->where($k, $v);
+        }
+        return (int)$builder->countAllResults();
+    }
+
     public function getFinancialStats(string $userRole, int $userId = null): array
     {
         try {
@@ -36,50 +62,58 @@ class FinancialService
 
     private function getSystemWideStats(): array
     {
-        $totalIncome = $this->db->table('payments')->selectSum('amount')->where('status', 'completed')->get()->getRow()->amount ?? 0;
-        $totalExpenses = $this->db->table('expenses')->selectSum('amount')->get()->getRow()->amount ?? 0;
-        $pendingBills = $this->db->table('bills')->where('status', 'pending')->countAllResults();
+        $totalIncome = $this->sumIfTable('payments', 'amount', ['status' => 'completed']);
+        $totalExpenses = $this->sumIfTable('expenses', 'amount');
+        $pendingBills = $this->countIfTable('bills', ['status' => 'pending']);
         
         return [
             'total_income' => (float)$totalIncome,
             'total_expenses' => (float)$totalExpenses,
             'net_balance' => (float)$totalIncome - (float)$totalExpenses,
             'pending_bills' => $pendingBills,
-            'paid_bills' => $this->db->table('bills')->where('status', 'paid')->countAllResults()
+            'paid_bills' => $this->countIfTable('bills', ['status' => 'paid'])
         ];
     }
 
     private function getDoctorStats(int $doctorId): array
     {
-        $income = $this->db->table('payments p')
-            ->join('bills b', 'b.bill_id = p.bill_id')
-            ->selectSum('p.amount')
-            ->where('b.doctor_id', $doctorId)
-            ->where('p.status', 'completed')
-            ->get()->getRow()->amount ?? 0;
+        $income = 0.0;
+        if ($this->db->tableExists('payments') && $this->db->tableExists('bills')) {
+            $row = $this->db->table('payments p')
+                ->join('bills b', 'b.bill_id = p.bill_id')
+                ->selectSum('p.amount')
+                ->where('b.doctor_id', $doctorId)
+                ->where('p.status', 'completed')
+                ->get()->getRow();
+            $income = isset($row) && isset($row->amount) ? (float)$row->amount : 0.0;
+        }
 
         return [
             'total_income' => (float)$income,
             'total_expenses' => 0,
             'net_balance' => (float)$income,
-            'pending_bills' => $this->db->table('bills')->where('doctor_id', $doctorId)->where('status', 'pending')->countAllResults(),
+            'pending_bills' => $this->countIfTable('bills', ['doctor_id' => $doctorId, 'status' => 'pending']),
             'paid_bills' => 0
         ];
     }
 
     private function getReceptionistStats(): array
     {
-        $todayIncome = $this->db->table('payments')
-            ->selectSum('amount')
-            ->where('DATE(payment_date)', date('Y-m-d'))
-            ->where('status', 'completed')
-            ->get()->getRow()->amount ?? 0;
+        $todayIncome = 0.0;
+        if ($this->db->tableExists('payments')) {
+            $row = $this->db->table('payments')
+                ->selectSum('amount')
+                ->where('DATE(payment_date)', date('Y-m-d'))
+                ->where('status', 'completed')
+                ->get()->getRow();
+            $todayIncome = isset($row) && isset($row->amount) ? (float)$row->amount : 0.0;
+        }
 
         return [
             'total_income' => (float)$todayIncome,
             'total_expenses' => 0,
             'net_balance' => (float)$todayIncome,
-            'pending_bills' => $this->db->table('bills')->where('status', 'pending')->countAllResults(),
+            'pending_bills' => $this->countIfTable('bills', ['status' => 'pending']),
             'paid_bills' => 0
         ];
     }
@@ -100,6 +134,10 @@ class FinancialService
         try {
             if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'doctor', 'it_staff'])) {
                 return ['success' => false, 'message' => 'Insufficient permissions'];
+            }
+
+            if (!$this->db->tableExists('bills')) {
+                return ['success' => false, 'message' => 'Bills table is missing'];
             }
 
             $bill = [
@@ -126,6 +164,10 @@ class FinancialService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
+            if (!$this->db->tableExists('payments')) {
+                return ['success' => false, 'message' => 'Payments table is missing'];
+            }
+
             $payment = [
                 'bill_id' => $paymentData['bill_id'] ?? null,
                 'amount' => $paymentData['amount'] ?? 0,
@@ -147,6 +189,10 @@ class FinancialService
         try {
             if (!in_array($userRole, ['admin', 'accountant', 'it_staff'])) {
                 return ['success' => false, 'message' => 'Insufficient permissions'];
+            }
+
+            if (!$this->db->tableExists('expenses')) {
+                return ['success' => false, 'message' => 'Expenses table is missing'];
             }
 
             $expense = [

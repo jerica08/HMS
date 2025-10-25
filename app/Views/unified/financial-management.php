@@ -106,15 +106,15 @@
 
     <!-- Include Modal Components -->
     <?php if (in_array('create_bill', $permissions)): ?>
-        <?php include APPPATH . 'Views/unified/components/billing-modal.php'; ?>
+        <?php include APPPATH . 'Views/unified/modals/billing-modal.php'; ?>
     <?php endif; ?>
     
     <?php if (in_array('process_payment', $permissions)): ?>
-        <?php include APPPATH . 'Views/unified/components/payment-modal.php'; ?>
+        <?php include APPPATH . 'Views/unified/modals/payment-modal.php'; ?>
     <?php endif; ?>
     
     <?php if (in_array('create_expense', $permissions)): ?>
-        <?php include APPPATH . 'Views/unified/components/expense-modal.php'; ?>
+        <?php include APPPATH . 'Views/unified/modals/expense-modal.php'; ?>
     <?php endif; ?>
 
     <!-- JavaScript Files -->

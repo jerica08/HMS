@@ -65,7 +65,7 @@ class FinancialService
         $totalIncome = $this->sumIfTable('payments', 'amount', ['status' => 'completed']);
         $totalExpenses = $this->sumIfTable('expenses', 'amount');
         $pendingBills = $this->countIfTable('bills', ['status' => 'pending']);
-        
+
         return [
             'total_income' => (float)$totalIncome,
             'total_expenses' => (float)$totalExpenses,
@@ -207,6 +207,138 @@ class FinancialService
             return ['success' => true, 'message' => 'Expense created successfully'];
         } catch (\Exception $e) {
             return ['success' => false, 'message' => 'Error creating expense'];
+        }
+    }
+
+    public function createFinancialRecord(array $data, string $userRole, int $userId): array
+    {
+        try {
+            // Validate permissions based on category
+            $category = $data['category'] ?? '';
+            if ($category === 'Income') {
+                if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'doctor', 'it_staff'])) {
+                    return ['success' => false, 'message' => 'Insufficient permissions to create income records'];
+                }
+            } elseif ($category === 'Expense') {
+                if (!in_array($userRole, ['admin', 'accountant', 'it_staff'])) {
+                    return ['success' => false, 'message' => 'Insufficient permissions to create expense records'];
+                }
+            } else {
+                return ['success' => false, 'message' => 'Invalid category'];
+            }
+
+            // Validate required fields
+            $requiredFields = ['transaction_name', 'category', 'amount', 'date'];
+            foreach ($requiredFields as $field) {
+                if (empty($data[$field])) {
+                    return ['success' => false, 'message' => "Field '{$field}' is required"];
+                }
+            }
+
+            // Validate amount
+            $amount = (float)($data['amount'] ?? 0);
+            if ($amount <= 0) {
+                return ['success' => false, 'message' => 'Amount must be greater than zero'];
+            }
+
+            // Validate date
+            $date = $data['date'];
+            if (!strtotime($date)) {
+                return ['success' => false, 'message' => 'Invalid date format'];
+            }
+
+            if ($category === 'Income') {
+                // Create income record (payment)
+                if (!$this->db->tableExists('payments')) {
+                    return ['success' => false, 'message' => 'Payments table is missing'];
+                }
+
+                $payment = [
+                    'bill_id' => null, // General income, not tied to specific bill
+                    'amount' => $amount,
+                    'payment_method' => $data['payment_method'] ?? 'cash',
+                    'payment_date' => $date . ' ' . date('H:i:s'),
+                    'status' => 'completed',
+                    'processed_by' => $userId,
+                    'description' => $data['description'] ?? null
+                ];
+
+                $paymentId = $this->db->table('payments')->insert($payment);
+                return ['success' => true, 'message' => 'Income record created successfully'];
+
+            } elseif ($category === 'Expense') {
+                // Create expense record
+                if (!$this->db->tableExists('expenses')) {
+                    return ['success' => false, 'message' => 'Expenses table is missing'];
+                }
+
+                $expense = [
+                    'expense_name' => $data['transaction_name'],
+                    'amount' => $amount,
+                    'category' => $data['expense_category'] ?? 'other',
+                    'expense_date' => $date,
+                    'created_by' => $userId,
+                    'description' => $data['description'] ?? null
+                ];
+
+                $expenseId = $this->db->table('expenses')->insert($expense);
+                return ['success' => true, 'message' => 'Expense record created successfully'];
+            }
+
+            return ['success' => false, 'message' => 'Invalid category'];
+
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::createFinancialRecord error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error creating financial record'];
+        }
+    }
+    public function getAllTransactions(string $userRole, int $userId = null): array
+    {
+        try {
+            $transactions = [];
+
+            // Get income transactions (from payments table)
+            if ($this->db->tableExists('payments')) {
+                $payments = $this->db->table('payments')
+                    ->select('id, amount, payment_date as date, \'Income\' as category, payment_method as transaction_name, description')
+                    ->where('status', 'completed')
+                    ->orderBy('payment_date', 'DESC')
+                    ->limit(10)
+                    ->get()
+                    ->getResultArray();
+
+                foreach ($payments as $payment) {
+                    $transactions[] = array_merge($payment, [
+                        'type' => 'income',
+                        'transaction_name' => $payment['payment_method'] . ' Payment' . ($payment['description'] ? ' - ' . $payment['description'] : '')
+                    ]);
+                }
+            }
+
+            // Get expense transactions (from expenses table)
+            if ($this->db->tableExists('expenses')) {
+                $expenses = $this->db->table('expenses')
+                    ->select('id, expense_name as transaction_name, amount, expense_date as date, category as expense_category, description, \'Expense\' as category')
+                    ->orderBy('expense_date', 'DESC')
+                    ->limit(10)
+                    ->get()
+                    ->getResultArray();
+
+                foreach ($expenses as $expense) {
+                    $transactions[] = array_merge($expense, ['type' => 'expense']);
+                }
+            }
+
+            // Sort all transactions by date (newest first)
+            usort($transactions, function($a, $b) {
+                return strtotime($b['date']) - strtotime($a['date']);
+            });
+
+            return array_slice($transactions, 0, 20); // Return latest 20 transactions
+
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::getAllTransactions error: ' . $e->getMessage());
+            return [];
         }
     }
 }

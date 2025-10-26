@@ -230,26 +230,6 @@ if (method_exists($routes, 'addRedirect')) {
 }
 $routes->get('doctor/financial', 'FinancialManagement::index', ['filter' => 'roleauth:doctor']);
 $routes->get('receptionist/financial', 'FinancialManagement::index', ['filter' => 'roleauth:receptionist']);
-
-// Financial Management API Routes
-$routes->post('financial/bill/create', 'FinancialManagement::createBill', ['filter' => 'roleauth:admin,accountant,doctor,receptionist,it_staff']);
-$routes->post('financial/payment/process', 'FinancialManagement::processPayment', ['filter' => 'roleauth:admin,accountant,receptionist,it_staff']);
-$routes->post('financial/expense/create', 'FinancialManagement::createExpense', ['filter' => 'roleauth:admin,accountant,it_staff']);
-
-// ===================================================================
-// ANALYTICS & REPORTS
-// ===================================================================
-
-// Analytics Views - Role-specific entry points
-$routes->get('accountant/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:accountant']);
-$routes->get('admin/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:admin']);
-$routes->get('doctor/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:doctor']);
-$routes->get('it-staff/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:it_staff']);
-$routes->get('nurse/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:nurse']);
-$routes->get('receptionist/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:receptionist']);
-
-// Analytics API Routes
-$routes->get('analytics/api', 'AnalyticsManagement::getAnalyticsAPI', ['filter' => 'roleauth:admin,accountant,doctor,nurse,receptionist,it_staff']);
 $routes->post('analytics/report/generate', 'AnalyticsManagement::generateReport', ['filter' => 'roleauth:admin,accountant,doctor,it_staff']);
 
 // ===================================================================
@@ -312,4 +292,10 @@ $routes->get('create_resources_table.php', function() {
 });
 $routes->get('create_department_table.php', function() {
     require APPPATH . '../create_department_table.php';
+});
+$routes->get('create_sample_data.php', function() {
+    require APPPATH . '../create_sample_data.php';
+});
+$routes->get('setup_financial_tables.php', function() {
+    require APPPATH . '../setup_financial_tables.php';
 });

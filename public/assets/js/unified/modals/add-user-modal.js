@@ -75,7 +75,8 @@ window.AddUserModal = {
             // Reset staff dropdown
             const staffSelect = document.getElementById('staff_id');
             if (staffSelect) {
-                staffSelect.innerHTML = '<option value="">Select staff member...</option>';
+                // Keep server-rendered options; just reset selection
+                staffSelect.value = '';
             }
         }
     },
@@ -90,7 +91,10 @@ window.AddUserModal = {
         if (!staffSelect) return;
         
         try {
-            staffSelect.innerHTML = '<option value="">Loading staff...</option>';
+            // Only show loading placeholder if there are no existing options
+            if (staffSelect.options.length <= 1) {
+                staffSelect.innerHTML = '<option value="">Loading staff...</option>';
+            }
             
             const response = await UserUtils.makeRequest(
                 UserConfig.getUrl(UserConfig.endpoints.availableStaff)
@@ -104,7 +108,10 @@ window.AddUserModal = {
             }
         } catch (error) {
             console.error('Error loading staff:', error);
-            staffSelect.innerHTML = '<option value="">Error loading staff</option>';
+            // Preserve existing options if present; only show error if empty
+            if (staffSelect.options.length <= 1) {
+                staffSelect.innerHTML = '<option value="">Error loading staff</option>';
+            }
             throw error;
         }
     },

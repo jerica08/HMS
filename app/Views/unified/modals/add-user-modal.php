@@ -16,7 +16,27 @@
                     <div>
                         <label class="form-label" for="staff_id">Staff Member*</label>
                         <select id="staff_id" name="staff_id" class="form-select" required>
-                            <option value="">Loading staff...</option>
+                            <?php if (!empty($availableStaff) && is_array($availableStaff)): ?>
+                                <option value="">Select staff member...</option>
+                                <?php foreach ($availableStaff as $staff): ?>
+                                    <?php
+                                        $fullName = trim(($staff['first_name'] ?? '') . ' ' . ($staff['last_name'] ?? ''));
+                                        $department = $staff['department'] ?? 'No Department';
+                                        $emp = $staff['employee_id'] ?? ($staff['staff_id'] ?? '');
+                                        $email = $staff['email'] ?? '';
+                                        $role = $staff['role'] ?? ($staff['designation'] ?? '');
+                                        $label = trim($fullName) !== '' ? $fullName : 'Unnamed';
+                                        $display = sprintf('%s - %s (%s)', $label, $department, $emp);
+                                    ?>
+                                    <option value="<?= esc($staff['staff_id']) ?>"
+                                            data-email="<?= esc($email) ?>"
+                                            data-role="<?= esc($role) ?>">
+                                        <?= esc($display) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="">No available staff members</option>
+                            <?php endif; ?>
                         </select>
                         <small id="err_staff_id" style="color:#dc2626"></small>
                     </div>

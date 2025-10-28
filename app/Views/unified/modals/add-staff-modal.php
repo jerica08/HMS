@@ -64,10 +64,11 @@
                             <option value="">Select department</option>
                             <?php if (!empty($departments)): ?>
                                 <?php foreach ($departments as $dept): ?>
-                                    <option value="<?= esc($dept['name']) ?>"><?= esc($dept['name']) ?></option>
+                                    <option value="<?= esc($dept['name']) ?>" data-id="<?= esc($dept['department_id']) ?>"><?= esc($dept['name']) ?></option>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </select>
+                        <input type="hidden" id="department_id" name="department_id" value="">
                         <small id="err_department" style="color:#dc2626"></small>
                     </div>
                     <div>

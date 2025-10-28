@@ -22,6 +22,8 @@ class StaffService
             $builder = $this->db->table('staff s')
                 ->select('s.*, 
                          s.staff_id as id,
+                         s.department_id,
+                         dpt.name as department,
                          CONCAT(s.first_name, " ", s.last_name) as full_name,
                          TIMESTAMPDIFF(YEAR, s.dob, CURDATE()) as age,
                          DATE_FORMAT(s.date_joined, "%M %d, %Y") as formatted_date_joined,
@@ -35,6 +37,7 @@ class StaffService
                          a.license_no as accountant_license_no,
                          r.desk_no as receptionist_desk_no,
                          i.expertise as it_expertise')
+                ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
                 ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
                 ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
                 ->join('pharmacist p', 'p.staff_id = s.staff_id', 'left')
@@ -52,15 +55,15 @@ class StaffService
                 case 'doctor':
                     // Doctors can see staff in their department and nurses
                     $doctorInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                    if ($doctorInfo && !empty($doctorInfo['department'])) {
-                        $builder->where('s.department', $doctorInfo['department']);
+                    if ($doctorInfo && !empty($doctorInfo['department_id'])) {
+                        $builder->where('s.department_id', $doctorInfo['department_id']);
                     }
                     break;
                 case 'nurse':
                     // Nurses can see staff in their department
                     $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                    if ($nurseInfo && !empty($nurseInfo['department'])) {
-                        $builder->where('s.department', $nurseInfo['department']);
+                    if ($nurseInfo && !empty($nurseInfo['department_id'])) {
+                        $builder->where('s.department_id', $nurseInfo['department_id']);
                     }
                     break;
                 case 'receptionist':
@@ -75,7 +78,8 @@ class StaffService
 
             // Apply additional filters
             if (isset($filters['department'])) {
-                $builder->where('s.department', $filters['department']);
+                // Filter by department name via join
+                $builder->where('dpt.name', $filters['department']);
             }
             
             if (isset($filters['role'])) {
@@ -93,7 +97,7 @@ class StaffService
                     ->orLike('s.last_name', $search)
                     ->orLike('s.employee_id', $search)
                     ->orLike('s.email', $search)
-                    ->orLike('s.department', $search)
+                    ->orLike('dpt.name', $search)
                     ->groupEnd();
             }
 
@@ -613,6 +617,7 @@ class StaffService
             'email' => $input['email'] ?? null,
             'address' => $input['address'] ?? null,
             'department' => $input['department'] ?? null,
+            'department_id' => $input['department_id'] ?? null,
             'role' => $input['role'] ?? null,
             'date_joined' => $input['date_joined'] ?? date('Y-m-d'),
             // Note: 'status' and timestamp columns are not present in current migration; do not include

@@ -49,9 +49,11 @@ class StaffManagement extends BaseController
         $staffResult = $this->staffService->getStaffByRole($this->userRole, $this->staffId);
         $stats = $this->staffService->getStaffStats($this->userRole, $this->staffId);
         
-        // Load departments from department table for dynamic dropdowns
-        $deptRows = $this->db->table('department')->select('name')->orderBy('name','ASC')->get()->getResultArray();
-        $departments = array_map(function($r){ return ['name' => $r['name']]; }, $deptRows);
+        // Load departments from department table for dynamic dropdowns (id + name)
+        $departments = $this->db->table('department')
+            ->select('department_id, name')
+            ->orderBy('name','ASC')
+            ->get()->getResultArray();
 
         $data = [
             'title' => $this->getPageTitle(),

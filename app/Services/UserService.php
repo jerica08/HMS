@@ -371,10 +371,13 @@ class UserService
     public function getAvailableStaff($userRole)
     {
         try {
-            // Get staff members who don't have user accounts yet
+            // Get staff members who don't have user accounts yet (anti-join)
+            // Include department name via join
             $staff = $this->db->table('staff s')
-                ->select('s.staff_id, s.first_name, s.last_name, s.employee_id, s.email, s.role, s.designation, s.department')
-                ->where('s.staff_id NOT IN (SELECT staff_id FROM users WHERE staff_id IS NOT NULL)', null, false)
+                ->select('s.staff_id, s.first_name, s.last_name, s.employee_id, s.email, s.role, dpt.name AS department')
+                ->join('users u', 'u.staff_id = s.staff_id', 'left')
+                ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
+                ->where('u.staff_id IS NULL')
                 ->orderBy('s.first_name', 'ASC')
                 ->get()->getResultArray();
 

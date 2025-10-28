@@ -17,6 +17,19 @@ window.AddStaffModal = {
             designationEl?.addEventListener('change', () => this.toggleRoleFields());
             // Initialize visibility once
             this.toggleRoleFields();
+
+            // Bind department change to set hidden department_id
+            const deptEl = document.getElementById('department');
+            if (deptEl) {
+                deptEl.addEventListener('change', () => {
+                    const opt = deptEl.selectedOptions[0];
+                    const id = opt ? opt.getAttribute('data-id') : '';
+                    const deptIdEl = document.getElementById('department_id');
+                    if (deptIdEl) {
+                        deptIdEl.value = id || '';
+                    }
+                });
+            }
         }
         
         // Close modal on escape key
@@ -63,6 +76,10 @@ window.AddStaffModal = {
             this.form.reset();
             this.clearErrors();
             this.toggleRoleFields();
+            const deptIdEl = document.getElementById('department_id');
+            if (deptIdEl) {
+                deptIdEl.value = '';
+            }
         }
     },
     

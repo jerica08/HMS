@@ -445,18 +445,58 @@ class PatientService
     public function getAvailableDoctors()
     {
         try {
-            $doctors = $this->db->table('staff s')
+            // Primary source: doctors table joined to staff
+            $fromDoctorTable = $this->db->table('doctor d')
                 ->select('s.staff_id, s.first_name, s.last_name, s.department, d.specialization')
-                ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
-                ->groupStart()
-                    ->where('s.role', 'doctor')
-                    ->orWhere('s.designation', 'doctor')
-                ->groupEnd()
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
                 ->orderBy('s.first_name', 'ASC')
                 ->get()
                 ->getResultArray();
-            
+
+            // Also include staff who are marked as doctors via role/designation
+            $staffBuilder = $this->db->table('staff s')
+                ->select('s.staff_id, s.first_name, s.last_name, s.department, NULL as specialization')
+                ->orderBy('s.first_name', 'ASC');
+
+            // Case-insensitive and partial match for role/designation containing common doctor synonyms
+            $staffBuilder->groupStart()
+                ->like('s.role', 'doctor', 'both', null, true)
+                ->orLike('s.designation', 'doctor', 'both', null, true)
+                ->orLike('s.role', 'physician', 'both', null, true)
+                ->orLike('s.designation', 'physician', 'both', null, true)
+                ->orLike('s.designation', 'md', 'both', null, true)
+            ->groupEnd();
+
+            $fromStaffRole = $staffBuilder->get()->getResultArray();
+
+            // Merge and de-duplicate by staff_id, prefer entries that have specialization from doctor table
+            $merged = [];
+            foreach (array_merge($fromDoctorTable, $fromStaffRole) as $row) {
+                $id = $row['staff_id'] ?? null;
+                if (!$id) {
+                    // Require a valid staff_id to assign
+                    continue;
+                }
+                if (!isset($merged[$id])) {
+                    $merged[$id] = $row;
+                } else {
+                    // Prefer row that has specialization info
+                    if (!empty($row['specialization']) && empty($merged[$id]['specialization'])) {
+                        $merged[$id] = $row;
+                    }
+                }
+            }
+
+            $doctors = array_values($merged);
+
             return array_map(function($d) {
+                // Fallback: if both first and last names are missing, synthesize a readable label
+                $first = trim($d['first_name'] ?? '');
+                $last = trim($d['last_name'] ?? '');
+                if ($first === '' && $last === '') {
+                    $d['first_name'] = 'Doctor';
+                    $d['last_name'] = (string)($d['staff_id'] ?? '');
+                }
                 $d['full_name'] = trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''));
                 $d['id'] = $d['staff_id'];
                 return $d;

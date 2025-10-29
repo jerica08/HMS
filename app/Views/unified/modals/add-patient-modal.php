@@ -114,7 +114,16 @@
                     <div>
                         <label class="form-label" for="assigned_doctor">Assign Doctor</label>
                         <select id="assigned_doctor" name="assigned_doctor" class="form-select">
-                            <option value="">Loading doctors...</option>
+                            <?php if (!empty($availableDoctors)): ?>
+                                <option value="">Select Doctor (Optional)</option>
+                                <?php foreach ($availableDoctors as $d): ?>
+                                    <option value="<?= esc($d['staff_id'] ?? $d['id']) ?>">
+                                        <?= esc(trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''))) ?><?= !empty($d['department']) ? ' - ' . esc($d['department']) : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="">Loading doctors...</option>
+                            <?php endif; ?>
                         </select>
                         <small id="err_assigned_doctor" style="color:#dc2626"></small>
                     </div>

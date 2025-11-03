@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?? 'Dashboard' ?> - HMS <?= ucfirst($userRole ?? 'User') ?></title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>">
-
+    <link rel="stylesheet" href="<?= base_url('assets/css/unified/dashboard.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <meta name="base-url" content="<?= base_url() ?>">
     <meta name="csrf-token" content="<?= csrf_token() ?>">
@@ -38,10 +38,7 @@
                     ?>
                 </h1>
                 <div class="page-actions">
-                    <div class="current-time" id="currentTime"></div>
                     <div class="weather-widget" id="weatherWidget">
-                        <i class="fas fa-cloud-sun"></i>
-                        <span>Loading...</span>
                     </div>
                 </div>
             </div>

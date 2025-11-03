@@ -1,52 +1,167 @@
-/* ===================================================================
-   UNIFIED STAFF MANAGEMENT STYLES
-   ================================================================== */
+/* Unified Staff Management CSS - Matching Shift Management Design */
 
-/* Staff Table Container */
-.staff-table-container {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
+/* Page Layout */
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-/* Table Controls */
-.table-controls {
-    padding: 1.5rem;
-    border-bottom: 1px solid #e2e8f0;
-    background: #f7fafc;
+.page-title i {
+    color: #3b82f6;
+    font-size: 1.75rem;
 }
 
-.search-filters h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #2d3748;
+.page-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+/* Sticky Header Section */
+.page-header-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #f9fafb;
+    padding: 1rem 0;
     margin-bottom: 1rem;
 }
 
-.filter-row {
+/* Dashboard Overview - Sticky at top */
+.dashboard-overview {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 1rem;
-    align-items: end;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    position: sticky;
+    top: 80px; /* Below header */
+    z-index: 50;
+    background: #f9fafb;
+    padding: 1rem 0;
 }
 
-@media (max-width: 768px) {
-    .filter-row {
-        grid-template-columns: 1fr;
-    }
+.overview-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+
+.overview-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.card-header-modern {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.card-icon-modern {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.card-icon-modern.blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.card-icon-modern.green { background: linear-gradient(135deg, #10b981, #047857); }
+.card-icon-modern.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.card-icon-modern.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.card-icon-modern.red { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+.card-info {
+    flex: 1;
+}
+
+.card-title-modern {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 0.25rem 0;
+}
+
+.card-subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.card-metrics {
+    display: flex;
+    gap: 2rem;
+}
+
+.metric {
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.metric-value.blue { color: #3b82f6; }
+.metric-value.green { color: #10b981; }
+.metric-value.orange { color: #f59e0b; }
+.metric-value.purple { color: #8b5cf6; }
+.metric-value.red { color: #ef4444; }
+
+.metric-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Controls Section - Also sticky */
+.controls-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+    position: sticky;
+    top: 260px; /* Below stat cards */
+    z-index: 40;
+}
+
+.filters-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: end;
 }
 
 .filter-group {
     display: flex;
     flex-direction: column;
+    gap: 0.5rem;
+    min-width: 150px;
 }
 
 .filter-group label {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #4a5568;
-    margin-bottom: 0.5rem;
+    color: #374151;
 }
 
 .filter-input {
@@ -87,31 +202,82 @@
 /* Staff Table */
 .table-responsive {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 600px; /* Set maximum height for vertical scroll */
+    position: relative;
+    /* Add subtle inner shadow to show scrollable area */
+    box-shadow: inset 0 -10px 10px -10px rgba(0, 0, 0, 0.05);
+}
+
+/* Show shadow when scrolled */
+.table-responsive.scrolled {
+    box-shadow: inset 0 10px 10px -10px rgba(0, 0, 0, 0.1),
+                inset 0 -10px 10px -10px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom scrollbar styling */
+.table-responsive::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 5px;
+    margin: 4px 0;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 5px;
+    border: 2px solid #f1f5f9;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* Scrollbar corner */
+.table-responsive::-webkit-scrollbar-corner {
+    background: #f1f5f9;
 }
 
 .table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 800px; /* Minimum width to trigger horizontal scroll */
+}
+
+.table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f8fafc;
 }
 
 .table th {
-    background: #f7fafc;
+    background: #f8fafc;
     padding: 1rem;
     text-align: left;
     font-weight: 600;
-    color: #4a5568;
+    color: #374151;
     font-size: 0.875rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
 }
 
 .table td {
     padding: 1rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #f3f4f6;
     font-size: 0.875rem;
 }
 
 .table tbody tr:hover {
-    background: #f7fafc;
+    background: #f9fafb;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
 }
 
 /* Staff Info */
@@ -490,17 +656,277 @@
 }
 
 .details-section h4 i {
-    margin-right: 0.5rem;
-    color: #667eea;
+margin-right: 0.5rem;
+color: #667eea;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
+.details-grid {
+grid-template-columns: 1fr;
+}
+  
+.detail-item.full-width {
+grid-column: span 1;
+}
+}
+
+/* Staff Table Container */
+.staff-table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+    margin-bottom: 2rem;
+    position: relative; /* Keep container in flow */
+}
+
+/* Smooth scrolling for all elements */
+.table-responsive {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    position: relative;
+}
+
+/* Content area allows natural scrolling */
+.content {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow: visible;
+}
+
+/* Success/Error Messages */
+.alert {
+padding: 1rem;
+border-radius: 8px;
+margin-bottom: 1rem;
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+
+.alert-success {
+background: #d1fae5;
+color: #047857;
+border: 1px solid #a7f3d0;
+}
+
+.alert-error {
+background: #fee2e2;
+color: #dc2626;
+border: 1px solid #fecaca;
+}
+
+.alert-warning {
+background: #fef3c7;
+color: #d97706;
+border: 1px solid #fde68a;
+}
+
+.alert i {
+font-size: 1.25rem;
+}
+
+/* Empty State */
+.empty-state {
+text-align: center;
+padding: 3rem 1rem;
+color: #6b7280;
+}
+
+.empty-state i {
+font-size: 3rem;
+margin-bottom: 1rem;
+color: #d1d5db;
+}
+
+.empty-state h3 {
+font-size: 1.25rem;
+font-weight: 600;
+margin-bottom: 0.5rem;
+color: #374151;
+}
+
+.empty-state p {
+margin-bottom: 1.5rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(10px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+from { transform: translateX(-10px); opacity: 0; }
+to { transform: translateX(0); opacity: 1; }
+}
+
+.slide-in {
+animation: slideIn 0.3s ease-out;
+}
+
+@keyframes spin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+/* Loading States */
+.loading {
+opacity: 0.6;
+pointer-events: none;
+}
+
+.loading .btn {
+position: relative;
+}
+
+.loading .btn::after {
+content: '';
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 16px;
+height: 16px;
+border: 2px solid transparent;
+border-top: 2px solid currentColor;
+border-radius: 50%;
+animation: spin 1s linear infinite;
+}
+
+.loading-row {
+text-align: center;
+color: #6b7280;
+font-style: italic;
+}
+
+.loading-row i {
+margin-right: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+.dashboard-overview {
+grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+}
+
+@media (max-width: 768px) {
+    .page-title {
+        font-size: 1.5rem;
+    }
+
+    .dashboard-overview {
+        grid-template-columns: 1fr;
+        top: 60px; /* Adjust for mobile */
+    }
+
+    .controls-section {
+        top: auto; /* Remove sticky on mobile */
+        position: relative;
+    }
+
+    .card-metrics {
+        gap: 1rem;
+    }
+
     .details-grid {
         grid-template-columns: 1fr;
     }
     
     .detail-item.full-width {
         grid-column: span 1;
+    }
+
+    .filters-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        min-width: auto;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        max-height: 500px; /* Reduce height on mobile */
+    }
+
+    .table {
+        min-width: 800px; /* Ensure horizontal scroll on mobile */
+    }
+
+    .table th,
+    .table td {
+        padding: 0.75rem; /* Reduce padding on mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .page-title {
+        font-size: 1.25rem;
+    }
+
+    .dashboard-overview {
+        position: relative; /* Remove sticky on very small screens */
+        top: auto;
+        padding: 0.5rem 0;
+    }
+
+    .overview-card {
+        padding: 1rem;
+    }
+    
+    .card-metrics {
+        gap: 1rem;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 5% auto;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 1rem;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .btn-sm {
+        width: 100%;
+    }
+
+    .table-responsive {
+        max-height: 400px; /* Further reduce on very small screens */
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem; /* Even smaller padding */
+        font-size: 0.75rem;
+    }
+
+    .staff-name {
+        font-size: 0.875rem;
+    }
+
+    .staff-id {
+        font-size: 0.625rem;
     }
 }

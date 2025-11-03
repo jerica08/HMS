@@ -8,6 +8,7 @@
     <meta name="user-role" content="<?= esc($userRole ?? 'admin') ?>">
     <title><?= esc($title ?? 'Staff Management') ?> - HMS</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
+     <link rel="stylesheet" href="<?= base_url('assets/css/unified/staff-management.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <?php
       // Initialize optional filter vars to avoid notices
@@ -22,7 +23,10 @@
      <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
     <main class="content" role="main">
-        <h1 class="page-title"><?= esc($title ?? 'Staff Management') ?></h1>
+        <h1 class="page-title">
+            <i class="fas fa-users-cog"></i>
+            <?= esc($title ?? 'Staff Management') ?>
+        </h1>
         <div class="page-actions">
             <?php if (($permissions['canCreate'] ?? false) || in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
                 <button type="button" class="btn btn-primary" id="addStaffBtn" aria-label="Add New Staff">

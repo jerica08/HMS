@@ -8,6 +8,7 @@
     <meta name="user-role" content="<?= esc($userRole ?? 'admin') ?>">
     <title><?= esc($title ?? 'User Management') ?> - HMS</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
+    <link rel="stylesheet" href="<?= base_url('assets/css/unified/user-management.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <?php
       // Initialize optional filter vars to avoid notices
@@ -19,9 +20,13 @@
 <?php include APPPATH . 'Views/template/header.php'; ?> 
 <div class="main-container">
     <!-- Unified Sidebar -->
-    <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+
     <main class="content" role="main">
-        <h1 class="page-title"><?= esc($title ?? 'User Management') ?></h1>
+        <h1 class="page-title">
+            <i class="fas fa-user-shield"></i>
+            <?= esc($title ?? 'User Management') ?>
+        </h1>
         <div class="page-actions">
             <?php if (($permissions['canCreate'] ?? false)): ?>
                 <button type="button" class="btn btn-primary" id="addUserBtn" aria-label="Add New User">
@@ -169,24 +174,22 @@
     </main>
 </div>
 
-<!-- Modals -->
-<?= $this->include('unified/modals/add-user-modal') ?>
-<?= $this->include('unified/modals/view-user-modal') ?>
-<?= $this->include('unified/modals/edit-user-modal') ?>
+        <!-- Modals -->
+        <?= $this->include('unified/modals/add-user-modal') ?>
+        <?= $this->include('unified/modals/view-user-modal') ?>
+        <?= $this->include('unified/modals/edit-user-modal') ?>
 
-<!-- User Management Scripts -->
-<script>
-function dismissFlash() {
-    const flashNotice = document.getElementById('flashNotice');
-    if (flashNotice) {
-        flashNotice.style.display = 'none';
-    }
-}
-</script>
-<script src="<?= base_url('assets/js/unified/user-utils.js') ?>"></script>
-<script src="<?= base_url('assets/js/unified/modals/add-user-modal.js') ?>"></script>
-<script src="<?= base_url('assets/js/unified/modals/view-user-modal.js') ?>"></script>
-<script src="<?= base_url('assets/js/unified/modals/edit-user-modal.js') ?>"></script>
-<script src="<?= base_url('assets/js/unified/user-management.js') ?>"></script>
-</body>
-</html>
+        <!-- User Management Scripts -->
+        <script>
+        function dismissFlash() {
+            const flashNotice = document.getElementById('flashNotice');
+            if (flashNotice) {
+                flashNotice.style.display = 'none';
+            }
+        }
+        </script>
+    <script src="<?= base_url('assets/js/unified/user-utils.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/modals/add-user-modal.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/modals/view-user-modal.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/modals/edit-user-modal.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/user-management.js') ?>"></script>

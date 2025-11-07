@@ -146,7 +146,7 @@
             <?php endif; ?>
         </div>
 
-        <div class="staff-table">
+        <div class="user-table">
             <div class="table-header">
                 <h3>Staff</h3>
             </div>

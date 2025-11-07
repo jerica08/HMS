@@ -1,8 +1,8 @@
-<!-- Create/Edit Shift Modal -->
-<div id="shiftModal" class="modal-overlay">
-    <div class="modal-container">
+<!-- Add Shift Modal -->
+<div id="shiftModal" class="modal">
+    <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title">
+            <h3>
                 <i class="fas fa-calendar-plus"></i>
                 <span id="modalTitle">Create Shift</span>
             </h3>
@@ -18,8 +18,8 @@
             <div class="modal-body">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="doctorSelect" class="form-label">Doctor *</label>
-                        <select id="doctorSelect" name="doctor_id" class="form-select" required>
+                        <label for="doctorSelect">Doctor *</label>
+                        <select id="doctorSelect" name="doctor_id" class="form-control" required>
                             <option value="">Select Doctor</option>
                             <?php foreach ($availableStaff as $staff): ?>
                                 <option value="<?= esc($staff['doctor_id']) ?>">
@@ -31,23 +31,23 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="shiftDate" class="form-label">Date *</label>
-                        <input type="date" id="shiftDate" name="shift_date" class="form-input" required>
+                        <label for="shiftDate">Date *</label>
+                        <input type="date" id="shiftDate" name="shift_date" class="form-control" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="shiftStart" class="form-label">Start Time *</label>
-                        <input type="time" id="shiftStart" name="shift_start" class="form-input" required>
+                        <label for="shiftStart">Start Time *</label>
+                        <input type="time" id="shiftStart" name="shift_start" class="form-control" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="shiftEnd" class="form-label">End Time *</label>
-                        <input type="time" id="shiftEnd" name="shift_end" class="form-input" required>
+                        <label for="shiftEnd">End Time *</label>
+                        <input type="time" id="shiftEnd" name="shift_end" class="form-control" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="shiftDepartment" class="form-label">Department</label>
-                        <select id="shiftDepartment" name="department" class="form-select">
+                        <label for="shiftDepartment">Department</label>
+                        <select id="shiftDepartment" name="department" class="form-control">
                             <option value="">Select Department</option>
                             <?php foreach ($departments as $dept): ?>
                                 <option value="<?= esc($dept['department']) ?>"><?= esc($dept['department']) ?></option>
@@ -56,8 +56,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="shiftType" class="form-label">Shift Type</label>
-                        <select id="shiftType" name="shift_type" class="form-select">
+                        <label for="shiftType">Shift Type</label>
+                        <select id="shiftType" name="shift_type" class="form-control">
                             <option value="">Select Type</option>
                             <?php foreach ($shiftTypes as $type): ?>
                                 <option value="<?= esc($type['shift_type']) ?>"><?= esc($type['shift_type']) ?></option>
@@ -66,8 +66,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="roomWard" class="form-label">Room/Ward</label>
-                        <select id="roomWard" name="room_ward" class="form-select">
+                        <label for="roomWard">Room/Ward</label>
+                        <select id="roomWard" name="room_ward" class="form-control">
                             <option value="">Select Room/Ward</option>
                             <?php foreach ($roomsWards as $room): ?>
                                 <option value="<?= esc($room['room_ward']) ?>"><?= esc($room['room_ward']) ?></option>
@@ -76,8 +76,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="shiftStatus" class="form-label">Status</label>
-                        <select id="shiftStatus" name="status" class="form-select">
+                        <label for="shiftStatus">Status</label>
+                        <select id="shiftStatus" name="status" class="form-control">
                             <option value="Scheduled">Scheduled</option>
                             <option value="Completed">Completed</option>
                             <option value="Cancelled">Cancelled</option>
@@ -85,8 +85,8 @@
                     </div>
                     
                     <div class="form-group full-width">
-                        <label for="shiftNotes" class="form-label">Notes</label>
-                        <textarea id="shiftNotes" name="notes" class="form-textarea" rows="3" placeholder="Optional notes..."></textarea>
+                        <label for="shiftNotes">Notes</label>
+                        <textarea id="shiftNotes" name="notes" class="form-control" rows="3" placeholder="Optional notes..." style="resize: vertical; min-height: 80px;"></textarea>
                     </div>
                 </div>
             </div>

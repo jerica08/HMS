@@ -1,8 +1,8 @@
 <!-- View Shift Modal -->
-<div id="viewShiftModal" class="modal-overlay">
-    <div class="modal-container">
+<div id="viewShiftModal" class="modal">
+    <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title">
+            <h3>
                 <i class="fas fa-eye"></i>
                 Shift Details
             </h3>
@@ -64,15 +64,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" id="closeViewShiftBtn">Close</button>
-            <?php if ($permissions['canEdit']): ?>
-            <button type="button" class="btn btn-primary" id="editFromViewBtn">
-                <i class="fas fa-edit"></i> Edit
-            </button>
-            <?php endif; ?>
         </div>
     </div>
 </div>

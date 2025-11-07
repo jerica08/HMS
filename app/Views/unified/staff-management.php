@@ -75,7 +75,7 @@
                 <!-- Total Staff Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern blue" aria-hidden="true">
+                        <div class="card-icon-modern blue">
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="card-info">
@@ -85,25 +85,28 @@
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue"><?= esc($staffStats['total_staff'] ?? 0) ?></div>
+                            <div class="metric-value blue"><?= $staffStats['total_staff'] ?? 0 ?></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Active Staff Card -->
+                <!-- Staff by Role Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern purple" aria-hidden="true">
-                            <i class="fas fa-user-check"></i>
-                        </div>
+                        <div class="card-icon-modern purple"><i class="fas fa-user-check"></i></div>
                         <div class="card-info">
-                            <h3 class="card-title-modern">Active Staff</h3>
-                            <p class="card-subtitle">Currently Active</p>
+                            <h3 class="card-title-modern">Staff Status</h3>
+                            <p class="card-subtitle">Active vs Inactive</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value purple"><?= esc($staffStats['active_staff'] ?? 0) ?></div>
+                            <div class="metric-value blue"><?= $staffStats['active_staff'] ?? 0 ?></div>
+                            <div class="metric-label">Active</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value green"><?= $staffStats['inactive_staff'] ?? 0 ?></div>
+                            <div class="metric-label">Inactive</div>
                         </div>
                     </div>
                 </div>
@@ -111,7 +114,7 @@
                 <!-- Department Staff Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern blue" aria-hidden="true">
+                        <div class="card-icon-modern blue">
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="card-info">
@@ -121,55 +124,60 @@
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue"><?= esc($staffStats['department_staff'] ?? 0) ?></div>
+                            <div class="metric-value blue"><?= $staffStats['department_staff'] ?? 0 ?></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Medical Staff Card -->
+                <!-- Staff Type Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern purple" aria-hidden="true">
-                            <i class="fas fa-user-md"></i>
-                        </div>
+                        <div class="card-icon-modern purple"><i class="fas fa-user-md"></i></div>
                         <div class="card-info">
                             <h3 class="card-title-modern">Medical Staff</h3>
-                            <p class="card-subtitle">Doctors & Nurses</p>
+                            <p class="card-subtitle">Doctors vs Nurses</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value purple"><?= esc($staffStats['medical_staff'] ?? 0) ?></div>
+                            <div class="metric-value blue"><?= $staffStats['doctors'] ?? 0 ?></div>
+                            <div class="metric-label">Doctors</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value green"><?= $staffStats['nurses'] ?? 0 ?></div>
+                            <div class="metric-label">Nurses</div>
                         </div>
                     </div>
                 </div>
             <?php endif; ?>
         </div>
 
-        <div class="user-table">
+        <div class="staff-table-container">
             <div class="table-header">
                 <h3>Staff</h3>
             </div>
-            <table class="table" id="staffTable" aria-describedby="staffTableCaption">
-                <thead>
-                    <tr>
-                        <th scope="col">Staff</th>
-                        <th scope="col">Role</th>
-                        <th scope="col">Department</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Date Joined</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="staffTableBody">
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 2rem;">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
-                            <p>Loading staff...</p>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table" id="staffTable" aria-describedby="staffTableCaption">
+                    <thead>
+                        <tr>
+                            <th scope="col">Staff</th>
+                            <th scope="col">Role</th>
+                            <th scope="col">Department</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Date Joined</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem;">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
+                                <p>Loading staff...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>

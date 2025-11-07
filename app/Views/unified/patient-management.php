@@ -8,6 +8,7 @@
     <meta name="user-role" content="<?= esc($userRole ?? 'admin') ?>">
     <title><?= esc($title ?? 'Patient Management') ?> - HMS</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
+     <link rel="stylesheet" href="<?= base_url('assets/css/unified/patient-management.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <?php
       // Initialize optional filter vars to avoid notices
@@ -22,7 +23,10 @@
      <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
     <main class="content" role="main">
-        <h1 class="page-title"><?= esc($title ?? 'Patient Management') ?></h1>
+        <h1 class="page-title">
+            <i class="fas fa-user-injured"></i>
+            <?= esc($title ?? 'Patient Management') ?>
+        </h1>
         <div class="page-actions">
             <?php if (in_array('create', $permissions ?? [])): ?>
                 <button type="button" class="btn btn-primary" id="addPatientBtn" aria-label="Add New Patient">
@@ -186,36 +190,34 @@
             <?php endif; ?>
         </div>
 
-        <div class="patient-filter" role="search" aria-label="Patient Filters">
-            <!-- Filters here as before -->
-        </div>
-
-        <div class="patient-table">
+        <div class="patient-table-container">
             <div class="table-header">
                 <h3>Patients</h3>
             </div>
-            <table class="table" id="patientsTable" aria-describedby="patientsTableCaption">
-                <thead>
-                    <tr>
-                        <th scope="col">Patient</th>
-                        <th scope="col">Type</th>
-                        <?php if (in_array($userRole ?? '', ['admin', 'receptionist', 'it_staff'])): ?>
-                            <th scope="col">Assigned Doctor</th>
-                        <?php endif; ?>
-                        <th scope="col">Status</th>
-                        <th scope="col">Registered</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="patientsTableBody">
-                    <tr>
-                        <td colspan="<?= in_array($userRole ?? '', ['admin', 'receptionist', 'it_staff']) ? '6' : '5' ?>" style="text-align: center; padding: 2rem;">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
-                            <p>Loading patients...</p>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table" id="patientsTable" aria-describedby="patientsTableCaption">
+                    <thead>
+                        <tr>
+                            <th scope="col">Patient</th>
+                            <th scope="col">Type</th>
+                            <?php if (in_array($userRole ?? '', ['admin', 'receptionist', 'it_staff'])): ?>
+                                <th scope="col">Assigned Doctor</th>
+                            <?php endif; ?>
+                            <th scope="col">Status</th>
+                            <th scope="col">Registered</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="patientsTableBody">
+                        <tr>
+                            <td colspan="<?= in_array($userRole ?? '', ['admin', 'receptionist', 'it_staff']) ? '6' : '5' ?>" style="text-align: center; padding: 2rem;">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
+                                <p>Loading patients...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>

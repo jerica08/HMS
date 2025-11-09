@@ -1,50 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title><?= $title ?? 'Appointment Management' ?> - HMS <?= ucfirst($userRole ?? 'User') ?></title>
-    <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
-    <link rel="stylesheet" href="<?= base_url('assets/css/doctor/appointment.css') ?>" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="base-url" content="<?= base_url() ?>">
     <meta name="csrf-token" content="<?= csrf_token() ?>">
-    <meta name="user-role" content="<?= $userRole ?? 'guest' ?>">
+    <meta name="csrf-hash" content="<?= csrf_hash() ?>">
+    <meta name="user-role" content="<?= esc($userRole ?? 'guest') ?>">
+    <title><?= esc($title ?? 'Appointment Management') ?> - HMS</title>
+    <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
+    <link rel="stylesheet" href="<?= base_url('assets/css/unified/appointments.css') ?>" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 </head>
-<body class="<?= $userRole ?? 'guest' ?>">
 
-    <?php include APPPATH . 'Views/template/header.php'; ?>
+<?php include APPPATH . 'Views/template/header.php'; ?> 
+<div class="main-container">
+    <!-- Unified Sidebar -->
+     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
-    <div class="main-container">
-        <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
-
-        <main class="content">
-            <h1 class="page-title">
-                <i class="fas fa-calendar-alt"></i>
-                <?php 
-                $pageTitles = [
-                    'admin' => 'System Appointments',
-                    'doctor' => 'My Appointments',
-                    'nurse' => 'Department Appointments',
-                    'receptionist' => 'Appointment Booking'
-                ];
-                echo $pageTitles[$userRole] ?? 'Appointments';
-                ?>
-            </h1>
-            
+    <main class="content" role="main">
+        <h1 class="page-title">
+            <i class="fas fa-calendar-alt"></i>
+            <?php 
+            $pageTitles = [
+                'admin' => 'System Appointments',
+                'doctor' => 'My Appointments',
+                'nurse' => 'Department Appointments',
+                'receptionist' => 'Appointment Booking'
+            ];
+            echo esc($pageTitles[$userRole] ?? 'Appointments');
+            ?>
+        </h1>
+        <div class="page-actions">
             <?php if (in_array($userRole, ['admin', 'doctor', 'receptionist'])): ?>
-            <div class="page-actions">
-                <button class="btn btn-primary" id="scheduleAppointmentBtn">
-                    <i class="fas fa-plus"></i> 
-                    <?= $userRole === 'receptionist' ? 'Add Appointment' : 'Add Appointment' ?>
+                <button type="button" class="btn btn-primary" id="scheduleAppointmentBtn" aria-label="Add New Appointment">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Add Appointment
                 </button>
-            </div><br>
             <?php endif; ?>
+            <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
+                <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
+                    <i class="fas fa-download" aria-hidden="true"></i> Export
+                </button>
+            <?php endif; ?>
+        </div>
 
-            <!-- Statistics Overview -->
-            <div class="dashboard-overview">
-                <!-- Today's Appointments Card -->
-                <div class="overview-card">
+        <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
+            <div id="flashNotice" role="alert" aria-live="polite" style="
+                margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px;
+                border: 1px solid <?= session()->getFlashdata('success') ? '#86efac' : '#fecaca' ?>;
+                background: <?= session()->getFlashdata('success') ? '#dcfce7' : '#fee2e2' ?>;
+                color: <?= session()->getFlashdata('success') ? '#166534' : '#991b1b' ?>; display:flex; align-items:center; gap:0.5rem;">
+                <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>" aria-hidden="true"></i>
+                <span>
+                    <?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error')) ?>
+                </span>
+                <button type="button" onclick="dismissFlash()" aria-label="Dismiss notification" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        <?php endif; ?>
+
+        <?php $errors = session()->get('errors'); ?>
+        <?php if (!empty($errors) && is_array($errors)): ?>
+            <div role="alert" aria-live="polite" style="margin-top:0.75rem; padding:0.75rem 1rem; border-radius:8px; border:1px solid #fecaca; background:#fee2e2; color:#991b1b;">
+                <div style="font-weight:600; margin-bottom:0.25rem;"><i class="fas fa-exclamation-circle"></i> Please fix the following errors:</div>
+                <ul style="margin:0; padding-left:1.25rem;">
+                    <?php foreach ($errors as $field => $msg): ?>
+                        <li><?= esc(is_array($msg) ? implode(', ', $msg) : $msg) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
+        <br />
+
+        <!-- Statistics Overview -->
+        <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
+            <!-- Today's Appointments Card -->
+            <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
                         <div class="card-icon-modern blue"><i class="fas fa-calendar-day"></i></div>
                         <div class="card-info">
@@ -68,8 +101,8 @@
                     </div>
                 </div>
 
-                <!-- This Week Card -->
-                <div class="overview-card">
+            <!-- This Week Card -->
+            <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
                         <div class="card-icon-modern purple"><i class="fas fa-calendar-alt"></i></div>
                         <div class="card-info">
@@ -93,8 +126,8 @@
                     </div>
                 </div>
 
-                <!-- Schedule Overview Card -->
-                <div class="overview-card">
+            <!-- Schedule Overview Card -->
+            <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
                         <div class="card-icon-modern green"><i class="fas fa-clock"></i></div>
                         <div class="card-info">
@@ -280,5 +313,66 @@
     <?php include APPPATH . 'Views/unified/modals/new-appointment-modal.php'; ?>
     <?php include APPPATH . 'Views/unified/modals/view-appointment-modal.php'; ?>
 
+    <script>
+    // Export appointments to Excel
+    function exportToExcel() {
+        const table = document.querySelector('.table').cloneNode(true);
+        
+        // Remove action buttons column
+        const headers = table.querySelectorAll('thead th');
+        const lastHeaderIndex = headers.length - 1;
+        headers[lastHeaderIndex].remove();
+        
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length > 0) {
+                cells[cells.length - 1].remove();
+            }
+        });
+        
+        // Create Excel content
+        let html = '<html xmlns:x="urn:schemas-microsoft-com:office:excel">';
+        html += '<head><meta charset="UTF-8">';
+        html += '<style>';
+        html += 'table { border-collapse: collapse; width: 100%; }';
+        html += 'th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }';
+        html += 'th { background-color: #667eea; color: white; font-weight: bold; }';
+        html += 'tr:nth-child(even) { background-color: #f2f2f2; }';
+        html += '</style></head><body>';
+        html += '<h2>Appointment Schedule - <?= date("F j, Y") ?></h2>';
+        html += '<table>' + table.innerHTML + '</table>';
+        html += '</body></html>';
+        
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const date = new Date().toISOString().split('T')[0];
+        const userRole = document.querySelector('meta[name="user-role"]')?.content || 'user';
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `appointments_${userRole}_${date}.xls`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Dismiss flash notification
+    function dismissFlash() {
+        const flash = document.getElementById('flashNotice');
+        if (flash) flash.remove();
+    }
+
+    // Initialize export button
+    document.addEventListener('DOMContentLoaded', function() {
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', exportToExcel);
+        }
+    });
+    </script>
 </body>
 </html>

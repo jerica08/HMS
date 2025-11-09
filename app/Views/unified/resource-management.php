@@ -1,195 +1,384 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Resource Management - HMS Admin</title>
-    <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= esc($title) ?> - HMS</title>
+    <meta name="base-url" content="<?= base_url() ?>">
+    <meta name="csrf-token" content="<?= csrf_token() ?>">
+    <meta name="csrf-hash" content="<?= csrf_hash() ?>">
+    <meta name="user-role" content="<?= esc($userRole) ?>">
+    
+    <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('assets/css/unified/resource-management.css') ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="admin">
+<body class="<?= esc($userRole) ?>">
 
     <?php include APPPATH . 'Views/template/header.php'; ?>
 
     <div class="main-container">
         <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
-        <main class="content">
-            <h1 class="page-title">Resource Management</h1>
-            <div class="toolbar-row">
-                <button id="addResourceBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Resource</button>
-                <button id="addDepartmentBtn" class="btn btn-primary" style="margin-left:8px" onclick="openAddDepartmentModal()"><i class="fas fa-building"></i> Add Department</button>
+        <main class="content" role="main">
+            <h1 class="page-title">
+                <i class="fas fa-boxes"></i>
+                <?php
+                $pageTitles = [
+                    'admin' => 'Resource Management',
+                    'doctor' => 'Medical Resources',
+                    'nurse' => 'Medical Resources',
+                    'pharmacist' => 'Pharmacy Resources',
+                    'laboratorist' => 'Lab Resources',
+                    'receptionist' => 'Office Resources',
+                    'it_staff' => 'IT Resource Management'
+                ];
+                echo esc($pageTitles[$userRole] ?? 'Resources');
+                ?>
+            </h1>
+            <div class="page-actions">
+                <?php if (in_array('create', $permissions['resources'] ?? [])): ?>
+                    <button type="button" id="addResourceBtn" class="btn btn-primary" aria-label="Add New Resource">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add Resource
+                    </button>
+                <?php endif; ?>
+                <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
+                    <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
+                    </button>
+                <?php endif; ?>
             </div>
 
+            <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
+                <div id="flashNotice" role="alert" aria-live="polite" style="
+                    margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px;
+                    border: 1px solid <?= session()->getFlashdata('success') ? '#86efac' : '#fecaca' ?>;
+                    background: <?= session()->getFlashdata('success') ? '#dcfce7' : '#fee2e2' ?>;
+                    color: <?= session()->getFlashdata('success') ? '#166534' : '#991b1b' ?>; display:flex; align-items:center; gap:0.5rem;">
+                    <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>" aria-hidden="true"></i>
+                    <span>
+                        <?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error')) ?>
+                    </span>
+                    <button type="button" onclick="dismissFlash()" aria-label="Dismiss notification" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            <?php endif; ?>
+
+            <?php $errors = session()->get('errors'); ?>
+            <?php if (!empty($errors) && is_array($errors)): ?>
+                <div role="alert" aria-live="polite" style="margin-top:0.75rem; padding:0.75rem 1rem; border-radius:8px; border:1px solid #fecaca; background:#fee2e2; color:#991b1b;">
+                    <div style="font-weight:600; margin-bottom:0.25rem;"><i class="fas fa-exclamation-circle"></i> Please fix the following errors:</div>
+                    <ul style="margin:0; padding-left:1.25rem;">
+                        <?php foreach ($errors as $field => $msg): ?>
+                            <li><?= esc(is_array($msg) ? implode(', ', $msg) : $msg) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+
+            <br />
+
+            <!-- Statistics Overview -->
             <div class="dashboard-overview">
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern blue">
-                            <i class="fas fa-bed"></i>
+                <?php if ($userRole === 'admin' || $userRole === 'it_staff'): ?>
+                    <!-- Total Resources Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue"><i class="fas fa-boxes"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Total Resources</h3>
+                                <p class="card-subtitle">All equipment & supplies</p>
+                            </div>
                         </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Bed Occopuation </h3>
-                            <p class="card-subtitle">Current  bed utilization</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue">0%</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple">
-                            <i class="fas fa-tools"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Equipment Status</h3>
-                            <p class="card-subtitle">Operational equipment</p>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $stats['total_resources'] ?? 0 ?></div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green"><?= $stats['available'] ?? 0 ?></div>
+                                <div class="metric-label">Available</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value purple">0%</div>
+                    
+                    <!-- Resource Status Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern orange"><i class="fas fa-tools"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Resource Status</h3>
+                                <p class="card-subtitle">Current utilization</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value orange"><?= $stats['in_use'] ?? 0 ?></div>
+                                <div class="metric-label">In Use</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value purple"><?= $stats['maintenance'] ?? 0 ?></div>
+                                <div class="metric-label">Maintenance</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple">
-                            <i class="fas fa-user-times"></i>
+                    
+                    <!-- Categories Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern purple"><i class="fas fa-layer-group"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Categories</h3>
+                                <p class="card-subtitle">Resource types</p>
+                            </div>
                         </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Inventroy Alerts</h3>
-                            <p class="card-subtitle">Low stock Items</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value purple">0</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Departments</h3>
-                            <p class="card-subtitle">Active administrators</p>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value purple"><?= $stats['categories'] ?? 0 ?></div>
+                                <div class="metric-label">Types</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value red"><?= $stats['out_of_order'] ?? 0 ?></div>
+                                <div class="metric-label">Out of Order</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value purple">0</div>
+                <?php elseif ($userRole === 'doctor' || $userRole === 'nurse'): ?>
+                    <!-- Medical Resources Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue"><i class="fas fa-stethoscope"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Medical Resources</h3>
+                                <p class="card-subtitle">Equipment & supplies</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $stats['total_resources'] ?? 0 ?></div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green"><?= $stats['available'] ?? 0 ?></div>
+                                <div class="metric-label">Available</div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                    
+                    <!-- Equipment Status Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern orange"><i class="fas fa-heartbeat"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Equipment Status</h3>
+                                <p class="card-subtitle">Current status</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value orange"><?= $stats['in_use'] ?? 0 ?></div>
+                                <div class="metric-label">In Use</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value purple"><?= $stats['maintenance'] ?? 0 ?></div>
+                                <div class="metric-label">Maintenance</div>
+                            </div>
+                        </div>
+                    </div>
+                <?php elseif ($userRole === 'pharmacist'): ?>
+                    <!-- Pharmacy Resources Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue"><i class="fas fa-pills"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Pharmacy Resources</h3>
+                                <p class="card-subtitle">Equipment & supplies</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $stats['total_resources'] ?? 0 ?></div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green"><?= $stats['available'] ?? 0 ?></div>
+                                <div class="metric-label">Available</div>
+                            </div>
+                        </div>
+                    </div>
+                <?php elseif ($userRole === 'laboratorist'): ?>
+                    <!-- Lab Resources Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue"><i class="fas fa-microscope"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Lab Resources</h3>
+                                <p class="card-subtitle">Equipment & supplies</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $stats['total_resources'] ?? 0 ?></div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green"><?= $stats['available'] ?? 0 ?></div>
+                                <div class="metric-label">Available</div>
+                            </div>
+                        </div>
+                    </div>
+                <?php elseif ($userRole === 'receptionist'): ?>
+                    <!-- Office Resources Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue"><i class="fas fa-desktop"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Office Resources</h3>
+                                <p class="card-subtitle">Equipment & supplies</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $stats['total_resources'] ?? 0 ?></div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green"><?= $stats['available'] ?? 0 ?></div>
+                                <div class="metric-label">Available</div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
 
-            <!-- Basic Resource Management -->
-            <div class="hms-card mt-6">
-                <div class="hms-card-header">
-                    <h2 class="hms-card-title">Resources</h2>
-                </div>
-                <div class="hms-card-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
+            <!-- Resources Table -->
+            <div class="resources-table-container">
+                <table class="resources-table">
+                    <thead>
+                        <tr>
+                            <th>Resource Name</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th>Location</th>
+                            <?php if (in_array('edit', $permissions['resources'] ?? []) || in_array('delete', $permissions['resources'] ?? [])): ?>
+                                <th>Actions</th>
+                            <?php endif; ?>
+                        </tr>
+                    </thead>
+                    <tbody id="resourcesTableBody">
+                        <?php if (!empty($resources) && is_array($resources)): ?>
+                            <?php foreach ($resources as $r): ?>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Category</th>
-                                    <th>Qty</th>
-                                    <th>Status</th>
-                                    <th>Location</th>
-                                    <th>Actions</th>
+                                    <td><?= esc($r['equipment_name'] ?? '-') ?></td>
+                                    <td><?= esc($r['category'] ?? '-') ?></td>
+                                    <td><?= esc($r['quantity'] ?? '-') ?></td>
+                                    <td>
+                                        <?php
+                                        $status = $r['status'] ?? 'Available';
+                                        $badgeClass = match($status) {
+                                            'Available' => 'badge-success',
+                                            'In Use' => 'badge-info',
+                                            'Maintenance' => 'badge-warning',
+                                            'Out of Order' => 'badge-danger',
+                                            default => 'badge-info'
+                                        };
+                                        ?>
+                                        <span class="badge <?= $badgeClass ?>"><?= esc($status) ?></span>
+                                    </td>
+                                    <td><?= esc($r['location'] ?? '-') ?></td>
+                                    <?php if (in_array('edit', $permissions['resources'] ?? []) || in_array('delete', $permissions['resources'] ?? [])): ?>
+                                        <td>
+                                            <div style="display: flex; gap: 0.5rem;">
+                                                <?php if (in_array('edit', $permissions['resources'] ?? [])): ?>
+                                                    <button class="btn btn-warning btn-small" onclick="editResource(<?= esc($r['id'] ?? 0) ?>)" aria-label="Edit Resource">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </button>
+                                                <?php endif; ?>
+                                                <?php if (in_array('delete', $permissions['resources'] ?? [])): ?>
+                                                    <button class="btn btn-danger btn-small" onclick="deleteResource(<?= esc($r['id'] ?? 0) ?>)" aria-label="Delete Resource">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </button>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    <?php endif; ?>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (!empty($resources) && is_array($resources)): ?>
-                                    <?php foreach ($resources as $r): ?>
-                                        <tr>
-                                            <td><?= esc($r['equipment_name'] ?? '-') ?></td>
-                                            <td><?= esc($r['category'] ?? '-') ?></td>
-                                            <td><?= esc($r['quantity'] ?? '-') ?></td>
-                                            <td class="text-capitalize"><?= esc($r['status'] ?? '-') ?></td>
-                                            <td><?= esc($r['location'] ?? '-') ?></td>
-                                            <td>
-                                                <div class="inline-actions">
-                                                    <button class="btn btn-secondary btn-small" onclick="editResource(<?= esc($r['id'] ?? 0) ?>)"><i class="fas fa-edit"></i> Edit</button>
-                                                    <button class="btn btn-danger btn-small" onclick="deleteResource(<?= esc($r['id'] ?? 0) ?>)"><i class="fas fa-trash"></i> Delete</button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="6" class="empty-state-cell">No resources found.</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="<?= (in_array('edit', $permissions['resources'] ?? []) || in_array('delete', $permissions['resources'] ?? [])) ? '6' : '5' ?>" class="empty-state">
+                                    <i class="fas fa-box-open"></i>
+                                    <h3>No Resources Found</h3>
+                                    <p>Start by adding your first resource</p>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
 
-            <!-- Add Resource Modal (styled like Add User modal) -->
-            <div id="addResourceModal" class="hms-modal-overlay" aria-hidden="true">
-                <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addResourceTitle">
-                    <div class="hms-modal-header">
-                        <div class="hms-modal-title" id="addResourceTitle">
-                            <i class="fas fa-plus-circle" style="color:#4f46e5"></i>
+            <!-- Add Resource Modal -->
+            <div id="addResourceModal" class="modal" aria-hidden="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>
+                            <i class="fas fa-plus-circle"></i>
                             Add New Resource
-                        </div>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="closeAddResourceModal()" aria-label="Close">
+                        </h3>
+                        <button type="button" class="modal-close" onclick="closeAddResourceModal()" aria-label="Close">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                     <form id="addResourceForm">
-                        <div class="hms-modal-body">
-                            <div class="form-grid">
-                                <div>
-                                    <label class="form-label" for="res_name">Resource Name*</label>
-                                    <input id="res_name" name="name" type="text" class="form-input" required autocomplete="off" placeholder="Enter resource name">
-                                    <small id="err_res_name" style="color:#dc2626"></small>
+                        <div class="modal-body">
+                            <div class="form-section">
+                                <h4><i class="fas fa-info-circle"></i> Resource Information</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="res_name">Resource Name*</label>
+                                        <input id="res_name" name="name" type="text" class="form-control" required autocomplete="off" placeholder="Enter resource name">
+                                        <small id="err_res_name" style="color:#dc2626"></small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="res_category">Category*</label>
+                                        <select id="res_category" name="category" class="form-control" required>
+                                            <option value="">Select category</option>
+                                            <?php foreach ($categories ?? [] as $cat): ?>
+                                                <option value="<?= esc($cat) ?>"><?= esc($cat) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <small id="err_res_category" style="color:#dc2626"></small>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="form-label" for="res_category">Category*</label>
-                                    <select id="res_category" name="category" class="form-select" required>
-                                        <option value="">Select category</option>
-                                        <option value="Equipment">Equipment</option>
-                                        <option value="Facility">Facility</option>
-                                        <option value="Personnel">Personnel</option>
-                                    </select>
-                                    <small id="err_res_category" style="color:#dc2626"></small>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="res_quantity">Quantity*</label>
+                                        <input id="res_quantity" name="quantity" type="number" class="form-control" min="1" required autocomplete="off" placeholder="Enter quantity">
+                                        <small id="err_res_quantity" style="color:#dc2626"></small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="res_status">Status*</label>
+                                        <select id="res_status" name="status" class="form-control" required>
+                                            <option value="Available">Available</option>
+                                            <option value="In Use">In Use</option>
+                                            <option value="Maintenance">Maintenance</option>
+                                            <option value="Out of Order">Out of Order</option>
+                                        </select>
+                                        <small id="err_res_status" style="color:#dc2626"></small>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="form-label" for="res_quantity">Quantity*</label>
-                                    <input id="res_quantity" name="quantity" type="number" class="form-input" min="1" required autocomplete="off" placeholder="Enter quantity">
-                                    <small id="err_res_quantity" style="color:#dc2626"></small>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="res_status">Status*</label>
-                                    <select id="res_status" name="status" class="form-select" required>
-                                        <option value="Available">Available</option>
-                                        <option value="In Use">In Use</option>
-                                        <option value="Maintenance">Maintenance</option>
-                                        <option value="Out of Order">Out of Order</option>
-                                    </select>
-                                    <small id="err_res_status" style="color:#dc2626"></small>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="res_location">Location*</label>
-                                    <input id="res_location" name="location" type="text" class="form-input" required autocomplete="off" placeholder="Enter location">
-                                    <small id="err_res_location" style="color:#dc2626"></small>
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label for="res_location">Location*</label>
+                                        <input id="res_location" name="location" type="text" class="form-control" required autocomplete="off" placeholder="Enter location">
+                                        <small id="err_res_location" style="color:#dc2626"></small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="hms-modal-actions">
+                        <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeAddResourceModal()">Cancel</button>
                             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Resource</button>
                         </div>
@@ -234,59 +423,66 @@
             </div>
 
             <!-- Edit Resource Modal -->
-            <div id="editResourceModal" class="hms-modal-overlay" aria-hidden="true">
-                <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="editResourceTitle">
-                    <div class="hms-modal-header">
-                        <div class="hms-modal-title" id="editResourceTitle">
-                            <i class="fas fa-edit" style="color:#4f46e5"></i>
+            <div id="editResourceModal" class="modal" aria-hidden="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>
+                            <i class="fas fa-edit"></i>
                             Edit Resource
-                        </div>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="closeEditResourceModal()" aria-label="Close">
+                        </h3>
+                        <button type="button" class="modal-close" onclick="closeEditResourceModal()" aria-label="Close">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                     <form id="editResourceForm">
                         <input type="hidden" id="er_id" name="id">
-                        <div class="hms-modal-body">
-                            <div class="form-grid">
-                                <div>
-                                    <label class="form-label" for="er_name">Resource Name*</label>
-                                    <input id="er_name" name="name" type="text" class="form-input" required autocomplete="off" placeholder="Enter resource name">
-                                    <small id="err_er_name" style="color:#dc2626"></small>
+                        <div class="modal-body">
+                            <div class="form-section">
+                                <h4><i class="fas fa-info-circle"></i> Resource Information</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="er_name">Resource Name*</label>
+                                        <input id="er_name" name="name" type="text" class="form-control" required autocomplete="off" placeholder="Enter resource name">
+                                        <small id="err_er_name" style="color:#dc2626"></small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="er_category">Category*</label>
+                                        <select id="er_category" name="category" class="form-control" required>
+                                            <option value="">Select category</option>
+                                            <?php foreach ($categories ?? [] as $cat): ?>
+                                                <option value="<?= esc($cat) ?>"><?= esc($cat) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <small id="err_er_category" style="color:#dc2626"></small>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="form-label" for="er_category">Category*</label>
-                                    <select id="er_category" name="category" class="form-select" required>
-                                        <option value="">Select category</option>
-                                        <option value="Equipment">Equipment</option>
-                                        <option value="Facility">Facility</option>
-                                        <option value="Personnel">Personnel</option>
-                                    </select>
-                                    <small id="err_er_category" style="color:#dc2626"></small>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="er_quantity">Quantity*</label>
+                                        <input id="er_quantity" name="quantity" type="number" class="form-control" min="1" required autocomplete="off" placeholder="Enter quantity">
+                                        <small id="err_er_quantity" style="color:#dc2626"></small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="er_status">Status*</label>
+                                        <select id="er_status" name="status" class="form-control" required>
+                                            <option value="Available">Available</option>
+                                            <option value="In Use">In Use</option>
+                                            <option value="Maintenance">Maintenance</option>
+                                            <option value="Out of Order">Out of Order</option>
+                                        </select>
+                                        <small id="err_er_status" style="color:#dc2626"></small>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="form-label" for="er_quantity">Quantity*</label>
-                                    <input id="er_quantity" name="quantity" type="number" class="form-input" min="1" required autocomplete="off" placeholder="Enter quantity">
-                                    <small id="err_er_quantity" style="color:#dc2626"></small>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="er_status">Status*</label>
-                                    <select id="er_status" name="status" class="form-select" required>
-                                        <option value="Available">Available</option>
-                                        <option value="In Use">In Use</option>
-                                        <option value="Maintenance">Maintenance</option>
-                                        <option value="Out of Order">Out of Order</option>
-                                    </select>
-                                    <small id="err_er_status" style="color:#dc2626"></small>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="er_location">Location*</label>
-                                    <input id="er_location" name="location" type="text" class="form-input" required autocomplete="off" placeholder="Enter location">
-                                    <small id="err_er_location" style="color:#dc2626"></small>
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label for="er_location">Location*</label>
+                                        <input id="er_location" name="location" type="text" class="form-control" required autocomplete="off" placeholder="Enter location">
+                                        <small id="err_er_location" style="color:#dc2626"></small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="hms-modal-actions">
+                        <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeEditResourceModal()">Cancel</button>
                             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Update Resource</button>
                         </div>
@@ -300,6 +496,13 @@
                     csrf: { token: '<?= csrf_token() ?>', hash: '<?= csrf_hash() ?>' }
                 };
                 window.__RESOURCES__ = <?php echo json_encode($resources ?? []); ?>;
+                
+                function dismissFlash() {
+                    const flashNotice = document.getElementById('flashNotice');
+                    if (flashNotice) {
+                        flashNotice.style.display = 'none';
+                    }
+                }
             </script>
             <script src="<?= base_url('js/admin/resource-management.js') ?>"></script>
             <script>

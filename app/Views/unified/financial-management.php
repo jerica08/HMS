@@ -1,246 +1,18 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title) ?> - HMS</title>
-    <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
-    <link rel="stylesheet" href="<?= base_url('assets/css/unified/financial-management.css') ?>" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <style>
-        /* Dashboard Overview Cards styling (same as Resource Management) */
-        .dashboard-overview {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .overview-card {
-            background: white;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border: 1px solid #e5e7eb;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .overview-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-
-        .card-header-modern {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .card-icon-modern {
-            width: 3rem;
-            height: 3rem;
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            color: white;
-        }
-
-        .card-icon-modern.blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
-        .card-icon-modern.green { background: linear-gradient(135deg, #10b981, #059669); }
-        .card-icon-modern.red { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        .card-icon-modern.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .card-icon-modern.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-
-        .card-info {
-            flex: 1;
-        }
-
-        .card-title-modern {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #111827;
-            margin: 0 0 0.25rem 0;
-        }
-
-        .card-subtitle {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin: 0;
-        }
-
-        .card-metrics {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .metric {
-            flex: 1;
-            text-align: center;
-        }
-
-        .metric-value {
-            font-size: 1.875rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-            display: block;
-        }
-
-        .metric-value.blue { color: #3b82f6; }
-        .metric-value.green { color: #10b981; }
-        .metric-value.red { color: #ef4444; }
-        .metric-value.orange { color: #f59e0b; }
-        .metric-value.purple { color: #8b5cf6; }
-
-        .metric-label {
-            font-size: 0.875rem;
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        /* Table styling to match Resource Management */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .table {
-            width: 100%;
-            margin-bottom: 1rem;
-            color: #212529;
-            border-collapse: collapse;
-        }
-
-        .table th,
-        .table td {
-            padding: 0.75rem;
-            vertical-align: top;
-            border-top: 1px solid #dee2e6;
-        }
-
-        .table thead th {
-            vertical-align: bottom;
-            border-bottom: 2px solid #dee2e6;
-            background-color: #f8f9fa;
-            font-weight: 600;
-        }
-
-        .table tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-
-        /* Empty state styling */
-        .empty-state-cell {
-            text-align: center;
-            vertical-align: middle;
-            padding: 3rem 1rem !important;
-        }
-
-        /* Button styling */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background-color: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #2563eb;
-        }
-
-        .btn-secondary {
-            background-color: #6b7280;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background-color: #4b5563;
-        }
-
-        .btn-danger {
-            background-color: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: #dc2626;
-        }
-
-        .btn-small {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-        }
-
-        /* Inline actions styling */
-        .inline-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        /* Text alignment */
-        .text-right {
-            text-align: right !important;
-        }
-        .text-capitalize {
-            text-transform: capitalize !important;
-        }
-
-        /* Page actions styling */
-        .page-actions {
-            margin-bottom: 1.5rem;
-        }
-
-        /* HMS Card styling */
-        .hms-card {
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e5e7eb;
-            overflow: hidden;
-        }
-
-        .hms-card-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            background-color: #f9fafb;
-        }
-
-        .hms-card-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #374151;
-            margin: 0;
-        }
-
-        .hms-card-body {
-            padding: 1.5rem;
-        }
-
-        /* Margin top classes */
-        .mt-6 {
-            margin-top: 1.5rem;
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <meta name="base-url" content="<?= base_url() ?>">
     <meta name="csrf-token" content="<?= csrf_token() ?>">
+    <meta name="csrf-hash" content="<?= csrf_hash() ?>">
     <meta name="user-role" content="<?= esc($userRole) ?>">
+    
+    <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('assets/css/unified/financial-management.css') ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
 <body class="<?= esc($userRole) ?>">
 
     <?php include APPPATH . 'Views/template/header.php'; ?>
@@ -248,167 +20,306 @@
     <div class="main-container">
         <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
-        <main class="content">
-            <h1 class="page-title"><?= esc($title) ?></h1>
-            
-            <!-- Role-based Action Buttons -->
-            <?php if (in_array('create_bill', $permissions)): ?>
+        <main class="content" role="main">
+            <h1 class="page-title">
+                <i class="fas fa-dollar-sign"></i>
+                <?php
+                $pageTitles = [
+                    'admin' => 'Financial Management',
+                    'doctor' => 'My Financial Records',
+                    'accountant' => 'Financial Overview',
+                    'receptionist' => 'Billing & Payments'
+                ];
+                echo esc($pageTitles[$userRole] ?? 'Financial Management');
+                ?>
+            </h1>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openAddFinancialRecordModal()">
-                    <i class="fas fa-plus"></i> Add Financial Record
-                </button>
+                <?php if (in_array('create_bill', $permissions)): ?>
+                    <button type="button" id="addFinancialRecordBtn" class="btn btn-primary" aria-label="Add Financial Record">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add Transaction
+                    </button>
+                <?php endif; ?>
+                <?php if (in_array($userRole ?? '', ['admin', 'it_staff', 'accountant'])): ?>
+                    <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
+                    </button>
+                <?php endif; ?>
             </div>
+
+            <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
+                <div id="flashNotice" role="alert" aria-live="polite" style="
+                    margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px;
+                    border: 1px solid <?= session()->getFlashdata('success') ? '#86efac' : '#fecaca' ?>;
+                    background: <?= session()->getFlashdata('success') ? '#dcfce7' : '#fee2e2' ?>;
+                    color: <?= session()->getFlashdata('success') ? '#166534' : '#991b1b' ?>; display:flex; align-items:center; gap:0.5rem;">
+                    <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>" aria-hidden="true"></i>
+                    <span>
+                        <?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error')) ?>
+                    </span>
+                    <button type="button" onclick="dismissFlash()" aria-label="Dismiss notification" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             <?php endif; ?>
 
-            <!-- Financial Statistics Cards (Dashboard Style) -->
-            <div class="dashboard-overview">
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern green">
-                            <i class="fas fa-arrow-up"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">
-                                <?= $userRole === 'doctor' ? 'My Income' : 'Total Income' ?>
-                            </h3>
-                            <p class="card-subtitle">Revenue generated</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value green">₱<?= number_format($stats['total_income'], 2) ?></div>
-                        </div>
-                    </div>
+            <?php $errors = session()->get('errors'); ?>
+            <?php if (!empty($errors) && is_array($errors)): ?>
+                <div role="alert" aria-live="polite" style="margin-top:0.75rem; padding:0.75rem 1rem; border-radius:8px; border:1px solid #fecaca; background:#fee2e2; color:#991b1b;">
+                    <div style="font-weight:600; margin-bottom:0.25rem;"><i class="fas fa-exclamation-circle"></i> Please fix the following errors:</div>
+                    <ul style="margin:0; padding-left:1.25rem;">
+                        <?php foreach ($errors as $field => $msg): ?>
+                            <li><?= esc(is_array($msg) ? implode(', ', $msg) : $msg) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
                 </div>
+            <?php endif; ?>
 
-                <?php if (in_array('view_all', $permissions)): ?>
-                <div class="overview-card">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern red">
-                            <i class="fas fa-arrow-down"></i>
+            <br />
+
+            <!-- Statistics Overview -->
+            <div class="dashboard-overview">
+                <?php if ($userRole === 'admin' || $userRole === 'it_staff' || $userRole === 'accountant'): ?>
+                    <!-- Total Income Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern green"><i class="fas fa-dollar-sign"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Total Income</h3>
+                                <p class="card-subtitle">Revenue generated</p>
+                            </div>
                         </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Total Expenses</h3>
-                            <p class="card-subtitle">Money spent</p>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value green">₱<?= number_format($stats['total_income'] ?? 0, 2) ?></div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value blue">₱<?= number_format($stats['monthly_income'] ?? 0, 2) ?></div>
+                                <div class="metric-label">This Month</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value red">₱<?= number_format($stats['total_expenses'], 2) ?></div>
+                    
+                    <!-- Total Expenses Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern red"><i class="fas fa-credit-card"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Total Expenses</h3>
+                                <p class="card-subtitle">Money spent</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value red">₱<?= number_format($stats['total_expenses'] ?? 0, 2) ?></div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value orange">₱<?= number_format($stats['monthly_expenses'] ?? 0, 2) ?></div>
+                                <div class="metric-label">This Month</div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                <?php elseif ($userRole === 'doctor'): ?>
+                    <!-- My Income Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern green"><i class="fas fa-wallet"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">My Income</h3>
+                                <p class="card-subtitle">Personal earnings</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value green">₱<?= number_format($stats['my_income'] ?? 0, 2) ?></div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value blue">₱<?= number_format($stats['monthly_income'] ?? 0, 2) ?></div>
+                                <div class="metric-label">This Month</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Status Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue"><i class="fas fa-file-invoice"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Payment Status</h3>
+                                <p class="card-subtitle">Billing overview</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $stats['total_bills'] ?? 0 ?></div>
+                                <div class="metric-label">Total Bills</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green"><?= $stats['paid_bills'] ?? 0 ?></div>
+                                <div class="metric-label">Paid</div>
+                            </div>
+                        </div>
+                    </div>
+                <?php elseif ($userRole === 'receptionist'): ?>
+                    <!-- Billing Queue Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern orange"><i class="fas fa-file-invoice-dollar"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Billing Queue</h3>
+                                <p class="card-subtitle">Pending payments</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value orange"><?= $stats['pending_bills'] ?? 0 ?></div>
+                                <div class="metric-label">Pending</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value red"><?= $stats['overdue_bills'] ?? 0 ?></div>
+                                <div class="metric-label">Overdue</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Today's Payments Card -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern green"><i class="fas fa-money-bill-wave"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Today's Payments</h3>
+                                <p class="card-subtitle"><?= date('F j, Y') ?></p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value green">₱<?= number_format($stats['today_payments'] ?? 0, 2) ?></div>
+                                <div class="metric-label">Collected</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $stats['today_transactions'] ?? 0 ?></div>
+                                <div class="metric-label">Transactions</div>
+                            </div>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <!-- General Financial Overview -->
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue"><i class="fas fa-chart-line"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Financial Overview</h3>
+                                <p class="card-subtitle">General statistics</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue">₱<?= number_format($stats['total_income'] ?? 0, 2) ?></div>
+                                <div class="metric-label">Income</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value red">₱<?= number_format($stats['total_expenses'] ?? 0, 2) ?></div>
+                                <div class="metric-label">Expenses</div>
+                            </div>
+                        </div>
+                    </div>
                 <?php endif; ?>
 
+                <!-- Net Balance Card (All Roles) -->
                 <div class="overview-card">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern blue">
-                            <i class="fas fa-balance-scale"></i>
-                        </div>
+                        <div class="card-icon-modern blue"><i class="fas fa-balance-scale"></i></div>
                         <div class="card-info">
-                            <h3 class="card-title-modern">Net Balance</h3>
-                            <p class="card-subtitle">Current balance</p>
+                            <h3 class="card-title-modern">Financial Balance</h3>
+                            <p class="card-subtitle">Current status</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue">₱<?= number_format($stats['net_balance'], 2) ?></div>
+                            <div class="metric-value blue">₱<?= number_format($stats['net_balance'] ?? 0, 2) ?></div>
+                            <div class="metric-label">Net Balance</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value purple">₱<?= number_format($stats['profit_margin'] ?? 0, 2) ?></div>
+                            <div class="metric-label">Profit</div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Bills & Payments Card (All Roles) -->
                 <div class="overview-card">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern orange">
-                            <i class="fas fa-file-invoice"></i>
-                        </div>
+                        <div class="card-icon-modern orange"><i class="fas fa-receipt"></i></div>
                         <div class="card-info">
-                            <h3 class="card-title-modern">Pending Bills</h3>
-                            <p class="card-subtitle">Awaiting payment</p>
+                            <h3 class="card-title-modern">Bills & Payments</h3>
+                            <p class="card-subtitle">Payment status</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
                             <div class="metric-value orange"><?= $stats['pending_bills'] ?? 0 ?></div>
+                            <div class="metric-label">Pending</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value green"><?= $stats['paid_bills'] ?? 0 ?></div>
+                            <div class="metric-label">Paid</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Financial Transactions Table -->
-            <div class="hms-card mt-6">
-                <div class="hms-card-header">
-                    <h2 class="hms-card-title">Financial Transactions</h2>
-                </div>
-                <div class="hms-card-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Transaction Name</th>
-                                    <th>Category</th>
-                                    <th>Amount</th>
-                                    <th>Date</th>
-                                    <th>Type</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php
-                                $transactions = $transactions ?? [];
-                                if (!empty($transactions) && is_array($transactions)): ?>
-                                    <?php foreach ($transactions as $t): ?>
-                                        <tr>
-                                            <td><?= esc($t['transaction_name'] ?? $t['expense_name'] ?? '-') ?></td>
-                                            <td>
-                                                <?php if (isset($t['category'])): ?>
-                                                    <span class="badge badge-<?= $t['category'] === 'Income' ? 'success' : 'warning' ?>">
-                                                        <?= esc($t['category']) ?>
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="badge badge-info">
-                                                        <?= esc($t['expense_category'] ?? 'Other') ?>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-right">
-                                                <strong>₱<?= number_format($t['amount'] ?? 0, 2) ?></strong>
-                                            </td>
-                                            <td><?= esc(date('M d, Y', strtotime($t['date'] ?? $t['expense_date'] ?? $t['payment_date'] ?? ''))) ?></td>
-                                            <td>
-                                                <?php if (isset($t['category'])): ?>
-                                                    <?= $t['category'] === 'Income' ? '💰 Income' : '💸 Expense' ?>
-                                                <?php else: ?>
-                                                    💸 Expense
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <div class="inline-actions">
-                                                    <button class="btn btn-secondary btn-small" onclick="editTransaction(<?= esc($t['id'] ?? 0) ?>)">
-                                                        <i class="fas fa-edit"></i> Edit
-                                                    </button>
-                                                    <button class="btn btn-danger btn-small" onclick="deleteTransaction(<?= esc($t['id'] ?? 0) ?>)">
-                                                        <i class="fas fa-trash"></i> Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="6" class="empty-state-cell">
-                                            <div class="empty-state">
-                                                <i class="fas fa-inbox fa-3x text-muted"></i>
-                                                <p>No financial transactions found.</p>
-                                                <small class="text-muted">Add your first financial record to get started.</small>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+            <!-- Filters and Search -->
+            <div class="controls-section">
+                <div class="filters-section">
+                    <div class="filter-group">
+                        <label for="dateFilter">Date:</label>
+                        <input type="date" id="dateFilter" class="form-input">
                     </div>
+                    
+                    <div class="filter-group">
+                        <label for="categoryFilter">Category:</label>
+                        <select id="categoryFilter" class="form-select">
+                            <option value="">All Categories</option>
+                            <option value="Income">Income</option>
+                            <option value="Expense">Expense</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="searchFilter">Search:</label>
+                        <input type="text" id="searchFilter" class="form-input" placeholder="Search transactions...">
+                    </div>
+                    
+                    <button type="button" id="clearFilters" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
                 </div>
+            </div>
+
+            <!-- Financial Transactions Table -->
+            <div class="financial-table-container">
+                <table class="financial-table">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="financialTableBody">
+                        <tr>
+                            <td colspan="7" class="loading-row">
+                                <i class="fas fa-spinner fa-spin"></i> Loading transactions...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <!-- Add Financial Record Modal -->

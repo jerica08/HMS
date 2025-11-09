@@ -15,6 +15,12 @@
       $search = $search ?? null;
       $roleFilter = $roleFilter ?? null;
       $statusFilter = $statusFilter ?? null;
+      
+      // Debug: Log what data we received
+      log_message('debug', 'UserManagement View: Users array = ' . (empty($users) ? 'EMPTY' : 'HAS ' . count($users) . ' users'));
+      if (!empty($users)) {
+          log_message('debug', 'UserManagement View: First user = ' . json_encode($users[0]));
+      }
     ?>
 </head>
 <?php include APPPATH . 'Views/template/header.php'; ?> 
@@ -162,12 +168,78 @@
                     </tr>
                 </thead>
                 <tbody id="usersTableBody">
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 2rem;">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
-                            <p>Loading users...</p>
-                        </td>
-                    </tr>
+                    <?php if (!empty($users)): ?>
+                        <?php foreach ($users as $user): ?>
+                            <tr class="user-row">
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div>
+                                            <div style="font-weight: 600;">
+                                                <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?>
+                                            </div>
+                                            <div style="font-size: 0.8rem; color: #6b7280;">
+                                                <?= esc($user['email'] ?? 'No email') ?>
+                                            </div>
+                                            <div style="font-size: 0.8rem; color: #6b7280;">
+                                                ID: <?= esc($user['username'] ?? $user['user_id'] ?? 'N/A') ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="role-badge role-<?= esc($user['role'] ? strtolower(str_replace('_', '-', $user['role'])) : 'user') ?>">
+                                        <?= esc($user['role'] ? ucfirst(str_replace('_', ' ', $user['role'])) : 'User') ?>
+                                    </span>
+                                </td>
+                                <td><?= esc($user['department'] ?? 'N/A') ?></td>
+                                <td>
+                                    <i class="fas fa-circle status-<?= esc($user['status'] ? strtolower($user['status']) : 'active') ?>" aria-hidden="true"></i> 
+                                    <?= esc($user['status'] ? ucfirst($user['status']) : 'Active') ?>
+                                </td>
+                                <td><?= esc($user['last_login'] ?? 'Never') ?></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <?php if ($permissions['canEdit'] ?? false): ?>
+                                            <button class="btn btn-warning btn-small action-btn" 
+                                                    data-action="edit" 
+                                                    data-user-id="<?= esc($user['user_id']) ?>"
+                                                    aria-label="Edit User <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?>">
+                                                <i class="fas fa-edit" aria-hidden="true"></i> Edit
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if ($permissions['canResetPassword'] ?? false): ?>
+                                            <button class="btn btn-primary btn-small action-btn" 
+                                                    data-action="reset" 
+                                                    data-user-id="<?= esc($user['user_id']) ?>"
+                                                    aria-label="Reset Password for <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?>">
+                                                <i class="fas fa-key" aria-hidden="true"></i> Reset
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if (($permissions['canDelete'] ?? false) && $user['role'] !== 'admin'): ?>
+                                            <button class="btn btn-danger btn-small action-btn" 
+                                                    data-action="delete" 
+                                                    data-user-id="<?= esc($user['user_id']) ?>"
+                                                    aria-label="Delete User <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?>">
+                                                <i class="fas fa-trash" aria-hidden="true"></i> Delete
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem;">
+                                <i class="fas fa-users" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
+                                <p>No users found.</p>
+                                <?php if (($permissions['canCreate'] ?? false)): ?>
+                                    <button type="button" class="btn btn-primary" onclick="document.getElementById('addUserBtn').click()" aria-label="Add First User">
+                                        <i class="fas fa-plus" aria-hidden="true"></i> Add Your First User
+                                    </button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>

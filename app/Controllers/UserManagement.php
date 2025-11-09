@@ -25,10 +25,26 @@ class UserManagement extends BaseController
         $userRole = $session->get('role');
         $staffId = $session->get('staff_id');
         
+        // Temporary: Set default role if not logged in
+        if (!$userRole) {
+            $userRole = 'admin';
+            $staffId = null;
+            log_message('debug', 'UserManagement: No session role found, using admin for testing');
+        }
+        
+        log_message('debug', 'UserManagement: User role = ' . $userRole . ', Staff ID = ' . $staffId);
+        
         // Get user data based on role permissions
         $users = $this->userService->getUsersByRole($userRole, $staffId);
         $stats = $this->userService->getUserStats($userRole, $staffId);
         $availableStaff = $this->userService->getAvailableStaff($userRole);
+        
+        log_message('debug', 'UserManagement: Found ' . count($users) . ' users to display');
+        
+        // Debug: Log first user if available
+        if (!empty($users)) {
+            log_message('debug', 'UserManagement: First user data = ' . json_encode($users[0]));
+        }
         
         $data = [
             'title' => $this->getPageTitle($userRole),

@@ -23,63 +23,95 @@ class UserService
     public function getUsersByRole($userRole, $staffId = null)
     {
         try {
+            // First try to get all users without complex joins to debug
+            $builder = $this->db->table('users');
+            $allUsers = $builder->get()->getResultArray();
+            
+            log_message('debug', 'UserService: Found ' . count($allUsers) . ' total users in database');
+            
+            if (empty($allUsers)) {
+                log_message('error', 'UserService: No users found in users table');
+                return [];
+            }
+            
+            // Now try the join query with proper department join
             $builder = $this->db->table('users u')
-                ->select('u.*, s.first_name, s.last_name, s.department, s.employee_id')
-                ->join('staff s', 's.staff_id = u.staff_id', 'left');
+                ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id')
+                ->join('staff s', 's.staff_id = u.staff_id', 'left')
+                ->join('department d', 'd.department_id = s.department_id', 'left');
 
             switch ($userRole) {
                 case 'admin':
                 case 'it_staff':
                     // Admin and IT staff can see all users
                     $users = $builder->orderBy('u.created_at', 'DESC')->get()->getResultArray();
+                    log_message('debug', 'UserService: Admin/IT staff query returned ' . count($users) . ' users');
                     break;
                     
                 case 'doctor':
                     // Doctors can see users in their department
                     $doctorInfo = $this->staffBuilder->where('staff_id', $staffId)->get()->getRowArray();
-                    $department = $doctorInfo['department'] ?? null;
+                    $departmentId = $doctorInfo['department_id'] ?? null;
                     
-                    if ($department) {
-                        $users = $builder->where('s.department', $department)
+                    if ($departmentId) {
+                        $users = $builder->where('s.department_id', $departmentId)
                                         ->orderBy('u.created_at', 'DESC')
                                         ->get()->getResultArray();
+                        log_message('debug', 'UserService: Doctor query for department ID ' . $departmentId . ' returned ' . count($users) . ' users');
                     } else {
                         $users = [];
+                        log_message('warning', 'UserService: Doctor has no department assigned');
                     }
                     break;
                     
                 case 'nurse':
                     // Nurses can see limited user info in their department
                     $nurseInfo = $this->staffBuilder->where('staff_id', $staffId)->get()->getRowArray();
-                    $department = $nurseInfo['department'] ?? null;
+                    $departmentId = $nurseInfo['department_id'] ?? null;
                     
-                    if ($department) {
-                        $users = $builder->where('s.department', $department)
+                    if ($departmentId) {
+                        $users = $builder->where('s.department_id', $departmentId)
                                         ->whereIn('u.role', ['doctor', 'nurse'])
                                         ->orderBy('u.created_at', 'DESC')
                                         ->get()->getResultArray();
+                        log_message('debug', 'UserService: Nurse query for department ID ' . $departmentId . ' returned ' . count($users) . ' users');
                     } else {
                         $users = [];
+                        log_message('warning', 'UserService: Nurse has no department assigned');
                     }
                     break;
                     
                 default:
                     // Other roles see basic user directory
                     $users = $builder->whereIn('u.role', ['doctor', 'receptionist'])
-                                    ->select('u.user_id, u.username, u.role, u.status, s.first_name, s.last_name, s.department')
+                                    ->select('u.user_id, u.username, u.role, u.status, s.first_name, s.last_name, d.name as department')
                                     ->orderBy('s.first_name', 'ASC')
                                     ->get()->getResultArray();
+                    log_message('debug', 'UserService: Default role query returned ' . count($users) . ' users');
+            }
+
+            // If join query failed, return basic user data
+            if (empty($users) && !empty($allUsers)) {
+                log_message('warning', 'UserService: Join query failed, returning basic user data');
+                $users = $allUsers;
             }
 
             // Format user data
-            return array_map(function($user) {
+            $formattedUsers = array_map(function($user) {
                 $user['full_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+                if (empty($user['full_name'])) {
+                    $user['full_name'] = $user['username'] ?? 'Unknown User';
+                }
                 $user['id'] = $user['user_id'] ?? null;
                 return $user;
             }, $users);
 
+            log_message('debug', 'UserService: Returning ' . count($formattedUsers) . ' formatted users');
+            return $formattedUsers;
+
         } catch (\Throwable $e) {
             log_message('error', 'UserService getUsersByRole error: ' . $e->getMessage());
+            log_message('error', 'UserService Stack trace: ' . $e->getTraceAsString());
             return [];
         }
     }
@@ -309,8 +341,9 @@ class UserService
     {
         try {
             $user = $this->db->table('users u')
-                ->select('u.*, s.first_name, s.last_name, s.department, s.employee_id')
+                ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id')
                 ->join('staff s', 's.staff_id = u.staff_id', 'left')
+                ->join('department d', 'd.department_id = s.department_id', 'left')
                 ->where('u.user_id', $userId)
                 ->get()->getRowArray();
 
@@ -374,9 +407,9 @@ class UserService
             // Get staff members who don't have user accounts yet (anti-join)
             // Include department name via join
             $staff = $this->db->table('staff s')
-                ->select('s.staff_id, s.first_name, s.last_name, s.employee_id, s.email, s.role, dpt.name AS department')
+                ->select('s.staff_id, s.first_name, s.last_name, s.employee_id, s.email, s.role, d.name AS department')
                 ->join('users u', 'u.staff_id = s.staff_id', 'left')
-                ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
+                ->join('department d', 'd.department_id = s.department_id', 'left')
                 ->where('u.staff_id IS NULL')
                 ->orderBy('s.first_name', 'ASC')
                 ->get()->getResultArray();

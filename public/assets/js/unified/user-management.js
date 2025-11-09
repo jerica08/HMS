@@ -21,7 +21,9 @@ class UserManager {
      */
     init() {
         this.bindEvents();
-        this.loadUsers();
+        
+        // Load initial data from server if available
+        this.loadInitialData();
         
         // Initialize modals if they exist
         if (window.AddUserModal) {
@@ -89,6 +91,48 @@ class UserManager {
                 this.handleAction(action, userId);
             }
         });
+    }
+
+    /**
+     * Load initial data from server-rendered HTML
+     */
+    loadInitialData() {
+        // Extract user data from the existing table
+        const tableBody = document.getElementById('usersTableBody');
+        const rows = tableBody.querySelectorAll('tr.user-row');
+        
+        if (rows.length > 0) {
+            this.users = Array.from(rows).map(row => {
+                const cells = row.querySelectorAll('td');
+                const userId = row.querySelector('[data-user-id]')?.getAttribute('data-user-id');
+                
+                // Extract data from the HTML
+                const nameCell = cells[0].querySelector('div > div:first-child');
+                const emailCell = cells[0].querySelector('div > div:nth-child(2)');
+                const idCell = cells[0].querySelector('div > div:nth-child(3)');
+                const roleCell = cells[1].querySelector('.role-badge');
+                const deptCell = cells[2];
+                const statusCell = cells[3];
+                const lastLoginCell = cells[4];
+                
+                return {
+                    user_id: parseInt(userId),
+                    first_name: nameCell?.textContent.trim().split(' ')[0] || '',
+                    last_name: nameCell?.textContent.trim().split(' ').slice(1).join(' ') || '',
+                    email: emailCell?.textContent.replace('Email: ', '').trim() || '',
+                    username: idCell?.textContent.replace('ID: ', '').trim() || '',
+                    role: roleCell?.textContent.trim() || '',
+                    department: deptCell?.textContent.trim() || '',
+                    status: statusCell?.textContent.trim().toLowerCase() || 'active',
+                    last_login: lastLoginCell?.textContent.trim() === 'Never' ? null : lastLoginCell?.textContent.trim()
+                };
+            });
+            
+            this.filteredUsers = [...this.users];
+        } else {
+            // No users in table, try loading via API
+            this.loadUsers();
+        }
     }
 
     /**

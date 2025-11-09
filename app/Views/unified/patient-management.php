@@ -223,7 +223,7 @@
 </div>
 
 <!-- Modals -->
-<?= $this->include('unified/modals/add-patient-modal') ?>
+<?= $this->include('unified/modals/add-patient-modal', ['availableDoctors' => $availableDoctors, 'userRole' => $userRole]) ?>
 <?= $this->include('unified/modals/view-patient-modal') ?>
 <?= $this->include('unified/modals/edit-patient-modal') ?>
 <?php if (in_array($userRole ?? '', ['admin', 'receptionist', 'it_staff'])): ?>

@@ -93,19 +93,20 @@ const AddPatientModal = {
         }
 
         try {
-            if (this.doctorsCache) {
-                this.populateDoctorsSelect(this.doctorsCache);
-                return;
-            }
-
+            // Always load via AJAX to ensure fresh data
             doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+
+            console.log('Loading doctors from:', PatientConfig.getUrl(PatientConfig.endpoints.doctorsApi));
 
             const response = await PatientUtils.makeRequest(
                 PatientConfig.getUrl(PatientConfig.endpoints.doctorsApi)
             );
 
+            console.log('Doctors response:', response);
+
             if (response.status === 'success') {
                 this.doctorsCache = response.data || [];
+                console.log('Doctors loaded:', this.doctorsCache);
                 this.populateDoctorsSelect(this.doctorsCache);
             } else {
                 throw new Error(response.message || 'Failed to load doctors');
@@ -123,14 +124,25 @@ const AddPatientModal = {
         const doctorSelect = document.getElementById('assigned_doctor');
         if (!doctorSelect) return;
 
+        console.log('Populating doctors dropdown with:', doctors);
+
         doctorSelect.innerHTML = '<option value="">Select Doctor (Optional)</option>';
         
-        doctors.forEach(doctor => {
+        if (!doctors || doctors.length === 0) {
+            console.log('No doctors to populate');
+            doctorSelect.innerHTML = '<option value="">No doctors available</option>';
+            return;
+        }
+        
+        doctors.forEach((doctor, index) => {
+            console.log(`Adding doctor ${index}:`, doctor);
             const option = document.createElement('option');
             option.value = doctor.staff_id || doctor.id;
             option.textContent = `${doctor.first_name} ${doctor.last_name}${doctor.department ? ' - ' + doctor.department : ''}`;
             doctorSelect.appendChild(option);
         });
+
+        console.log('Doctors dropdown populated with', doctorSelect.options.length - 1, 'doctors');
     },
 
     /**

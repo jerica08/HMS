@@ -267,9 +267,9 @@
 </div>
 
 <!-- Modals -->
-<?= $this->include('unified/modals/add-shift-modal') ?>
+<?= $this->include('unified/modals/add-shift-modal', ['availableStaff' => $availableStaff]) ?>
 <?= $this->include('unified/modals/view-shift-modal') ?>
-<?= $this->include('unified/modals/edit-shift-modal') ?>
+<?= $this->include('unified/modals/edit-shift-modal', ['availableStaff' => $availableStaff]) ?>
 
 <!-- Shift Management Scripts -->
 <script>

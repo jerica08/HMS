@@ -290,6 +290,7 @@ $routes->get('pharmacists/prescription', 'Pharmacist::prescription');
 $routes->get('create_resources_table.php', function() {
     require APPPATH . '../create_resources_table.php';
 });
+$routes->get('test-doctors', 'TestController::doctors');
 $routes->get('create_department_table.php', function() {
     require APPPATH . '../create_department_table.php';
 });

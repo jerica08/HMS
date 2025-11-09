@@ -13,32 +13,32 @@ class ShiftManagement extends BaseController
     protected $userRole;
     protected $staffId;
 
-    public function __construct()
+    public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
+        // Do Not Edit This Line
+        parent::initController($request, $response, $logger);
+        
         try {
-            // Debug: Log constructor start before anything else
-            log_message('debug', 'ShiftManagement::__construct starting');
-            
-            parent::__construct();
-            log_message('debug', 'ShiftManagement::__construct - parent construct completed');
+            // Debug: Log initialization start
+            log_message('debug', 'ShiftManagement::initController starting');
             
             // Load required services and libraries
             $this->shiftService = new ShiftService();
-            log_message('debug', 'ShiftManagement::__construct - ShiftService created');
+            log_message('debug', 'ShiftManagement::initController - ShiftService created');
             
             $this->permissionManager = new PermissionManager();
-            log_message('debug', 'ShiftManagement::__construct - PermissionManager created');
+            log_message('debug', 'ShiftManagement::initController - PermissionManager created');
             
             // Get user session data
             $session = session();
             $this->userRole = $session->get('role');
             $this->staffId = $session->get('staff_id');
             
-            // Debug: Log constructor call
-            log_message('debug', 'ShiftManagement::__construct called for user role: ' . $this->userRole);
+            // Debug: Log initialization
+            log_message('debug', 'ShiftManagement::initController completed for user role: ' . $this->userRole);
             
         } catch (\Throwable $e) {
-            log_message('error', 'ShiftManagement::__construct error: ' . $e->getMessage());
+            log_message('error', 'ShiftManagement::initController error: ' . $e->getMessage());
             throw $e; // Re-throw to see the full error
         }
     }

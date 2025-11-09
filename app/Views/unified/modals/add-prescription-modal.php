@@ -58,7 +58,18 @@
                     <div class="form-group">
                         <label for="prescriptionStatus" class="form-label">Status</label>
                         <select id="prescriptionStatus" name="status" class="form-select">
-                            <?php foreach ($statuses as $status): ?>
+                            <?php 
+                            // Fallback statuses if not provided
+                            $statusList = $statuses ?? [
+                                ['status' => 'active'],
+                                ['status' => 'pending'],
+                                ['status' => 'ready'],
+                                ['status' => 'completed'],
+                                ['status' => 'cancelled'],
+                                ['status' => 'expired']
+                            ];
+                            foreach ($statusList as $status): 
+                            ?>
                                 <option value="<?= esc($status['status']) ?>" <?= $status['status'] === 'active' ? 'selected' : '' ?>>
                                     <?= esc(ucfirst($status['status'])) ?>
                                 </option>

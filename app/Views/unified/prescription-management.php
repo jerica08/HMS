@@ -331,8 +331,17 @@
     </div>
 
 <!-- Modals -->
-<?= $this->include('unified/modals/add-prescription-modal') ?>
-<?= $this->include('unified/modals/view-prescription-modal') ?>
+<?php 
+    $modalData = [
+        'statuses' => $statuses ?? [],
+        'priorities' => $priorities ?? [],
+        'availablePatients' => $availablePatients ?? [],
+        'userRole' => $userRole ?? '',
+        'permissions' => $permissions ?? []
+    ];
+?>
+<?= view('unified/modals/add-prescription-modal', $modalData) ?>
+<?= view('unified/modals/view-prescription-modal', ['statuses' => $statuses ?? []]) ?>
 
     <!-- JavaScript -->
     <script src="<?= base_url('assets/js/unified/prescription-management.js') ?>"></script>

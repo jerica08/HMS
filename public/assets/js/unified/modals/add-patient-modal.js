@@ -48,6 +48,7 @@ const AddPatientModal = {
     async open() {
         if (this.modal) {
             this.modal.style.display = 'flex';
+            this.modal.removeAttribute('hidden');
             this.resetForm();
             await this.loadDoctors();
         }
@@ -59,6 +60,7 @@ const AddPatientModal = {
     close() {
         if (this.modal) {
             this.modal.style.display = 'none';
+            this.modal.setAttribute('hidden', '');
             this.resetForm();
         }
     },
@@ -85,64 +87,41 @@ const AddPatientModal = {
      */
     async loadDoctors() {
         const doctorSelect = document.getElementById('assigned_doctor');
-        if (!doctorSelect) return;
+        if (!doctorSelect) {
+            console.log('Doctor select element not found');
+            return;
+        }
 
         // Only load doctors for roles that can assign them
         if (!['admin', 'receptionist', 'it_staff'].includes(PatientConfig.userRole)) {
+            console.log('User role does not allow doctor assignment:', PatientConfig.userRole);
             return;
         }
 
-        try {
-            // Always load via AJAX to ensure fresh data
-            doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+        console.log('Loading doctors for user role:', PatientConfig.userRole);
 
-            console.log('Loading doctors from:', PatientConfig.getUrl(PatientConfig.endpoints.doctorsApi));
+        // Check if we already have doctors from PHP
+        const existingOptions = doctorSelect.querySelectorAll('option');
+        console.log('Existing options:', Array.from(existingOptions).map(opt => ({ value: opt.value, text: opt.textContent })));
+        
+        const hasRealDoctors = Array.from(existingOptions).some(option => 
+            option.value !== "" && 
+            option.textContent !== "No doctors available" &&
+            option.textContent !== "Loading doctors..."
+        );
 
-            const response = await PatientUtils.makeRequest(
-                PatientConfig.getUrl(PatientConfig.endpoints.doctorsApi)
-            );
-
-            console.log('Doctors response:', response);
-
-            if (response.status === 'success') {
-                this.doctorsCache = response.data || [];
-                console.log('Doctors loaded:', this.doctorsCache);
-                this.populateDoctorsSelect(this.doctorsCache);
-            } else {
-                throw new Error(response.message || 'Failed to load doctors');
+        if (hasRealDoctors) {
+            console.log('Doctors already loaded from PHP');
+            // Update the first option text if needed
+            const firstOption = doctorSelect.querySelector('option[value=""]');
+            if (firstOption && firstOption.textContent.includes('Loading')) {
+                firstOption.textContent = "Select Doctor (Optional)";
             }
-        } catch (error) {
-            console.error('Error loading doctors:', error);
-            doctorSelect.innerHTML = '<option value="">Failed to load doctors</option>';
-        }
-    },
-
-    /**
-     * Populate doctors select dropdown
-     */
-    populateDoctorsSelect(doctors) {
-        const doctorSelect = document.getElementById('assigned_doctor');
-        if (!doctorSelect) return;
-
-        console.log('Populating doctors dropdown with:', doctors);
-
-        doctorSelect.innerHTML = '<option value="">Select Doctor (Optional)</option>';
-        
-        if (!doctors || doctors.length === 0) {
-            console.log('No doctors to populate');
-            doctorSelect.innerHTML = '<option value="">No doctors available</option>';
             return;
         }
-        
-        doctors.forEach((doctor, index) => {
-            console.log(`Adding doctor ${index}:`, doctor);
-            const option = document.createElement('option');
-            option.value = doctor.staff_id || doctor.id;
-            option.textContent = `${doctor.first_name} ${doctor.last_name}${doctor.department ? ' - ' + doctor.department : ''}`;
-            doctorSelect.appendChild(option);
-        });
 
-        console.log('Doctors dropdown populated with', doctorSelect.options.length - 1, 'doctors');
+        console.log('No doctors found in PHP, showing no doctors available');
+        doctorSelect.innerHTML = '<option value="">No doctors available</option>';
     },
 
     /**

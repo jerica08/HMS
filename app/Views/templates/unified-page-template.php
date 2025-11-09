@@ -7,8 +7,7 @@
     <meta name="csrf-token" content="<?= csrf_token() ?>">
     <meta name="user-role" content="<?= esc($userRole ?? 'admin') ?>">
     <title><?= esc($title ?? 'HMS') ?> - HMS</title>
-    <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <?php include APPPATH . 'Views/template/header.php'; ?>
     <?php
       // Initialize optional filter vars to avoid notices
       $search = $search ?? null;
@@ -16,7 +15,7 @@
       $typeFilter = $typeFilter ?? null;
     ?>
 </head>
-<?php include APPPATH . 'Views/template/header.php'; ?> 
+<body>
 <div class="main-container">
     <!-- Unified Sidebar -->
     <?= $this->include('unified/components/sidebar') ?>
@@ -26,12 +25,12 @@
         <div class="page-actions">
             <?php if (($permissions['canCreate'] ?? false)): ?>
                 <button type="button" class="btn btn-primary" id="addBtn" aria-label="Add New Item">
-                    <i class="fas fa-plus" aria-hidden="true"></i> Add New
+                    <i class="fas fa-plus"></i> Add New
                 </button>
             <?php endif; ?>
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
                 <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
-                    <i class="fas fa-download" aria-hidden="true"></i> Export
+                    <i class="fas fa-download"></i> Export
                 </button>
             <?php endif; ?>
         </div>
@@ -43,7 +42,7 @@
                 border: 1px solid <?= session()->getFlashdata('success') ? '#86efac' : '#fecaca' ?>;
                 background: <?= session()->getFlashdata('success') ? '#dcfce7' : '#fee2e2' ?>;
                 color: <?= session()->getFlashdata('success') ? '#166534' : '#991b1b' ?>; display:flex; align-items:center; gap:0.5rem;">
-                <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>" aria-hidden="true"></i>
+                <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i>
                 <span>
                     <?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error')) ?>
                 </span>
@@ -138,7 +137,7 @@
 </div>
 
 <!-- Example Modal -->
-<div id="exampleModal" class="hms-modal-overlay" aria-hidden="true">
+<div id="exampleModal" class="hms-modal-overlay" hidden>
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="exampleModalTitle">
         <div class="hms-modal-header">
             <div class="hms-modal-title" id="exampleModalTitle">
@@ -190,11 +189,19 @@ function dismissFlash() {
     }
 }
 
+function openModal() {
+    const modal = document.getElementById('exampleModal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.removeAttribute('hidden');
+    }
+}
+
 function closeModal() {
     const modal = document.getElementById('exampleModal');
     if (modal) {
         modal.classList.remove('active');
-        modal.setAttribute('aria-hidden', 'true');
+        modal.setAttribute('hidden', '');
     }
 }
 

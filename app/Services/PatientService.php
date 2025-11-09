@@ -445,62 +445,26 @@ class PatientService
     public function getAvailableDoctors()
     {
         try {
-            // Primary source: doctors table joined to staff
+            log_message('debug', 'PatientService::getAvailableDoctors called');
+            
+            // Get doctors ONLY from the doctor table joined with staff table
             $fromDoctorTable = $this->db->table('doctor d')
-                ->select('s.staff_id, s.first_name, s.last_name, s.department, d.specialization')
-                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
+                ->join('staff s', 's.staff_id = d.staff_id', 'inner') // Inner join to ensure we only get doctors with staff records
                 ->orderBy('s.first_name', 'ASC')
                 ->get()
                 ->getResultArray();
 
-            // Also include staff who are marked as doctors via role/designation
-            $staffBuilder = $this->db->table('staff s')
-                ->select('s.staff_id, s.first_name, s.last_name, s.department, NULL as specialization')
-                ->orderBy('s.first_name', 'ASC');
-
-            // Case-insensitive and partial match for role/designation containing common doctor synonyms
-            $staffBuilder->groupStart()
-                ->like('s.role', 'doctor', 'both', null, true)
-                ->orLike('s.designation', 'doctor', 'both', null, true)
-                ->orLike('s.role', 'physician', 'both', null, true)
-                ->orLike('s.designation', 'physician', 'both', null, true)
-                ->orLike('s.designation', 'md', 'both', null, true)
-            ->groupEnd();
-
-            $fromStaffRole = $staffBuilder->get()->getResultArray();
-
-            // Merge and de-duplicate by staff_id, prefer entries that have specialization from doctor table
-            $merged = [];
-            foreach (array_merge($fromDoctorTable, $fromStaffRole) as $row) {
-                $id = $row['staff_id'] ?? null;
-                if (!$id) {
-                    // Require a valid staff_id to assign
-                    continue;
-                }
-                if (!isset($merged[$id])) {
-                    $merged[$id] = $row;
-                } else {
-                    // Prefer row that has specialization info
-                    if (!empty($row['specialization']) && empty($merged[$id]['specialization'])) {
-                        $merged[$id] = $row;
-                    }
+            log_message('debug', 'PatientService::getAvailableDoctors found ' . count($fromDoctorTable) . ' doctors from doctor table');
+            
+            // Log the actual results for debugging
+            if (!empty($fromDoctorTable)) {
+                foreach ($fromDoctorTable as $doctor) {
+                    log_message('debug', 'PatientService - Doctor found: ID=' . $doctor['staff_id'] . ', Name=' . $doctor['first_name'] . ' ' . $doctor['last_name'] . ', Spec=' . ($doctor['specialization'] ?? 'None'));
                 }
             }
-
-            $doctors = array_values($merged);
-
-            return array_map(function($d) {
-                // Fallback: if both first and last names are missing, synthesize a readable label
-                $first = trim($d['first_name'] ?? '');
-                $last = trim($d['last_name'] ?? '');
-                if ($first === '' && $last === '') {
-                    $d['first_name'] = 'Doctor';
-                    $d['last_name'] = (string)($d['staff_id'] ?? '');
-                }
-                $d['full_name'] = trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''));
-                $d['id'] = $d['staff_id'];
-                return $d;
-            }, $doctors);
+            
+            return $this->formatDoctorData($fromDoctorTable);
 
         } catch (\Throwable $e) {
             log_message('error', 'Available doctors fetch error: ' . $e->getMessage());
@@ -508,31 +472,58 @@ class PatientService
         }
     }
 
+    /**
+     * Format doctor data for consistent output
+     */
+    private function formatDoctorData($doctors)
+    {
+        return array_map(function($d) {
+            // Ensure we have valid names
+            $first = trim($d['first_name'] ?? '');
+            $last = trim($d['last_name'] ?? '');
+            if ($first === '' && $last === '') {
+                $d['first_name'] = 'Doctor';
+                $d['last_name'] = (string)($d['staff_id'] ?? '');
+            }
+            $d['full_name'] = trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''));
+            $d['id'] = $d['staff_id'];
+            return $d;
+        }, $doctors);
+    }
+
     private function determinePrimaryDoctor($input, $userRole, $staffId)
     {
         if ($userRole === 'doctor') {
-            // For doctors, use their staff_id directly
-            return $staffId;
+            // For doctors, get their doctor_id from the doctor table using their staff_id
+            $doctorRecord = $this->db->table('doctor')
+                ->select('doctor_id')
+                ->where('staff_id', $staffId)
+                ->get()
+                ->getRowArray();
+            return $doctorRecord['doctor_id'] ?? null;
         }
 
         // Admin, Receptionist, and IT Staff can optionally choose a doctor; otherwise fallback
         if (in_array($userRole, ['admin', 'receptionist', 'it_staff'])) {
             if (!empty($input['assigned_doctor'])) {
-                return (int)$input['assigned_doctor'];
+                // Convert staff_id to doctor_id
+                $doctorRecord = $this->db->table('doctor')
+                    ->select('doctor_id')
+                    ->where('staff_id', (int)$input['assigned_doctor'])
+                    ->get()
+                    ->getRowArray();
+                return $doctorRecord['doctor_id'] ?? null;
             }
 
-            // Fallback to first available doctor (do not filter by a non-existent status)
-            $firstDoctor = $this->db->table('staff')
-                ->select('staff_id')
-                ->groupStart()
-                    ->where('role', 'doctor')
-                    ->orWhere('designation', 'doctor')
-                ->groupEnd()
-                ->orderBy('first_name', 'ASC')
+            // Fallback to first available doctor from doctor table
+            $firstDoctor = $this->db->table('doctor d')
+                ->select('d.doctor_id')
+                ->join('staff s', 's.staff_id = d.staff_id', 'inner')
+                ->orderBy('s.first_name', 'ASC')
                 ->get()
                 ->getRowArray();
 
-            return $firstDoctor['staff_id'] ?? null;
+            return $firstDoctor['doctor_id'] ?? null;
         }
 
         return null;

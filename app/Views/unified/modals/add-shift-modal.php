@@ -23,8 +23,7 @@
                             <option value="">Select Doctor</option>
                             <?php foreach ($availableStaff as $staff): ?>
                                 <option value="<?= esc($staff['doctor_id']) ?>">
-                                    <?= esc($staff['first_name'] . ' ' . $staff['last_name']) ?> 
-                                    - <?= esc($staff['department']) ?>
+                                    <?= esc($staff['first_name'] . ' ' . $staff['last_name']) ?><?= !empty($staff['specialization']) ? ' - ' . esc($staff['specialization']) : '' ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

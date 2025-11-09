@@ -29,7 +29,6 @@ class ShiftService
                     'ds.shift_start as start',
                     'ds.shift_end as end',
                     'ds.department',
-                    'ds.shift_type',
                     'ds.duration_hours',
                     'ds.room_ward',
                     'ds.status',
@@ -106,7 +105,6 @@ class ShiftService
                 $builder->groupStart()
                     ->like("CONCAT(s.first_name, ' ', s.last_name)", $search)
                     ->orLike('ds.department', $search)
-                    ->orLike('ds.shift_type', $search)
                     ->orLike('ds.room_ward', $search)
                     ->groupEnd();
             }
@@ -215,7 +213,6 @@ class ShiftService
                 'shift_end' => 'required',
                 'department' => 'permit_empty|max_length[100]',
                 'status' => 'permit_empty|in_list[Scheduled,Completed,Cancelled]',
-                'shift_type' => 'permit_empty|max_length[50]',
                 'room_ward' => 'permit_empty|max_length[100]',
                 'notes' => 'permit_empty'
             ]);
@@ -257,7 +254,6 @@ class ShiftService
                 'shift_end' => $end,
                 'department' => $department,
                 'status' => $data['status'] ?? 'Scheduled',
-                'shift_type' => $data['shift_type'] ?? null,
                 'room_ward' => $data['room_ward'] ?? null,
                 'notes' => $data['notes'] ?? null,
                 'duration_hours' => $duration,
@@ -305,7 +301,6 @@ class ShiftService
                 'shift_end' => isset($data['shift_end']) ? $this->normalizeTime($data['shift_end']) : null,
                 'department' => $data['department'] ?? null,
                 'status' => $data['status'] ?? null,
-                'shift_type' => $data['shift_type'] ?? null,
                 'room_ward' => $data['room_ward'] ?? null,
                 'notes' => $data['notes'] ?? null,
                 'updated_at' => date('Y-m-d H:i:s')
@@ -378,7 +373,6 @@ class ShiftService
                     'ds.shift_start as start',
                     'ds.shift_end as end',
                     'ds.department',
-                    'ds.shift_type',
                     'ds.duration_hours',
                     'ds.room_ward',
                     'ds.status',
@@ -388,8 +382,8 @@ class ShiftService
                     "CONCAT(COALESCE(s.first_name,''),' ',COALESCE(s.last_name,'')) as doctor_name",
                     's.staff_id'
                 ])
-                ->join('doctor d', 'd.doctor_id = ds.doctor_id', 'left')
-                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->join('doctor d', 'd.doctor_id = ds.doctor_id', 'inner') // Changed to inner join for consistency
+                ->join('staff s', 's.staff_id = d.staff_id', 'inner') // Changed to inner join for consistency
                 ->where('ds.shift_id', $id)
                 ->get()
                 ->getRowArray();
@@ -406,19 +400,25 @@ class ShiftService
     public function getAvailableStaff($date = null, $startTime = null, $endTime = null)
     {
         try {
-            // Pull doctors from the doctor table; join staff for names/department
+            log_message('debug', 'ShiftService::getAvailableStaff called');
+            
+            // Pull doctors ONLY from the doctor table; join staff for names
             $builder = $this->db->table('doctor d')
                 ->select([
                     'd.doctor_id',
                     's.staff_id',
                     's.first_name',
                     's.last_name',
-                    's.department'
+                    'd.specialization'
                 ])
-                ->join('staff s', 's.staff_id = d.staff_id', 'left');
+                ->join('staff s', 's.staff_id = d.staff_id', 'inner') // Inner join to ensure we only get doctors with staff records
+                ->orderBy('s.first_name', 'ASC');
+
+            log_message('debug', 'ShiftService query built, executing...');
 
             // Check availability if date and time provided
             if ($date && $startTime && $endTime) {
+                log_message('debug', 'Checking availability for date: ' . $date);
                 $conflictingDoctors = $this->db->table('doctor_shift')
                     ->select('doctor_id')
                     ->where('shift_date', $date)
@@ -434,11 +434,22 @@ class ShiftService
                     $conflictingIds = array_column($conflictingDoctors, 'doctor_id');
                     if (!empty($conflictingIds)) {
                         $builder->whereNotIn('d.doctor_id', $conflictingIds);
+                        log_message('debug', 'Excluding ' . count($conflictingIds) . ' conflicting doctors');
                     }
                 }
             }
 
-            return $builder->orderBy('s.first_name', 'ASC')->get()->getResultArray();
+            $result = $builder->get()->getResultArray();
+            log_message('debug', 'ShiftService::getAvailableStaff found ' . count($result) . ' doctors from doctor table');
+            
+            // Log the actual results for debugging
+            if (!empty($result)) {
+                foreach ($result as $doctor) {
+                    log_message('debug', 'Doctor found: ID=' . $doctor['doctor_id'] . ', Name=' . $doctor['first_name'] . ' ' . $doctor['last_name'] . ', Spec=' . ($doctor['specialization'] ?? 'None'));
+                }
+            }
+            
+            return $result;
 
         } catch (\Throwable $e) {
             log_message('error', 'ShiftService::getAvailableStaff error: ' . $e->getMessage());

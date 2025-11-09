@@ -1,5 +1,5 @@
 <!-- Add Patient Modal -->
-<div id="addPatientModal" class="hms-modal-overlay" aria-hidden="true">
+<div id="addPatientModal" class="hms-modal-overlay" hidden>
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addPatientTitle">
         <div class="hms-modal-header">
             <div class="hms-modal-title" id="addPatientTitle">
@@ -111,22 +111,22 @@
                         </select>
                     </div>
                     <?php if (in_array($userRole ?? '', ['admin', 'receptionist', 'it_staff'])): ?>
-                    <div>
-                        <label class="form-label" for="assigned_doctor">Assign Doctor</label>
-                        <select id="assigned_doctor" name="assigned_doctor" class="form-select">
-                            <?php if (!empty($availableDoctors)): ?>
-                                <option value="">Select Doctor (Optional)</option>
-                                <?php foreach ($availableDoctors as $d): ?>
-                                    <option value="<?= esc($d['staff_id'] ?? $d['id']) ?>">
-                                        <?= esc(trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''))) ?><?= !empty($d['department']) ? ' - ' . esc($d['department']) : '' ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <option value="">Loading doctors...</option>
-                            <?php endif; ?>
-                        </select>
-                        <small id="err_assigned_doctor" style="color:#dc2626"></small>
-                    </div>
+                    <div class="form-group">
+                            <label class="form-label" for="assigned_doctor">Assign Doctor</label>
+                            <select id="assigned_doctor" name="assigned_doctor" class="form-select">
+                                <?php if (!empty($availableDoctors)): ?>
+                                    <option value="">Select Doctor (Optional)</option>
+                                    <?php foreach ($availableDoctors as $d): ?>
+                                        <option value="<?= esc($d['staff_id'] ?? $d['id']) ?>">
+                                            <?= esc(trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''))) ?><?= !empty($d['specialization']) ? ' - ' . esc($d['specialization']) : '' ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <option value="">No doctors available</option>
+                                <?php endif; ?>
+                            </select>
+                            <small id="err_assigned_doctor" style="color:#dc2626"></small>
+                        </div>
                     <?php endif; ?>
                     <div>
                         <label class="form-label" for="insurance_provider">Insurance Provider</label>

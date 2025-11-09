@@ -30,13 +30,15 @@ class AppointmentManagement extends BaseController
         try {
             $stats = $this->getAppointmentStats();
             $appointments = $this->getAppointments();
-            $doctors = $this->userRole === 'admin' ? $this->getDoctorsList() : [];
+            $doctors = $this->userRole === 'admin' ? $this->getDoctorsListData() : [];
+            $availablePatients = $this->getAvailablePatients();
             
             $data = [
                 'title' => $this->getPageTitle(),
                 'appointmentStats' => $stats,
                 'appointments' => $appointments,
                 'doctors' => $doctors,
+                'availablePatients' => $availablePatients,
                 'userRole' => $this->userRole,
                 'permissions' => $this->getUserPermissions()
             ];
@@ -53,6 +55,7 @@ class AppointmentManagement extends BaseController
                 'appointmentStats' => [],
                 'appointments' => [],
                 'doctors' => [],
+                'availablePatients' => [],
                 'userRole' => $this->userRole ?? 'guest',
                 'permissions' => []
             ];
@@ -458,18 +461,75 @@ class AppointmentManagement extends BaseController
     /**
      * Get doctors list for admin filtering
      */
-    private function getDoctorsList()
+    private function getDoctorsListData()
     {
         try {
-            return $this->db->table('staff')
-                ->select('staff_id, first_name, last_name, department')
-                ->where('role', 'doctor')
-                ->where('status', 'active')
+            return $this->db->table('doctor d')
+                ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
+                ->join('staff s', 's.staff_id = d.staff_id', 'inner')
+                ->where('s.status', 'active')
                 ->get()
                 ->getResultArray();
         } catch (\Exception $e) {
             log_message('error', 'Get doctors list error: ' . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Get patients list for prescription modal
+     */
+    private function getAvailablePatients()
+    {
+        try {
+            return $this->db->table('patient p')
+                ->select('p.patient_id, p.first_name, p.last_name, p.date_of_birth')
+                ->orderBy('p.first_name', 'ASC')
+                ->get()
+                ->getResultArray();
+        } catch (\Exception $e) {
+            log_message('error', 'Get available patients error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get patients list for appointment booking (API)
+     */
+    public function getPatientsList()
+    {
+        try {
+            $patients = $this->getAvailablePatients();
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $patients
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Get patients list error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to load patients'
+            ]);
+        }
+    }
+
+    /**
+     * Get doctors list for appointment booking
+     */
+    public function getDoctorsList()
+    {
+        try {
+            $doctors = $this->getDoctorsListData();
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $doctors
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Get doctors API error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to load doctors'
+            ]);
         }
     }
 

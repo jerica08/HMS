@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="<?= base_url('assets/css/unified/appointments.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="<?= base_url('assets/js/unified/prescription-management.js') ?>"></script>
 </head>
 
 <?php include APPPATH . 'Views/template/header.php'; ?> 
@@ -281,6 +282,11 @@
                                                     <i class="fas fa-edit"></i> Edit
                                                 </button>
                                             <?php endif; ?>
+                                            <?php if (in_array($userRole, ['admin', 'doctor'])): ?>
+                                                <button class="btn btn-info" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="openPrescriptionModal(<?= esc($appointment['appointment_id'] ?? 0) ?>, <?= esc($appointment['patient_id'] ?? 0) ?>)">
+                                                    <i class="fas fa-prescription-bottle"></i> Prescription
+                                                </button>
+                                            <?php endif; ?>
                                             <?php if ($userRole === 'admin'): ?>
                                                 <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="deleteAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
                                                     <i class="fas fa-trash"></i> Delete
@@ -312,6 +318,7 @@
   
     <?php include APPPATH . 'Views/unified/modals/new-appointment-modal.php'; ?>
     <?php include APPPATH . 'Views/unified/modals/view-appointment-modal.php'; ?>
+    <?php include APPPATH . 'Views/unified/modals/add-prescription-modal.php'; ?>
 
     <script>
     // Export appointments to Excel
@@ -371,6 +378,198 @@
         const exportBtn = document.getElementById('exportBtn');
         if (exportBtn) {
             exportBtn.addEventListener('click', exportToExcel);
+        }
+
+        // Initialize appointment modal
+        initializeAppointmentModal();
+    });
+
+    // Appointment Modal Functions
+    function initializeAppointmentModal() {
+        const scheduleBtn = document.getElementById('scheduleAppointmentBtn');
+        if (scheduleBtn) {
+            scheduleBtn.addEventListener('click', openNewAppointmentModal);
+        }
+
+        // Close modal when clicking outside
+        const modal = document.getElementById('newAppointmentModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeNewAppointmentModal();
+                }
+            });
+        }
+
+        // Handle form submission
+        const form = document.getElementById('newAppointmentForm');
+        if (form) {
+            form.addEventListener('submit', handleAppointmentSubmit);
+        }
+    }
+
+    function openNewAppointmentModal() {
+        const modal = document.getElementById('newAppointmentModal');
+        if (modal) {
+            modal.removeAttribute('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            loadPatients();
+            loadDoctors();
+        }
+    }
+
+    function closeNewAppointmentModal() {
+        const modal = document.getElementById('newAppointmentModal');
+        if (modal) {
+            modal.setAttribute('hidden', 'true');
+            modal.setAttribute('aria-hidden', 'true');
+            document.getElementById('newAppointmentForm').reset();
+            clearFormErrors();
+        }
+    }
+
+    function loadPatients() {
+        const baseUrl = document.querySelector('meta[name="base-url"]').content;
+        const patientSelect = document.getElementById('appointment_patient');
+        
+        fetch(`${baseUrl}/appointments/patients`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    patientSelect.innerHTML = '<option value="">Select Patient...</option>';
+                    data.data.forEach(patient => {
+                        const option = document.createElement('option');
+                        option.value = patient.patient_id;
+                        option.textContent = `${patient.first_name} ${patient.last_name}`;
+                        patientSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading patients:', error);
+            });
+    }
+
+    function loadDoctors() {
+        const baseUrl = document.querySelector('meta[name="base-url"]').content;
+        const doctorSelect = document.getElementById('appointment_doctor');
+        
+        if (!doctorSelect) return; // Only for admin/receptionist
+        
+        fetch(`${baseUrl}/appointments/doctors`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    doctorSelect.innerHTML = '<option value="">Select Doctor...</option>';
+                    data.data.forEach(doctor => {
+                        const option = document.createElement('option');
+                        option.value = doctor.staff_id;
+                        const specialization = doctor.specialization ? ` - ${doctor.specialization}` : '';
+                        option.textContent = `${doctor.first_name} ${doctor.last_name}${specialization}`;
+                        doctorSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading doctors:', error);
+            });
+    }
+
+    function handleAppointmentSubmit(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        const baseUrl = document.querySelector('meta[name="base-url"]').content;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        fetch(`${baseUrl}/appointments/create`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeNewAppointmentModal();
+                location.reload(); // Refresh to show new appointment
+            } else {
+                showFormErrors(data.errors || {});
+            }
+        })
+        .catch(error => {
+            console.error('Error creating appointment:', error);
+        });
+    }
+
+    function clearFormErrors() {
+        const errorElements = document.querySelectorAll('[id^="err_appointment_"]');
+        errorElements.forEach(element => {
+            element.textContent = '';
+        });
+    }
+
+    function showFormErrors(errors) {
+        clearFormErrors();
+        Object.keys(errors).forEach(field => {
+            const errorElement = document.getElementById(`err_appointment_${field}`);
+            if (errorElement) {
+                errorElement.textContent = errors[field];
+            }
+        });
+    }
+
+    // Prescription Modal Functions
+    function openPrescriptionModal(appointmentId, patientId) {
+        const modal = document.getElementById('prescriptionModal');
+        if (modal) {
+            // Set the patient in the dropdown
+            const patientSelect = document.getElementById('patientSelect');
+            if (patientSelect && patientId) {
+                patientSelect.value = patientId;
+                patientSelect.disabled = true; // Lock patient selection
+            }
+            
+            // Show modal
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+        }
+    }
+
+    function closePrescriptionModal() {
+        const modal = document.getElementById('prescriptionModal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            
+            // Reset form
+            const form = document.getElementById('prescriptionForm');
+            if (form) {
+                form.reset();
+                document.getElementById('patientSelect').disabled = false;
+            }
+        }
+    }
+
+    // Initialize prescription modal close button
+    document.addEventListener('DOMContentLoaded', function() {
+        const closeBtn = document.getElementById('closePrescriptionModal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closePrescriptionModal);
+        }
+        
+        // Close modal when clicking outside
+        const modal = document.getElementById('prescriptionModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closePrescriptionModal();
+                }
+            });
         }
     });
     </script>

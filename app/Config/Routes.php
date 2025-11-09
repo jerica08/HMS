@@ -237,6 +237,15 @@ if (method_exists($routes, 'addRedirect')) {
 }
 $routes->get('doctor/financial', 'FinancialManagement::index', ['filter' => 'roleauth:doctor']);
 $routes->get('receptionist/financial', 'FinancialManagement::index', ['filter' => 'roleauth:receptionist']);
+
+// Analytics & Reports Routes
+$routes->get('admin/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('accountant/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:accountant']);
+$routes->get('doctor/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:receptionist']);
+$routes->get('it-staff/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:it_staff']);
+$routes->get('analytics/api', 'AnalyticsManagement::getAnalyticsAPI', ['filter' => 'roleauth:admin,accountant,doctor,nurse,receptionist,it_staff']);
 $routes->post('analytics/report/generate', 'AnalyticsManagement::generateReport', ['filter' => 'roleauth:admin,accountant,doctor,it_staff']);
 
 // ===================================================================

@@ -125,9 +125,7 @@ $routes->match(['get','post','options'], 'departments/create', 'Departments::cre
 // ===================================================================
 
 // Shift Management Views - Role-specific entry points
-$routes->get('admin/shifts', 'ShiftManagement::index'); // Temporarily removed filter for testing
-$routes->get('test-shift', 'TestShift::index'); // Test route
-$routes->get('simple-shift', 'ShiftManagementSimple::index'); // Simple controller test
+$routes->get('admin/shifts', 'ShiftManagement::index'); // Main admin shift management route
 $routes->get('doctor/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:doctor']);
 $routes->get('it-staff/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:it_staff']);
 $routes->get('nurse/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:nurse']);

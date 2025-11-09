@@ -273,6 +273,10 @@
 
 <!-- Shift Management Scripts -->
 <script>
+// Pass initial data to JavaScript
+window.initialShifts = <?= json_encode($shifts ?? []) ?>;
+window.userRole = <?= json_encode($userRole ?? 'admin') ?>;
+
 function dismissFlash() {
     const flashNotice = document.getElementById('flashNotice');
     if (flashNotice) {

@@ -336,10 +336,37 @@ class PrescriptionManager {
     }
 
     openCreateModal() {
+        console.log('openCreateModal called');
         this.resetForm();
         document.getElementById('modalTitle').textContent = 'Create Prescription';
         document.getElementById('prescriptionId').value = '';
-        document.getElementById('prescriptionModal').classList.add('active');
+        
+        const modal = document.getElementById('prescriptionModal');
+        console.log('Modal element found:', !!modal);
+        
+        if (modal) {
+            // Add active class
+            modal.classList.add('active');
+            
+            // Also set inline styles for compatibility
+            modal.style.display = 'flex';
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100vw';
+            modal.style.height = '100vh';
+            modal.style.zIndex = '9999';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            modal.style.background = 'rgba(15, 23, 42, 0.55)';
+            
+            document.body.style.overflow = 'hidden';
+            
+            console.log('Modal should be visible now, classes:', modal.className);
+            console.log('Modal display style:', modal.style.display);
+        } else {
+            console.error('Prescription modal not found!');
+        }
     }
 
     async editPrescription(prescriptionId) {
@@ -545,7 +572,14 @@ class PrescriptionManager {
     }
 
     closePrescriptionModal() {
-        document.getElementById('prescriptionModal').classList.remove('active');
+        console.log('closePrescriptionModal called');
+        const modal = document.getElementById('prescriptionModal');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+            console.log('Modal closed');
+        }
         this.resetForm();
     }
 

@@ -11,6 +11,7 @@
     
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/unified/prescription-management.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('assets/css/unified/shift-management.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="<?= esc($userRole) ?>">
@@ -39,7 +40,7 @@
             </h1>
             <div class="page-actions">
                 <?php if ($permissions['canCreate']): ?>
-                    <button type="button" id="createPrescriptionBtn" class="btn btn-primary" aria-label="Create New Prescription">
+                    <button type="button" id="createPrescriptionBtn" class="btn btn-primary" aria-label="Create New Prescription" onclick="showPrescriptionModalDirect()">
                         <i class="fas fa-plus" aria-hidden="true"></i> Add Prescription
                     </button>
                 <?php endif; ?>
@@ -341,9 +342,95 @@
     ];
 ?>
 <?= view('unified/modals/add-prescription-modal', $modalData) ?>
-<?= view('unified/modals/view-prescription-modal', ['statuses' => $statuses ?? []]) ?>
 
     <!-- JavaScript -->
-    <script src="<?= base_url('assets/js/unified/prescription-management.js') ?>"></script>
+    <script src="<?= base_url('public/assets/js/unified/prescription-management.js') ?>"></script>
+    
+    <script>
+    // Direct function to show prescription modal - using exact shift modal approach
+    function showPrescriptionModalDirect() {
+        console.log('showPrescriptionModalDirect called directly');
+        const modal = document.getElementById('prescriptionModal');
+        console.log('Modal element found:', !!modal);
+        
+        if (modal) {
+            // Reset form and show modal
+            const form = document.getElementById('prescriptionForm');
+            if (form) {
+                form.reset();
+                const idField = document.getElementById('prescriptionId');
+                if (idField) {
+                    idField.value = '';
+                }
+                // Set default date to today
+                const dateField = document.getElementById('prescriptionDate');
+                if (dateField) {
+                    dateField.value = new Date().toISOString().split('T')[0];
+                }
+            }
+            
+            // Show modal using the same approach that works for shift modal
+            modal.classList.add('active');
+            modal.style.display = 'flex';
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100vw';
+            modal.style.height = '100vh';
+            modal.style.zIndex = '9999';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            modal.style.background = 'rgba(15, 23, 42, 0.55)';
+            
+            document.body.style.overflow = 'hidden';
+            
+            console.log('Prescription modal should be visible now via direct click');
+        } else {
+            console.error('Prescription modal not found!');
+        }
+    }
+    
+    // Direct function to hide modal - using exact shift modal approach
+    function hidePrescriptionModalDirect() {
+        console.log('hidePrescriptionModalDirect called directly');
+        const modal = document.getElementById('prescriptionModal');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+            console.log('Prescription modal closed via direct function');
+        } else {
+            console.error('Prescription modal not found for closing!');
+        }
+    }
+    
+    // Make functions global
+    window.showPrescriptionModalDirect = showPrescriptionModalDirect;
+    window.hidePrescriptionModalDirect = hidePrescriptionModalDirect;
+    
+    // Add event listeners for close buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        const closeBtn = document.getElementById('closePrescriptionModal');
+        const cancelBtn = document.getElementById('cancelPrescriptionBtn');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', hidePrescriptionModalDirect);
+        }
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', hidePrescriptionModalDirect);
+        }
+        
+        // Click outside to close
+        const modal = document.getElementById('prescriptionModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    hidePrescriptionModalDirect();
+                }
+            });
+        }
+    });
+    </script>
 </body>
 </html>

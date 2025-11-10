@@ -1,6 +1,6 @@
 <!-- Create/Edit Prescription Modal -->
-<div id="prescriptionModal" class="modal-overlay">
-    <div class="modal-container">
+<div id="prescriptionModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
         <div class="modal-header">
             <h3 class="modal-title">
                 <i class="fas fa-prescription-bottle"></i>

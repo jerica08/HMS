@@ -266,20 +266,22 @@
     </main>
 </div>
 
-<!-- Modals -->
-<?= $this->include('unified/modals/add-shift-modal', [
-    'availableStaff' => $availableStaff ?? [],
-    'departments' => $departments ?? [],
-    'shiftTypes' => $shiftTypes ?? [],
-    'roomsWards' => $roomsWards ?? []
-]) ?>
-<?= $this->include('unified/modals/view-shift-modal') ?>
-<?= $this->include('unified/modals/edit-shift-modal', [
-    'availableStaff' => $availableStaff ?? [],
-    'departments' => $departments ?? [],
-    'shiftTypes' => $shiftTypes ?? [],
-    'roomsWards' => $roomsWards ?? []
-]) ?>
+<!-- Modals (hidden by default) -->
+<div style="display: none;">
+    <?= $this->include('unified/modals/add-shift-modal', [
+        'availableStaff' => $availableStaff ?? [],
+        'departments' => $departments ?? [],
+        'shiftTypes' => $shiftTypes ?? [],
+        'roomsWards' => $roomsWards ?? []
+    ]) ?>
+    <?= $this->include('unified/modals/view-shift-modal') ?>
+    <?= $this->include('unified/modals/edit-shift-modal', [
+        'availableStaff' => $availableStaff ?? [],
+        'departments' => $departments ?? [],
+        'shiftTypes' => $shiftTypes ?? [],
+        'roomsWards' => $roomsWards ?? []
+    ]) ?>
+</div>
 
 <!-- Shift Management Scripts -->
 <script>

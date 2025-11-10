@@ -1,5 +1,5 @@
 <!-- Add Shift Modal -->
-<div id="shiftModal" class="modal-overlay" style="display: none;">
+<div id="shiftModal" class="modal-overlay" aria-hidden="true">
     <div class="modal-content">
         <div class="modal-header">
             <h3>

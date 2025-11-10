@@ -1,5 +1,5 @@
 <!-- Edit Shift Modal -->
-<div id="editShiftModal" class="modal-overlay">
+<div id="editShiftModal" class="modal-overlay" aria-hidden="true">
     <div class="modal-content">
         <div class="modal-header">
             <h3>

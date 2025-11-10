@@ -26,6 +26,20 @@ function initializeShiftManagement() {
         loadShifts();
     }
     
+    // Ensure all modals are hidden on page load using CSS classes
+    const modalIds = ['shiftModal', 'editShiftModal', 'viewShiftModal'];
+    modalIds.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            // Remove any inline styles that might interfere
+            modal.style.display = '';
+            modal.style.visibility = '';
+            console.log(`${modalId} hidden on page load`);
+        }
+    });
+    
     setupEventListeners();
     setupModals();
 }
@@ -36,8 +50,13 @@ function initializeShiftManagement() {
 function setupEventListeners() {
     // Create shift button
     const createBtn = document.getElementById('createShiftBtn');
+    console.log('Create shift button found:', !!createBtn);
+    
     if (createBtn) {
-        createBtn.addEventListener('click', showCreateShiftModal);
+        createBtn.addEventListener('click', function() {
+            console.log('Create shift button clicked!');
+            showCreateShiftModal();
+        });
     }
 
     // Export button
@@ -199,20 +218,204 @@ function showLoadingState() {
 }
 
 /**
+ * Load shift modal dynamically
+ */
+async function loadShiftModal(type) {
+    try {
+        // For add modal, load the specific modal file
+        let modalUrl;
+        if (type === 'add') {
+            modalUrl = `${getBaseUrl()}unified/modals/add-shift-modal.php`;
+        } else {
+            modalUrl = `${getBaseUrl()}shifts/modal/${type}`;
+        }
+        
+        const response = await fetch(modalUrl, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            const modalHtml = await response.text();
+            
+            // Create a temporary div to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = modalHtml;
+            
+            // Find the modal in the response
+            const modal = tempDiv.querySelector('.modal-overlay');
+            if (modal) {
+                // Add to document body
+                document.body.appendChild(modal);
+                
+                // Setup event listeners for the new modal
+                setupModalEventListeners();
+                
+                // Show the modal
+                if (type === 'add') {
+                    resetCreateForm();
+                    const titleElement = document.getElementById('modalTitle');
+                    if (titleElement) {
+                        titleElement.textContent = 'Create Shift';
+                    }
+                } else if (type === 'edit') {
+                    // Handle edit modal setup
+                    const shiftId = modal.getAttribute('data-shift-id');
+                    if (shiftId) {
+                        populateEditForm(shiftsData.find(s => s.id === parseInt(shiftId)));
+                    }
+                }
+                
+                modal.classList.add('active');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+        } else {
+            console.error('Failed to load modal');
+            showError('Failed to load modal. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error loading modal:', error);
+        showError('Error loading modal. Please try again.');
+    }
+}
+
+/**
+ * Setup modal event listeners for dynamically loaded modals
+ */
+function setupModalEventListeners() {
+    // Close modal on overlay background click only
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-overlay')) {
+            closeAllModals();
+        }
+    });
+
+    // Specific close button handlers
+    const closeButtons = ['closeShiftModal', 'closeViewShiftModal', 'closeEditShiftModal', 'cancelShiftBtn', 'cancelEditShiftBtn'];
+    closeButtons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', closeAllModals);
+        }
+    });
+
+    // Form submit handlers
+    const createForm = document.getElementById('shiftForm');
+    if (createForm) {
+        createForm.addEventListener('submit', handleCreateShift);
+    }
+
+    const editForm = document.getElementById('editShiftForm');
+    if (editForm) {
+        editForm.addEventListener('submit', handleEditShift);
+    }
+}
+
+/**
  * Show create shift modal
  */
 function showCreateShiftModal() {
+    console.log('showCreateShiftModal called!');
+    
     const modal = document.getElementById('shiftModal');
+    console.log('Modal element found:', !!modal);
+    
     if (modal) {
-        resetCreateForm();
-        modal.style.display = 'flex';
+        console.log('Modal parent element:', modal.parentElement);
+        console.log('Modal parent display style:', modal.parentElement.style.display);
+        
+        // Move modal to body if it's hidden
+        if (modal.parentElement && modal.parentElement.style.display === 'none') {
+            document.body.appendChild(modal);
+            console.log('Modal moved to body');
+        }
+        
+        // Show the modal
         modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+        modal.style.display = 'flex';
+        modal.style.visibility = 'visible';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.right = '0';
+        modal.style.bottom = '0';
+        modal.style.zIndex = '9999';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        
         document.body.style.overflow = 'hidden';
-        // Update modal title for create mode
+        
+        console.log('Modal displayed with classes:', modal.className);
+        console.log('Modal styles:', modal.style.cssText);
+        
+        // Reset form and set title
+        resetCreateForm();
         const titleElement = document.getElementById('modalTitle');
         if (titleElement) {
             titleElement.textContent = 'Create Shift';
         }
+    } else {
+        console.error('Shift modal not found!');
+        // Try to find all modals for debugging
+        const allModals = document.querySelectorAll('.modal-overlay');
+        console.log('All modals found:', allModals.length);
+        allModals.forEach((m, index) => {
+            console.log(`Modal ${index}:`, m.id, m.className);
+        });
+    }
+}
+
+/**
+ * Load edit shift modal dynamically
+ */
+async function loadEditShiftModal(shiftId) {
+    try {
+        const response = await fetch(`${getBaseUrl()}shifts/modal/edit/${shiftId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'text/html',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            const modalHtml = await response.text();
+            
+            // Create a temporary div to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = modalHtml;
+            
+            // Find the modal in the response
+            const modal = tempDiv.querySelector('.modal-overlay');
+            if (modal) {
+                // Add to document body
+                document.body.appendChild(modal);
+                
+                // Setup event listeners for the new modal
+                setupModalEventListeners();
+                
+                // Populate and show the modal
+                const shift = shiftsData.find(s => s.id === shiftId);
+                if (shift) {
+                    populateEditForm(shift);
+                }
+                
+                modal.classList.add('active');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+        } else {
+            console.error('Failed to load edit modal');
+            showError('Failed to load edit modal. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error loading edit modal:', error);
+        showError('Error loading edit modal. Please try again.');
     }
 }
 
@@ -223,12 +426,72 @@ function editShift(shiftId) {
     const shift = shiftsData.find(s => s.id === shiftId);
     if (!shift) return;
 
-    const modal = document.getElementById('editShiftModal');
+    // Find the modal in the hidden container
+    const hiddenContainer = document.querySelector('div[style*="display: none"]');
+    let modal = document.getElementById('editShiftModal');
+    
+    if (hiddenContainer && modal) {
+        // Move modal to body if it's in the hidden container
+        if (modal.parentElement.style.display === 'none') {
+            document.body.appendChild(modal);
+        }
+    }
+    
+    modal = document.getElementById('editShiftModal'); // Get reference again after moving
     if (modal) {
         populateEditForm(shift);
-        modal.style.display = 'flex';
         modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
+    }
+}
+
+/**
+ * Load view shift modal dynamically
+ */
+async function loadViewShiftModal(shiftId) {
+    try {
+        const response = await fetch(`${getBaseUrl()}shifts/modal/view/${shiftId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'text/html',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            const modalHtml = await response.text();
+            
+            // Create a temporary div to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = modalHtml;
+            
+            // Find the modal in the response
+            const modal = tempDiv.querySelector('.modal-overlay');
+            if (modal) {
+                // Add to document body
+                document.body.appendChild(modal);
+                
+                // Setup event listeners for the new modal
+                setupModalEventListeners();
+                
+                // Populate and show the modal
+                const shift = shiftsData.find(s => s.id === shiftId);
+                if (shift) {
+                    populateViewModal(shift);
+                }
+                
+                modal.classList.add('active');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+        } else {
+            console.error('Failed to load view modal');
+            showError('Failed to load view modal. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error loading view modal:', error);
+        showError('Error loading view modal. Please try again.');
     }
 }
 
@@ -239,12 +502,18 @@ function viewShift(shiftId) {
     const shift = shiftsData.find(s => s.id === shiftId);
     if (!shift) return;
 
-    const modal = document.getElementById('viewShiftModal');
-    if (modal) {
-        populateViewModal(shift);
-        modal.style.display = 'flex';
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
+    // Dynamically load the view modal if it doesn't exist
+    if (!document.getElementById('viewShiftModal')) {
+        loadViewShiftModal(shiftId);
+    } else {
+        // Modal exists, just show it
+        const modal = document.getElementById('viewShiftModal');
+        if (modal) {
+            populateViewModal(shift);
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
     }
 }
 
@@ -255,13 +524,15 @@ async function deleteShift(shiftId) {
     if (!confirm('Are you sure you want to delete this shift?')) return;
 
     try {
+        const formData = new FormData();
+        formData.append('id', shiftId);
+        
         const response = await fetch(`${getBaseUrl()}shifts/delete`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ id: shiftId })
+            body: formData
         });
 
         const result = await response.json();
@@ -284,8 +555,10 @@ async function deleteShift(shiftId) {
 function closeAllModals() {
     const modals = document.querySelectorAll('.modal-overlay');
     modals.forEach(modal => {
-        modal.style.display = 'none';
         modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+        modal.style.display = 'none';
+        modal.style.visibility = 'hidden';
     });
     document.body.style.overflow = '';
 }
@@ -535,16 +808,14 @@ async function handleCreateShift(e) {
     
     const form = e.target;
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
     
     try {
         const response = await fetch(`${getBaseUrl()}shifts/create`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify(data)
+            body: formData
         });
 
         const result = await response.json();
@@ -570,16 +841,14 @@ async function handleEditShift(e) {
     
     const form = e.target;
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
     
     try {
         const response = await fetch(`${getBaseUrl()}shifts/update`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify(data)
+            body: formData
         });
 
         const result = await response.json();

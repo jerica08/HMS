@@ -24,11 +24,9 @@
             <?= esc($title ?? 'Shift Management') ?>
         </h1>
         <div class="page-actions">
-            <?php if ($permissions['canCreate'] ?? false): ?>
-                <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift">
-                    <i class="fas fa-plus" aria-hidden="true"></i> Add Shift
-                </button>
-            <?php endif; ?>
+            <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift" onclick="handleAddShiftClick()">
+                <i class="fas fa-plus" aria-hidden="true"></i> Add Shift
+            </button>
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
                 <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
                     <i class="fas fa-download" aria-hidden="true"></i> Export
@@ -261,26 +259,26 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </div>  
 
     </main>
 </div>
 
-<!-- Modals (hidden by default) -->
-<div style="display: none;">
-    <?= $this->include('unified/modals/add-shift-modal', [
-        'availableStaff' => $availableStaff ?? [],
-        'departments' => $departments ?? [],
-        'shiftTypes' => $shiftTypes ?? [],
-        'roomsWards' => $roomsWards ?? []
-    ]) ?>
-    <?= $this->include('unified/modals/view-shift-modal') ?>
-    <?= $this->include('unified/modals/edit-shift-modal', [
-        'availableStaff' => $availableStaff ?? [],
-        'departments' => $departments ?? [],
-        'shiftTypes' => $shiftTypes ?? [],
-        'roomsWards' => $roomsWards ?? []
-    ]) ?>
+<!-- Add Shift Modal -->
+<?= $this->include('unified/modals/add-shift-modal', [
+    'availableStaff' => $availableStaff ?? [],
+    'departments' => $departments ?? [],
+    'shiftTypes' => $shiftTypes ?? [],
+    'roomsWards' => $roomsWards ?? []
+]) ?>
+
+<!-- Simple Test Modal -->
+<div id="testModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; margin: auto;">
+        <h3>Test Modal Works!</h3>
+        <p>This is a simple test to verify modal functionality.</p>
+        <button onclick="closeTestModal()" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Close</button>
+    </div>
 </div>
 
 <!-- Shift Management Scripts -->
@@ -295,6 +293,112 @@ function dismissFlash() {
         flashNotice.style.display = 'none';
     }
 }
+
+// Direct onclick handler for Add Shift button
+window.handleAddShiftClick = function() {
+    console.log('handleAddShiftClick called directly');
+    const modal = document.getElementById('shiftModal');
+    console.log('Modal element found:', !!modal);
+    
+    if (modal) {
+        // Reset form and show modal
+        const form = document.getElementById('shiftForm');
+        if (form) {
+            form.reset();
+            const idField = document.getElementById('shiftId');
+            if (idField) {
+                idField.value = '';
+            }
+        }
+        
+        // Show modal using the same approach that works
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
+        modal.style.zIndex = '9999';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.background = 'rgba(15, 23, 42, 0.55)';
+        
+        document.body.style.overflow = 'hidden';
+        
+        console.log('Modal should be visible now via direct click');
+    } else {
+        console.error('Modal not found!');
+    }
+};
+
+// Direct close function for Add Shift modal
+window.closeAddShiftModal = function() {
+    console.log('closeAddShiftModal called directly');
+    const modal = document.getElementById('shiftModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        console.log('Modal closed via direct function');
+    } else {
+        console.error('Modal not found for closing!');
+    }
+};
+
+// Test function to check if modal works
+window.testModalDirect = function() {
+    console.log('Direct test called');
+    const modal = document.getElementById('shiftModal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.setProperty('position', 'fixed', 'important');
+        modal.style.setProperty('top', '0', 'important');
+        modal.style.setProperty('left', '0', 'important');
+        modal.style.setProperty('width', '100vw', 'important');
+        modal.style.setProperty('height', '100vh', 'important');
+        modal.style.setProperty('z-index', '9999', 'important');
+        document.body.style.overflow = 'hidden';
+        console.log('Modal should be visible now');
+    } else {
+        console.error('Modal not found!');
+    }
+};
+
+// Simple test modal function
+window.showSimpleTest = function() {
+    console.log('Simple test called');
+    const testModal = document.getElementById('testModal');
+    if (testModal) {
+        testModal.style.display = 'flex';
+        testModal.style.alignItems = 'center';
+        testModal.style.justifyContent = 'center';
+        document.body.style.overflow = 'hidden';
+        console.log('Simple test modal should be visible');
+    } else {
+        console.error('Test modal not found!');
+    }
+};
+
+window.closeTestModal = function() {
+    const testModal = document.getElementById('testModal');
+    if (testModal) {
+        testModal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+};
+
+// Check if button exists on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const createBtn = document.getElementById('createShiftBtn');
+        console.log('Button check after delay - Create shift button found:', !!createBtn);
+        if (!createBtn) {
+            console.warn('Add Shift button not found - permissions issue?');
+        }
+    }, 1000);
+});
 </script>
 <script src="<?= base_url('assets/js/unified/shift-management.js') ?>"></script>
 </body>

@@ -1,12 +1,12 @@
 <!-- Add Shift Modal -->
-<div id="shiftModal" class="modal-overlay" aria-hidden="true">
+<div id="shiftModal" class="modal-overlay" aria-hidden="true" style="display: none !important;">
     <div class="modal-content">
         <div class="modal-header">
             <h3>
                 <i class="fas fa-calendar-plus"></i>
                 <span id="modalTitle">Create Shift</span>
             </h3>
-            <button type="button" class="modal-close" id="closeShiftModal">
+            <button type="button" class="modal-close" id="closeShiftModal" onclick="closeAddShiftModal()">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -21,11 +21,18 @@
                         <label for="doctorSelect">Doctor *</label>
                         <select id="doctorSelect" name="doctor_id" class="form-control" required>
                             <option value="">Select Doctor</option>
-                            <?php foreach ($availableStaff as $staff): ?>
-                                <option value="<?= esc($staff['doctor_id']) ?>">
-                                    <?= esc($staff['first_name'] . ' ' . $staff['last_name']) ?><?= !empty($staff['specialization']) ? ' - ' . esc($staff['specialization']) : '' ?>
-                                </option>
-                            <?php endforeach; ?>
+                            <?php 
+                            // Debug: Check if availableStaff exists
+                            if (isset($availableStaff) && is_array($availableStaff)) {
+                                foreach ($availableStaff as $staff): ?>
+                                    <option value="<?= esc($staff['doctor_id']) ?>">
+                                        <?= esc($staff['first_name'] . ' ' . $staff['last_name']) ?><?= !empty($staff['specialization']) ? ' - ' . esc($staff['specialization']) : '' ?>
+                                    </option>
+                                <?php endforeach; 
+                            } else {
+                                echo '<option value="">No staff available</option>';
+                            }
+                            ?>
                         </select>
                     </div>
                     
@@ -48,9 +55,15 @@
                         <label for="shiftDepartment">Department</label>
                         <select id="shiftDepartment" name="department" class="form-control">
                             <option value="">Select Department</option>
-                            <?php foreach ($departments as $dept): ?>
-                                <option value="<?= esc($dept['department']) ?>"><?= esc($dept['department']) ?></option>
-                            <?php endforeach; ?>
+                            <?php 
+                            if (isset($departments) && is_array($departments)) {
+                                foreach ($departments as $dept): ?>
+                                    <option value="<?= esc($dept['department']) ?>"><?= esc($dept['department']) ?></option>
+                                <?php endforeach; 
+                            } else {
+                                echo '<option value="">No departments available</option>';
+                            }
+                            ?>
                         </select>
                     </div>
                     
@@ -58,9 +71,15 @@
                         <label for="shiftType">Shift Type</label>
                         <select id="shiftType" name="shift_type" class="form-control">
                             <option value="">Select Type</option>
-                            <?php foreach ($shiftTypes as $type): ?>
-                                <option value="<?= esc($type['shift_type']) ?>"><?= esc($type['shift_type']) ?></option>
-                            <?php endforeach; ?>
+                            <?php 
+                            if (isset($shiftTypes) && is_array($shiftTypes)) {
+                                foreach ($shiftTypes as $type): ?>
+                                    <option value="<?= esc($type['shift_type']) ?>"><?= esc($type['shift_type']) ?></option>
+                                <?php endforeach; 
+                            } else {
+                                echo '<option value="">No shift types available</option>';
+                            }
+                            ?>
                         </select>
                     </div>
                     
@@ -68,9 +87,15 @@
                         <label for="roomWard">Room/Ward</label>
                         <select id="roomWard" name="room_ward" class="form-control">
                             <option value="">Select Room/Ward</option>
-                            <?php foreach ($roomsWards as $room): ?>
-                                <option value="<?= esc($room['room_ward']) ?>"><?= esc($room['room_ward']) ?></option>
-                            <?php endforeach; ?>
+                            <?php 
+                            if (isset($roomsWards) && is_array($roomsWards)) {
+                                foreach ($roomsWards as $room): ?>
+                                    <option value="<?= esc($room['room_ward']) ?>"><?= esc($room['room_ward']) ?></option>
+                                <?php endforeach; 
+                            } else {
+                                echo '<option value="">No rooms/wards available</option>';
+                            }
+                            ?>
                         </select>
                     </div>
                     
@@ -91,7 +116,7 @@
             </div>
             
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="cancelShiftBtn">Cancel</button>
+                <button type="button" class="btn btn-secondary" id="cancelShiftBtn" onclick="closeAddShiftModal()">Cancel</button>
                 <button type="submit" class="btn btn-primary" id="saveShiftBtn">
                     <i class="fas fa-save"></i> Save Shift
                 </button>

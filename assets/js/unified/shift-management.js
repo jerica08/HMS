@@ -26,19 +26,14 @@ function initializeShiftManagement() {
         loadShifts();
     }
     
-    // Ensure all modals are hidden on page load using CSS classes
-    const modalIds = ['shiftModal', 'editShiftModal', 'viewShiftModal'];
-    modalIds.forEach(modalId => {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('active');
-            modal.setAttribute('aria-hidden', 'true');
-            // Remove any inline styles that might interfere
-            modal.style.display = '';
-            modal.style.visibility = '';
-            console.log(`${modalId} hidden on page load`);
-        }
-    });
+    // Ensure add shift modal is hidden on page load
+    const addModal = document.getElementById('shiftModal');
+    if (addModal) {
+        addModal.classList.remove('active');
+        // Force hide with inline style as backup
+        addModal.style.display = 'none';
+        console.log('Add shift modal hidden on page load');
+    }
     
     setupEventListeners();
     setupModals();
@@ -318,55 +313,35 @@ function setupModalEventListeners() {
  * Show create shift modal
  */
 function showCreateShiftModal() {
-    console.log('showCreateShiftModal called!');
+    console.log('showCreateShiftModal called');
     
     const modal = document.getElementById('shiftModal');
     console.log('Modal element found:', !!modal);
     
     if (modal) {
-        console.log('Modal parent element:', modal.parentElement);
-        console.log('Modal parent display style:', modal.parentElement.style.display);
+        // Reset form and show modal
+        resetCreateForm();
         
-        // Move modal to body if it's hidden
-        if (modal.parentElement && modal.parentElement.style.display === 'none') {
-            document.body.appendChild(modal);
-            console.log('Modal moved to body');
-        }
-        
-        // Show the modal
+        // Use the same approach that works for the yellow test button
         modal.classList.add('active');
-        modal.setAttribute('aria-hidden', 'false');
         modal.style.display = 'flex';
-        modal.style.visibility = 'visible';
         modal.style.position = 'fixed';
         modal.style.top = '0';
         modal.style.left = '0';
-        modal.style.right = '0';
-        modal.style.bottom = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
         modal.style.zIndex = '9999';
-        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
         modal.style.alignItems = 'center';
         modal.style.justifyContent = 'center';
+        modal.style.background = 'rgba(15, 23, 42, 0.55)';
         
         document.body.style.overflow = 'hidden';
         
-        console.log('Modal displayed with classes:', modal.className);
-        console.log('Modal styles:', modal.style.cssText);
-        
-        // Reset form and set title
-        resetCreateForm();
-        const titleElement = document.getElementById('modalTitle');
-        if (titleElement) {
-            titleElement.textContent = 'Create Shift';
-        }
+        console.log('Modal classes after adding active:', modal.className);
+        console.log('Modal display style:', window.getComputedStyle(modal).display);
+        console.log('Modal shown successfully - active class added');
     } else {
-        console.error('Shift modal not found!');
-        // Try to find all modals for debugging
-        const allModals = document.querySelectorAll('.modal-overlay');
-        console.log('All modals found:', allModals.length);
-        allModals.forEach((m, index) => {
-            console.log(`Modal ${index}:`, m.id, m.className);
-        });
+        console.error('Modal not found!');
     }
 }
 
@@ -556,9 +531,7 @@ function closeAllModals() {
     const modals = document.querySelectorAll('.modal-overlay');
     modals.forEach(modal => {
         modal.classList.remove('active');
-        modal.setAttribute('aria-hidden', 'true');
         modal.style.display = 'none';
-        modal.style.visibility = 'hidden';
     });
     document.body.style.overflow = '';
 }

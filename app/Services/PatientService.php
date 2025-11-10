@@ -319,7 +319,7 @@ class PatientService
     {
         try {
             $stats = [];
-            
+
             switch ($userRole) {
                 case 'admin':
                 case 'it_staff':
@@ -330,25 +330,37 @@ class PatientService
                         'outpatients' => $this->db->table('patient')->where('patient_type', 'Outpatient')->countAllResults(),
                         'inpatients' => $this->db->table('patient')->where('patient_type', 'Inpatient')->countAllResults(),
                         'emergency_patients' => $this->db->table('patient')->where('patient_type', 'Emergency')->countAllResults(),
-                        'new_patients_month' => $this->db->table('patient')->where('date_registered >=', date('Y-m-01'))->countAllResults(),
-                        'new_patients_week' => $this->db->table('patient')->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))->countAllResults(),
                     ];
                     break;
-                    
+
                 case 'doctor':
-                    $stats = [
-                        'my_patients' => $this->db->table('patient')->where('primary_doctor_id', $staffId)->countAllResults(),
-                        'active_patients' => $this->db->table('patient')->where('primary_doctor_id', $staffId)->where('status', 'Active')->countAllResults(),
-                        'new_patients_month' => $this->db->table('patient')->where('primary_doctor_id', $staffId)->where('date_registered >=', date('Y-m-01'))->countAllResults(),
-                        'emergency_patients' => $this->db->table('patient')->where('primary_doctor_id', $staffId)->where('patient_type', 'Emergency')->countAllResults(),
-                    ];
+                    // Get doctor_id from doctor table using staff_id
+                    $doctorInfo = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
+                    $doctorId = $doctorInfo['doctor_id'] ?? null;
+
+                    if ($doctorId) {
+                        $stats = [
+                            'my_patients' => $this->db->table('patient')->where('primary_doctor_id', $doctorId)->countAllResults(),
+                            'active_patients' => $this->db->table('patient')->where('primary_doctor_id', $doctorId)->where('status', 'Active')->countAllResults(),
+                            'new_patients_month' => $this->db->table('patient')->where('primary_doctor_id', $doctorId)->where('date_registered >=', date('Y-m-01'))->countAllResults(),
+                            'emergency_patients' => $this->db->table('patient')->where('primary_doctor_id', $doctorId)->where('patient_type', 'Emergency')->countAllResults(),
+                        ];
+                    } else {
+                        // No doctor record found, return zeros
+                        $stats = [
+                            'my_patients' => 0,
+                            'active_patients' => 0,
+                            'new_patients_month' => 0,
+                            'emergency_patients' => 0,
+                        ];
+                    }
                     break;
-                    
+
                 case 'nurse':
                     // Get department-based stats
                     $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
                     $department = $nurseInfo['department'] ?? null;
-                    
+
                     if ($department) {
                         $stats = [
                             'department_patients' => $this->db->table('patient p')
@@ -363,7 +375,7 @@ class PatientService
                         ];
                     }
                     break;
-                    
+
                 case 'receptionist':
                     $stats = [
                         'total_patients' => $this->db->table('patient')->countAllResults(),

@@ -182,11 +182,15 @@
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value green"><?= $stats['scheduled_shifts'] ?? 0 ?></div>
+                                <div class="metric-value blue">0</div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green">0</div>
                                 <div class="metric-label">Scheduled</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-value purple"><?= $stats['department'] ? 1 : 0 ?></div>
+                                <div class="metric-value purple">0</div>
                                 <div class="metric-label">Department</div>
                             </div>
                         </div>
@@ -203,11 +207,11 @@
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value blue"><?= $stats['total_shifts'] ?? 0 ?></div>
+                                <div class="metric-value blue">0</div>
                                 <div class="metric-label">Total</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-value orange"><?= $stats['today_shifts'] ?? 0 ?></div>
+                                <div class="metric-value orange">0</div>
                                 <div class="metric-label">Today</div>
                             </div>
                         </div>
@@ -224,7 +228,7 @@
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value green"><?= $stats['scheduled_shifts'] ?? 0 ?></div>
+                                <div class="metric-value green">0</div>
                                 <div class="metric-label">Scheduled</div>
                             </div>
                         </div>
@@ -250,12 +254,6 @@
                             </tr>
                         </thead>
                         <tbody id="shiftsTableBody">
-                            <tr>
-                                <td colspan="7" style="text-align: center; padding: 2rem;">
-                                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
-                                    <p>Loading shifts...</p>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -266,7 +264,7 @@
 
 <!-- Add Shift Modal -->
 <?= $this->include('unified/modals/add-shift-modal', [
-    'availableStaff' => $availableStaff ?? [],
+    'availableStaff' => $availableStaff ?? [],  
     'departments' => $departments ?? [],
     'shiftTypes' => $shiftTypes ?? [],
     'roomsWards' => $roomsWards ?? []
@@ -283,8 +281,41 @@
 
 <!-- Shift Management Scripts -->
 <script>
+// Immediately clear any shifts and show empty state
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Clearing shifts table...');
+    const tbody = document.getElementById('shiftsTableBody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-calendar-times" style="font-size: 2rem; color: #d1d5db; margin-bottom: 1rem;"></i>
+                    <p style="color: #6b7280;">No shifts found</p>
+                </td>
+            </tr>
+        `;
+        console.log('Table cleared and showing no shifts message');
+    }
+    
+    // Continuously clear table every 500ms to prevent any data from loading
+    setInterval(() => {
+        const tbody = document.getElementById('shiftsTableBody');
+        if (tbody && tbody.innerHTML.trim() !== '' && !tbody.innerHTML.includes('No shifts found')) {
+            console.log('Detected unwanted shifts data, clearing...');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-calendar-times" style="font-size: 2rem; color: #d1d5db; margin-bottom: 1rem;"></i>
+                        <p style="color: #6b7280;">No shifts found</p>
+                    </td>
+                </tr>
+            `;
+        }
+    }, 500);
+});
+
 // Pass initial data to JavaScript
-window.initialShifts = <?= json_encode($shifts ?? []) ?>;
+window.initialShifts = []; // Clear example data
 window.userRole = <?= json_encode($userRole ?? 'admin') ?>;
 
 function dismissFlash() {
@@ -311,6 +342,9 @@ window.handleAddShiftClick = function() {
             }
         }
         
+        // Load doctors from database
+        loadDoctors();
+        
         // Show modal using the same approach that works
         modal.classList.add('active');
         modal.style.display = 'flex';
@@ -330,6 +364,96 @@ window.handleAddShiftClick = function() {
     } else {
         console.error('Modal not found!');
     }
+};
+
+// Load doctors from database
+window.loadDoctors = function() {
+    console.log('Loading doctors from database...');
+    const doctorSelect = document.getElementById('doctorSelect');
+    if (!doctorSelect) {
+        console.error('Doctor select not found');
+        return;
+    }
+    
+    // Show loading state
+    doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+    
+    // Try different possible API endpoints
+    const possibleEndpoints = [
+        `${getBaseUrl()}doctors/api`,
+        `${getBaseUrl()}api/doctors`,
+        `${getBaseUrl()}staff/api`,
+        `${getBaseUrl()}doctors`,
+        `${getBaseUrl()}unified/doctors/api`
+    ];
+    
+    // Try each endpoint until one works
+    let endpointIndex = 0;
+    
+    function tryNextEndpoint() {
+        if (endpointIndex >= possibleEndpoints.length) {
+            // All endpoints failed, show error
+            doctorSelect.innerHTML = '<option value="">No doctors available</option>';
+            console.error('All endpoints failed');
+            return;
+        }
+        
+        const endpoint = possibleEndpoints[endpointIndex];
+        console.log(`Trying endpoint: ${endpoint}`);
+        
+        fetch(endpoint, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            console.log(`Response from ${endpoint}:`, response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(result => {
+            console.log(`Success from ${endpoint}:`, result);
+            
+            if (result && (result.data || result.doctors || result.length > 0)) {
+                // We got data! Use this endpoint
+                const doctors = result.data || result.doctors || result;
+                
+                // Clear and populate doctor dropdown
+                doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+                
+                doctors.forEach(doctor => {
+                    const option = document.createElement('option');
+                    option.value = doctor.id || doctor.doctor_id || doctor.user_id;
+                    option.textContent = `${doctor.first_name || doctor.fname} ${doctor.last_name || doctor.lname}${doctor.specialization ? ' - ' + doctor.specialization : ''}`;
+                    doctorSelect.appendChild(option);
+                });
+                
+                console.log('Doctors loaded successfully:', doctors.length);
+            } else {
+                // Try next endpoint
+                endpointIndex++;
+                tryNextEndpoint();
+            }
+        })
+        .catch(error => {
+            console.log(`Failed ${endpoint}:`, error);
+            // Try next endpoint
+            endpointIndex++;
+            tryNextEndpoint();
+        });
+    }
+    
+    tryNextEndpoint();
+};
+
+// Helper function to get base URL
+window.getBaseUrl = function() {
+    const basePath = window.location.pathname.substring(0, window.location.pathname.indexOf('/', 1));
+    return window.location.origin + basePath + '/';
 };
 
 // Direct close function for Add Shift modal

@@ -20,19 +20,7 @@
                     <div class="form-group">
                         <label for="doctorSelect">Doctor *</label>
                         <select id="doctorSelect" name="doctor_id" class="form-control" required>
-                            <option value="">Select Doctor</option>
-                            <?php 
-                            // Debug: Check if availableStaff exists
-                            if (isset($availableStaff) && is_array($availableStaff)) {
-                                foreach ($availableStaff as $staff): ?>
-                                    <option value="<?= esc($staff['doctor_id']) ?>">
-                                        <?= esc($staff['first_name'] . ' ' . $staff['last_name']) ?><?= !empty($staff['specialization']) ? ' - ' . esc($staff['specialization']) : '' ?>
-                                    </option>
-                                <?php endforeach; 
-                            } else {
-                                echo '<option value="">No staff available</option>';
-                            }
-                            ?>
+                            <option value="">Loading doctors...</option>
                         </select>
                     </div>
                     

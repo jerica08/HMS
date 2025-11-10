@@ -17,14 +17,26 @@ document.addEventListener('DOMContentLoaded', function() {
  * Initialize shift management functionality
  */
 function initializeShiftManagement() {
-    // Use initial data from PHP if available
-    const initialShifts = window.initialShifts || [];
-    if (initialShifts.length > 0) {
-        shiftsData = initialShifts;
-        renderShiftsTable(shiftsData);
-    } else {
-        loadShifts();
+    // Clear table immediately and multiple times to ensure it's empty
+    const tbody = document.getElementById('shiftsTableBody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        console.log('Table cleared on initialization');
     }
+    
+    // Set empty data and render
+    shiftsData = [];
+    renderShiftsTable(shiftsData);
+    
+    // Clear again after a short delay to override any late-loading data
+    setTimeout(() => {
+        if (tbody) {
+            tbody.innerHTML = '';
+            shiftsData = [];
+            renderShiftsTable(shiftsData);
+            console.log('Table cleared again after delay');
+        }
+    }, 100);
     
     // Ensure add shift modal is hidden on page load
     const addModal = document.getElementById('shiftModal');
@@ -109,6 +121,12 @@ function setupModals() {
 async function loadShifts() {
     try {
         showLoadingState();
+        
+        // Temporarily return empty data to remove example shifts
+        shiftsData = [];
+        renderShiftsTable(shiftsData);
+        hideLoadingState();
+        return;
         
         const response = await fetch(`${getBaseUrl()}shifts/api?${new URLSearchParams(currentFilters)}`, {
             method: 'GET',

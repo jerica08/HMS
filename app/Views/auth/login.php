@@ -111,18 +111,18 @@
                                 <?= csrf_field() ?>
                                 
                                 <div class="mb-3">
-                                    <label for="email" class="form-label">Email Address</label>
-                                    <input type="email"
-                                           class="form-control <?= isset($validation) && $validation->hasError('email') ? 'is-invalid' : '' ?>"
-                                           id="email"
-                                           name="email"
-                                           value="<?= old('email') ?>"
-                                           placeholder="Enter your email address"
+                                    <label for="login" class="form-label">Email or Username</label>
+                                    <input type="text"
+                                           class="form-control <?= isset($validation) && $validation->hasError('login') ? 'is-invalid' : '' ?>"
+                                           id="login"
+                                           name="login"
+                                           value="<?= old('login') ?>"
+                                           placeholder="Enter your email or username"
                                            autocomplete="username"
                                            required>
-                                    <?php if (isset($validation) && $validation->hasError('email')): ?>
+                                    <?php if (isset($validation) && $validation->hasError('login')): ?>
                                         <div class="invalid-feedback">
-                                            <?= $validation->getError('email') ?>
+                                            <?= $validation->getError('login') ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>

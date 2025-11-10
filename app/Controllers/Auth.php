@@ -39,7 +39,7 @@ class Auth extends BaseController
 
         if ($this->request->getMethod() == 'POST') {
             $rules = [
-                'email'    => 'required|valid_email',
+                'login'    => 'required',
                 'password' => 'required'
             ];
 
@@ -47,12 +47,16 @@ class Auth extends BaseController
                 return view('auth/login', ['validation' => $this->validator]);
             }
 
-            $email = $this->request->getPost('email');
+            $login = $this->request->getPost('login');
             $password = $this->request->getPost('password');
 
-            // fetch user
+            // fetch user by email or username
             $builder = $db->table('users');
-            $user = $builder->where('email', $email)->get()->getRowArray();
+            $user = $builder->groupStart()
+                           ->where('email', $login)
+                           ->orWhere('username', $login)
+                           ->groupEnd()
+                           ->get()->getRowArray();
 
             if ($user) {
                 $passwordMatches = false;
@@ -63,7 +67,7 @@ class Auth extends BaseController
                 } elseif ($user['password'] === $password) {
                     // Plaintext password, hash it and update
                     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-                    $builder->where('email', $email)->update(['password' => $hashedPassword]);
+                    $builder->where('email', $user['email'])->update(['password' => $hashedPassword]);
                     $passwordMatches = true;
                 }
 
@@ -103,8 +107,8 @@ class Auth extends BaseController
                 }
             }
 
-            // wrong email or password
-            $session->setFlashdata('error', 'Invalid email or password');
+            // wrong email/username or password
+            $session->setFlashdata('error', 'Invalid email/username or password');
             return redirect()->to(base_url('/login'));
         }
 

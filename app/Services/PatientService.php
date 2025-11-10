@@ -66,8 +66,10 @@ class PatientService
 
             $hasPrimaryDoctor = $this->patientTableHasColumn('primary_doctor_id');
             if ($hasPrimaryDoctor) {
+                // Join doctor table first, then staff to get doctor name
                 $builder->select('p.*, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
-                        ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left');
+                        ->join('doctor d', 'd.doctor_id = p.primary_doctor_id', 'left')
+                        ->join('staff s', 's.staff_id = d.staff_id', 'left');
             } else {
                 $builder->select('p.*');
             }
@@ -81,9 +83,15 @@ class PatientService
                 case 'doctor':
                     // Doctors can see only their assigned patients
                     if ($hasPrimaryDoctor) {
-                        $builder->where('p.primary_doctor_id', $staffId);
-                    } else {
-                        // Without primary_doctor_id column, fallback to showing all (or none)
+                        // Get doctor_id from doctor table using staff_id
+                        $doctorInfo = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
+                        $doctorId = $doctorInfo['doctor_id'] ?? null;
+                        
+                        if ($doctorId) {
+                            $builder->where('p.primary_doctor_id', $doctorId);
+                        } else {
+                            $builder->where('1=0'); // Show no patients if doctor record not found
+                        }
                     }
                     break;
                     

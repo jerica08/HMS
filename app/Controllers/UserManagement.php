@@ -134,13 +134,28 @@ class UserManagement extends BaseController
         $session = session();
         $userRole = $session->get('role');
         
+        $isAjax = $this->request->isAJAX() || 
+                  $this->request->getHeaderLine('Accept') == 'application/json' ||
+                  $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
+        
         try {
             $result = $this->userService->deleteUser($userId, $userRole);
+            
+            if ($isAjax) {
+                return $this->response->setJSON($result);
+            }
             
             session()->setFlashdata('success', $result['message']);
             return redirect()->to($this->getRedirectUrl($userRole));
             
         } catch (\Exception $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ]);
+            }
+            
             session()->setFlashdata('error', $e->getMessage());
             return redirect()->to($this->getRedirectUrl($userRole));
         }

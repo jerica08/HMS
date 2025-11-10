@@ -181,7 +181,7 @@
                                                 <?= esc($user['email'] ?? 'No email') ?>
                                             </div>
                                             <div style="font-size: 0.8rem; color: #6b7280;">
-                                                ID: <?= esc($user['username'] ?? $user['user_id'] ?? 'N/A') ?>
+                                             <?= esc($user['username'] ?? $user['user_id'] ?? 'N/A') ?>
                                             </div>
                                         </div>
                                     </div>

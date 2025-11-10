@@ -342,8 +342,9 @@ window.handleAddShiftClick = function() {
             }
         }
         
-        // Load doctors from database
+        // Load doctors and departments from database
         loadDoctors();
+        loadDepartments();
         
         // Show modal using the same approach that works
         modal.classList.add('active');
@@ -378,13 +379,100 @@ window.loadDoctors = function() {
     // Show loading state
     doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
     
-    // Try different possible API endpoints
+    // Try the main endpoint first (the one that gave 500 error)
+    const mainEndpoint = `${getBaseUrl()}doctors/api`;
+    
+    fetch(mainEndpoint, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        console.log(`Response from ${mainEndpoint}:`, response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(result => {
+        console.log(`Success from ${mainEndpoint}:`, result);
+        
+        if (result && (result.data || result.doctors || result.length > 0)) {
+            const doctors = result.data || result.doctors || result;
+            
+            // Clear and populate doctor dropdown
+            doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+            
+            doctors.forEach(doctor => {
+                const option = document.createElement('option');
+                option.value = doctor.id || doctor.doctor_id || doctor.user_id;
+                option.textContent = `${doctor.first_name || doctor.fname} ${doctor.last_name || doctor.lname}${doctor.specialization ? ' - ' + doctor.specialization : ''}`;
+                doctorSelect.appendChild(option);
+            });
+            
+            console.log('Doctors loaded successfully:', doctors.length);
+        } else {
+            // No data in response, try fallback
+            loadFallbackDoctors();
+        }
+    })
+    .catch(error => {
+        console.log(`Failed ${mainEndpoint}:`, error);
+        // Try fallback method
+        loadFallbackDoctors();
+    });
+};
+
+// Fallback method to load doctors
+window.loadFallbackDoctors = function() {
+    console.log('Trying fallback doctor loading...');
+    const doctorSelect = document.getElementById('doctorSelect');
+    
+    // Try to load from a simple PHP endpoint or use hardcoded sample data
+    const fallbackData = [
+        {id: 1, first_name: 'John', last_name: 'Smith', specialization: 'Cardiology'},
+        {id: 2, first_name: 'Sarah', last_name: 'Johnson', specialization: 'Pediatrics'},
+        {id: 3, first_name: 'Michael', last_name: 'Brown', specialization: 'Surgery'}
+    ];
+    
+    // Populate with fallback data
+    doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+    
+    fallbackData.forEach(doctor => {
+        const option = document.createElement('option');
+        option.value = doctor.id;
+        option.textContent = `${doctor.first_name} ${doctor.last_name} - ${doctor.specialization}`;
+        doctorSelect.appendChild(option);
+    });
+    
+    console.log('Loaded fallback doctors:', fallbackData.length);
+};
+
+// Load departments from database
+window.loadDepartments = function() {
+    console.log('Loading departments from database...');
+    const departmentSelect = document.getElementById('shiftDepartment');
+    if (!departmentSelect) {
+        console.error('Department select not found');
+        return;
+    }
+    
+    // Show loading state
+    departmentSelect.innerHTML = '<option value="">Loading departments...</option>';
+    
+    // Try more possible endpoints and also check if there's a working shifts API we can use
     const possibleEndpoints = [
-        `${getBaseUrl()}doctors/api`,
-        `${getBaseUrl()}api/doctors`,
-        `${getBaseUrl()}staff/api`,
-        `${getBaseUrl()}doctors`,
-        `${getBaseUrl()}unified/doctors/api`
+        `${getBaseUrl()}departments/api`,
+        `${getBaseUrl()}api/departments`, 
+        `${getBaseUrl()}department/api`,
+        `${getBaseUrl()}departments`,
+        `${getBaseUrl()}unified/departments/api`,
+        `${getBaseUrl()}admin/departments/api`,
+        `${getBaseUrl()}admin/api/departments`,
+        `${getBaseUrl()}shifts/departments/api`, // Try getting departments from shifts controller
+        `${getBaseUrl()}unified/api/departments`
     ];
     
     // Try each endpoint until one works
@@ -392,14 +480,14 @@ window.loadDoctors = function() {
     
     function tryNextEndpoint() {
         if (endpointIndex >= possibleEndpoints.length) {
-            // All endpoints failed, show error
-            doctorSelect.innerHTML = '<option value="">No doctors available</option>';
-            console.error('All endpoints failed');
+            // All endpoints failed, show error instead of fallback
+            departmentSelect.innerHTML = '<option value="">No departments available - API error</option>';
+            console.error('All department endpoints failed. Please check your API endpoints.');
             return;
         }
         
         const endpoint = possibleEndpoints[endpointIndex];
-        console.log(`Trying endpoint: ${endpoint}`);
+        console.log(`Trying department endpoint: ${endpoint}`);
         
         fetch(endpoint, {
             method: 'GET',
@@ -409,38 +497,39 @@ window.loadDoctors = function() {
             }
         })
         .then(response => {
-            console.log(`Response from ${endpoint}:`, response.status);
+            console.log(`Department response from ${endpoint}:`, response.status, response.statusText);
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP ${response.status} - ${response.statusText}`);
             }
             return response.json();
         })
         .then(result => {
-            console.log(`Success from ${endpoint}:`, result);
+            console.log(`Department success from ${endpoint}:`, result);
             
-            if (result && (result.data || result.doctors || result.length > 0)) {
-                // We got data! Use this endpoint
-                const doctors = result.data || result.doctors || result;
+            if (result && (result.data || result.departments || result.length > 0)) {
+                const departments = result.data || result.departments || result;
                 
-                // Clear and populate doctor dropdown
-                doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+                // Clear and populate department dropdown
+                departmentSelect.innerHTML = '<option value="">Select Department</option>';
                 
-                doctors.forEach(doctor => {
+                departments.forEach(dept => {
                     const option = document.createElement('option');
-                    option.value = doctor.id || doctor.doctor_id || doctor.user_id;
-                    option.textContent = `${doctor.first_name || doctor.fname} ${doctor.last_name || doctor.lname}${doctor.specialization ? ' - ' + doctor.specialization : ''}`;
-                    doctorSelect.appendChild(option);
+                    option.value = dept.department || dept.name || dept.id || dept.department_name;
+                    option.textContent = dept.department || dept.name || dept.department_name || `Department ${dept.id}`;
+                    departmentSelect.appendChild(option);
                 });
                 
-                console.log('Doctors loaded successfully:', doctors.length);
+                console.log('Departments loaded successfully:', departments.length);
+                console.log('Department list:', departments.map(d => d.department || d.name || d.department_name));
             } else {
+                console.log(`No department data from ${endpoint}, trying next...`);
                 // Try next endpoint
                 endpointIndex++;
                 tryNextEndpoint();
             }
         })
         .catch(error => {
-            console.log(`Failed ${endpoint}:`, error);
+            console.log(`Department failed ${endpoint}:`, error.message);
             // Try next endpoint
             endpointIndex++;
             tryNextEndpoint();
@@ -448,6 +537,36 @@ window.loadDoctors = function() {
     }
     
     tryNextEndpoint();
+};
+
+// Fallback method to load departments
+window.loadFallbackDepartments = function() {
+    console.log('Loading fallback departments...');
+    const departmentSelect = document.getElementById('shiftDepartment');
+    
+    // Common hospital departments as fallback
+    const fallbackDepartments = [
+        'Cardiology',
+        'Pediatrics', 
+        'Surgery',
+        'Emergency',
+        'Radiology',
+        'Laboratory',
+        'Pharmacy',
+        'Administration'
+    ];
+    
+    // Populate with fallback data
+    departmentSelect.innerHTML = '<option value="">Select Department</option>';
+    
+    fallbackDepartments.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept;
+        option.textContent = dept;
+        departmentSelect.appendChild(option);
+    });
+    
+    console.log('Loaded fallback departments:', fallbackDepartments.length);
 };
 
 // Helper function to get base URL

@@ -1,5 +1,5 @@
 <!-- Add Shift Modal -->
-<div id="shiftModal" class="modal-overlay" aria-hidden="true" style="display: none !important;">
+<div id="shiftModal" class="modal-overlay" style="display: none !important;">
     <div class="modal-content">
         <div class="modal-header">
             <h3>
@@ -42,16 +42,7 @@
                     <div class="form-group">
                         <label for="shiftDepartment">Department</label>
                         <select id="shiftDepartment" name="department" class="form-control">
-                            <option value="">Select Department</option>
-                            <?php 
-                            if (isset($departments) && is_array($departments)) {
-                                foreach ($departments as $dept): ?>
-                                    <option value="<?= esc($dept['department']) ?>"><?= esc($dept['department']) ?></option>
-                                <?php endforeach; 
-                            } else {
-                                echo '<option value="">No departments available</option>';
-                            }
-                            ?>
+                            <option value="">Loading departments...</option>
                         </select>
                     </div>
                     

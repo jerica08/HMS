@@ -46,6 +46,17 @@ function setupEventListeners() {
         exportBtn.addEventListener('click', exportShifts);
     }
 
+    // Form submit handlers
+    const createForm = document.getElementById('shiftForm');
+    if (createForm) {
+        createForm.addEventListener('submit', handleCreateShift);
+    }
+
+    const editForm = document.getElementById('editShiftForm');
+    if (editForm) {
+        editForm.addEventListener('submit', handleEditShift);
+    }
+
     // Filter controls (if they exist)
     setupFilterListeners();
 }
@@ -54,9 +65,9 @@ function setupEventListeners() {
  * Setup modal functionality
  */
 function setupModals() {
-    // Close modal handlers
+    // Close modal on overlay background click only
     document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('modal-close') || e.target.classList.contains('modal') || e.target.classList.contains('modal-overlay')) {
+        if (e.target.classList.contains('modal-overlay')) {
             closeAllModals();
         }
     });
@@ -193,9 +204,10 @@ function showLoadingState() {
 function showCreateShiftModal() {
     const modal = document.getElementById('shiftModal');
     if (modal) {
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
         resetCreateForm();
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
         // Update modal title for create mode
         const titleElement = document.getElementById('modalTitle');
         if (titleElement) {
@@ -215,6 +227,7 @@ function editShift(shiftId) {
     if (modal) {
         populateEditForm(shift);
         modal.style.display = 'flex';
+        modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
 }
@@ -230,6 +243,7 @@ function viewShift(shiftId) {
     if (modal) {
         populateViewModal(shift);
         modal.style.display = 'flex';
+        modal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
 }
@@ -271,6 +285,7 @@ function closeAllModals() {
     const modals = document.querySelectorAll('.modal-overlay');
     modals.forEach(modal => {
         modal.style.display = 'none';
+        modal.classList.remove('active');
     });
     document.body.style.overflow = '';
 }
@@ -509,5 +524,75 @@ function populateViewModal(shift) {
                 }
             }
         });
+    }
+}
+
+/**
+ * Handle create shift form submission
+ */
+async function handleCreateShift(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch(`${getBaseUrl()}shifts/create`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            showSuccess('Shift created successfully');
+            closeAllModals();
+            loadShifts();
+        } else {
+            showError('Failed to create shift: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error creating shift:', error);
+        showError('Error creating shift. Please try again.');
+    }
+}
+
+/**
+ * Handle edit shift form submission
+ */
+async function handleEditShift(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch(`${getBaseUrl()}shifts/update`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            showSuccess('Shift updated successfully');
+            closeAllModals();
+            loadShifts();
+        } else {
+            showError('Failed to update shift: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error updating shift:', error);
+        showError('Error updating shift. Please try again.');
     }
 }

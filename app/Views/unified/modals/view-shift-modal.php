@@ -1,5 +1,5 @@
 <!-- View Shift Modal -->
-<div id="viewShiftModal" class="modal">
+<div id="viewShiftModal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
             <h3>

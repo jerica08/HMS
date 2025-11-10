@@ -386,13 +386,22 @@
 
     // Appointment Modal Functions
     function initializeAppointmentModal() {
+        console.log('Initializing appointment modal...');
+        
         const scheduleBtn = document.getElementById('scheduleAppointmentBtn');
+        console.log('Schedule button found:', !!scheduleBtn);
+        
         if (scheduleBtn) {
-            scheduleBtn.addEventListener('click', openNewAppointmentModal);
+            scheduleBtn.addEventListener('click', function() {
+                console.log('Schedule button clicked!');
+                openNewAppointmentModal();
+            });
         }
 
         // Close modal when clicking outside
         const modal = document.getElementById('newAppointmentModal');
+        console.log('Modal found:', !!modal);
+        
         if (modal) {
             modal.addEventListener('click', function(e) {
                 if (e.target === modal) {
@@ -403,24 +412,37 @@
 
         // Handle form submission
         const form = document.getElementById('newAppointmentForm');
+        console.log('Form found:', !!form);
+        
         if (form) {
             form.addEventListener('submit', handleAppointmentSubmit);
         }
     }
 
     function openNewAppointmentModal() {
+        console.log('openNewAppointmentModal called!');
         const modal = document.getElementById('newAppointmentModal');
+        console.log('Modal element:', modal);
+        
         if (modal) {
+            console.log('Opening modal - current classes:', modal.className);
+            modal.classList.add('active');
             modal.removeAttribute('hidden');
             modal.setAttribute('aria-hidden', 'false');
+            console.log('Modal opened - new classes:', modal.className);
+            
             loadPatients();
             loadDoctors();
+        } else {
+            console.error('Modal not found!');
         }
     }
 
     function closeNewAppointmentModal() {
+        console.log('closeNewAppointmentModal called!');
         const modal = document.getElementById('newAppointmentModal');
         if (modal) {
+            modal.classList.remove('active');
             modal.setAttribute('hidden', 'true');
             modal.setAttribute('aria-hidden', 'true');
             document.getElementById('newAppointmentForm').reset();

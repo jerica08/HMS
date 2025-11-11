@@ -35,7 +35,7 @@
             </h1>
             <div class="page-actions">
                 <?php if (in_array('create_bill', $permissions)): ?>
-                    <button type="button" id="addFinancialRecordBtn" class="btn btn-primary" aria-label="Add Financial Record">
+                    <button type="button" id="addFinancialRecordBtn" class="btn btn-primary" aria-label="Add Financial Record" onclick="openFinancialTransactionModal()">
                         <i class="fas fa-plus" aria-hidden="true"></i> Add Transaction
                     </button>
                 <?php endif; ?>
@@ -413,6 +413,9 @@
     <?php if (in_array('create_expense', $permissions)): ?>
         <?php include APPPATH . 'Views/unified/modals/expense-modal.php'; ?>
     <?php endif; ?>
+    
+    <!-- Financial Transaction Modal -->
+    <?php include APPPATH . 'Views/unified/modals/financial-transaction-modal.php'; ?>
 
     <!-- JavaScript Files -->
     <script src="<?= base_url('assets/js/unified/financial-utils.js') ?>"></script>
@@ -551,3 +554,34 @@
                 alert('Delete transaction functionality coming soon! Transaction ID: ' + id);
             }
         }
+
+        // Simple direct approach - override any existing handlers
+        function setupFinancialModalButton() {
+            const btn = document.getElementById('addFinancialRecordBtn');
+            if (btn) {
+                // Remove all existing event listeners by cloning
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                // Add our click handler
+                newBtn.onclick = function(e) {
+                    e.preventDefault();
+                    if (typeof openFinancialTransactionModal === 'function') {
+                        openFinancialTransactionModal();
+                    } else {
+                        alert('Modal function not found');
+                    }
+                };
+            }
+        }
+
+        // Try multiple times to ensure button is ready
+        setTimeout(setupFinancialModalButton, 100);
+        setTimeout(setupFinancialModalButton, 500);
+        setTimeout(setupFinancialModalButton, 1000);
+
+        // Set base URL for financial modal AJAX requests
+        window.baseUrl = '<?= base_url() ?>';
+    </script>
+</body>
+</html>

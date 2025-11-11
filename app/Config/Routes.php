@@ -301,6 +301,18 @@ $routes->get('pharmacists/inventory', 'Pharmacist::inventory');
 $routes->get('pharmacists/prescription', 'Pharmacist::prescription');
 
 // ===================================================================
+// FINANCIAL MANAGEMENT ROUTES
+// ===================================================================
+
+$routes->get('financial-test', 'FinancialController::test');
+$routes->get('financial-modal-demo', 'FinancialController::demo');
+$routes->get('api/users', 'FinancialController::getUsersAPI');
+$routes->get('financial-management', 'FinancialController::index');
+$routes->get('financial-management/add', 'FinancialController::addTransaction');
+$routes->post('financial-management/add', 'FinancialController::addTransaction');
+$routes->get('financial-management/categories', 'FinancialController::getCategoriesByType');
+
+// ===================================================================
 // LEGACY COMPATIBILITY ROUTES
 // ===================================================================
 

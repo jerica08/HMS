@@ -30,7 +30,8 @@ class PrescriptionManager {
                 delete: `${baseUrl}prescriptions/delete`,
                 getPrescription: `${baseUrl}prescriptions`,
                 updateStatus: `${baseUrl}prescriptions`,
-                availablePatients: `${baseUrl}prescriptions/available-patients`
+                availablePatients: `${baseUrl}prescriptions/available-patients`,
+                availableDoctors: `${baseUrl}prescriptions/available-doctors`
             }
         };
     }

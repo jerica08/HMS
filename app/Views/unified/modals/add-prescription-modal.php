@@ -25,6 +25,16 @@
                         </select>
                     </div>
                     
+                    <?php if (($userRole ?? '') === 'admin'): ?>
+                    <div class="form-group">
+                        <label for="doctorSelect" class="form-label">Assigned Doctor *</label>
+                        <select id="doctorSelect" name="doctor_id" class="form-select" required>
+                            <option value="">Select Doctor</option>
+                            <!-- Doctors will be loaded dynamically via JavaScript -->
+                        </select>
+                    </div>
+                    <?php endif; ?>
+                    
                     <div class="form-group">
                         <label for="prescriptionDate" class="form-label">Date Issued *</label>
                         <input type="date" id="prescriptionDate" name="date_issued" class="form-input" required value="<?= date('Y-m-d') ?>">

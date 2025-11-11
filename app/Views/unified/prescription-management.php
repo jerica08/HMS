@@ -427,6 +427,60 @@
                 patientSelect.disabled = false;
             }
         }
+        
+        // Load doctors for admin users
+        const userRole = document.querySelector('meta[name="user-role"]')?.content || '';
+        if (userRole === 'admin') {
+            await loadAvailableDoctorsForModal();
+        }
+    }
+    
+    // Function to load available doctors for the modal (admin only)
+    async function loadAvailableDoctorsForModal() {
+        try {
+            const doctorSelect = document.getElementById('doctorSelect');
+            if (!doctorSelect) {
+                return;
+            }
+
+            // Show loading state
+            doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+            doctorSelect.disabled = true;
+
+            const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
+            const response = await fetch(`${baseUrl}prescriptions/available-doctors`);
+            const data = await response.json();
+
+            if (data.status === 'success' && Array.isArray(data.data)) {
+                if (data.data.length === 0) {
+                    doctorSelect.innerHTML = '<option value="">No doctors available</option>';
+                } else {
+                    // Clear and populate dropdown
+                    doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+                    
+                    data.data.forEach(doctor => {
+                        const option = document.createElement('option');
+                        option.value = doctor.staff_id;
+                        const doctorInfo = `${doctor.first_name} ${doctor.last_name}`;
+                        const specialty = doctor.specialization ? ` - ${doctor.specialization}` : '';
+                        option.textContent = doctorInfo + specialty;
+                        doctorSelect.appendChild(option);
+                    });
+                }
+            } else {
+                doctorSelect.innerHTML = `<option value="">${data.message || 'No doctors available'}</option>`;
+            }
+
+            doctorSelect.disabled = false;
+
+        } catch (error) {
+            console.error('Error loading doctors:', error);
+            const doctorSelect = document.getElementById('doctorSelect');
+            if (doctorSelect) {
+                doctorSelect.innerHTML = '<option value="">Error loading doctors</option>';
+                doctorSelect.disabled = false;
+            }
+        }
     }
     
     // Direct function to hide modal

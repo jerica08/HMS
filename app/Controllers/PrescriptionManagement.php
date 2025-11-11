@@ -217,7 +217,12 @@ class PrescriptionManagement extends BaseController
     public function getPrescription($id)
     {
         try {
+            log_message('info', 'PrescriptionManagement::getPrescription - Request for ID: ' . $id);
+            log_message('info', 'PrescriptionManagement::getPrescription - User role: ' . $this->userRole);
+            log_message('info', 'PrescriptionManagement::getPrescription - Staff ID: ' . $this->staffId);
+            
             if (!$this->canViewPrescriptions()) {
+                log_message('warning', 'PrescriptionManagement::getPrescription - Access denied for role: ' . $this->userRole);
                 return $this->response->setStatusCode(403)->setJSON([
                     'status' => 'error',
                     'message' => 'Access denied'
@@ -227,12 +232,30 @@ class PrescriptionManagement extends BaseController
             $prescription = $this->prescriptionService->getPrescription($id);
             
             if (!$prescription) {
+                log_message('warning', 'PrescriptionManagement::getPrescription - Prescription not found: ' . $id);
+                
+                // Check if prescriptions table has any data
+                $db = \Config\Database::connect();
+                $count = $db->table('prescriptions')->countAllResults();
+                log_message('info', 'Total prescriptions in database: ' . $count);
+                
+                // Check if this specific ID exists
+                $exists = $db->table('prescriptions')->where('id', $id)->countAllResults();
+                log_message('info', 'Prescription with ID ' . $id . ' exists: ' . ($exists ? 'YES' : 'NO'));
+                
                 return $this->response->setStatusCode(404)->setJSON([
                     'status' => 'error',
-                    'message' => 'Prescription not found'
+                    'message' => 'Prescription not found',
+                    'debug' => [
+                        'id' => $id,
+                        'total_prescriptions' => $count,
+                        'exists' => $exists > 0
+                    ]
                 ]);
             }
 
+            log_message('info', 'PrescriptionManagement::getPrescription - Successfully found prescription: ' . $id);
+            
             return $this->response->setJSON([
                 'status' => 'success',
                 'data' => $prescription
@@ -240,9 +263,10 @@ class PrescriptionManagement extends BaseController
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionManagement::getPrescription error: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
-                'message' => 'Failed to load prescription'
+                'message' => 'Failed to load prescription: ' . $e->getMessage()
             ]);
         }
     }

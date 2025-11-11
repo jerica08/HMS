@@ -412,33 +412,56 @@ class PrescriptionService
     public function getPrescription($id)
     {
         try {
+            log_message('info', 'PrescriptionService::getPrescription - Looking for ID: ' . $id);
+            
             $prescription = $this->db->table('prescriptions p')
                 ->select([
-                    'p.*',
+                    'p.id',
                     'p.rx_number as prescription_id',
+                    'p.patient_id',
+                    'p.patient_name',
+                    'p.medication',
+                    'p.dosage',
+                    'p.frequency',
                     'p.days_supply as duration',
-                    'pat.patient_id as pat_id',
+                    'p.quantity',
+                    'p.prescriber',
+                    'p.priority',
+                    'p.notes',
+                    'p.status',
+                    'p.created_at',
+                    'p.updated_at',
+                    'p.dispensed_at',
+                    'p.created_by',
+                    'COALESCE(pat.patient_id, p.patient_id) as pat_id',
                     'pat.first_name as patient_first_name',
                     'pat.last_name as patient_last_name',
                     'pat.date_of_birth',
-                    'pat.phone as patient_phone',
+                    'pat.contact_no as patient_phone',
                     'pat.email as patient_email',
-                    'pat.primary_doctor_id as doctor_id'
+                    'pat.status as patient_status',
+                    'COALESCE(pat.primary_doctor_id, 0) as doctor_id'
                 ])
                 ->join('patient pat', 'pat.patient_id = p.patient_id', 'left')
                 ->where('p.id', $id)
                 ->get()
                 ->getRowArray();
             
-            // Add computed patient_name field
+            log_message('info', 'PrescriptionService::getPrescription - Found: ' . ($prescription ? 'YES' : 'NO'));
+            
             if ($prescription) {
-                $prescription['patient_name'] = ($prescription['patient_first_name'] ?? '') . ' ' . ($prescription['patient_last_name'] ?? '');
+                // Use prescription's patient_name if available, otherwise construct from patient table
+                if (empty($prescription['patient_name']) && !empty($prescription['patient_first_name'])) {
+                    $prescription['patient_name'] = trim(($prescription['patient_first_name'] ?? '') . ' ' . ($prescription['patient_last_name'] ?? ''));
+                }
+                log_message('info', 'PrescriptionService::getPrescription - Prescription data: ' . json_encode($prescription));
             }
             
             return $prescription;
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionService::getPrescription error: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             return null;
         }
     }

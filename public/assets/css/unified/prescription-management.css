@@ -446,7 +446,8 @@
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    overflow: auto;
+    background-color: rgba(15, 23, 42, 0.55);
     backdrop-filter: blur(4px);
 }
 
@@ -454,6 +455,38 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Modal Overlay (alternative modal structure) */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-container {
+    background-color: white;
+    margin: 2% auto;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
 }
 
 .modal-content {
@@ -480,7 +513,8 @@
     background: #f8fafc;
 }
 
-.modal-header h3 {
+.modal-header h3,
+.modal-title {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
@@ -490,7 +524,8 @@
     gap: 0.5rem;
 }
 
-.modal-header h3 i {
+.modal-header h3 i,
+.modal-title i {
     color: #8b5cf6;
 }
 
@@ -588,6 +623,48 @@
 textarea.form-control {
     resize: vertical;
     min-height: 100px;
+}
+
+/* Prescription Details for View Modal */
+.prescription-details {
+    width: 100%;
+}
+
+.detail-section {
+    margin-bottom: 1.5rem;
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.detail-section:last-child {
+    margin-bottom: 0;
+}
+
+.detail-section h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.notes-content {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    min-height: 60px;
+    color: #4a5568;
+    font-size: 0.875rem;
+    line-height: 1.6;
 }
 
 /* Details Grid for View Modal */

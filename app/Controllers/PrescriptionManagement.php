@@ -313,6 +313,58 @@ class PrescriptionManagement extends BaseController
         }
     }
 
+    /**
+     * Get available doctors for prescription assignment (admin only)
+     */
+    public function getAvailableDoctorsAPI()
+    {
+        try {
+            // Only admin can assign doctors
+            if ($this->userRole !== 'admin') {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Access denied'
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            
+            // Check if doctor table exists for specialization
+            $doctorTable = $db->tableExists('doctor');
+            
+            if ($doctorTable) {
+                // Join with doctor table to get specialization only
+                $doctors = $db->table('staff s')
+                    ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
+                    ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
+                    ->where('s.role', 'doctor')
+                    ->orderBy('s.first_name', 'ASC')
+                    ->get()
+                    ->getResultArray();
+            } else {
+                // Just get basic staff info if doctor table doesn't exist
+                $doctors = $db->table('staff')
+                    ->select('staff_id, first_name, last_name')
+                    ->where('role', 'doctor')
+                    ->orderBy('first_name', 'ASC')
+                    ->get()
+                    ->getResultArray();
+            }
+            
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $doctors
+            ]);
+
+        } catch (\Throwable $e) {
+            log_message('error', 'PrescriptionManagement::getAvailableDoctorsAPI error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to load available doctors'
+            ]);
+        }
+    }
+
     // Permission methods
 
     private function canViewPrescriptions()

@@ -12,7 +12,7 @@
         </div>
         <form id="newAppointmentForm">
             <div class="hms-modal-body">
-                <div class="form-grid">
+                <div class="form-grid"> 
                     <div>
                         <label class="form-label" for="appointment_patient">Patient*</label>
                         <select id="appointment_patient" name="patient_id" class="form-select" required>
@@ -23,8 +23,25 @@
                     <?php if ($userRole === 'admin'): ?>
                     <div>
                         <label class="form-label" for="appointment_doctor">Doctor*</label>
+                        <!-- Debug: Check doctors_for_modal -->
+                        <?php if (!empty($doctors_for_modal)): ?>
+                            <!-- DEBUG: Found <?php echo count($doctors_for_modal); ?> doctors -->
+                        <?php else: ?>
+                            <!-- DEBUG: doctors_for_modal is empty -->
+                        <?php endif; ?>
+                        
                         <select id="appointment_doctor" name="doctor_id" class="form-select" required>
                             <option value="">Select Doctor...</option>
+                            <?php if (!empty($doctors_for_modal)): ?>
+                                <?php foreach ($doctors_for_modal as $doctor): ?>
+                                    <option value="<?= esc($doctor['staff_id'] ?? $doctor['id']) ?>">
+                                        <?= esc(trim(($doctor['first_name'] ?? '') . ' ' . ($doctor['last_name'] ?? ''))) ?>
+                                        <?= !empty($doctor['specialization']) ? ' - ' . esc($doctor['specialization']) : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="">No doctors available</option>
+                            <?php endif; ?>
                         </select>
                         <small id="err_appointment_doctor" style="color:#dc2626"></small>
                     </div>

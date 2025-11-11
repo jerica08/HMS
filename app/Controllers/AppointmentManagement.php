@@ -30,8 +30,12 @@ class AppointmentManagement extends BaseController
         try {
             $stats = $this->getAppointmentStats();
             $appointments = $this->getAppointments();
-            $doctors = $this->userRole === 'admin' ? $this->getDoctorsListData() : [];
+            $doctors = $this->getDoctorsListData(); // Always fetch doctors like ShiftManagement
             $availablePatients = $this->getAvailablePatients();
+            
+            // Debug: Log the data
+            log_message('debug', 'AppointmentManagement::index - doctors count: ' . count($doctors));
+            log_message('debug', 'AppointmentManagement::index - user role: ' . ($this->userRole ?? 'none'));
             
             $data = [
                 'title' => $this->getPageTitle(),
@@ -464,12 +468,18 @@ class AppointmentManagement extends BaseController
     private function getDoctorsListData()
     {
         try {
-            return $this->db->table('doctor d')
+            log_message('debug', 'AppointmentManagement::getDoctorsListData called');
+            
+            $doctors = $this->db->table('doctor d')
                 ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
                 ->join('staff s', 's.staff_id = d.staff_id', 'inner')
-                ->where('s.status', 'active')
+                ->where('d.status', 'Active') // Filter by doctor status instead of staff status
                 ->get()
                 ->getResultArray();
+                
+            log_message('debug', 'AppointmentManagement::getDoctorsListData found ' . count($doctors) . ' doctors');
+            
+            return $doctors;
         } catch (\Exception $e) {
             log_message('error', 'Get doctors list error: ' . $e->getMessage());
             return [];

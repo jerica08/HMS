@@ -316,7 +316,13 @@
     </div>
 
   
-    <?php include APPPATH . 'Views/unified/modals/new-appointment-modal.php'; ?>
+    <!-- Include modal with forced doctors data like shift management -->
+    <?php 
+    // Force set the doctors variable directly like shift management
+    $doctors_for_modal = $doctors ?? [];
+    
+    include(APPPATH . 'Views/unified/modals/new-appointment-modal.php');
+    ?>
     <?php include APPPATH . 'Views/unified/modals/view-appointment-modal.php'; ?>
     <?php include APPPATH . 'Views/unified/modals/add-prescription-modal.php'; ?>
 

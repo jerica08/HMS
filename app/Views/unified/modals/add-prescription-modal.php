@@ -56,8 +56,13 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="duration" class="form-label">Duration *</label>
-                        <input type="text" id="duration" name="duration" class="form-input" required placeholder="e.g., 7 days">
+                        <label for="duration" class="form-label">Duration</label>
+                        <input type="text" id="duration" name="duration" class="form-input" placeholder="e.g., 7 days">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="quantity" class="form-label">Quantity *</label>
+                        <input type="number" id="quantity" name="quantity" class="form-input" required min="1" placeholder="e.g., 30">
                     </div>
                     
                     <div class="form-group">

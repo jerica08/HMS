@@ -68,6 +68,10 @@
                             <label>Duration:</label>
                             <span id="viewDuration">-</span>
                         </div>
+                        <div class="detail-item">
+                            <label>Quantity:</label>
+                            <span id="viewQuantity">-</span>
+                        </div>
                     </div>
                 </div>
                 

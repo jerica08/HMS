@@ -232,7 +232,10 @@ class PrescriptionManager {
 
     renderPrescriptions() {
         const tbody = document.getElementById('prescriptionsTableBody');
-        if (!tbody) return;
+        
+        if (!tbody) {
+            return;
+        }
 
         if (this.prescriptions.length === 0) {
             tbody.innerHTML = `
@@ -276,7 +279,7 @@ class PrescriptionManager {
                 </td>
                 <td>${this.escapeHtml(prescription.dosage || '-')}</td>
                 <td>${this.escapeHtml(prescription.frequency || '-')}</td>
-                <td>${this.formatDate(prescription.date_issued)}</td>
+                <td>${this.formatDate(prescription.created_at)}</td>
                 <td>
                     <span class="status-badge ${statusClass}">
                         ${this.escapeHtml(prescription.status || 'Active')}
@@ -380,7 +383,6 @@ class PrescriptionManager {
                 this.showError('Failed to load prescription details');
             }
         } catch (error) {
-            console.error('Error loading prescription:', error);
             this.showError('Failed to load prescription details');
         }
     }
@@ -397,7 +399,6 @@ class PrescriptionManager {
                 this.showError('Failed to load prescription details');
             }
         } catch (error) {
-            console.error('Error loading prescription:', error);
             this.showError('Failed to load prescription details');
         }
     }
@@ -434,7 +435,6 @@ class PrescriptionManager {
                 this.config.csrfHash = data.csrf.value;
             }
         } catch (error) {
-            console.error('Error deleting prescription:', error);
             this.showError('Failed to delete prescription');
         }
     }
@@ -467,7 +467,6 @@ class PrescriptionManager {
                 this.config.csrfHash = data.csrf.value;
             }
         } catch (error) {
-            console.error('Error updating prescription status:', error);
             this.showError('Failed to update prescription status');
         }
     }
@@ -522,7 +521,6 @@ class PrescriptionManager {
                 this.config.csrfHash = result.csrf.value;
             }
         } catch (error) {
-            console.error('Error saving prescription:', error);
             this.showError('Failed to save prescription');
         } finally {
             this.showLoading(false, form);
@@ -531,27 +529,29 @@ class PrescriptionManager {
 
     populateForm(prescription) {
         document.getElementById('patientSelect').value = prescription.patient_id || '';
-        document.getElementById('prescriptionDate').value = prescription.date_issued || '';
+        document.getElementById('prescriptionDate').value = prescription.created_at ? prescription.created_at.split(' ')[0] : '';
         document.getElementById('medication').value = prescription.medication || '';
         document.getElementById('dosage').value = prescription.dosage || '';
         document.getElementById('frequency').value = prescription.frequency || '';
         document.getElementById('duration').value = prescription.duration || '';
-        document.getElementById('prescriptionStatus').value = prescription.status || 'active';
+        document.getElementById('quantity').value = prescription.quantity || '';
+        document.getElementById('prescriptionStatus').value = prescription.status || 'queued';
         document.getElementById('prescriptionNotes').value = prescription.notes || '';
     }
 
     populateViewModal(prescription) {
         document.getElementById('viewPrescriptionId').textContent = prescription.prescription_id || 'N/A';
-        document.getElementById('viewPrescriptionDate').textContent = this.formatDate(prescription.date_issued);
-        document.getElementById('viewPrescriptionStatus').textContent = prescription.status || 'Active';
-        document.getElementById('viewPrescriptionStatus').className = `status-badge ${(prescription.status || 'active').toLowerCase()}`;
-        document.getElementById('viewDoctorName').textContent = prescription.doctor_name || 'Unknown';
+        document.getElementById('viewPrescriptionDate').textContent = this.formatDate(prescription.created_at);
+        document.getElementById('viewPrescriptionStatus').textContent = prescription.status || 'Queued';
+        document.getElementById('viewPrescriptionStatus').className = `status-badge ${(prescription.status || 'queued').toLowerCase()}`;
+        document.getElementById('viewDoctorName').textContent = prescription.prescriber || 'Unknown';
         document.getElementById('viewPatientName').textContent = prescription.patient_name || 'Unknown';
         document.getElementById('viewPatientId').textContent = prescription.pat_id || 'N/A';
         document.getElementById('viewMedication').textContent = prescription.medication || 'N/A';
         document.getElementById('viewDosage').textContent = prescription.dosage || 'N/A';
         document.getElementById('viewFrequency').textContent = prescription.frequency || 'N/A';
         document.getElementById('viewDuration').textContent = prescription.duration || 'N/A';
+        document.getElementById('viewQuantity').textContent = prescription.quantity || 'N/A';
         document.getElementById('viewPrescriptionNotes').textContent = prescription.notes || 'No notes available';
 
         // Store prescription data for edit functionality

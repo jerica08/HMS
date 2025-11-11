@@ -166,4 +166,78 @@ class ResourceManagement extends BaseController
             default => '/login'
         };
     }
+
+    public function add()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Unauthorized']);
+        }
+
+        $userRole = session()->get('role');
+        
+        if (!$this->permissionManager->hasPermission($userRole, 'resources', 'add')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Access denied']);
+        }
+
+        $validation = \Config\Services::validation();
+        
+        $rules = [
+            'equipment_name' => 'required|min_length[2]|max_length[255]',
+            'category' => 'required|in_list[Medical Equipment,Medical Supplies,Diagnostic Equipment,Lab Equipment,Pharmacy Equipment,Medications,Office Equipment,IT Equipment,Furniture,Vehicles,Other]',
+            'quantity' => 'required|integer|greater_than[0]',
+            'status' => 'required|in_list[Available,In Use,Maintenance,Out of Order]',
+            'location' => 'required|min_length[2]|max_length[255]',
+            'date_acquired' => 'required|valid_date[Y-m-d]',
+            'supplier' => 'permit_empty|max_length[255]',
+            'maintenance_schedule' => 'permit_empty|valid_date[Y-m-d]',
+            'remarks' => 'permit_empty|max_length[1000]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        try {
+            $db = \Config\Database::connect();
+            
+            $data = [
+                'equipment_name' => $this->request->getPost('equipment_name'),
+                'category' => $this->request->getPost('category'),
+                'quantity' => $this->request->getPost('quantity'),
+                'status' => $this->request->getPost('status'),
+                'location' => $this->request->getPost('location'),
+                'date_acquired' => $this->request->getPost('date_acquired'),
+                'supplier' => $this->request->getPost('supplier'),
+                'maintenance_schedule' => $this->request->getPost('maintenance_schedule'),
+                'remarks' => $this->request->getPost('remarks')
+            ];
+
+            $result = $db->table('resources')->insert($data);
+            
+            if ($result) {
+                log_message('info', 'Resource added: ' . $data['equipment_name'] . ' by ' . session()->get('username'));
+                
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Resource added successfully'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Failed to add resource'
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Add resource error: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Database error occurred'
+            ]);
+        }
+    }
 }

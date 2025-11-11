@@ -54,15 +54,13 @@ class ResourceService
             }
             if (!empty($filters['search'])) {
                 $builder->groupStart()
-                    ->like('r.name', $filters['search'])
-                    ->orLike('r.description', $filters['search'])
-                    ->orLike('r.serial_number', $filters['search'])
+                    ->like('r.equipment_name', $filters['search'])
+                    ->orLike('r.remarks', $filters['search'])
                     ->groupEnd();
             }
 
-            $builder->select('r.*, s.first_name, s.last_name')
-                ->join('staff s', 's.staff_id = r.assigned_to', 'left')
-                ->orderBy('r.created_at', 'DESC');
+            $builder->select('r.*')
+                ->orderBy('r.id', 'DESC');
 
             return $builder->get()->getResultArray();
 
@@ -148,7 +146,7 @@ class ResourceService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
-            $requiredFields = ['name', 'category', 'status', 'location'];
+            $requiredFields = ['equipment_name', 'category', 'status', 'location'];
             foreach ($requiredFields as $field) {
                 if (empty($data[$field])) {
                     return ['success' => false, 'message' => "Field '{$field}' is required"];
@@ -156,7 +154,7 @@ class ResourceService
             }
 
             $resourceData = [
-                'equipment_name' => trim($data['name']),
+                'equipment_name' => trim($data['equipment_name']),
                 'category' => $data['category'],
                 'quantity' => $data['quantity'] ?? 1,
                 'status' => $data['status'] ?? 'Available',
@@ -231,7 +229,7 @@ class ResourceService
                 return ['success' => false, 'message' => 'Resource not found'];
             }
 
-            if ($resource->status === 'In Use' && !empty($resource->assigned_to)) {
+            if ($resource->status === 'In Use') {
                 return ['success' => false, 'message' => 'Cannot delete resource that is currently in use'];
             }
 
@@ -273,8 +271,7 @@ class ResourceService
                     return null;
             }
 
-            return $builder->select('r.*, s.first_name, s.last_name')
-                ->join('staff s', 's.staff_id = r.assigned_to', 'left')
+            return $builder->select('r.*')
                 ->where('r.id', $resourceId)
                 ->get()->getRow();
 

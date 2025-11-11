@@ -116,6 +116,7 @@ $routes->get('admin/resource-management/(:num)', 'ResourceManagement::getResourc
 $routes->post('admin/resource-management/create', 'ResourceManagement::create', ['filter' => 'roleauth:admin']);
 $routes->post('admin/resource-management/update', 'ResourceManagement::update', ['filter' => 'roleauth:admin']);
 $routes->post('admin/resource-management/delete', 'ResourceManagement::delete', ['filter' => 'roleauth:admin']);
+$routes->post('admin/resources/add', 'ResourceManagement::add', ['filter' => 'roleauth:admin']);
 
 // ===================================================================
 // DEPARTMENT ROUTES

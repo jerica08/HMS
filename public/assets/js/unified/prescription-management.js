@@ -287,27 +287,27 @@ class PrescriptionManager {
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button type="button" class="btn btn-sm btn-view" data-prescription-id="${prescription.id}" title="View Details">
-                            <i class="fas fa-eye"></i>
+                        <button type="button" class="btn btn-sm btn-primary" data-prescription-id="${prescription.id}" data-action="view" title="View Details">
+                            <i class="fas fa-eye"></i> View
                         </button>
                         ${canEdit ? `
-                            <button type="button" class="btn btn-sm btn-edit" data-prescription-id="${prescription.id}" title="Edit Prescription">
-                                <i class="fas fa-edit"></i>
+                            <button type="button" class="btn btn-sm btn-warning" data-prescription-id="${prescription.id}" data-action="edit" title="Edit Prescription">
+                                <i class="fas fa-edit"></i> Edit
                             </button>
                         ` : ''}
                         ${canDispense ? `
-                            <button type="button" class="btn btn-sm btn-dispense" data-prescription-id="${prescription.id}" title="Dispense">
-                                <i class="fas fa-pills"></i>
+                            <button type="button" class="btn btn-sm btn-success" data-prescription-id="${prescription.id}" data-action="dispense" title="Dispense">
+                                <i class="fas fa-pills"></i> Dispense
                             </button>
                         ` : ''}
                         ${this.canUpdateStatus(prescription) ? `
-                            <button type="button" class="btn btn-sm btn-status" data-prescription-id="${prescription.id}" data-status="completed" title="Mark Completed">
-                                <i class="fas fa-check"></i>
+                            <button type="button" class="btn btn-sm btn-success" data-prescription-id="${prescription.id}" data-action="complete" data-status="completed" title="Mark Completed">
+                                <i class="fas fa-check"></i> Complete
                             </button>
                         ` : ''}
                         ${canDelete ? `
-                            <button type="button" class="btn btn-sm btn-delete" data-prescription-id="${prescription.id}" title="Delete Prescription">
-                                <i class="fas fa-trash"></i>
+                            <button type="button" class="btn btn-sm btn-danger" data-prescription-id="${prescription.id}" data-action="delete" title="Delete Prescription">
+                                <i class="fas fa-trash"></i> Delete
                             </button>
                         ` : ''}
                     </div>

@@ -342,6 +342,7 @@
     ];
 ?>
 <?= view('unified/modals/add-prescription-modal', $modalData) ?>
+<?= view('unified/modals/view-prescription-modal', $modalData) ?>
 
     <!-- JavaScript -->
     <script src="<?= base_url('assets/js/unified/prescription-management.js') ?>"></script>

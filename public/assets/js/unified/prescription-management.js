@@ -287,26 +287,26 @@ class PrescriptionManager {
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button type="button" class="btn btn-sm btn-primary" data-prescription-id="${prescription.id}" data-action="view" title="View Details">
+                        <button type="button" class="btn btn-sm btn-primary btn-view" data-prescription-id="${prescription.id}" data-action="view" title="View Details">
                             <i class="fas fa-eye"></i> View
                         </button>
                         ${canEdit ? `
-                            <button type="button" class="btn btn-sm btn-warning" data-prescription-id="${prescription.id}" data-action="edit" title="Edit Prescription">
+                            <button type="button" class="btn btn-sm btn-warning btn-edit" data-prescription-id="${prescription.id}" data-action="edit" title="Edit Prescription">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
                         ` : ''}
                         ${canDispense ? `
-                            <button type="button" class="btn btn-sm btn-success" data-prescription-id="${prescription.id}" data-action="dispense" title="Dispense">
+                            <button type="button" class="btn btn-sm btn-success btn-dispense" data-prescription-id="${prescription.id}" data-action="dispense" title="Dispense">
                                 <i class="fas fa-pills"></i> Dispense
                             </button>
                         ` : ''}
                         ${this.canUpdateStatus(prescription) ? `
-                            <button type="button" class="btn btn-sm btn-success" data-prescription-id="${prescription.id}" data-action="complete" data-status="completed" title="Mark Completed">
+                            <button type="button" class="btn btn-sm btn-success btn-status" data-prescription-id="${prescription.id}" data-action="complete" data-status="completed" title="Mark Completed">
                                 <i class="fas fa-check"></i> Complete
                             </button>
                         ` : ''}
                         ${canDelete ? `
-                            <button type="button" class="btn btn-sm btn-danger" data-prescription-id="${prescription.id}" data-action="delete" title="Delete Prescription">
+                            <button type="button" class="btn btn-sm btn-danger btn-delete" data-prescription-id="${prescription.id}" data-action="delete" title="Delete Prescription">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         ` : ''}
@@ -540,19 +540,36 @@ class PrescriptionManager {
     }
 
     populateViewModal(prescription) {
-        document.getElementById('viewPrescriptionId').textContent = prescription.prescription_id || 'N/A';
-        document.getElementById('viewPrescriptionDate').textContent = this.formatDate(prescription.created_at);
-        document.getElementById('viewPrescriptionStatus').textContent = prescription.status || 'Queued';
-        document.getElementById('viewPrescriptionStatus').className = `status-badge ${(prescription.status || 'queued').toLowerCase()}`;
-        document.getElementById('viewDoctorName').textContent = prescription.prescriber || 'Unknown';
-        document.getElementById('viewPatientName').textContent = prescription.patient_name || 'Unknown';
-        document.getElementById('viewPatientId').textContent = prescription.pat_id || 'N/A';
-        document.getElementById('viewMedication').textContent = prescription.medication || 'N/A';
-        document.getElementById('viewDosage').textContent = prescription.dosage || 'N/A';
-        document.getElementById('viewFrequency').textContent = prescription.frequency || 'N/A';
-        document.getElementById('viewDuration').textContent = prescription.duration || 'N/A';
-        document.getElementById('viewQuantity').textContent = prescription.quantity || 'N/A';
-        document.getElementById('viewPrescriptionNotes').textContent = prescription.notes || 'No notes available';
+        console.log('Populating view modal with:', prescription);
+        
+        // Safely set text content with null checks
+        const setElementText = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value || 'N/A';
+            } else {
+                console.warn(`Element not found: ${id}`);
+            }
+        };
+        
+        setElementText('viewPrescriptionId', prescription.prescription_id);
+        setElementText('viewPrescriptionDate', this.formatDate(prescription.created_at));
+        setElementText('viewDoctorName', prescription.prescriber || 'Unknown');
+        setElementText('viewPatientName', prescription.patient_name || 'Unknown');
+        setElementText('viewPatientId', prescription.pat_id);
+        setElementText('viewMedication', prescription.medication);
+        setElementText('viewDosage', prescription.dosage);
+        setElementText('viewFrequency', prescription.frequency);
+        setElementText('viewDuration', prescription.duration);
+        setElementText('viewQuantity', prescription.quantity);
+        setElementText('viewPrescriptionNotes', prescription.notes || 'No notes available');
+        
+        // Handle status badge specially
+        const statusElement = document.getElementById('viewPrescriptionStatus');
+        if (statusElement) {
+            statusElement.textContent = prescription.status || 'Queued';
+            statusElement.className = `status-badge ${(prescription.status || 'queued').toLowerCase()}`;
+        }
 
         // Store prescription data for edit functionality
         this.currentViewPrescription = prescription;

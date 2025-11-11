@@ -49,7 +49,7 @@ class FinancialManagement extends BaseController
             $validationRules = [
                 'user_id' => 'required|integer|greater_than[0]',
                 'type' => 'required|in_list[Income,Expense]',
-                'category_id' => 'required|integer|greater_than[0]',
+                'category' => 'required|string|min_length[1]|max_length[255]',
                 'amount' => 'required|numeric|greater_than[0]',
                 'transaction_date' => 'required|valid_date[Y-m-d]',
             ];
@@ -58,7 +58,7 @@ class FinancialManagement extends BaseController
                 $data = [
                     'user_id' => $this->request->getPost('user_id'),
                     'type' => $this->request->getPost('type'),
-                    'category_id' => $this->request->getPost('category_id'),
+                    'category' => $this->request->getPost('category'),
                     'amount' => $this->request->getPost('amount'),
                     'description' => $this->request->getPost('description'),
                     'transaction_date' => $this->request->getPost('transaction_date'),
@@ -130,6 +130,29 @@ class FinancialManagement extends BaseController
     private function getUsers()
     {
         $db = \Config\Database::connect();
-        return $db->table('users')->select('id, username')->get()->getResultArray();
+        
+        // Check if accountant table exists
+        if (!$db->tableExists('accountant')) {
+            log_message('error', 'Accountant table does not exist');
+            return [];
+        }
+        
+        // Check if staff table exists
+        if (!$db->tableExists('staff')) {
+            log_message('error', 'Staff table does not exist');
+            return [];
+        }
+        
+        $query = $db->table('accountant a')
+                  ->join('staff s', 's.staff_id = a.staff_id')
+                  ->select('a.accountant_id as id, s.first_name, s.last_name, s.staff_id');
+        
+        log_message('debug', 'SQL Query: ' . $db->getLastQuery());
+        
+        $result = $query->get()->getResultArray();
+        
+        log_message('debug', 'Accountant data: ' . json_encode($result));
+        
+        return $result;
     }
 }

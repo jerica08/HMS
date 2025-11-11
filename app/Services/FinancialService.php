@@ -210,6 +210,73 @@ class FinancialService
         }
     }
 
+    public function handleFinancialTransactionFormSubmission(array $data, string $userRole, int $userId): array
+    {
+        try {
+            // Validate permissions based on type
+            $type = $data['type'] ?? '';
+            if ($type === 'Income') {
+                if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'doctor', 'it_staff'])) {
+                    return ['success' => false, 'message' => 'Insufficient permissions to create income records'];
+                }
+            } elseif ($type === 'Expense') {
+                if (!in_array($userRole, ['admin', 'accountant', 'it_staff'])) {
+                    return ['success' => false, 'message' => 'Insufficient permissions to create expense records'];
+                }
+            } else {
+                return ['success' => false, 'message' => 'Invalid transaction type'];
+            }
+
+            // Validate required fields
+            $requiredFields = ['type', 'category', 'amount', 'transaction_date'];
+            foreach ($requiredFields as $field) {
+                if (empty($data[$field])) {
+                    return ['success' => false, 'message' => "Field '{$field}' is required"];
+                }
+            }
+
+            // Validate amount
+            $amount = (float)($data['amount'] ?? 0);
+            if ($amount <= 0) {
+                return ['success' => false, 'message' => 'Amount must be greater than zero'];
+            }
+
+            // Validate date
+            $date = $data['transaction_date'];
+            if (!strtotime($date)) {
+                return ['success' => false, 'message' => 'Invalid date format'];
+            }
+
+            // Check if financial_transaction table exists
+            if (!$this->db->tableExists('financial_transaction')) {
+                return ['success' => false, 'message' => 'Financial transaction table is missing'];
+            }
+
+            // Insert into financial_transaction table
+            $transaction = [
+                'user_id' => $userId,
+                'type' => $type,
+                'category' => $data['category'],
+                'amount' => $amount,
+                'description' => $data['description'] ?? null,
+                'transaction_date' => $date,
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+
+            $transactionId = $this->db->table('financial_transaction')->insert($transaction);
+            
+            if ($transactionId) {
+                return ['success' => true, 'message' => 'Financial transaction created successfully', 'transaction_id' => $transactionId];
+            } else {
+                return ['success' => false, 'message' => 'Failed to create financial transaction'];
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::handleFinancialTransactionFormSubmission error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error creating financial record'];
+        }
+    }
+
     public function createFinancialRecord(array $data, string $userRole, int $userId): array
     {
         try {

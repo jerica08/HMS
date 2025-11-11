@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class FinancialTransactionModel extends Model
 {
-    protected $table            = 'financial_transactions';
+    protected $table            = 'financial_transaction';
     protected $primaryKey       = 'transaction_id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
@@ -15,7 +15,7 @@ class FinancialTransactionModel extends Model
     protected $allowedFields    = [
         'user_id',
         'type',
-        'category_id',
+        'category',
         'amount',
         'description',
         'transaction_date',
@@ -31,7 +31,7 @@ class FinancialTransactionModel extends Model
     protected $validationRules      = [
         'user_id'           => 'required|integer|greater_than[0]',
         'type'              => 'required|in_list[Income,Expense]',
-        'category_id'       => 'required|integer|greater_than[0]',
+        'category'          => 'required|string|min_length[1]|max_length[255]',
         'amount'            => 'required|numeric|greater_than[0]',
         'transaction_date'  => 'required|valid_date[Y-m-d]',
     ];
@@ -45,10 +45,11 @@ class FinancialTransactionModel extends Model
             'required' => 'Transaction type is required',
             'in_list' => 'Invalid transaction type',
         ],
-        'category_id' => [
+        'category' => [
             'required' => 'Category is required',
-            'integer' => 'Category ID must be a valid integer',
-            'greater_than' => 'Please select a valid category',
+            'string' => 'Category must be a valid text',
+            'min_length' => 'Category cannot be empty',
+            'max_length' => 'Category is too long (max 255 characters)',
         ],
         'amount' => [
             'required' => 'Amount is required',
@@ -67,42 +68,40 @@ class FinancialTransactionModel extends Model
      */
     public function getTransactionsWithDetails($filters = [])
     {
-        $builder = $this->select('financial_transactions.*, 
-                                 users.username as user_name,
-                                 categories.name as category_name')
-                         ->join('users', 'users.id = financial_transactions.user_id')
-                         ->join('categories', 'categories.category_id = financial_transactions.category_id');
+        $builder = $this->select('financial_transaction.*, 
+                                 users.username as user_name')
+                         ->join('users', 'users.id = financial_transaction.user_id');
 
         // Apply filters
         if (!empty($filters['type'])) {
-            $builder->where('financial_transactions.type', $filters['type']);
+            $builder->where('financial_transaction.type', $filters['type']);
         }
         
-        if (!empty($filters['category_id'])) {
-            $builder->where('financial_transactions.category_id', $filters['category_id']);
+        if (!empty($filters['category'])) {
+            $builder->where('financial_transaction.category', $filters['category']);
         }
         
         if (!empty($filters['user_id'])) {
-            $builder->where('financial_transactions.user_id', $filters['user_id']);
+            $builder->where('financial_transaction.user_id', $filters['user_id']);
         }
         
         if (!empty($filters['date_from'])) {
-            $builder->where('financial_transactions.transaction_date >=', $filters['date_from']);
+            $builder->where('financial_transaction.transaction_date >=', $filters['date_from']);
         }
         
         if (!empty($filters['date_to'])) {
-            $builder->where('financial_transactions.transaction_date <=', $filters['date_to']);
+            $builder->where('financial_transaction.transaction_date <=', $filters['date_to']);
         }
         
         if (!empty($filters['search'])) {
             $builder->groupStart()
-                    ->like('financial_transactions.description', $filters['search'])
-                    ->orLike('categories.name', $filters['search'])
+                    ->like('financial_transaction.description', $filters['search'])
+                    ->orLike('financial_transaction.category', $filters['search'])
                     ->orLike('users.username', $filters['search'])
                     ->groupEnd();
         }
 
-        return $builder->orderBy('financial_transactions.transaction_date DESC, financial_transactions.created_at DESC')
+        return $builder->orderBy('financial_transaction.transaction_date DESC, financial_transaction.created_at DESC')
                        ->findAll();
     }
 
@@ -145,23 +144,22 @@ class FinancialTransactionModel extends Model
      */
     public function getTransactionsByCategory($dateFrom = null, $dateTo = null)
     {
-        $builder = $this->select('categories.name, 
-                                 categories.type,
-                                 SUM(CASE WHEN financial_transactions.type = "Income" THEN amount ELSE 0 END) as income,
-                                 SUM(CASE WHEN financial_transactions.type = "Expense" THEN amount ELSE 0 END) as expense,
-                                 COUNT(financial_transactions.transaction_id) as transaction_count')
-                         ->join('categories', 'categories.category_id = financial_transactions.category_id')
-                         ->groupBy('categories.category_id');
+        $builder = $this->select('category,
+                                 type,
+                                 SUM(CASE WHEN type = "Income" THEN amount ELSE 0 END) as income,
+                                 SUM(CASE WHEN type = "Expense" THEN amount ELSE 0 END) as expense,
+                                 COUNT(transaction_id) as transaction_count')
+                         ->groupBy('category, type');
         
         if ($dateFrom) {
-            $builder->where('financial_transactions.transaction_date >=', $dateFrom);
+            $builder->where('transaction_date >=', $dateFrom);
         }
         
         if ($dateTo) {
-            $builder->where('financial_transactions.transaction_date <=', $dateTo);
+            $builder->where('transaction_date <=', $dateTo);
         }
 
-        return $builder->orderBy('categories.name')
+        return $builder->orderBy('category')
                        ->get()
                        ->getResultArray();
     }

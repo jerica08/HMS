@@ -104,6 +104,32 @@ class FinancialManagement extends BaseController
         return $this->response->setJSON($result);
     }
 
+    public function addTransaction()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Not authenticated']);
+        }
+
+        $userRole = session()->get('role');
+        $staffId = session()->get('staff_id');
+
+        $data = $this->request->getPost();
+
+        // Validate permissions
+        $permissions = $this->getPermissions($userRole);
+        if (empty($permissions) || !in_array('view', $permissions)) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
+        }
+
+        $result = $this->financialService->handleFinancialTransactionFormSubmission($data, $userRole, $staffId);
+
+        if ($result['success']) {
+            return $this->response->setJSON(['status' => 'success', 'message' => $result['message']]);
+        } else {
+            return $this->response->setJSON(['status' => 'error', 'message' => $result['message']]);
+        }
+    }
+
     private function getPermissions($userRole)
     {
         $permissions = [

@@ -18,7 +18,7 @@
                         <label for="transactionType">
                             <i class="fas fa-exchange-alt"></i> Transaction Type *
                         </label>
-                        <select id="transactionType" name="type" class="form-control" required onchange="updateFinancialCategories()">
+                        <select id="transactionType" name="type" class="form-control" required onchange="updateTransactionPreview()">
                             <option value="">Select Transaction Type</option>
                             <option value="Income">Income</option>
                             <option value="Expense">Expense</option>
@@ -31,10 +31,9 @@
                         <label for="transactionCategory">
                             <i class="fas fa-tags"></i> Category *
                         </label>
-                        <select id="transactionCategory" name="category_id" class="form-control" required>
-                            <option value="">First select transaction type</option>
-                        </select>
-                        <small class="form-text">Select the appropriate category for this transaction</small>
+                        <input type="text" id="transactionCategory" name="category" class="form-control" 
+                               required placeholder="Enter category name...">
+                        <small class="form-text">Enter the appropriate category for this transaction</small>
                     </div>
                     
                     <!-- Amount -->
@@ -65,14 +64,14 @@
                             <i class="fas fa-user"></i> Recorded By *
                         </label>
                         <select id="transactionUser" name="user_id" class="form-control" required>
-                            <option value="">Select User</option>
+                            <option value="">Select Accountant</option>
                             <?php if (isset($users)): ?>
                                 <?php foreach ($users as $user): ?>
                                     <option value="<?= $user['id'] ?>"><?= $user['username'] ?></option>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </select>
-                        <small class="form-text">Person recording this transaction</small>
+                        <small class="form-text">Select the accountant recording this transaction</small>
                     </div>
                     
                     <!-- Description -->
@@ -127,8 +126,6 @@
 
 <script>
 // Financial transaction modal functions
-let financialCategories = {};
-
 function openFinancialTransactionModal() {
     const modal = document.getElementById('financialTransactionModal');
     
@@ -137,9 +134,6 @@ function openFinancialTransactionModal() {
         
         // Set default date to today
         document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
-        
-        // Load categories via AJAX
-        loadFinancialCategories();
         
         // Load users via AJAX
         loadFinancialUsers();
@@ -157,35 +151,36 @@ function closeFinancialTransactionModal() {
 function resetFinancialForm() {
     document.getElementById('financialTransactionForm').reset();
     document.getElementById('transactionPreview').style.display = 'none';
-    updateFinancialCategories();
-}
-
-function loadFinancialCategories() {
-    fetch(window.baseUrl + '/financial-management/categories?type=all')
-        .then(response => response.json())
-        .then(data => {
-            financialCategories = data;
-            updateFinancialCategories();
-        })
-        .catch(error => {
-            console.error('Error loading categories:', error);
-        });
 }
 
 function loadFinancialUsers() {
-    fetch(window.baseUrl + '/api/users')
+    console.log('Loading financial users...');
+    
+    // Get base URL more reliably
+    const baseUrl = window.baseUrl || 
+                   document.querySelector('meta[name="base-url"]')?.content || 
+                   '<?= base_url() ?>';
+    
+    console.log('Using baseUrl:', baseUrl);
+    
+    fetch(baseUrl + '/api/users')
         .then(response => response.json())
         .then(data => {
+            console.log('Received data:', data);
             const userSelect = document.getElementById('transactionUser');
-            userSelect.innerHTML = '<option value="">Select User</option>';
+            userSelect.innerHTML = '<option value="">Select Accountant</option>';
             
             if (data.users) {
+                console.log('Users found:', data.users);
                 data.users.forEach(user => {
+                    console.log('Processing user:', user);
                     const option = document.createElement('option');
-                    option.value = user.id;
-                    option.textContent = user.username;
+                    option.value = user.staff_id; // Use staff_id as the value
+                    option.textContent = `${user.first_name} ${user.last_name}`;
                     userSelect.appendChild(option);
                 });
+            } else {
+                console.log('No users found in response');
             }
         })
         .catch(error => {
@@ -194,36 +189,21 @@ function loadFinancialUsers() {
 }
 
 function updateFinancialCategories() {
-    const type = document.getElementById('transactionType').value;
-    const categorySelect = document.getElementById('transactionCategory');
-    
-    categorySelect.innerHTML = '<option value="">First select transaction type</option>';
-    
-    if (type && financialCategories[type]) {
-        financialCategories[type].forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.category_id;
-            option.textContent = category.name;
-            categorySelect.appendChild(option);
-        });
-    }
-    
+    // No longer needed since category is now a text input
     updateTransactionPreview();
 }
 
 function updateTransactionPreview() {
     const type = document.getElementById('transactionType').value;
-    const categoryId = document.getElementById('transactionCategory').value;
+    const categoryValue = document.getElementById('transactionCategory').value;
     const amount = document.getElementById('transactionAmount').value;
     const date = document.getElementById('transactionDate').value;
     
-    if (type || categoryId || amount || date) {
+    if (type || categoryValue || amount || date) {
         document.getElementById('transactionPreview').style.display = 'block';
         
         document.getElementById('previewType').textContent = type || '-';
-        
-        const categoryOption = document.querySelector(`#transactionCategory option[value="${categoryId}"]`);
-        document.getElementById('previewCategory').textContent = categoryOption ? categoryOption.textContent : '-';
+        document.getElementById('previewCategory').textContent = categoryValue || '-';
         
         if (amount) {
             const formattedAmount = new Intl.NumberFormat('en-PH', {
@@ -252,7 +232,7 @@ function updateTransactionPreview() {
 
 // Add event listeners for real-time preview
 document.getElementById('transactionType').addEventListener('change', updateTransactionPreview);
-document.getElementById('transactionCategory').addEventListener('change', updateTransactionPreview);
+document.getElementById('transactionCategory').addEventListener('input', updateTransactionPreview);
 document.getElementById('transactionAmount').addEventListener('input', updateTransactionPreview);
 document.getElementById('transactionDate').addEventListener('change', updateTransactionPreview);
 
@@ -260,13 +240,18 @@ document.getElementById('transactionDate').addEventListener('change', updateTran
 document.getElementById('financialTransactionForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    // Get base URL more reliably
+    const baseUrl = window.baseUrl || 
+                   document.querySelector('meta[name="base-url"]')?.content || 
+                   '<?= base_url() ?>';
+    
     const formData = new FormData(this);
     const submitBtn = document.getElementById('saveFinancialBtn');
     
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
     
-    fetch(window.baseUrl + '/financial-management/add', {
+    fetch(baseUrl + '/financial-management/add', {
         method: 'POST',
         body: formData
     })

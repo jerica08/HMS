@@ -350,6 +350,11 @@ class PrescriptionManager {
             // Load available patients
             await this.loadAvailablePatients();
             
+            // Load available doctors if admin
+            if (this.config.userRole === 'admin') {
+                await this.loadAvailableDoctors();
+            }
+            
             // Add active class
             modal.classList.add('active');
             
@@ -375,10 +380,40 @@ class PrescriptionManager {
             const data = await response.json();
 
             if (data.status === 'success' && data.data) {
+                // Load available patients first
+                await this.loadAvailablePatients();
+                
+                // Load available doctors if admin
+                if (this.config.userRole === 'admin') {
+                    await this.loadAvailableDoctors();
+                }
+                
+                // Populate form with prescription data
                 this.populateForm(data.data);
+                
+                // Set modal title and ID
                 document.getElementById('modalTitle').textContent = 'Edit Prescription';
                 document.getElementById('prescriptionId').value = prescriptionId;
-                document.getElementById('prescriptionModal').classList.add('active');
+                
+                // Open modal with proper styling
+                const modal = document.getElementById('prescriptionModal');
+                if (modal) {
+                    modal.classList.add('active');
+                    
+                    // Set inline styles for proper display
+                    modal.style.display = 'flex';
+                    modal.style.position = 'fixed';
+                    modal.style.top = '0';
+                    modal.style.left = '0';
+                    modal.style.width = '100vw';
+                    modal.style.height = '100vh';
+                    modal.style.zIndex = '9999';
+                    modal.style.alignItems = 'center';
+                    modal.style.justifyContent = 'center';
+                    modal.style.background = 'rgba(15, 23, 42, 0.55)';
+                    
+                    document.body.style.overflow = 'hidden';
+                }
             } else {
                 this.showError('Failed to load prescription details');
             }
@@ -528,15 +563,35 @@ class PrescriptionManager {
     }
 
     populateForm(prescription) {
-        document.getElementById('patientSelect').value = prescription.patient_id || '';
-        document.getElementById('prescriptionDate').value = prescription.created_at ? prescription.created_at.split(' ')[0] : '';
-        document.getElementById('medication').value = prescription.medication || '';
-        document.getElementById('dosage').value = prescription.dosage || '';
-        document.getElementById('frequency').value = prescription.frequency || '';
-        document.getElementById('duration').value = prescription.duration || '';
-        document.getElementById('quantity').value = prescription.quantity || '';
-        document.getElementById('prescriptionStatus').value = prescription.status || 'queued';
-        document.getElementById('prescriptionNotes').value = prescription.notes || '';
+        // Safely populate each field with null checks
+        const setFieldValue = (id, value) => {
+            const field = document.getElementById(id);
+            if (field) {
+                field.value = value || '';
+            }
+        };
+        
+        setFieldValue('patientSelect', prescription.patient_id);
+        
+        // Set doctor field if it exists (admin only)
+        if (this.config.userRole === 'admin' && prescription.doctor_id) {
+            setFieldValue('doctorSelect', prescription.doctor_id);
+        }
+        
+        setFieldValue('prescriptionDate', prescription.created_at ? prescription.created_at.split(' ')[0] : '');
+        setFieldValue('medication', prescription.medication);
+        setFieldValue('dosage', prescription.dosage);
+        setFieldValue('frequency', prescription.frequency);
+        setFieldValue('duration', prescription.duration);
+        setFieldValue('quantity', prescription.quantity);
+        setFieldValue('prescriptionStatus', prescription.status || 'queued');
+        setFieldValue('prescriptionNotes', prescription.notes);
+        
+        // Store the prescription ID for update
+        const idField = document.getElementById('prescriptionId');
+        if (idField) {
+            idField.value = prescription.id || '';
+        }
     }
 
     populateViewModal(prescription) {
@@ -715,6 +770,49 @@ class PrescriptionManager {
                 patientSelect.disabled = false;
             }
             this.showError('Failed to load patients. Please refresh the page.');
+        }
+    }
+
+    async loadAvailableDoctors() {
+        try {
+            const doctorSelect = document.getElementById('doctorSelect');
+            if (!doctorSelect) {
+                return;
+            }
+
+            // Show loading state
+            doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+            doctorSelect.disabled = true;
+
+            const response = await fetch(this.config.endpoints.availableDoctors);
+            const data = await response.json();
+
+            if (data.status === 'success' && Array.isArray(data.data)) {
+                // Clear and populate dropdown
+                doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+                
+                data.data.forEach(doctor => {
+                    const option = document.createElement('option');
+                    option.value = doctor.staff_id;
+                    const doctorInfo = `${doctor.first_name} ${doctor.last_name}`;
+                    const specialty = doctor.specialization ? ` - ${doctor.specialization}` : '';
+                    option.textContent = doctorInfo + specialty;
+                    doctorSelect.appendChild(option);
+                });
+            } else {
+                doctorSelect.innerHTML = '<option value="">No doctors available</option>';
+            }
+
+            doctorSelect.disabled = false;
+
+        } catch (error) {
+            console.error('Error loading doctors:', error);
+            const doctorSelect = document.getElementById('doctorSelect');
+            if (doctorSelect) {
+                doctorSelect.innerHTML = '<option value="">Error loading doctors</option>';
+                doctorSelect.disabled = false;
+            }
+            this.showError('Failed to load doctors. Please refresh the page.');
         }
     }
 

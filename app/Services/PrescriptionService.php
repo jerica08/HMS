@@ -350,25 +350,66 @@ class PrescriptionService
                 return ['success' => false, 'message' => 'Permission denied'];
             }
 
-            // Prepare update data
-            $updateData = array_filter([
-                'medication' => $data['medication'] ?? null,
-                'dosage' => $data['dosage'] ?? null,
-                'frequency' => $data['frequency'] ?? null,
-                'duration' => $data['duration'] ?? null,
-                'notes' => $data['notes'] ?? null,
-                'status' => $data['status'] ?? null,
-                'updated_at' => date('Y-m-d H:i:s')
-            ], function($v) { return $v !== null; });
+            // Prepare update data - map form fields to database columns
+            $updateData = [];
+            
+            if (isset($data['medication'])) {
+                $updateData['medication'] = $data['medication'];
+            }
+            
+            if (isset($data['dosage'])) {
+                $updateData['dosage'] = $data['dosage'];
+            }
+            
+            if (isset($data['frequency'])) {
+                $updateData['frequency'] = $data['frequency'];
+            }
+            
+            // Map duration to days_supply (database column name)
+            if (isset($data['duration'])) {
+                $updateData['days_supply'] = !empty($data['duration']) ? (int)filter_var($data['duration'], FILTER_SANITIZE_NUMBER_INT) : null;
+            }
+            
+            if (isset($data['quantity'])) {
+                $updateData['quantity'] = (int)$data['quantity'];
+            }
+            
+            if (isset($data['notes'])) {
+                $updateData['notes'] = $data['notes'];
+            }
+            
+            // Map status values (UI to database ENUM)
+            if (isset($data['status'])) {
+                $statusMap = [
+                    'active' => 'queued',
+                    'pending' => 'queued',
+                    'ready' => 'ready',
+                    'completed' => 'dispensed',
+                    'cancelled' => 'cancelled',
+                    'verifying' => 'verifying',
+                    'queued' => 'queued',
+                    'dispensed' => 'dispensed'
+                ];
+                $updateData['status'] = $statusMap[$data['status']] ?? $data['status'];
+            }
+            
+            // Always update the timestamp
+            $updateData['updated_at'] = date('Y-m-d H:i:s');
 
-            if (empty($updateData)) {
+            if (empty($updateData) || count($updateData) === 1) {
                 return ['success' => false, 'message' => 'No fields to update'];
             }
-
-            if ($this->db->table('prescriptions')->where('id', $id)->update($updateData)) {
+            
+            $result = $this->db->table('prescriptions')->where('id', $id)->update($updateData);
+            
+            if ($result) {
                 return ['success' => true, 'message' => 'Prescription updated successfully'];
             }
 
+            // Log database error
+            $dbError = $this->db->error();
+            log_message('error', 'PrescriptionService::updatePrescription - Database error: ' . json_encode($dbError));
+            
             return ['success' => false, 'message' => 'Failed to update prescription'];
 
         } catch (\Throwable $e) {

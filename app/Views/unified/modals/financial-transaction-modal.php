@@ -1,6 +1,6 @@
 <!-- Financial Transaction Modal -->
-<div id="financialTransactionModal" class="modal-overlay" style="display: none;">
-    <div class="modal-content financial-modal">
+<div id="financialTransactionModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div class="modal-content financial-modal" style="position: relative; background: white; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
         <div class="modal-header">
             <h3><i class="fas fa-money-bill-wave"></i> Add Financial Transaction</h3>
             <button type="button" class="modal-close" onclick="closeFinancialTransactionModal()">

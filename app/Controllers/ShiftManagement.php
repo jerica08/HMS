@@ -56,9 +56,13 @@ class ShiftManagement extends BaseController
             $stats = $this->getMockStats();
             $availableStaff = $this->getMockAvailableStaff();
             
+            // Get doctors from database
+            $availableDoctors = $this->getAvailableDoctors();
+            
             // Debug: Log the data
             log_message('debug', 'ShiftManagement::index - shifts count: ' . count($shifts));
             log_message('debug', 'ShiftManagement::index - user role: ' . ($this->userRole ?? 'none'));
+            log_message('debug', 'ShiftManagement::index - availableDoctors count: ' . count($availableDoctors));
             
             // Get permissions for this role
             $permissions = $this->getUserPermissions();
@@ -76,7 +80,8 @@ class ShiftManagement extends BaseController
                 'pageConfig' => $pageConfig,
                 'departments' => $this->getDepartments(),
                 'shiftTypes' => $this->getShiftTypes(),
-                'roomsWards' => $this->getRoomsWards()
+                'roomsWards' => $this->getRoomsWards(),
+                'availableDoctors' => $this->getAvailableDoctors()
             ];
 
             log_message('debug', 'ShiftManagement::index - data prepared, rendering view');
@@ -482,14 +487,40 @@ class ShiftManagement extends BaseController
 
     private function getDepartments()
     {
-        return [
-            ['department' => 'Emergency'],
-            ['department' => 'ICU'],
-            ['department' => 'General'],
-            ['department' => 'Pediatrics'],
-            ['department' => 'Cardiology'],
-            ['department' => 'Orthopedics']
-        ];
+        try {
+            log_message('debug', 'ShiftManagement::getDepartments called');
+            
+            // Initialize database connection
+            $db = \Config\Database::connect();
+            
+            // Get departments from database
+            $departments = $db->table('department')
+                ->select('department_id, name')
+                ->orderBy('name', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            log_message('debug', 'ShiftManagement::getDepartments found ' . count($departments) . ' departments');
+            
+            // Format departments to match existing structure
+            return array_map(function($dept) {
+                return [
+                    'department' => $dept['name']
+                ];
+            }, $departments);
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'ShiftManagement::getDepartments error: ' . $e->getMessage());
+            // Return fallback departments if database fails
+            return [
+                ['department' => 'Emergency'],
+                ['department' => 'ICU'],
+                ['department' => 'General'],
+                ['department' => 'Pediatrics'],
+                ['department' => 'Cardiology'],
+                ['department' => 'Orthopedics']
+            ];
+        }
     }
 
     private function getShiftTypes()
@@ -512,11 +543,80 @@ class ShiftManagement extends BaseController
             ['room_ward' => 'ICU-2'],
             ['room_ward' => 'OPD-1'],
             ['room_ward' => 'OPD-2'],
-            ['room_ward' => 'OR-1'],
-            ['room_ward' => 'OR-2'],
-            ['room_ward' => 'Cardio A-12'],
-            ['room_ward' => 'Pediatrics Ward'],
-            ['room_ward' => 'General Ward']
+            ['room_ward' => 'Ward-A'],
+            ['room_ward' => 'Ward-B']
         ];
+    }
+
+    private function getDoctors()
+    {
+        try {
+            $db = \Config\Database::connect();
+            $doctors = $db->table('doctor d')
+                ->select('d.doctor_id, s.staff_id, s.first_name, s.last_name, s.department, d.specialization, d.status')
+                ->join('staff s', 's.staff_id = d.staff_id', 'left')
+                ->where('d.status', 'Active')
+                ->orderBy('s.first_name', 'ASC')
+                ->get()
+                ->getResultArray();
+            
+            return array_map(function($doctor) {
+                $doctor['name'] = trim(($doctor['first_name'] ?? '') . ' ' . ($doctor['last_name'] ?? ''));
+                return $doctor;
+            }, $doctors);
+        } catch (\Throwable $e) {
+            log_message('error', 'ShiftManagement::getDoctors error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function getAvailableDoctors()
+    {
+        try {
+            log_message('debug', 'ShiftManagement::getAvailableDoctors called');
+            
+            // Initialize database connection
+            $db = \Config\Database::connect();
+            
+            // Get doctors ONLY from the doctor table joined with staff table
+            $fromDoctorTable = $db->table('doctor d')
+                ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
+                ->join('staff s', 's.staff_id = d.staff_id', 'inner') // Inner join to ensure we only get doctors with staff records
+                ->where('d.status', 'Active')
+                ->orderBy('s.first_name', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            log_message('debug', 'ShiftManagement::getAvailableDoctors found ' . count($fromDoctorTable) . ' doctors from doctor table');
+            
+            // Log the actual results for debugging
+            if (!empty($fromDoctorTable)) {
+                foreach ($fromDoctorTable as $doctor) {
+                    log_message('debug', 'ShiftManagement - Doctor found: ID=' . $doctor['staff_id'] . ', Name=' . $doctor['first_name'] . ' ' . $doctor['last_name'] . ', Spec=' . ($doctor['specialization'] ?? 'None'));
+                }
+            }
+            
+            return $fromDoctorTable;
+            
+        } catch (\Throwable $e) {
+            log_message('error', 'ShiftManagement::getAvailableDoctors error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Test method to verify doctors data
+     */
+    public function testDoctors()
+    {
+        try {
+            $doctors = $this->getAvailableDoctors();
+            echo "<h2>Doctors Data Test</h2>";
+            echo "<pre>";
+            print_r($doctors);
+            echo "</pre>";
+        } catch (\Throwable $e) {
+            echo "Error: " . $e->getMessage();
+        }
     }
 }

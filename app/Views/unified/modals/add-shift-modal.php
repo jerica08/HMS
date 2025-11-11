@@ -1,5 +1,16 @@
 <!-- Add Shift Modal -->
 <div id="shiftModal" class="modal-overlay" style="display: none !important;">
+    <!-- Modal Debug: Check all variables -->
+    <!-- MODAL DEBUG: Available variables: <?php echo implode(', ', array_keys(get_defined_vars())); ?> -->
+    <?php 
+    $modal_doctors = $doctors_for_modal ?? $doctors ?? [];
+    if (!empty($modal_doctors)): ?>
+        <!-- MODAL DEBUG: Received <?php echo count($modal_doctors); ?> doctors -->
+        <!-- MODAL DEBUG: First doctor: <?php echo isset($modal_doctors[0]) ? print_r($modal_doctors[0], true) : 'No first doctor'; ?> -->
+    <?php else: ?>
+        <!-- MODAL DEBUG: No doctors variable received -->
+    <?php endif; ?>
+    
     <div class="modal-content">
         <div class="modal-header">
             <h3>
@@ -20,7 +31,17 @@
                     <div class="form-group">
                         <label for="doctorSelect">Doctor *</label>
                         <select id="doctorSelect" name="doctor_id" class="form-control" required>
-                            <option value="">Loading doctors...</option>
+                            <option value="">Select Doctor</option>
+                            <?php if (!empty($modal_doctors)): ?>
+                                <?php foreach ($modal_doctors as $doctor): ?>
+                                    <option value="<?= esc($doctor['staff_id'] ?? $doctor['doctor_id']) ?>">
+                                        <?= esc($doctor['name'] ?? trim(($doctor['first_name'] ?? '') . ' ' . ($doctor['last_name'] ?? ''))) ?>
+                                        <?= !empty($doctor['specialization']) ? ' - ' . esc($doctor['specialization']) : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <option value="">No doctors available</option>
+                            <?php endif; ?>
                         </select>
                     </div>
                     
@@ -42,7 +63,16 @@
                     <div class="form-group">
                         <label for="shiftDepartment">Department</label>
                         <select id="shiftDepartment" name="department" class="form-control">
-                            <option value="">Loading departments...</option>
+                            <option value="">Select Department</option>
+                            <?php 
+                            if (isset($departments) && is_array($departments)) {
+                                foreach ($departments as $department): ?>
+                                    <option value="<?= esc($department['department']) ?>"><?= esc($department['department']) ?></option>
+                                <?php endforeach; 
+                            } else {
+                                echo '<option value="">No departments available</option>';
+                            }
+                            ?>
                         </select>
                     </div>
                     

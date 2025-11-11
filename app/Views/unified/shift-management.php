@@ -263,12 +263,27 @@
 </div>
 
 <!-- Add Shift Modal -->
-<?= $this->include('unified/modals/add-shift-modal', [
-    'availableStaff' => $availableStaff ?? [],  
-    'departments' => $departments ?? [],
-    'shiftTypes' => $shiftTypes ?? [],
-    'roomsWards' => $roomsWards ?? []
-]) ?>
+<!-- Debug: Doctors data check -->
+<?php if (isset($availableDoctors)): ?>
+    <!-- DEBUG: Found <?php echo count($availableDoctors); ?> doctors -->
+    <!-- DEBUG: First doctor: <?php echo !empty($availableDoctors) ? print_r($availableDoctors[0], true) : 'No doctors'; ?> -->
+<?php else: ?>
+    <!-- DEBUG: No doctors variable set -->
+<?php endif; ?>
+
+<!-- Test: Direct include with debug -->
+<?php 
+echo "<!-- INCLUDE TEST: About to include modal -->";
+
+// Force set the doctors variable directly
+$doctors_for_modal = $availableDoctors ?? [];
+
+echo "<!-- INCLUDE TEST: doctors_for_modal has " . count($doctors_for_modal) . " doctors -->";
+
+include(APPPATH . 'Views/unified/modals/add-shift-modal.php');
+
+echo "<!-- INCLUDE TEST: Modal included -->";
+?>
 
 <!-- Simple Test Modal -->
 <div id="testModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 9999;">
@@ -342,9 +357,7 @@ window.handleAddShiftClick = function() {
             }
         }
         
-        // Load doctors and departments from database
-        loadDoctors();
-        loadDepartments();
+        // Data is now populated by PHP, no need for AJAX loading
         
         // Show modal using the same approach that works
         modal.classList.add('active');

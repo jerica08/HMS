@@ -80,6 +80,7 @@ class PrescriptionManager {
         const closeViewPrescriptionModal = document.getElementById('closeViewPrescriptionModal');
         const closeViewPrescriptionBtn = document.getElementById('closeViewPrescriptionBtn');
         const editFromViewBtn = document.getElementById('editFromViewBtn');
+        const completeFromViewBtn = document.getElementById('completeFromViewBtn');
 
         if (closeViewPrescriptionModal) {
             closeViewPrescriptionModal.addEventListener('click', () => this.closeViewPrescriptionModal());
@@ -91,6 +92,14 @@ class PrescriptionManager {
 
         if (editFromViewBtn) {
             editFromViewBtn.addEventListener('click', () => this.editFromView());
+        }
+
+        if (completeFromViewBtn) {
+            completeFromViewBtn.addEventListener('click', () => {
+                if (this.currentViewPrescription && this.currentViewPrescription.id) {
+                    this.completePrescription(this.currentViewPrescription.id);
+                }
+            });
         }
 
         // Click outside to close
@@ -185,8 +194,14 @@ class PrescriptionManager {
                 const btn = e.target.matches('.btn-status') ? e.target : e.target.closest('.btn-status');
                 const prescriptionId = btn.dataset.prescriptionId;
                 const status = btn.dataset.status;
+                const action = btn.dataset.action;
                 if (prescriptionId && status) {
-                    this.updatePrescriptionStatus(prescriptionId, status);
+                    // Use completePrescription for complete action (includes confirmation)
+                    if (action === 'complete' && status === 'completed') {
+                        this.completePrescription(prescriptionId);
+                    } else {
+                        this.updatePrescriptionStatus(prescriptionId, status);
+                    }
                 }
             }
 
@@ -511,6 +526,44 @@ class PrescriptionManager {
         await this.updatePrescriptionStatus(prescriptionId, 'completed');
     }
 
+    async completePrescription(prescriptionId) {
+        if (!confirm('Are you sure you want to mark this prescription as completed?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.config.endpoints.updateStatus}/${prescriptionId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    status: 'completed',
+                    [this.config.csrfToken]: this.config.csrfHash
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                this.showSuccess('Prescription marked as completed');
+                this.closeViewPrescriptionModal();
+                this.loadPrescriptions();
+            } else {
+                this.showError(data.message || 'Failed to complete prescription');
+            }
+
+            // Update CSRF hash
+            if (data.csrf) {
+                this.config.csrfHash = data.csrf.value;
+            }
+        } catch (error) {
+            console.error('Complete prescription error:', error);
+            this.showError('Failed to complete prescription');
+        }
+    }
+
     async handleFormSubmit(e) {
         e.preventDefault();
         
@@ -563,9 +616,18 @@ class PrescriptionManager {
     }
 
     populateForm(prescription) {
-        // Safely populate each field with null checks
-        const setFieldValue = (id, value) => {
-            const field = document.getElementById(id);
+        console.log('Populating form with:', prescription);
+        
+        // Check if prescription object exists
+        if (!prescription) {
+            console.error('Cannot populate form: prescription object is null');
+            this.showError('Failed to load prescription data');
+            return;
+        }
+        
+        // Helper function to safely set field values
+        const setFieldValue = (fieldId, value) => {
+            const field = document.getElementById(fieldId);
             if (field) {
                 field.value = value || '';
             }
@@ -659,9 +721,15 @@ class PrescriptionManager {
         if (this.currentViewPrescription) {
             this.closeViewPrescriptionModal();
             this.populateForm(this.currentViewPrescription);
-            document.getElementById('modalTitle').textContent = 'Edit Prescription';
-            document.getElementById('prescriptionId').value = this.currentViewPrescription.id;
-            document.getElementById('prescriptionModal').classList.add('active');
+            const modalTitle = document.getElementById('modalTitle');
+            if (modalTitle) modalTitle.textContent = 'Edit Prescription';
+            const prescriptionId = document.getElementById('prescriptionId');
+            if (prescriptionId) prescriptionId.value = this.currentViewPrescription.id;
+            const modal = document.getElementById('prescriptionModal');
+            if (modal) modal.classList.add('active');
+        } else {
+            console.error('No prescription data available to edit');
+            this.showError('Failed to load prescription for editing');
         }
     }
 

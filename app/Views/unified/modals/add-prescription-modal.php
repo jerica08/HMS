@@ -21,12 +21,7 @@
                         <label for="patientSelect" class="form-label">Patient *</label>
                         <select id="patientSelect" name="patient_id" class="form-select" required>
                             <option value="">Select Patient</option>
-                            <?php foreach ($availablePatients as $patient): ?>
-                                <option value="<?= esc($patient['patient_id']) ?>">
-                                    <?= esc($patient['first_name'] . ' ' . $patient['last_name']) ?> 
-                                    (ID: <?= esc($patient['patient_id']) ?>)
-                                </option>
-                            <?php endforeach; ?>
+                            <!-- Patients will be loaded dynamically via JavaScript -->
                         </select>
                     </div>
                     

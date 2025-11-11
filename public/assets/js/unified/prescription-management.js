@@ -335,20 +335,21 @@ class PrescriptionManager {
         this.loadPrescriptions();
     }
 
-    openCreateModal() {
-        console.log('openCreateModal called');
+    async openCreateModal() {
         this.resetForm();
         document.getElementById('modalTitle').textContent = 'Create Prescription';
         document.getElementById('prescriptionId').value = '';
         
         const modal = document.getElementById('prescriptionModal');
-        console.log('Modal element found:', !!modal);
         
         if (modal) {
+            // Load available patients
+            await this.loadAvailablePatients();
+            
             // Add active class
             modal.classList.add('active');
             
-            // Also set inline styles for compatibility
+            // Set inline styles for compatibility
             modal.style.display = 'flex';
             modal.style.position = 'fixed';
             modal.style.top = '0';
@@ -361,11 +362,6 @@ class PrescriptionManager {
             modal.style.background = 'rgba(15, 23, 42, 0.55)';
             
             document.body.style.overflow = 'hidden';
-            
-            console.log('Modal should be visible now, classes:', modal.className);
-            console.log('Modal display style:', modal.style.display);
-        } else {
-            console.error('Prescription modal not found!');
         }
     }
 
@@ -572,13 +568,11 @@ class PrescriptionManager {
     }
 
     closePrescriptionModal() {
-        console.log('closePrescriptionModal called');
         const modal = document.getElementById('prescriptionModal');
         if (modal) {
             modal.classList.remove('active');
             modal.style.display = 'none';
             document.body.style.overflow = '';
-            console.log('Modal closed');
         }
         this.resetForm();
     }
@@ -663,6 +657,47 @@ class PrescriptionManager {
     getCurrentStaffId() {
         // This would typically come from session data or user context
         return window.currentStaffId || null;
+    }
+
+    async loadAvailablePatients() {
+        try {
+            const patientSelect = document.getElementById('patientSelect');
+            if (!patientSelect) {
+                return;
+            }
+
+            // Show loading state
+            patientSelect.innerHTML = '<option value="">Loading patients...</option>';
+            patientSelect.disabled = true;
+
+            const response = await fetch(this.config.endpoints.availablePatients);
+            const data = await response.json();
+
+            if (data.status === 'success' && Array.isArray(data.data)) {
+                // Clear and populate dropdown
+                patientSelect.innerHTML = '<option value="">Select Patient</option>';
+                
+                data.data.forEach(patient => {
+                    const option = document.createElement('option');
+                    option.value = patient.patient_id;
+                    option.textContent = `${patient.first_name} ${patient.last_name} (ID: ${patient.patient_id})`;
+                    patientSelect.appendChild(option);
+                });
+            } else {
+                patientSelect.innerHTML = '<option value="">No patients available</option>';
+            }
+
+            patientSelect.disabled = false;
+
+        } catch (error) {
+            console.error('Error loading patients:', error);
+            const patientSelect = document.getElementById('patientSelect');
+            if (patientSelect) {
+                patientSelect.innerHTML = '<option value="">Error loading patients</option>';
+                patientSelect.disabled = false;
+            }
+            this.showError('Failed to load patients. Please refresh the page.');
+        }
     }
 
     // Utility methods

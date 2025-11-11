@@ -344,17 +344,15 @@
 <?= view('unified/modals/add-prescription-modal', $modalData) ?>
 
     <!-- JavaScript -->
-    <script src="<?= base_url('public/assets/js/unified/prescription-management.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/prescription-management.js') ?>"></script>
     
     <script>
-    // Direct function to show prescription modal - using exact shift modal approach
-    function showPrescriptionModalDirect() {
-        console.log('showPrescriptionModalDirect called directly');
+    // Direct function to show prescription modal
+    async function showPrescriptionModalDirect() {
         const modal = document.getElementById('prescriptionModal');
-        console.log('Modal element found:', !!modal);
         
         if (modal) {
-            // Reset form and show modal
+            // Reset form
             const form = document.getElementById('prescriptionForm');
             if (form) {
                 form.reset();
@@ -369,7 +367,10 @@
                 }
             }
             
-            // Show modal using the same approach that works for shift modal
+            // Load available patients dynamically
+            await loadAvailablePatientsForModal();
+            
+            // Show modal
             modal.classList.add('active');
             modal.style.display = 'flex';
             modal.style.position = 'fixed';
@@ -383,24 +384,58 @@
             modal.style.background = 'rgba(15, 23, 42, 0.55)';
             
             document.body.style.overflow = 'hidden';
-            
-            console.log('Prescription modal should be visible now via direct click');
-        } else {
-            console.error('Prescription modal not found!');
         }
     }
     
-    // Direct function to hide modal - using exact shift modal approach
+    // Function to load available patients for the modal
+    async function loadAvailablePatientsForModal() {
+        try {
+            const patientSelect = document.getElementById('patientSelect');
+            if (!patientSelect) {
+                return;
+            }
+
+            // Show loading state
+            patientSelect.innerHTML = '<option value="">Loading patients...</option>';
+            patientSelect.disabled = true;
+
+            const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
+            const response = await fetch(`${baseUrl}prescriptions/available-patients`);
+            const data = await response.json();
+
+            if (data.status === 'success' && Array.isArray(data.data)) {
+                // Clear and populate dropdown
+                patientSelect.innerHTML = '<option value="">Select Patient</option>';
+                
+                data.data.forEach(patient => {
+                    const option = document.createElement('option');
+                    option.value = patient.patient_id;
+                    option.textContent = `${patient.first_name} ${patient.last_name} (ID: ${patient.patient_id})`;
+                    patientSelect.appendChild(option);
+                });
+            } else {
+                patientSelect.innerHTML = '<option value="">No patients available</option>';
+            }
+
+            patientSelect.disabled = false;
+
+        } catch (error) {
+            console.error('Error loading patients:', error);
+            const patientSelect = document.getElementById('patientSelect');
+            if (patientSelect) {
+                patientSelect.innerHTML = '<option value="">Error loading patients</option>';
+                patientSelect.disabled = false;
+            }
+        }
+    }
+    
+    // Direct function to hide modal
     function hidePrescriptionModalDirect() {
-        console.log('hidePrescriptionModalDirect called directly');
         const modal = document.getElementById('prescriptionModal');
         if (modal) {
             modal.classList.remove('active');
             modal.style.display = 'none';
             document.body.style.overflow = '';
-            console.log('Prescription modal closed via direct function');
-        } else {
-            console.error('Prescription modal not found for closing!');
         }
     }
     

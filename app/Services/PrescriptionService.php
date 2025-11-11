@@ -429,24 +429,26 @@ class PrescriptionService
     public function getAvailablePatients($userRole, $staffId = null)
     {
         try {
-            $builder = $this->db->table('patient')
+            $builder = $this->db->table('patient p')
                 ->select([
-                    'patient_id',
-                    'first_name',
-                    'last_name',
-                    'date_of_birth',
-                    'phone',
-                    'email',
-                    'primary_doctor_id'
+                    'p.patient_id',
+                    'p.first_name',
+                    'p.last_name',
+                    'p.date_of_birth',
+                    'p.contact_no',
+                    'p.email',
+                    'p.primary_doctor_id'
                 ])
-                ->where('status', 'Active');
+                ->whereIn('p.status', ['Active', 'active']);
 
-            // Role-based patient filtering
+            // Role-based patient filtering for doctors
             if ($userRole === 'doctor' && $staffId) {
-                $builder->where('primary_doctor_id', $staffId);
+                // Join with doctor table to get doctor_id from staff_id
+                $builder->join('doctor d', 'd.doctor_id = p.primary_doctor_id', 'left')
+                    ->where('d.staff_id', $staffId);
             }
 
-            return $builder->orderBy('first_name', 'ASC')->get()->getResultArray();
+            return $builder->orderBy('p.first_name', 'ASC')->get()->getResultArray();
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionService::getAvailablePatients error: ' . $e->getMessage());

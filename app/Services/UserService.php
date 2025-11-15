@@ -193,6 +193,20 @@ class UserService
                 throw new \Exception('Staff ID, username, and password are required');
             }
 
+            // Map role slug (from form field 'role') to roles.role_id
+            if (empty($data['role'])) {
+                throw new \Exception('Role is required');
+            }
+
+            $role = $this->db->table('roles')
+                ->where('slug', $data['role'])
+                ->get()
+                ->getRowArray();
+
+            if (!$role) {
+                throw new \Exception('Invalid role selected');
+            }
+
             // Check if username already exists
             $existingUser = $this->userBuilder->where('username', $data['username'])->get()->getRowArray();
             if ($existingUser) {
@@ -211,7 +225,7 @@ class UserService
                 'username' => $data['username'],
                 'email' => $data['email'] ?? null,
                 'password' => password_hash($data['password'], PASSWORD_DEFAULT),
-                'role_id' => $data['role_id'],
+                'role_id' => $role['role_id'],
                 'status' => $data['status'] ?? 'active',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
@@ -409,17 +423,29 @@ class UserService
     {
         try {
             // Get staff members who don't have user accounts yet (anti-join)
-            // Include department name via join
+            // Include department and role information via joins
             $staff = $this->db->table('staff s')
-                ->select('s.staff_id, s.first_name, s.last_name, s.employee_id, s.email, s.role, d.name AS department')
+                ->select(
+                    's.staff_id,
+                     s.first_name,
+                     s.last_name,
+                     s.employee_id,
+                     s.email,
+                     d.name AS department,
+                     rl.slug AS role_slug,
+                     rl.name AS role_name'
+                )
                 ->join('users u', 'u.staff_id = s.staff_id', 'left')
                 ->join('department d', 'd.department_id = s.department_id', 'left')
+                ->join('roles rl', 'rl.role_id = s.role_id', 'left')
                 ->where('u.staff_id IS NULL')
                 ->orderBy('s.first_name', 'ASC')
                 ->get()->getResultArray();
 
-            return array_map(function($s) {
+            return array_map(function ($s) {
                 $s['full_name'] = trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''));
+                // Expose a generic "role" field expected by views/JS
+                $s['role'] = $s['role_slug'] ?? ($s['role_name'] ?? null);
                 return $s;
             }, $staff);
 

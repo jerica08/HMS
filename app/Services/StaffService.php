@@ -241,97 +241,107 @@ class StaffService
     /**
      * Create new staff member
      */
-    public function createStaff($input, $userRole)
-    {
-        // Check permissions
-        if (!$this->canCreateStaff($userRole)) {
-            return [
-                'success' => false,
-                'message' => 'Permission denied',
-            ];
-        }
+  public function createStaff($input, $userRole)
+{
+    // Check permissions
+    if (!$this->canCreateStaff($userRole)) {
+        return [
+            'success' => false,
+            'message' => 'Permission denied',
+        ];
+    }
 
-        $input = $this->normalizeInput($input);
+    $input = $this->normalizeInput($input);
 
-        // Auto-generate employee_id based on role if not provided
-        if (empty($input['employee_id']) && !empty($input['role'])) {
-            try {
-                $input['employee_id'] = $this->generateEmployeeIdForRole($input['role']);
-            } catch (\Throwable $e) {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to generate employee ID: ' . $e->getMessage(),
-                ];
-            }
-        }
+    // DOB + age validation (18–100 years; adjust as needed)
+    $dobCheck = $this->validateDobAndAge($input['dob'] ?? null, 18, 100);
+    if (!$dobCheck['valid']) {
+        return [
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors'  => ['dob' => $dobCheck['error']],
+        ];
+    }
 
-        // Validation
-        $validation = \Config\Services::validation();
-        $validation->setRules($this->getValidationRules($input['role'] ?? 'staff'));
-
-        if (!$validation->run($input)) {
-            return [
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validation->getErrors(),
-            ];
-        }
-
-        // Check for duplicate employee ID
-        $existing = $this->db->table('staff')
-            ->where('employee_id', $input['employee_id'])
-            ->get()
-            ->getRowArray();
-
-        if ($existing) {
-            return [
-                'success' => false,
-                'message' => 'Employee ID already exists',
-            ];
-        }
-
+    // Auto-generate employee_id based on role if not provided
+    if (empty($input['employee_id']) && !empty($input['role'])) {
         try {
-            if (!empty($input['department'])) {
-                $this->ensureDepartmentExists($input['department']);
-            }
-            // Insert the core staff record in its own transaction
-            $this->db->transStart();
-
-            // Prepare staff data
-            $staffData = $this->prepareStaffData($input);
-            
-            // Insert staff record (filter to existing columns)
-            $staffData = $this->filterToExistingColumns('staff', $staffData);
-            $this->db->table('staff')->insert($staffData);
-            $staffId = $this->db->insertID();
-
-            $this->db->transComplete();
-
-            if ($this->db->transStatus() === false) {
-                $dbError = $this->db->error();
-                $errMsg = !empty($dbError['message']) ? $dbError['message'] : 'Failed to create staff member';
-                return [
-                    'success' => false,
-                    'message' => $errMsg,
-                ];
-            }
-
-            // After staff row is saved, try role-specific insert without transaction
-            $this->insertRoleSpecificData($input['role'], $staffId, $input);
-
-            return [
-                'success' => true,
-                'message' => 'Staff member created successfully',
-                'id' => $staffId,
-            ];
+            $input['employee_id'] = $this->generateEmployeeIdForRole($input['role']);
         } catch (\Throwable $e) {
-            log_message('error', 'Failed to create staff: ' . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Database error: ' . $e->getMessage(),
+                'message' => 'Failed to generate employee ID: ' . $e->getMessage(),
             ];
         }
     }
+
+    // Validation
+    $validation = \Config\Services::validation();
+    $validation->setRules($this->getValidationRules($input['role'] ?? 'staff'));
+
+    if (!$validation->run($input)) {
+        return [
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors' => $validation->getErrors(),
+        ];
+    }
+
+    // Check for duplicate employee ID
+    $existing = $this->db->table('staff')
+        ->where('employee_id', $input['employee_id'])
+        ->get()
+        ->getRowArray();
+
+    if ($existing) {
+        return [
+            'success' => false,
+            'message' => 'Employee ID already exists',
+        ];
+    }
+
+    try {
+        if (!empty($input['department'])) {
+            $this->ensureDepartmentExists($input['department']);
+        }
+        // Insert the core staff record in its own transaction
+        $this->db->transStart();
+
+        // Prepare staff data
+        $staffData = $this->prepareStaffData($input);
+        
+        // Insert staff record (filter to existing columns)
+        $staffData = $this->filterToExistingColumns('staff', $staffData);
+        $this->db->table('staff')->insert($staffData);
+        $staffId = $this->db->insertID();
+
+        $this->db->transComplete();
+
+        if ($this->db->transStatus() === false) {
+            $dbError = $this->db->error();
+            $errMsg = !empty($dbError['message']) ? $dbError['message'] : 'Failed to create staff member';
+            return [
+                'success' => false,
+                'message' => $errMsg,
+            ];
+        }
+
+        // After staff row is saved, try role-specific insert without transaction
+        $this->insertRoleSpecificData($input['role'], $staffId, $input);
+
+        return [
+            'success' => true,
+            'message' => 'Staff member created successfully',
+            'id' => $staffId,
+        ];
+    } catch (\Throwable $e) {
+        log_message('error', 'Failed to create staff: ' . $e->getMessage());
+        return [
+            'success' => false,
+            'message' => 'Database error: ' . $e->getMessage(),
+        ];
+    }
+}
 
     /**
      * Update staff member
@@ -454,6 +464,18 @@ class StaffService
                 'message' => 'Database error: ' . $e->getMessage(),
             ];
         }
+        // DOB + age validation on update (validate if DOB is present)
+    $dobValue = $input['dob'] ?? ($input['date_of_birth'] ?? null);
+    if (!empty($dobValue)) {
+    $dobCheck = $this->validateDobAndAge($dobValue, 18, 100);
+    if (!$dobCheck['valid']) {
+        return [
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors'  => ['dob' => $dobCheck['error']],
+        ];
+    }
+}
     }
 
     /**
@@ -601,7 +623,7 @@ class StaffService
             'first_name' => 'required|min_length[2]|max_length[100]',
             'last_name' => 'permit_empty|max_length[100]',
             'gender' => 'permit_empty|in_list[male,female,other,Male,Female,Other]',
-            'dob' => 'permit_empty|valid_date',
+            'dob' => 'required|valid_date',
             'contact_no' => 'permit_empty|max_length[255]',
             'email' => 'permit_empty|valid_email',
             'address' => 'permit_empty',
@@ -861,4 +883,55 @@ class StaffService
         }
         return array_intersect_key($data, array_flip($columns));
     }
+    private function validateDobAndAge(?string $dobString, int $minAge = 18, int $maxAge = 100): array
+{
+    if (empty($dobString)) {
+        return [
+            'valid'  => false,
+            'error'  => 'Date of birth is required',
+        ];
+    }
+
+    try {
+        $dob = new \DateTime($dobString);
+    } catch (\Throwable $e) {
+        return [
+            'valid' => false,
+            'error' => 'Invalid date of birth',
+        ];
+    }
+
+    $today = new \DateTime('today');
+
+    // No future DOB
+    if ($dob > $today) {
+        return [
+            'valid' => false,
+            'error' => 'Date of birth cannot be in the future',
+        ];
+    }
+
+    // Calculate age accurately
+    $age = $dob->diff($today)->y;
+
+    if ($age < $minAge) {
+        return [
+            'valid' => false,
+            'error' => 'Staff member must be at least ' . $minAge . ' years old',
+        ];
+    }
+
+    if ($age > $maxAge) {
+        return [
+            'valid' => false,
+            'error' => 'Please check the date of birth (age seems too high)',
+        ];
+    }
+
+    return [
+        'valid' => true,
+        'age'   => $age,
+    ];
+}
+
 }

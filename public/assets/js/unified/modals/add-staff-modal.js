@@ -33,6 +33,22 @@ window.AddStaffModal = {
                     }
                 });
             }
+
+            // Live DOB validation on change
+            const dobEl = document.getElementById('date_of_birth');
+            if (dobEl && !dobEl.__boundDobValidation) {
+                dobEl.__boundDobValidation = true;
+                dobEl.addEventListener('change', () => {
+                    // Run validation and show error inline
+                    const dobErrors = {};
+                    this.validateDob(this.collectFormData(), dobErrors);
+                    // Clear existing DOB error then apply if any
+                    const dobErrEl = document.getElementById('err_date_of_birth');
+                    if (dobErrEl) {
+                        dobErrEl.textContent = dobErrors.date_of_birth || '';
+                    }
+                });
+            }
         }
         
         // Close modal on escape key
@@ -178,6 +194,8 @@ window.AddStaffModal = {
             if (!formData.first_name || String(formData.first_name).trim().length < 2) {
                 clientErrors.first_name = 'First name is required (min 2 characters).';
             }
+            // DOB validation: required, valid date, not in future, and reasonable age range
+            this.validateDob(formData, clientErrors);
             if (!formData.designation) {
                 clientErrors.designation = 'Designation is required.';
             }
@@ -248,7 +266,44 @@ window.AddStaffModal = {
             }
         }
     },
-    
+
+    /**
+     * Validate DOB and age, writing any error message into errors.date_of_birth
+     */
+    validateDob(formData, errors) {
+        const dobRaw = formData.date_of_birth || formData.dob || '';
+        if (!dobRaw || String(dobRaw).trim().length === 0) {
+            errors.date_of_birth = 'Date of birth is required.';
+            return;
+        }
+
+        const dob = new Date(dobRaw);
+        if (isNaN(dob.getTime())) {
+            errors.date_of_birth = 'Please enter a valid date of birth.';
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        dob.setHours(0, 0, 0, 0);
+
+        if (dob > today) {
+            errors.date_of_birth = 'Date of birth cannot be in the future.';
+            return;
+        }
+
+        // Approximate age in years
+        const ageDiffMs = today.getTime() - dob.getTime();
+        const ageDate = new Date(ageDiffMs);
+        const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+
+        if (age < 18) {
+            errors.date_of_birth = 'Age not valid: staff must be at least 18 years old.';
+        } else if (age > 100) {
+            errors.date_of_birth = 'Age not valid: please check the date of birth.';
+        }
+    },
+
     collectFormData() {
         const formData = new FormData(this.form);
         const data = {};

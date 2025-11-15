@@ -88,6 +88,8 @@ window.UserUtils = {
 
     /**
      * Make HTTP request with proper headers
+     * Returns a structured object similar to StaffUtils.makeRequest so callers
+     * can inspect status and errors without throwing for non-2xx responses.
      */
     makeRequest: async function(url, options = {}) {
         const defaultOptions = {
@@ -109,12 +111,21 @@ window.UserUtils = {
         }
 
         const response = await fetch(url, finalOptions);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+
+        let payload = null;
+        const contentType = response.headers.get('content-type') || '';
+        try {
+            if (contentType.includes('application/json')) {
+                payload = await response.json();
+            } else {
+                const text = await response.text();
+                payload = { status: response.ok ? 'success' : 'error', message: text };
+            }
+        } catch (e) {
+            payload = { status: 'error', message: 'Failed to parse server response' };
         }
-        
-        return await response.json();
+
+        return { ok: response.ok, statusCode: response.status, ...payload };
     },
 
     /**

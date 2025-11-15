@@ -208,8 +208,8 @@ window.AddUserModal = {
                     body: JSON.stringify(formData)
                 }
             );
-            
-            if (response.status === 'success') {
+
+            if (response.status === 'success' || response.success === true || response.ok === true) {
                 UserUtils.showNotification('User created successfully', 'success');
                 this.close();
                 
@@ -220,8 +220,10 @@ window.AddUserModal = {
             } else {
                 if (response.errors) {
                     this.displayErrors(response.errors);
+                    UserUtils.showNotification(response.message || 'Please fix the highlighted errors.', 'warning');
+                    return;
                 }
-                throw new Error(response.message || 'Failed to create user');
+                throw new Error(response.message || `Failed to create user (status ${response.statusCode || 'unknown'})`);
             }
         } catch (error) {
             console.error('Error creating user:', error);

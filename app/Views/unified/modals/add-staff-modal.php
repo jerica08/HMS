@@ -91,7 +91,24 @@
                         <div class="form-grid">
                             <div>
                                 <label class="form-label" for="doctor_specialization">Doctor Specialization*</label>
-                                <input type="text" id="doctor_specialization" name="doctor_specialization" class="form-input" placeholder="e.g., Cardiology">
+                                <select id="doctor_specialization" name="doctor_specialization" class="form-select">
+                                    <option value="">Select specialization</option>
+                                    <option value="Pediatrics">Pediatrics</option>
+                                    <option value="Cardiology">Cardiology</option>
+                                    <option value="Internal Medicine">Internal Medicine</option>
+                                    <option value="General Practice">General Practice</option>
+                                    <option value="Obstetrics and Gynecology">Obstetrics and Gynecology</option>
+                                    <option value="Surgery">Surgery</option>
+                                    <option value="Orthopedics">Orthopedics</option>
+                                    <option value="Neurology">Neurology</option>
+                                    <option value="Psychiatry">Psychiatry</option>
+                                    <option value="Dermatology">Dermatology</option>
+                                    <option value="Ophthalmology">Ophthalmology</option>
+                                    <option value="Otolaryngology">Otolaryngology</option>
+                                    <option value="Emergency Medicine">Emergency Medicine</option>
+                                    <option value="Radiology">Radiology</option>
+                                    <option value="Anesthesiology">Anesthesiology</option>
+                                </select>
                                 <small id="err_doctor_specialization" style="color:#dc2626"></small>
                             </div>
                             <div>

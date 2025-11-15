@@ -32,6 +32,10 @@
                         <input type="date" id="date_of_birth" name="date_of_birth" class="form-input" required>
                         <small id="err_date_of_birth" style="color:#dc2626"></small>
                     </div>
+                    <div class="inpatient-only" data-section="inpatient-only">
+                        <label class="form-label" for="age_display">Age</label>
+                        <input type="text" id="age_display" class="form-input" readonly placeholder="Auto-calculated from Date of Birth">
+                    </div>
                     <div>
                         <label class="form-label" for="gender">Gender*</label>
                         <select id="gender" name="gender" class="form-select" required>
@@ -68,25 +72,40 @@
                         <input type="text" id="address" name="address" class="form-input" required>
                         <small id="err_address" style="color:#dc2626"></small>
                     </div>
-                    <div>
+                    <div class="inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="province">Province*</label>
                         <input type="text" id="province" name="province" class="form-input" required>
                         <small id="err_province" style="color:#dc2626"></small>
                     </div>
-                    <div>
+                    <div class="inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="city">City*</label>
                         <input type="text" id="city" name="city" class="form-input" required>
                         <small id="err_city" style="color:#dc2626"></small>
                     </div>
-                    <div>
+                    <div class="inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="barangay">Barangay*</label>
                         <input type="text" id="barangay" name="barangay" class="form-input" required>
                         <small id="err_barangay" style="color:#dc2626"></small>
                     </div>
-                    <div>
+                    <div class="inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="zip_code">ZIP Code*</label>
                         <input type="text" id="zip_code" name="zip_code" class="form-input" required>
                         <small id="err_zip_code" style="color:#dc2626"></small>
+                    </div>
+                    <div class="inpatient-only" data-section="inpatient-only">
+                        <label class="form-label" for="weight_kg">Weight (kg)</label>
+                        <input type="number" step="0.01" min="0" id="weight_kg" name="weight_kg" class="form-input">
+                        <small id="err_weight_kg" style="color:#dc2626"></small>
+                    </div>
+                    <div class="inpatient-only" data-section="inpatient-only">
+                        <label class="form-label" for="height_cm">Height (cm)</label>
+                        <input type="number" step="0.1" min="0" id="height_cm" name="height_cm" class="form-input">
+                        <small id="err_height_cm" style="color:#dc2626"></small>
+                    </div>
+                    <div class="inpatient-only" data-section="inpatient-only">
+                        <label class="form-label" for="bmi">BMI</label>
+                        <input type="number" step="0.01" min="0" id="bmi" name="bmi" class="form-input" readonly placeholder="Auto-calculated from weight and height">
+                        <small id="err_bmi" style="color:#dc2626"></small>
                     </div>
                     <div>
                         <label class="form-label" for="patient_type">Patient Type</label>
@@ -96,7 +115,7 @@
                             <option value="Emergency">Emergency</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="blood_group">Blood Group</label>
                         <select id="blood_group" name="blood_group" class="form-select">
                             <option value="">Select...</option>
@@ -111,13 +130,13 @@
                         </select>
                     </div>
                     <?php if (in_array($userRole ?? '', ['admin', 'receptionist', 'it_staff'])): ?>
-                    <div class="form-group">
+                    <div class="form-group inpatient-only" data-section="inpatient-only">
                             <label class="form-label" for="assigned_doctor">Assign Doctor</label>
                             <select id="assigned_doctor" name="assigned_doctor" class="form-select">
                                 <?php if (!empty($availableDoctors)): ?>
                                     <option value="">Select Doctor (Optional)</option>
                                     <?php foreach ($availableDoctors as $d): ?>
-                                        <option value="<?= esc($d['staff_id'] ?? $d['id']) ?>">
+                                        <option value="<?= esc($d['staff_id'] ?? $d['id']) ?>" data-department="<?= esc($d['department'] ?? '') ?>">
                                             <?= esc(trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''))) ?><?= !empty($d['specialization']) ? ' - ' . esc($d['specialization']) : '' ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -128,27 +147,32 @@
                             <small id="err_assigned_doctor" style="color:#dc2626"></small>
                         </div>
                     <?php endif; ?>
-                    <div>
+                    <div class="inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="insurance_provider">Insurance Provider</label>
                         <input type="text" id="insurance_provider" name="insurance_provider" class="form-input">
                     </div>
-                    <div>
+                    <div class="inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="insurance_number">Insurance Number</label>
                         <input type="text" id="insurance_number" name="insurance_number" class="form-input">
                     </div>
-                    <div>
+                    <div class="inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="emergency_contact_name">Emergency Contact Name*</label>
                         <input type="text" id="emergency_contact_name" name="emergency_contact_name" class="form-input" required>
                         <small id="err_emergency_contact_name" style="color:#dc2626"></small>
                     </div>
-                    <div>
+                    <div class="inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="emergency_contact_phone">Emergency Contact Phone*</label>
                         <input type="text" id="emergency_contact_phone" name="emergency_contact_phone" class="form-input" required>
                         <small id="err_emergency_contact_phone" style="color:#dc2626"></small>
                     </div>
-                    <div class="full">
+                    <div class="full inpatient-only" data-section="inpatient-only">
                         <label class="form-label" for="medical_notes">Medical Notes</label>
                         <textarea id="medical_notes" name="medical_notes" class="form-input" rows="3" style="resize:vertical;"></textarea>
+                    </div>
+                    <div id="pastPediatricianWrapper" class="inpatient-only" data-section="inpatient-only">
+                        <label class="form-label" for="past_pediatrician">Previous Pediatrician</label>
+                        <input type="text" id="past_pediatrician" name="past_pediatrician" class="form-input" placeholder="Enter previous pediatrician (if any)">
+                        <small id="err_past_pediatrician" style="color:#dc2626"></small>
                     </div>
                 </div>
             </div>

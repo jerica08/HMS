@@ -325,14 +325,23 @@ class UserService
         }
 
         try {
-            // Get existing user
-            $existingUser = $this->userBuilder->where('user_id', $userId)->get()->getRowArray();
+            // Get existing user with joined role information
+            $existingUser = $this->db->table('users u')
+                ->select('u.*, rl.slug as role_slug')
+                ->join('roles rl', 'rl.role_id = u.role_id', 'left')
+                ->where('u.user_id', $userId)
+                ->get()
+                ->getRowArray();
+
             if (!$existingUser) {
                 throw new \Exception('User not found');
             }
 
+            // Determine the user's role from available fields (backwards compatible)
+            $existingUserRole = $existingUser['role'] ?? $existingUser['role_slug'] ?? null;
+
             // Prevent deletion of admin users by non-admin users
-            if ($existingUser['role'] === 'admin' && $userRole !== 'admin') {
+            if ($existingUserRole === 'admin' && $userRole !== 'admin') {
                 throw new \Exception('Cannot delete admin users');
             }
 

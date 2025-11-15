@@ -87,6 +87,103 @@
                         </select>
                         <small id="e_err_designation" style="color:#dc2626"></small>
                     </div>
+                    <!-- Doctor-specific fields -->
+                    <div id="e_doctorFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="e_doctor_specialization">Doctor Specialization*</label>
+                                <select id="e_doctor_specialization" name="doctor_specialization" class="form-select">
+                                    <option value="">Select specialization</option>
+                                    <option value="Pediatrics">Pediatrics</option>
+                                    <option value="Cardiology">Cardiology</option>
+                                    <option value="Internal Medicine">Internal Medicine</option>
+                                    <option value="General Practice">General Practice</option>
+                                    <option value="Obstetrics and Gynecology">Obstetrics and Gynecology</option>
+                                    <option value="Surgery">Surgery</option>
+                                    <option value="Orthopedics">Orthopedics</option>
+                                    <option value="Neurology">Neurology</option>
+                                    <option value="Psychiatry">Psychiatry</option>
+                                    <option value="Dermatology">Dermatology</option>
+                                    <option value="Ophthalmology">Ophthalmology</option>
+                                    <option value="Otolaryngology">Otolaryngology</option>
+                                    <option value="Emergency Medicine">Emergency Medicine</option>
+                                    <option value="Radiology">Radiology</option>
+                                    <option value="Anesthesiology">Anesthesiology</option>
+                                </select>
+                                <small id="e_err_doctor_specialization" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="e_doctor_license_no">License No.</label>
+                                <input type="text" id="e_doctor_license_no" name="doctor_license_no" class="form-input" placeholder="e.g., PRC-1234567">
+                                <small id="e_err_doctor_license_no" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="e_doctor_consultation_fee">Consultation Fee</label>
+                                <input type="number" step="0.01" id="e_doctor_consultation_fee" name="doctor_consultation_fee" class="form-input" placeholder="e.g., 500.00">
+                                <small id="e_err_doctor_consultation_fee" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Accountant-specific fields -->
+                    <div id="e_accountantFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="e_accountant_license_no">Accountant License No.*</label>
+                                <input type="text" id="e_accountant_license_no" name="accountant_license_no" class="form-input" placeholder="e.g., ACC-1234567">
+                                <small id="e_err_accountant_license_no" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Pharmacist-specific fields -->
+                    <div id="e_pharmacistFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="e_pharmacist_license_no">Pharmacist License No.*</label>
+                                <input type="text" id="e_pharmacist_license_no" name="pharmacist_license_no" class="form-input" placeholder="e.g., PHA-1357924">
+                                <small id="e_err_pharmacist_license_no" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="e_pharmacist_specialization">Pharmacist Specialization</label>
+                                <input type="text" id="e_pharmacist_specialization" name="pharmacist_specialization" class="form-input" placeholder="e.g., Clinical Pharmacy">
+                                <small id="e_err_pharmacist_specialization" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Laboratorist-specific fields -->
+                    <div id="e_laboratoristFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="e_laboratorist_license_no">Laboratorist License No.*</label>
+                                <input type="text" id="e_laboratorist_license_no" name="laboratorist_license_no" class="form-input" placeholder="e.g., LAB-9876543">
+                                <small id="e_err_laboratorist_license_no" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="e_laboratorist_specialization">Laboratorist Specialization</label>
+                                <input type="text" id="e_laboratorist_specialization" name="laboratorist_specialization" class="form-input" placeholder="e.g., Hematology">
+                                <small id="e_err_laboratorist_specialization" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="e_lab_room_no">Lab Room No.</label>
+                                <input type="text" id="e_lab_room_no" name="lab_room_no" class="form-input" placeholder="e.g., R-201">
+                                <small id="e_err_lab_room_no" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Nurse-specific fields -->
+                    <div id="e_nurseFields" class="full" style="display:none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div>
+                                <label class="form-label" for="e_nurse_license_no">Nurse License No.*</label>
+                                <input type="text" id="e_nurse_license_no" name="nurse_license_no" class="form-input" placeholder="e.g., PRC-7654321">
+                                <small id="e_err_nurse_license_no" style="color:#dc2626"></small>
+                            </div>
+                            <div>
+                                <label class="form-label" for="e_nurse_specialization">Nurse Specialization</label>
+                                <input type="text" id="e_nurse_specialization" name="nurse_specialization" class="form-input" placeholder="e.g., ICU">
+                                <small id="e_err_nurse_specialization" style="color:#dc2626"></small>
+                            </div>
+                        </div>
+                    </div>
                     <div>
                         <label class="form-label" for="e_date_joined">Date Joined</label>
                         <input type="date" id="e_date_joined" name="date_joined" class="form-input">

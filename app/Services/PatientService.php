@@ -469,7 +469,7 @@ class PatientService
             
             // Get doctors ONLY from the doctor table joined with staff table
             $fromDoctorTable = $this->db->table('doctor d')
-                ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
+                ->select('s.staff_id, s.first_name, s.last_name, s.department, d.specialization')
                 ->join('staff s', 's.staff_id = d.staff_id', 'inner') // Inner join to ensure we only get doctors with staff records
                 ->orderBy('s.first_name', 'ASC')
                 ->get()
@@ -560,12 +560,13 @@ class PatientService
             'phone' => 'required|max_length[50]',
             'email' => 'permit_empty|valid_email',
             'address' => 'required',
-            'province' => 'required|max_length[100]',
-            'city' => 'required|max_length[100]',
-            'barangay' => 'required|max_length[100]',
-            'zip_code' => 'required|max_length[20]',
-            'emergency_contact_name' => 'required|max_length[100]',
-            'emergency_contact_phone' => 'required|max_length[50]',
+            // Inpatient-only details are optional at backend level; frontend enforces them when needed
+            'province' => 'permit_empty|max_length[100]',
+            'city' => 'permit_empty|max_length[100]',
+            'barangay' => 'permit_empty|max_length[100]',
+            'zip_code' => 'permit_empty|max_length[20]',
+            'emergency_contact_name' => 'permit_empty|max_length[100]',
+            'emergency_contact_phone' => 'permit_empty|max_length[50]',
             'patient_type' => 'permit_empty|in_list[outpatient,inpatient,emergency,Outpatient,Inpatient,Emergency]',
         ];
     }

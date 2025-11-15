@@ -18,6 +18,9 @@ const AddPatientModal = {
         if (!this.modal || !this.form) return;
         
         this.bindEvents();
+
+        // Initialize inpatient/outpatient view based on default patient type
+        this.updateInpatientVisibility();
     },
 
     /**
@@ -26,6 +29,28 @@ const AddPatientModal = {
     bindEvents() {
         // Form submission
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+
+        // Patient type change - toggle inpatient-only fields
+        const patientTypeSelect = document.getElementById('patient_type');
+        if (patientTypeSelect) {
+            patientTypeSelect.addEventListener('change', () => this.updateInpatientVisibility());
+        }
+
+        // Date of birth change - update age display and pediatric logic
+        const dobInput = document.getElementById('date_of_birth');
+        if (dobInput) {
+            dobInput.addEventListener('change', () => this.handleDobChange());
+        }
+
+        // Weight/height change - update BMI
+        const weightInput = document.getElementById('weight_kg');
+        const heightInput = document.getElementById('height_cm');
+        if (weightInput) {
+            weightInput.addEventListener('input', () => this.updateBmi());
+        }
+        if (heightInput) {
+            heightInput.addEventListener('input', () => this.updateBmi());
+        }
         
         // Close modal when clicking outside
         this.modal.addEventListener('click', (e) => {
@@ -79,7 +104,54 @@ const AddPatientModal = {
             this.form.querySelectorAll('.invalid-feedback').forEach(el => {
                 el.textContent = '';
             });
+
+            // Reset inpatient visibility to match default patient type
+            this.updateInpatientVisibility();
         }
+    },
+
+    /**
+     * Show/hide inpatient-only sections based on selected patient type
+     */
+    updateInpatientVisibility() {
+        const patientTypeSelect = document.getElementById('patient_type');
+        const typeValue = (patientTypeSelect ? patientTypeSelect.value : 'Outpatient') || 'Outpatient';
+        const normalizedType = typeValue.toLowerCase();
+
+        const inpatientSections = this.form ? this.form.querySelectorAll('[data-section="inpatient-only"]') : [];
+        const isInpatientLike = normalizedType === 'inpatient' || normalizedType === 'emergency';
+
+        inpatientSections.forEach(section => {
+            const inputs = section.querySelectorAll('input, select, textarea');
+            if (isInpatientLike) {
+                section.style.display = '';
+                // For inpatient, keep required attributes as defined in HTML
+                inputs.forEach(input => {
+                    if (input.dataset.originalRequired === 'true') {
+                        input.required = true;
+                    }
+                });
+            } else {
+                section.style.display = 'none';
+                // For outpatient, remove required from inpatient-only fields and clear errors
+                inputs.forEach(input => {
+                    if (input.required) {
+                        // Remember which fields were originally required so we can restore later
+                        if (!input.dataset.originalRequired) {
+                            input.dataset.originalRequired = 'true';
+                        }
+                        input.required = false;
+                    }
+                    // Clear values for hidden inpatient fields
+                    input.value = '';
+                    const errEl = this.form.querySelector(`#err_${input.name}`);
+                    if (errEl) {
+                        errEl.textContent = '';
+                    }
+                    input.classList.remove('is-invalid');
+                });
+            }
+        });
     },
 
     /**
@@ -122,6 +194,172 @@ const AddPatientModal = {
 
         console.log('No doctors found in PHP, showing no doctors available');
         doctorSelect.innerHTML = '<option value="">No doctors available</option>';
+    },
+
+    /**
+     * Handle DOB change: update age display and filter doctors for newborns
+     */
+    handleDobChange() {
+        const dobInput = document.getElementById('date_of_birth');
+        const ageDisplay = document.getElementById('age_display');
+        if (!dobInput || !ageDisplay) return;
+
+        const dobValue = dobInput.value;
+        if (!dobValue) {
+            ageDisplay.value = '';
+            this.applyPediatricLogic(null);
+            return;
+        }
+
+        const ageYears = this.calculateAgeYears(dobValue);
+        if (ageYears === null) {
+            ageDisplay.value = '';
+        } else if (ageYears < 1) {
+            ageDisplay.value = 'Newborn / < 1 year';
+        } else {
+            ageDisplay.value = `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+        }
+
+        this.applyPediatricLogic(ageYears);
+    },
+
+    /**
+     * Calculate age in years from a date string (YYYY-MM-DD)
+     */
+    calculateAgeYears(dob) {
+        try {
+            const dobDate = new Date(dob);
+            if (!dobDate || isNaN(dobDate.getTime())) return null;
+            const today = new Date();
+            let age = today.getFullYear() - dobDate.getFullYear();
+            const m = today.getMonth() - dobDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+                age--;
+            }
+            if (age < 0) return null;
+            return age;
+        } catch (e) {
+            console.error('Invalid DOB for age calculation', e);
+            return null;
+        }
+    },
+
+    /**
+     * Update BMI when weight or height changes
+     */
+    updateBmi() {
+        const weightInput = document.getElementById('weight_kg');
+        const heightInput = document.getElementById('height_cm');
+        const bmiInput = document.getElementById('bmi');
+        if (!weightInput || !heightInput || !bmiInput) return;
+
+        const weight = parseFloat(weightInput.value);
+        const heightCm = parseFloat(heightInput.value);
+        if (!weight || !heightCm || weight <= 0 || heightCm <= 0) {
+            bmiInput.value = '';
+            return;
+        }
+
+        const heightM = heightCm / 100.0;
+        const bmi = weight / (heightM * heightM);
+        if (!isFinite(bmi)) {
+            bmiInput.value = '';
+            return;
+        }
+        bmiInput.value = bmi.toFixed(2);
+    },
+
+    /**
+     * Apply pediatric logic: for newborns, filter doctors to pediatricians and show previous pediatrician field
+     */
+    applyPediatricLogic(ageYears) {
+        const doctorSelect = document.getElementById('assigned_doctor');
+        const pastPedWrapper = document.getElementById('pastPediatricianWrapper');
+
+        const isNewborn = ageYears !== null && ageYears < 1;
+        const isPediatricAge = ageYears !== null && ageYears < 18;
+
+        // Toggle previous pediatrician field visibility only for newborns
+        if (pastPedWrapper) {
+            pastPedWrapper.style.display = isNewborn ? '' : 'none';
+        }
+
+        if (!doctorSelect) return;
+
+        // Cache all doctor options the first time (including department from data attribute)
+        if (!this.doctorsCache) {
+            this.doctorsCache = Array.from(doctorSelect.options).map(opt => ({
+                value: opt.value,
+                text: opt.textContent,
+                department: opt.getAttribute('data-department') || ''
+            }));
+        }
+
+        // If not pediatric age, restore full list
+        if (!isPediatricAge) {
+            this.restoreDoctorOptions();
+            return;
+        }
+
+        // Filter to pediatric doctors for pediatric-age patients (< 18 years)
+        const pediatricKeywords = ['pedia', 'pediatric', 'pediatrics', 'neonatal', 'neonatology'];
+        const filtered = this.doctorsCache.filter(opt => {
+            const text = (opt.text || '').toLowerCase();
+
+            // Expect labels like "Name - Specialization"
+            const parts = text.split('-');
+            const specialization = parts[1] ? parts[1].trim() : '';
+            const isPediatricSpecialization = ['pediatrics', 'pediatrician', 'pediatric'].includes(specialization);
+
+            return (
+                opt.value === '' ||
+                isPediatricSpecialization ||
+                pediatricKeywords.some(k => text.includes(k))
+            );
+        });
+
+        // If no pediatric doctors found
+        if (filtered.length <= 1) {
+            // For newborns, do NOT fall back to adult specialists
+            if (isNewborn) {
+                doctorSelect.innerHTML = '';
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'No pediatric doctors available';
+                opt.disabled = true;
+                opt.selected = true;
+                doctorSelect.appendChild(opt);
+                return;
+            }
+
+            // For older pediatric-age patients, fall back to full list
+            this.restoreDoctorOptions();
+            return;
+        }
+
+        doctorSelect.innerHTML = '';
+        filtered.forEach(optData => {
+            const opt = document.createElement('option');
+            opt.value = optData.value;
+            opt.textContent = optData.text;
+            doctorSelect.appendChild(opt);
+        });
+    },
+
+    restoreDoctorOptions() {
+        const doctorSelect = document.getElementById('assigned_doctor');
+        if (!doctorSelect || !this.doctorsCache) return;
+
+        doctorSelect.innerHTML = '';
+        this.doctorsCache.forEach(optData => {
+            const opt = document.createElement('option');
+            opt.value = optData.value;
+            opt.textContent = optData.text;
+            if (optData.department) {
+                opt.setAttribute('data-department', optData.department);
+            }
+            doctorSelect.appendChild(opt);
+        });
     },
 
     /**
@@ -197,6 +435,9 @@ const AddPatientModal = {
      * Validate form data
      */
     validateFormData(data) {
+        const typeValue = (data.patient_type || 'Outpatient').toLowerCase();
+
+        // Base rules for all patients (outpatient + inpatient)
         const rules = {
             first_name: { required: true, label: 'First Name' },
             last_name: { required: true, label: 'Last Name' },
@@ -205,15 +446,21 @@ const AddPatientModal = {
             civil_status: { required: true, label: 'Civil Status' },
             phone: { required: true, label: 'Phone Number' },
             address: { required: true, label: 'Address' },
-            province: { required: true, label: 'Province' },
-            city: { required: true, label: 'City' },
-            barangay: { required: true, label: 'Barangay' },
-            zip_code: { required: true, label: 'ZIP Code' },
-            emergency_contact_name: { required: true, label: 'Emergency Contact Name' },
-            emergency_contact_phone: { required: true, label: 'Emergency Contact Phone' },
             email: { email: true, label: 'Email' }
         };
-        
+
+        // Inpatient/Emergency require full details
+        if (typeValue === 'inpatient' || typeValue === 'emergency') {
+            Object.assign(rules, {
+                province: { required: true, label: 'Province' },
+                city: { required: true, label: 'City' },
+                barangay: { required: true, label: 'Barangay' },
+                zip_code: { required: true, label: 'ZIP Code' },
+                emergency_contact_name: { required: true, label: 'Emergency Contact Name' },
+                emergency_contact_phone: { required: true, label: 'Emergency Contact Phone' }
+            });
+        }
+
         return PatientUtils.validateForm(data, rules);
     }
 };

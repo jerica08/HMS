@@ -72,16 +72,36 @@ class Auth extends BaseController
                 }
 
                 if ($passwordMatches) {
+                    // Determine role, preferring staff.role_id -> roles.slug mapping
+                    $resolvedRole = null;
+                    if (!empty($user['staff_id'])) {
+                        $staffRow = $db->table('staff s')
+                                      ->select('s.*, rl.slug as role_slug')
+                                      ->join('roles rl', 'rl.role_id = s.role_id', 'left')
+                                      ->where('s.staff_id', $user['staff_id'])
+                                      ->get()
+                                      ->getRowArray();
+                        if (!empty($staffRow['role_slug'])) {
+                            $resolvedRole = strtolower($staffRow['role_slug']);
+                        }
+                    }
+
+                    if ($resolvedRole === null && isset($user['role'])) {
+                        // Fallback if a role column still exists on users
+                        $resolvedRole = strtolower($user['role']);
+                    }
+
                     $session->set([
-                        'user_id'   => $user['user_id'],
-                        'staff_id'  => $user['staff_id'],
-                        'username'  => $user['username'],
-                        'email'     => $user['email'],
-                        'role'      => $user['role'],
-                        'isLoggedIn'=> true
+                        'user_id'    => $user['user_id'],
+                        'staff_id'   => $user['staff_id'] ?? null,
+                        'username'   => $user['username'],
+                        'email'      => $user['email'],
+                        'role'       => $resolvedRole,
+                        'isLoggedIn' => true
                     ]);
 
-                    $role = strtolower($user['role'] ?? '');
+                    $role = $resolvedRole ?? '';
+
                     switch ($role) {
                         case 'admin':
                             return redirect()->to('/admin/dashboard');

@@ -27,13 +27,13 @@ class UserModel extends Model
     
     public function getUserWithStaff($userId)
     {
-        return $this->select('users.user_id, users.username, users.email as user_email, users.role, 
-                              staff.employee_id, staff.first_name, staff.last_name, staff.gender, 
-                              staff.dob, staff.contact_no, staff.email as staff_email, 
-                              staff.address, staff.department')
-                    ->join('staff', 'staff.staff_id = users.staff_id', 'left')
-                    ->where('users.user_id', $userId)
-                    ->first();
+      return $this->select('users.user_id, users.username, users.email as user_email, users.role, 
+                     staff.employee_id, staff.first_name, staff.last_name, staff.gender, 
+                     staff.dob, staff.contact_no, staff.email as staff_email, 
+                     staff.address, staff.department')
+            ->join('staff', 'staff.staff_id = users.staff_id', 'left')
+            ->where('users.user_id', $userId)
+            ->first();
     }
 
     

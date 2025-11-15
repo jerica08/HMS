@@ -36,7 +36,10 @@ class StaffService
                          l.specialization as laboratorist_specialization,
                          a.license_no as accountant_license_no,
                          r.desk_no as receptionist_desk_no,
-                         i.expertise as it_expertise')
+                         i.expertise as it_expertise,
+                         s.role_id,
+                         rl.slug as role_slug,
+                         rl.name as role_name')
                 ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
                 ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
                 ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
@@ -44,7 +47,8 @@ class StaffService
                 ->join('laboratorist l', 'l.staff_id = s.staff_id', 'left')
                 ->join('accountant a', 'a.staff_id = s.staff_id', 'left')
                 ->join('receptionist r', 'r.staff_id = s.staff_id', 'left')
-                ->join('it_staff i', 'i.staff_id = s.staff_id', 'left');
+                ->join('it_staff i', 'i.staff_id = s.staff_id', 'left')
+                ->join('roles rl', 'rl.role_id = s.role_id', 'left');
 
             // Role-based filtering
             switch ($userRole) {
@@ -68,7 +72,7 @@ class StaffService
                     break;
                 case 'receptionist':
                     // Receptionists can see doctors and nurses for scheduling
-                    $builder->whereIn('s.role', ['doctor', 'nurse']);
+                    $builder->whereIn('rl.slug', ['doctor', 'nurse']);
                     break;
                 default:
                     // Other roles see limited staff
@@ -82,8 +86,9 @@ class StaffService
                 $builder->where('dpt.name', $filters['department']);
             }
             
-            if (isset($filters['role'])) {
-                $builder->where('s.role', $filters['role']);
+            if (!empty($filters['role'])) {
+                // Filter by role slug via roles table
+                $builder->where('rl.slug', $filters['role']);
             }
             
             if (isset($filters['status'])) {
@@ -138,7 +143,10 @@ class StaffService
                          l.specialization as laboratorist_specialization,
                          a.license_no as accountant_license_no,
                          r.desk_no as receptionist_desk_no,
-                         i.expertise as it_expertise')
+                         i.expertise as it_expertise,
+                         s.role_id,
+                         rl.slug as role_slug,
+                         rl.name as role_name')
                 ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
                 ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
                 ->join('pharmacist p', 'p.staff_id = s.staff_id', 'left')
@@ -146,6 +154,7 @@ class StaffService
                 ->join('accountant a', 'a.staff_id = s.staff_id', 'left')
                 ->join('receptionist r', 'r.staff_id = s.staff_id', 'left')
                 ->join('it_staff i', 'i.staff_id = s.staff_id', 'left')
+                ->join('roles rl', 'rl.role_id = s.role_id', 'left')
                 ->where('s.staff_id', $id)
                 ->get()
                 ->getRowArray();
@@ -606,6 +615,19 @@ class StaffService
 
     private function prepareStaffData($input)
     {
+        // Determine role_id from explicit input or from role slug
+        $roleId = null;
+
+        if (!empty($input['role_id'])) {
+            $roleId = (int) $input['role_id'];
+        } elseif (!empty($input['role'])) {
+            $db   = \Config\Database::connect();
+            $role = $db->table('roles')->where('slug', $input['role'])->get()->getRowArray();
+            if ($role && isset($role['role_id'])) {
+                $roleId = (int) $role['role_id'];
+            }
+        }
+
         return [
             'employee_id' => $input['employee_id'] ?? null, 
             'first_name' => $input['first_name'] ?? null,
@@ -619,6 +641,7 @@ class StaffService
             'department' => $input['department'] ?? null,
             'department_id' => $input['department_id'] ?? null,
             'role' => $input['role'] ?? null,
+            'role_id' => $roleId,
             'date_joined' => $input['date_joined'] ?? date('Y-m-d'),
             // Note: 'status' and timestamp columns are not present in current migration; do not include
         ];

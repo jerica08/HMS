@@ -187,8 +187,14 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="role-badge role-<?= esc($user['role'] ? strtolower(str_replace('_', '-', $user['role'])) : 'user') ?>">
-                                        <?= esc($user['role'] ? ucfirst(str_replace('_', ' ', $user['role'])) : 'User') ?>
+                                    <?php
+                                        $roleSlug = $user['role_slug'] ?? null;
+                                        $roleName = $user['role_name'] ?? null;
+                                        $roleClass = $roleSlug ? strtolower(str_replace('_', '-', $roleSlug)) : 'user';
+                                        $roleLabel = $roleName ?: ($roleSlug ? ucfirst(str_replace('_', ' ', $roleSlug)) : 'User');
+                                    ?>
+                                    <span class="role-badge role-<?= esc($roleClass) ?>">
+                                        <?= esc($roleLabel) ?>
                                     </span>
                                 </td>
                                 <td><?= esc($user['department'] ?? 'N/A') ?></td>
@@ -215,7 +221,7 @@
                                                 <i class="fas fa-key" aria-hidden="true"></i> Reset
                                             </button>
                                         <?php endif; ?>
-                                        <?php if (($permissions['canDelete'] ?? false) && $user['role'] !== 'admin'): ?>
+                                        <?php if (($permissions['canDelete'] ?? false) && (($user['role_slug'] ?? '') !== 'admin')): ?>
                                             <button class="btn btn-danger btn-small action-btn" 
                                                     data-action="delete" 
                                                     data-user-id="<?= esc($user['user_id']) ?>"

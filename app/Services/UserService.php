@@ -34,11 +34,13 @@ class UserService
                 return [];
             }
             
-            // Now try the join query with proper department join
+            // Now try the join query with proper department and role join
             $builder = $this->db->table('users u')
-                ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id')
+                ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id,
+                          rl.slug as role_slug, rl.name as role_name')
                 ->join('staff s', 's.staff_id = u.staff_id', 'left')
-                ->join('department d', 'd.department_id = s.department_id', 'left');
+                ->join('department d', 'd.department_id = s.department_id', 'left')
+                ->join('roles rl', 'rl.role_id = u.role_id', 'left');
 
             switch ($userRole) {
                 case 'admin':
@@ -71,7 +73,7 @@ class UserService
                     
                     if ($departmentId) {
                         $users = $builder->where('s.department_id', $departmentId)
-                                        ->whereIn('u.role', ['doctor', 'nurse'])
+                                        ->whereIn('rl.slug', ['doctor', 'nurse'])
                                         ->orderBy('u.created_at', 'DESC')
                                         ->get()->getResultArray();
                         log_message('debug', 'UserService: Nurse query for department ID ' . $departmentId . ' returned ' . count($users) . ' users');
@@ -83,8 +85,10 @@ class UserService
                     
                 default:
                     // Other roles see basic user directory
-                    $users = $builder->whereIn('u.role', ['doctor', 'receptionist'])
-                                    ->select('u.user_id, u.username, u.role, u.status, s.first_name, s.last_name, d.name as department')
+                    $users = $builder->whereIn('rl.slug', ['doctor', 'receptionist'])
+                                    ->select('u.user_id, u.username, u.role_id, u.status,
+                                             rl.slug as role_slug, rl.name as role_name,
+                                             s.first_name, s.last_name, d.name as department')
                                     ->orderBy('s.first_name', 'ASC')
                                     ->get()->getResultArray();
                     log_message('debug', 'UserService: Default role query returned ' . count($users) . ' users');
@@ -207,7 +211,7 @@ class UserService
                 'username' => $data['username'],
                 'email' => $data['email'] ?? null,
                 'password' => password_hash($data['password'], PASSWORD_DEFAULT),
-                'role' => $data['role'],
+                'role_id' => $data['role_id'],
                 'status' => $data['status'] ?? 'active',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')

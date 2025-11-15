@@ -42,10 +42,13 @@ class StaffModel extends Model
    
     public function getStaffWithUser($staffId)
     {
-        return $this->select('staff.staff_id, staff.employee_id, staff.first_name, staff.last_name, staff.department, users.email, users.role')
-                    ->join('users', 'users.staff_id = staff.staff_id', 'left')
-                    ->where('staff.staff_id', $staffId)
-                    ->first();
+        return $this->select('staff.staff_id, staff.employee_id, staff.first_name, staff.last_name,
+                      staff.department, users.email,
+                      users.role_id, roles.slug as role_slug, roles.name as role_name')
+            ->join('users', 'users.staff_id = staff.staff_id', 'left')
+            ->join('roles', 'roles.role_id = users.role_id', 'left')
+            ->where('staff.staff_id', $staffId)
+            ->first();
     }
 
    

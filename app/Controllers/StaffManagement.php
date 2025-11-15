@@ -178,7 +178,6 @@ class StaffManagement extends BaseController
         if ($id <= 0) {
             return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
         }
-
         $input = $this->request->getPost() ?: $jsonInput ?? [];
         
         // Use service to update staff
@@ -265,15 +264,50 @@ class StaffManagement extends BaseController
                 ->join('staff s', 's.staff_id = d.staff_id', 'left')
                 ->orderBy('s.first_name', 'ASC')
                 ->get()->getResultArray();
-            
+        
             $data = array_map(function($r){
                 $r['name'] = trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''));
                 return $r;
             }, $rows);
-            
+        
             return $this->response->setJSON(['status' => 'success', 'data' => $data]);
         } catch (\Throwable $e) {
             return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load doctors']);
+        }
+    }
+
+    /**
+     * Get next auto-generated employee_id for a given role slug.
+     * Used by frontend to auto-fill IDs like DOC-0001, NUR-0001, etc.
+     */
+    public function getNextEmployeeId()
+    {
+        $role = $this->request->getGet('role');
+
+        if (empty($role)) {
+            return $this->response
+                ->setStatusCode(400)
+                ->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Role is required',
+                ]);
+        }
+
+        try {
+            $employeeId = $this->staffService->getNextEmployeeIdForRole($role);
+
+            return $this->response->setJSON([
+                'status'       => 'success',
+                'employee_id'  => $employeeId,
+                'role'         => $role,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Failed to generate employee ID',
+                ]);
         }
     }
 

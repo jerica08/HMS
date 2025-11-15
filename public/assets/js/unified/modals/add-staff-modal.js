@@ -14,7 +14,10 @@ window.AddStaffModal = {
             this.form.addEventListener('submit', (e) => this.handleSubmit(e));
             // Toggle role-specific fields
             const designationEl = document.getElementById('designation');
-            designationEl?.addEventListener('change', () => this.toggleRoleFields());
+            designationEl?.addEventListener('change', () => {
+                this.toggleRoleFields();
+                this.updateEmployeeIdForRole();
+            });
             // Initialize visibility once
             this.toggleRoleFields();
 
@@ -79,6 +82,40 @@ window.AddStaffModal = {
             const deptIdEl = document.getElementById('department_id');
             if (deptIdEl) {
                 deptIdEl.value = '';
+            }
+        }
+    },
+
+    async updateEmployeeIdForRole() {
+        const designation = document.getElementById('designation')?.value || '';
+        const employeeIdInput = document.getElementById('employee_id');
+        if (!employeeIdInput) return;
+
+        if (!designation) {
+            employeeIdInput.value = '';
+            return;
+        }
+
+        const originalPlaceholder = employeeIdInput.placeholder || '';
+        employeeIdInput.placeholder = 'Generating...';
+
+        try {
+            const url = StaffConfig.getUrl('staff/next-employee-id') + '?role=' + encodeURIComponent(designation);
+            const response = await StaffUtils.makeRequest(url);
+
+            if (response.status === 'success' && response.employee_id) {
+                employeeIdInput.value = response.employee_id;
+            } else {
+                employeeIdInput.value = '';
+                employeeIdInput.placeholder = 'Unable to generate ID';
+            }
+        } catch (error) {
+            console.error('Failed to generate employee ID:', error);
+            employeeIdInput.value = '';
+            employeeIdInput.placeholder = 'Unable to generate ID';
+        } finally {
+            if (!employeeIdInput.value) {
+                employeeIdInput.placeholder = originalPlaceholder || 'e.g., DOC-0001';
             }
         }
     },

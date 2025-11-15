@@ -125,6 +125,62 @@ class StaffService
     }
 
     /**
+     * Generate next employee_id for a given role slug.
+     * Examples: ADM-0001, DOC-0001, NUR-0001, REC-0001
+     */
+    private function generateEmployeeIdForRole(string $roleSlug): string
+    {
+        // Map role slug to prefix
+        $prefixMap = [
+            'admin'        => 'ADM',
+            'doctor'       => 'DOC',
+            'nurse'        => 'NUR',
+            'receptionist' => 'REC',
+            'pharmacist'   => 'PHA',
+            'laboratorist' => 'LAB',
+            'it_staff'     => 'IT',
+            'accountant'   => 'ACC',
+        ];
+
+        if (!isset($prefixMap[$roleSlug])) {
+            throw new \Exception('Unsupported role for employee ID generation: ' . $roleSlug);
+        }
+
+        $prefix = $prefixMap[$roleSlug];
+
+        // Find the current maximum sequence for this prefix
+        $row = $this->db->table('staff')
+            ->select('employee_id')
+            ->like('employee_id', $prefix . '-', 'after')
+            ->orderBy('employee_id', 'DESC')
+            ->get()
+            ->getRowArray();
+
+        $nextNumber = 1;
+
+        if ($row && !empty($row['employee_id'])) {
+            // Expect format PREFIX-XXXX
+            $parts = explode('-', $row['employee_id']);
+            if (count($parts) === 2 && is_numeric($parts[1])) {
+                $nextNumber = (int) $parts[1] + 1;
+            }
+        }
+
+        // Pad with 4 digits: 0001, 0002, ...
+        $numberPart = str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
+
+        return $prefix . '-' . $numberPart;
+    }
+
+    /**
+     * Public helper so controllers can fetch the next employee ID for a role.
+     */
+    public function getNextEmployeeIdForRole(string $roleSlug): string
+    {
+        return $this->generateEmployeeIdForRole($roleSlug);
+    }
+
+    /**
      * Get single staff member by ID
      */
     public function getStaff($id)
@@ -196,6 +252,18 @@ class StaffService
         }
 
         $input = $this->normalizeInput($input);
+
+        // Auto-generate employee_id based on role if not provided
+        if (empty($input['employee_id']) && !empty($input['role'])) {
+            try {
+                $input['employee_id'] = $this->generateEmployeeIdForRole($input['role']);
+            } catch (\Throwable $e) {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to generate employee ID: ' . $e->getMessage(),
+                ];
+            }
+        }
 
         // Validation
         $validation = \Config\Services::validation();

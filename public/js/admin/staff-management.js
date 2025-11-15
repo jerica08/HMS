@@ -316,20 +316,78 @@
   // updateRoleFieldsForSelect: toggles role-specific blocks based on selection
   function updateRoleFieldsForSelect(selectEl){
     if (!selectEl) return;
-    const roleBlocks = getRoleBlocks();
-    const v = selectEl.value;
-    Object.values(roleBlocks).forEach(function(b){ if (b) b.style.display = 'none'; });
-    if (roleBlocks[v]) roleBlocks[v].style.display = 'block';
+
+    var selectedRole = (selectEl.value || '').toString().toLowerCase();
+    var blocks = getRoleBlocks();
+
+    Object.keys(blocks).forEach(function(roleKey){
+      var el = blocks[roleKey];
+      if (!el) return;
+      el.style.display = (roleKey === selectedRole) ? 'block' : 'none';
+    });
   }
+
   // bindRoleSelect: attaches change handler and sets initial visibility
   function bindRoleSelect(id){
     const sel = document.getElementById(id);
     if (!sel) return;
     if (!sel.__boundRoleFields){
       sel.__boundRoleFields = true;
-      sel.addEventListener('change', function(){ updateRoleFieldsForSelect(sel); });
+      sel.addEventListener('change', function(){
+        updateRoleFieldsForSelect(sel);
+        // When designation (role) changes on the Add Staff form, auto-generate employee ID
+        if (id === 'designation') {
+          updateEmployeeIdForRole(sel.value);
+        }
+      });
     }
     updateRoleFieldsForSelect(sel);
+  }
+
+  // Auto-generate employee ID based on selected role (for Add Staff form)
+  async function updateEmployeeIdForRole(role){
+    var employeeIdInput = document.getElementById('employee_id');
+    if (!employeeIdInput) return;
+
+    if (!role){
+      employeeIdInput.value = '';
+      return;
+    }
+
+    var originalPlaceholder = employeeIdInput.placeholder || '';
+    employeeIdInput.placeholder = 'Generating...';
+
+    try {
+      // Endpoint wired in Routes.php -> StaffManagement::getNextEmployeeId
+      var url = (cfg.nextEmployeeIdUrl || (cfg.baseUrl ? cfg.baseUrl + 'staff/next-employee-id' : 'staff/next-employee-id'))
+                + '?role=' + encodeURIComponent(role);
+
+      var res = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+      });
+
+      if (!res.ok){
+        throw new Error('HTTP ' + res.status);
+      }
+
+      var data = await res.json();
+
+      if (data && data.status === 'success' && data.employee_id){
+        employeeIdInput.value = data.employee_id;
+      } else {
+        employeeIdInput.value = '';
+        employeeIdInput.placeholder = 'Unable to generate ID';
+      }
+    } catch (e){
+      console.error('Failed to generate employee ID', e);
+      employeeIdInput.value = '';
+      employeeIdInput.placeholder = 'Unable to generate ID';
+    } finally {
+      if (!employeeIdInput.value){
+        employeeIdInput.placeholder = originalPlaceholder || 'e.g., DOC-0001';
+      }
+    }
   }
 
   // Helpers: formatting utilities

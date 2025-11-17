@@ -14,6 +14,22 @@
             <div class="hms-modal-body">
                 <div class="form-grid">
                     <div>
+                        <label class="form-label" for="designation">Role/Designation*</label>
+                        <p class="form-hint">Select a role first to load the correct requirements.</p>
+                        <select id="designation" name="designation" class="form-select" required>
+                            <option value="">Select role</option>
+                            <option value="admin">Admin</option>
+                            <option value="doctor">Doctor</option>
+                            <option value="nurse">Nurse</option>
+                            <option value="pharmacist">Pharmacist</option>
+                            <option value="receptionist">Receptionist</option>
+                            <option value="laboratorist">Laboratorist</option>
+                            <option value="it_staff">IT Staff</option>
+                            <option value="accountant">Accountant</option>
+                        </select>
+                        <small id="err_designation" style="color:#dc2626"></small>
+                    </div>
+                    <div>
                         <label class="form-label" for="employee_id">Employee ID</label>
                         <input type="text" id="employee_id" name="employee_id" class="form-input" placeholder="e.g., DOC003">
                         <small id="err_employee_id" style="color:#dc2626"></small>
@@ -70,21 +86,6 @@
                         </select>
                         <input type="hidden" id="department_id" name="department_id" value="">
                         <small id="err_department" style="color:#dc2626"></small>
-                    </div>
-                    <div>
-                        <label class="form-label" for="designation">Role/Designation*</label>
-                        <select id="designation" name="designation" class="form-select" required>
-                            <option value="">Select role</option>
-                            <option value="admin">Admin</option>
-                            <option value="doctor">Doctor</option>
-                            <option value="nurse">Nurse</option>
-                            <option value="pharmacist">Pharmacist</option>
-                            <option value="receptionist">Receptionist</option>
-                            <option value="laboratorist">Laboratorist</option>
-                            <option value="it_staff">IT Staff</option>
-                            <option value="accountant">Accountant</option>
-                        </select>
-                        <small id="err_designation" style="color:#dc2626"></small>
                     </div>
                     <!-- Doctor-specific fields -->
                     <div id="doctorFields" class="full" style="display:none; grid-column: 1 / -1;">

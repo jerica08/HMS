@@ -41,20 +41,21 @@ window.AddStaffModal = {
                 });
             }
 
-            // Live DOB validation on change
+            // Live DOB validation on change + enforce 18+ max date
             const dobEl = document.getElementById('date_of_birth');
-            if (dobEl && !dobEl.__boundDobValidation) {
-                dobEl.__boundDobValidation = true;
-                dobEl.addEventListener('change', () => {
-                    // Run validation and show error inline
-                    const dobErrors = {};
-                    this.validateDob(this.collectFormData(), dobErrors);
-                    // Clear existing DOB error then apply if any
-                    const dobErrEl = document.getElementById('err_date_of_birth');
-                    if (dobErrEl) {
-                        dobErrEl.textContent = dobErrors.date_of_birth || '';
-                    }
-                });
+            if (dobEl) {
+                this.applyDobAgeLimit(dobEl);
+                if (!dobEl.__boundDobValidation) {
+                    dobEl.__boundDobValidation = true;
+                    dobEl.addEventListener('change', () => {
+                        const dobErrors = {};
+                        this.validateDob(this.collectFormData(), dobErrors);
+                        const dobErrEl = document.getElementById('err_date_of_birth');
+                        if (dobErrEl) {
+                            dobErrEl.textContent = dobErrors.date_of_birth || '';
+                        }
+                    });
+                }
             }
         }
         
@@ -90,6 +91,11 @@ window.AddStaffModal = {
             const dateJoinedField = document.getElementById('date_joined');
             if (dateJoinedField && !dateJoinedField.value) {
                 dateJoinedField.value = new Date().toISOString().split('T')[0];
+            }
+
+            const dobEl = document.getElementById('date_of_birth');
+            if (dobEl) {
+                this.applyDobAgeLimit(dobEl);
             }
         }
     },
@@ -180,6 +186,14 @@ window.AddStaffModal = {
     clearErrors() {
         const errorElements = this.form?.querySelectorAll('[id^="err_"]');
         errorElements?.forEach(el => el.textContent = '');
+    },
+
+    applyDobAgeLimit(dobElement) {
+        if (!dobElement) return;
+        const today = new Date();
+        today.setFullYear(today.getFullYear() - 18);
+        const maxDate = today.toISOString().split('T')[0];
+        dobElement.setAttribute('max', maxDate);
     },
     
     async handleSubmit(e) {

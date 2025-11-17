@@ -191,6 +191,7 @@
                 existingRoomNumbers.add(submittedRoomNumber);
             }
 
+            alert('Room saved successfully.');
             closeModal();
             fetchRooms();
         } catch (error) {

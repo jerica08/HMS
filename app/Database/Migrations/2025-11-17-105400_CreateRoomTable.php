@@ -48,12 +48,6 @@ class CreateRoomTable extends Migration
                     'null'       => false,
                     'default'    => 1,
                 ],
-                'current_occupied_beds' => [
-                    'type'       => 'INT',
-                    'unsigned'   => true,
-                    'null'       => false,
-                    'default'    => 0,
-                ],
                 'status' => [
                     'type'       => 'VARCHAR',
                     'constraint' => 20,
@@ -61,11 +55,10 @@ class CreateRoomTable extends Migration
                     'default'    => 'available',
                     'comment'    => 'available / occupied / maintenance',
                 ],
-                'daily_rate' => [
-                    'type'       => 'DECIMAL',
-                    'constraint' => '10,2',
-                    'null'       => false,
-                    'default'    => 0.00,
+                'rate_range' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 50,
+                    'null'       => true,
                 ],
                 'hourly_rate' => [
                     'type'       => 'DECIMAL',

@@ -1,6 +1,6 @@
  (function () {
     const metaBaseUrl = document.querySelector('meta[name="base-url"]');
-    const baseUrl = metaBaseUrl ? metaBaseUrl.content : '';
+    const baseUrl = metaBaseUrl ? metaBaseUrl.content.replace(/\/*$/, '') : '';
     const roomsTableBody = document.getElementById('roomsTableBody');
     const addRoomBtn = document.getElementById('addRoomBtn');
     const addRoomModal = document.getElementById('addRoomModal');
@@ -11,6 +11,8 @@
     const rateRangeInput = document.getElementById('modal_rate_range');
     const roomNotesInput = document.getElementById('modal_notes');
     const roomTypeMetadata = window.roomTypeMetadata || {};
+
+    const existingRoomNumbers = new Set();
 
     const fetchRooms = async () => {
         try {
@@ -34,6 +36,13 @@
     };
 
     const renderRooms = (rooms) => {
+        existingRoomNumbers.clear();
+        rooms.forEach((room) => {
+            if (room.room_number) {
+                existingRoomNumbers.add(room.room_number.toLowerCase());
+            }
+        });
+
         if (!rooms.length) {
             roomsTableBody.innerHTML = `
                 <tr>
@@ -55,7 +64,7 @@
                 <td>${escapeHtml(room.department_name || '—')}</td>
                 <td>${room.bed_capacity ?? '—'}</td>
                 <td>${capitalize(room.status || 'unknown')}</td>
-                <td>${formatCurrency(room.daily_rate)}</td>
+                <td>${escapeHtml(room.rate_range || '—')}</td>
                 <td>
                     <button class="btn btn-sm btn-outline" disabled>
                         <i class="fas fa-pen"></i>
@@ -78,13 +87,6 @@
 
     const capitalize = (value) => value ? value.charAt(0).toUpperCase() + value.slice(1) : '—';
 
-    const formatCurrency = (value) => {
-        if (value === null || value === undefined || value === '') {
-            return '—';
-        }
-        return parseFloat(value).toFixed(2);
-    };
-
     const openModal = () => {
         addRoomModal.style.display = 'block';
         addRoomModal.setAttribute('aria-hidden', 'false');
@@ -103,6 +105,40 @@
         }
     };
 
+    const generateUniqueRoomNumber = (template) => {
+        if (!template) {
+            return '';
+        }
+
+        const match = template.match(/^(.*?)(\d+)(?!.*\d)/);
+        let prefix = template;
+        let suffix = '01';
+
+        if (match) {
+            prefix = match[1];
+            suffix = match[2];
+        } else if (!template.endsWith('-')) {
+            prefix = `${template}-`;
+        }
+
+        let counter = parseInt(suffix, 10);
+        if (Number.isNaN(counter)) {
+            counter = 1;
+        }
+        const width = suffix.length || 2;
+
+        let candidate = `${prefix}${String(counter).padStart(width, '0')}`;
+        let normalized = candidate.toLowerCase();
+
+        while (existingRoomNumbers.has(normalized)) {
+            counter += 1;
+            candidate = `${prefix}${String(counter).padStart(width, '0')}`;
+            normalized = candidate.toLowerCase();
+        }
+
+        return candidate;
+    };
+
     const applySelectedRoomTypeMetadata = () => {
         if (!roomTypeSelect) {
             return;
@@ -114,7 +150,8 @@
         }
 
         if (roomNumberInput) {
-            roomNumberInput.value = metadata?.room_number_template ?? '';
+            const template = metadata?.room_number_template ?? '';
+            roomNumberInput.value = generateUniqueRoomNumber(template);
         }
 
         if (rateRangeInput) {
@@ -137,20 +174,21 @@
     const submitRoom = async () => {
         const form = document.getElementById('addRoomForm');
         const formData = new FormData(form);
-        const payload = {};
-        formData.forEach((value, key) => {
-            payload[key] = value;
-        });
 
         try {
             const response = await fetch(`${baseUrl}/rooms/create`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify(payload),
+                body: formData,
+                headers: { 'Accept': 'application/json' },
             });
             const result = await response.json();
             if (!result.success) {
                 throw new Error(result.message || 'Failed to create room');
+            }
+
+            const submittedRoomNumber = (formData.get('room_number') || '').toString().trim().toLowerCase();
+            if (submittedRoomNumber) {
+                existingRoomNumbers.add(submittedRoomNumber);
             }
 
             closeModal();

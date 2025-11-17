@@ -222,11 +222,16 @@ class RoomManagement extends BaseController
 
     public function createRoom()
     {
-        if ($this->request->getMethod() !== 'post') {
+        if (! $this->request->is('post')) {
             return $this->response->setStatusCode(405)->setJSON(['status' => 'error', 'message' => 'Method not allowed']);
         }
 
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+        $input = $this->request->getPost();
+        if (empty($input)) {
+            $jsonBody = $this->request->getJSON(true);
+            $input = is_array($jsonBody) ? $jsonBody : [];
+        }
+
         $result = $this->roomService->createRoom($input);
 
         $statusCode = $result['success'] ? 200 : 400;

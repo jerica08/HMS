@@ -32,7 +32,7 @@ class RoomService
                 'r.room_name',
                 'r.status',
                 'r.bed_capacity',
-                'r.daily_rate',
+                'r.rate_range',
                 'rt.type_name',
                 'd.name as department_name',
             ])
@@ -54,9 +54,9 @@ class RoomService
             'department_id' => $input['department_id'] ? (int) $input['department_id'] : null,
             'bed_capacity' => $input['bed_capacity'] ? (int) $input['bed_capacity'] : 1,
             'status' => $input['status'] ?? 'available',
-            'daily_rate' => $this->sanitizeDecimal($input['daily_rate'] ?? null),
+            'rate_range' => trim($input['rate_range'] ?? ''),
             'hourly_rate' => $this->sanitizeDecimal($input['hourly_rate'] ?? null),
-            'extra_person_charge' => $this->sanitizeDecimal($input['extra_person_charge'] ?? null),
+            'extra_person_charge' => $this->sanitizeDecimal($input['extra_person_charge'] ?? 0),
             'overtime_charge_per_hour' => $this->sanitizeDecimal($input['overtime_charge_per_hour'] ?? null),
         ];
 

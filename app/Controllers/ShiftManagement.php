@@ -227,19 +227,68 @@ class ShiftManagement extends BaseController
         try {
             $input = $this->request->getJSON(true) ?? $this->request->getPost();
             
-            // Mock successful creation
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Shift created successfully',
-                'id' => rand(100, 999),
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
+            // Validate required fields
+            $requiredFields = ['doctor_id', 'shift_date', 'shift_start', 'shift_end'];
+            foreach ($requiredFields as $field) {
+                if (empty($input[$field])) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status' => 'error',
+                        'message' => "Field '{$field}' is required",
+                        'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                    ]);
+                }
+            }
+            
+            // Prepare shift data
+            $shiftData = [
+                'doctor_id' => $input['doctor_id'],
+                'shift_date' => $input['shift_date'],
+                'shift_start' => $input['shift_start'],
+                'shift_end' => $input['shift_end'],
+                'shift_type' => $input['shift_type'] ?? null,
+                'room_ward' => $input['room_ward'] ?? null,
+                'status' => $input['status'] ?? 'Scheduled',
+                'notes' => $input['notes'] ?? null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            // Calculate duration if start and end times are provided
+            if (!empty($input['shift_start']) && !empty($input['shift_end'])) {
+                $start = new \DateTime($input['shift_start']);
+                $end = new \DateTime($input['shift_end']);
+                if ($end > $start) {
+                    $interval = $start->diff($end);
+                    $duration = $interval->h + ($interval->i / 60);
+                    $shiftData['duration_hours'] = $duration;
+                }
+            }
+            
+            // Insert into doctor_shift table
+            $db = \Config\Database::connect();
+            $result = $db->table('doctor_shift')->insert($shiftData);
+            
+            if ($result) {
+                $shiftId = $db->insertID();
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Shift created successfully',
+                    'id' => $shiftId,
+                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                ]);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Failed to create shift',
+                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                ]);
+            }
 
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::create error: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
-                'message' => 'Failed to create shift',
+                'message' => 'Failed to create shift: ' . $e->getMessage(),
                 'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
             ]);
         }

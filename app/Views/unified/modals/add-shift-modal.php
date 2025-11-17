@@ -61,22 +61,6 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="shiftDepartment">Department</label>
-                        <select id="shiftDepartment" name="department" class="form-control">
-                            <option value="">Select Department</option>
-                            <?php 
-                            if (isset($departments) && is_array($departments)) {
-                                foreach ($departments as $department): ?>
-                                    <option value="<?= esc($department['department']) ?>"><?= esc($department['department']) ?></option>
-                                <?php endforeach; 
-                            } else {
-                                echo '<option value="">No departments available</option>';
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
                         <label for="shiftType">Shift Type</label>
                         <select id="shiftType" name="shift_type" class="form-control">
                             <option value="">Select Type</option>

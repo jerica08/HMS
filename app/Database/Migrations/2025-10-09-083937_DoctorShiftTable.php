@@ -20,11 +20,6 @@ class DoctorShiftTable extends Migration
                 'constraint' => 11,
                 'unsigned'   => true,
             ],
-            'department' => [
-                'type'       => 'VARCHAR',
-                'constraint' => 100,
-                'null'       => true,
-            ],
             'shift_date' => [
                 'type' => 'DATE',
             ],

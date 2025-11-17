@@ -319,14 +319,6 @@ class UserManager {
                                 aria-label="Reset Password for ${UserUtils.escapeHtml(fullName)}">
                             <i class="fas fa-key" aria-hidden="true"></i> Reset
                         </button>
-                        ${statusValue === 'inactive' && this.canRestore() ? `
-                            <button class="btn btn-success btn-small action-btn" 
-                                    data-action="restore" 
-                                    data-user-id="${user.user_id}"
-                                    aria-label="Restore User ${UserUtils.escapeHtml(fullName)}">
-                                <i class="fas fa-undo" aria-hidden="true"></i> Restore
-                            </button>
-                        ` : ''}
                     </div>
                 </td>
             </tr>

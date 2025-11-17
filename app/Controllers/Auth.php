@@ -59,6 +59,12 @@ class Auth extends BaseController
                            ->get()->getRowArray();
 
             if ($user) {
+               
+                if (isset($user['status']) && strtolower((string) $user['status']) !== 'active') {
+                    $session->setFlashdata('error', 'Your account is inactive. Please contact the ADMINISTRATOR or IT STAFF.');
+                    return redirect()->to(base_url('/login'));
+                }
+
                 $passwordMatches = false;
 
                 // Check if password is hashed

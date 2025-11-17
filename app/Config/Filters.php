@@ -35,6 +35,7 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'roleauth'      => \App\Filters\RoleAuth::class,
+        'checkuserstatus' => \App\Filters\CheckUserStatus::class,
     ];
 
     /**
@@ -76,6 +77,13 @@ class Filters extends BaseFilters
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',
+            'checkuserstatus' => [
+                'except' => [
+                    'login',
+                    'logout',
+                    'auth/logout',
+                ],
+            ],
         ],
         'after' => [
             // 'honeypot',

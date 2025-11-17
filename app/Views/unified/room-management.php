@@ -157,8 +157,12 @@
     </main>
 </div>
 
-<?= $this->include('unified/modals/add-room-modal') ?>
+<?= $this->include('unified/modals/add-room-modal', ['roomTypes' => $roomTypes ?? [], 'departments' => $departments ?? []]) ?>
 
+
+<script>
+window.roomTypeMetadata = <?= json_encode($roomTypeMetadata ?? [], JSON_HEX_TAG) ?>;
+</script>
 
 <script>
 function dismissFlash() {

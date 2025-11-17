@@ -1,12 +1,20 @@
-(function () {
+ (function () {
+    const metaBaseUrl = document.querySelector('meta[name="base-url"]');
+    const baseUrl = metaBaseUrl ? metaBaseUrl.content : '';
     const roomsTableBody = document.getElementById('roomsTableBody');
     const addRoomBtn = document.getElementById('addRoomBtn');
     const addRoomModal = document.getElementById('addRoomModal');
     const saveRoomBtn = document.getElementById('saveRoomBtn');
+    const roomTypeSelect = document.getElementById('modal_room_type');
+    const floorInput = document.getElementById('modal_floor');
+    const roomNumberInput = document.getElementById('modal_room_number');
+    const rateRangeInput = document.getElementById('modal_rate_range');
+    const roomNotesInput = document.getElementById('modal_notes');
+    const roomTypeMetadata = window.roomTypeMetadata || {};
 
     const fetchRooms = async () => {
         try {
-            const response = await fetch(`${document.querySelector('meta[name="base-url"]').content}/rooms/api`, {
+            const response = await fetch(`${baseUrl}/rooms/api`, {
                 headers: { 'Accept': 'application/json' },
             });
             const payload = await response.json();
@@ -80,6 +88,7 @@
     const openModal = () => {
         addRoomModal.style.display = 'block';
         addRoomModal.setAttribute('aria-hidden', 'false');
+        applySelectedRoomTypeMetadata();
     };
 
     const closeModal = () => {
@@ -94,6 +103,37 @@
         }
     };
 
+    const applySelectedRoomTypeMetadata = () => {
+        if (!roomTypeSelect) {
+            return;
+        }
+
+        const metadata = roomTypeMetadata[roomTypeSelect.value];
+        if (floorInput) {
+            floorInput.value = metadata?.floor_label ?? '';
+        }
+
+        if (roomNumberInput) {
+            roomNumberInput.value = metadata?.room_number_template ?? '';
+        }
+
+        if (rateRangeInput) {
+            rateRangeInput.value = metadata?.rate_range ?? '';
+        }
+
+        if (roomNotesInput) {
+            roomNotesInput.value = metadata?.notes ?? '';
+        }
+    };
+
+    const handleRoomTypeChange = () => {
+        if (!roomTypeSelect) {
+            return;
+        }
+
+        applySelectedRoomTypeMetadata();
+    };
+
     const submitRoom = async () => {
         const form = document.getElementById('addRoomForm');
         const formData = new FormData(form);
@@ -103,7 +143,7 @@
         });
 
         try {
-            const response = await fetch(`${document.querySelector('meta[name="base-url"]').content}/rooms/create`, {
+            const response = await fetch(`${baseUrl}/rooms/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify(payload),
@@ -135,5 +175,10 @@
 
     if (addRoomModal) {
         addRoomModal.addEventListener('click', handleModalClick);
+    }
+
+    if (roomTypeSelect) {
+        roomTypeSelect.addEventListener('change', handleRoomTypeChange);
+        applySelectedRoomTypeMetadata();
     }
 })();

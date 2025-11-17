@@ -121,6 +121,14 @@ $routes->post('admin/resource-management/delete', 'ResourceManagement::delete', 
 $routes->post('admin/resources/add', 'ResourceManagement::add', ['filter' => 'roleauth:admin']);
 
 // ===================================================================
+// ROOM MANAGEMENT (UNIFIED)
+// ===================================================================
+
+$routes->get('admin/room-management', 'RoomManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('rooms/api', 'RoomManagement::getRoomsAPI', ['filter' => 'roleauth:admin']);
+$routes->post('rooms/create', 'RoomManagement::createRoom', ['filter' => 'roleauth:admin']);
+
+// ===================================================================
 // DEPARTMENT ROUTES
 // ===================================================================
 

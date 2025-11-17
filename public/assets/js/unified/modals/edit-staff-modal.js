@@ -113,8 +113,15 @@ window.EditStaffModal = {
     populateForm(staff) {
         const normalizeDepartment = (dept) => {
             if (!dept) return '';
-            return (String(dept).toUpperCase() === 'N/A') ? '' : dept;
+            const val = String(dept).trim();
+            return (val.toUpperCase() === 'N/A') ? '' : val;
         };
+
+        // Derive a usable role value for the designation select
+        let resolvedRole = staff.role || staff.role_slug || staff.designation || '';
+        if (resolvedRole) {
+            resolvedRole = String(resolvedRole).trim().toLowerCase();
+        }
 
         const fields = {
             'e_staff_id': staff.staff_id || '',
@@ -126,7 +133,7 @@ window.EditStaffModal = {
             'e_contact_no': staff.contact_no || staff.phone || '',
             'e_email': staff.email || '',
             'e_department': normalizeDepartment(staff.department),
-            'e_designation': staff.role || staff.designation || '',
+            'e_designation': resolvedRole,
             'e_date_joined': staff.date_joined || '',
             'e_status': staff.status || 'active',
             'e_address': staff.address || '',

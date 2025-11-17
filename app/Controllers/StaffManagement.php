@@ -32,12 +32,51 @@ class StaffManagement extends BaseController
         if ($id <= 0) {
             return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
         }
-        $row = $this->builder->where('staff_id', $id)->get()->getRowArray();
-        if (!$row) {
-            return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Staff not found']);
+
+        try {
+            // Build enriched staff query with department and role-specific data
+            $builder = $this->db->table('staff s')
+                ->select('s.*, 
+                         dpt.name as department,
+                         d.specialization as doctor_specialization,
+                         d.license_no as doctor_license_no,
+                         d.consultation_fee as doctor_consultation_fee,
+                         n.license_no as nurse_license_no,
+                         n.specialization as nurse_specialization,
+                         p.license_no as pharmacist_license_no,
+                         p.specialization as pharmacist_specialization,
+                         l.license_no as laboratorist_license_no,
+                         l.specialization as laboratorist_specialization,
+                         l.lab_room_no as lab_room_no,
+                         a.license_no as accountant_license_no,
+                         rl.slug as role_slug,
+                         rl.name as role_name')
+                ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
+                ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
+                ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
+                ->join('pharmacist p', 'p.staff_id = s.staff_id', 'left')
+                ->join('laboratorist l', 'l.staff_id = s.staff_id', 'left')
+                ->join('accountant a', 'a.staff_id = s.staff_id', 'left')
+                ->join('roles rl', 'rl.role_id = s.role_id', 'left')
+                ->where('s.staff_id', $id);
+
+            $row = $builder->get()->getRowArray();
+
+            if (!$row) {
+                return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Staff not found']);
+            }
+
+            // Alias ID for frontend compatibility
+            $row['id'] = $row['staff_id'];
+
+            return $this->response->setJSON(['status' => 'success', 'data' => $row]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to fetch staff for modal: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to load staff details',
+            ]);
         }
-        $row['id'] = $row['staff_id'];
-        return $this->response->setJSON(['status' => 'success', 'data' => $row]);
     }
 
     /**
@@ -193,20 +232,42 @@ class StaffManagement extends BaseController
 
     public function delete($id = null)
     {
-        if (!$id) {
+       
+        $id = (int) ($id ?? $this->request->getPost('staff_id') ?? $this->request->getGet('staff_id')); 
+
+        $isAjax = $this->request->isAJAX() ||
+                  $this->request->getHeaderLine('Accept') === 'application/json' ||
+                  strtoupper($this->request->getMethod()) === 'DELETE';
+
+        if ($id <= 0) {
+            if ($isAjax) {
+                return $this->response
+                    ->setStatusCode(400)
+                    ->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
+            }
             session()->setFlashdata('error', 'Invalid staff ID.');
             return redirect()->to(base_url('admin/staff-management'));
         }
 
         // Use service to delete staff
         $result = $this->staffService->deleteStaff($id, $this->userRole);
-        
+
+        if ($isAjax) {
+            $statusCode = $result['success'] ? 200 : (($result['message'] ?? '') === 'Permission denied' ? 403 : 422);
+            return $this->response
+                ->setStatusCode($statusCode)
+                ->setJSON([
+                    'status'  => $result['success'] ? 'success' : 'error',
+                    'message' => $result['message'] ?? ($result['success'] ? 'Deleted' : 'Failed to delete staff'),
+                ]);
+        }
+
         if ($result['success']) {
             session()->setFlashdata('success', $result['message']);
         } else {
             session()->setFlashdata('error', $result['message']);
         }
-        
+
         return redirect()->to(base_url('admin/staff-management'));
     }
 

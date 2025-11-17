@@ -12,6 +12,13 @@ window.AddStaffModal = {
         
         if (this.form) {
             this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+            const employeeIdInput = document.getElementById('employee_id');
+            if (employeeIdInput) {
+                employeeIdInput.readOnly = true;
+            }
+            // Persist draft data on any input/change so Back button restores it
+            this.form.addEventListener('input', () => this.saveDraft());
+            this.form.addEventListener('change', () => this.saveDraft());
             // Toggle role-specific fields
             const designationEl = document.getElementById('designation');
             designationEl?.addEventListener('change', () => {
@@ -51,6 +58,9 @@ window.AddStaffModal = {
             }
         }
         
+        // Attempt to restore any saved draft on load (helps with Back button)
+        this.restoreDraft();
+
         // Close modal on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.modal && !this.modal.getAttribute('aria-hidden')) {
@@ -73,6 +83,8 @@ window.AddStaffModal = {
             this.modal.classList.add('active');
             this.modal.setAttribute('aria-hidden', 'false');
             this.resetForm();
+            // After reset, re-apply any saved draft data (if user navigated back)
+            this.restoreDraft();
             
             // Set default date joined to today
             const dateJoinedField = document.getElementById('date_joined');
@@ -240,6 +252,8 @@ window.AddStaffModal = {
             
             if (response.status === 'success') {
                 StaffUtils.showNotification('Staff member added successfully', 'success');
+                // Clear saved draft now that data is successfully saved
+                this.clearDraft();
                 this.close();
                 
                 // Refresh staff list
@@ -313,6 +327,62 @@ window.AddStaffModal = {
         }
         
         return data;
+    },
+
+    // Save current form values to localStorage so they survive navigation/back
+    saveDraft() {
+        if (!this.form || !window.localStorage) return;
+        try {
+            const data = this.collectFormData();
+            window.localStorage.setItem('hms_staff_add_draft', JSON.stringify(data));
+        } catch (e) {
+            // Fail silently if storage is not available
+            console.warn('Unable to save staff add draft:', e);
+        }
+    },
+
+    // Restore draft values from localStorage
+    restoreDraft() {
+        if (!this.form || !window.localStorage) return;
+        try {
+            const raw = window.localStorage.getItem('hms_staff_add_draft');
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            if (!data || typeof data !== 'object') return;
+
+            Object.keys(data).forEach((key) => {
+                const field = this.form.querySelector(`[name="${key}"]`);
+                if (!field) return;
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    field.checked = !!data[key];
+                } else {
+                    field.value = data[key];
+                }
+            });
+
+            // Re-apply department_id based on selected department option
+            const deptEl = document.getElementById('department');
+            const deptIdEl = document.getElementById('department_id');
+            if (deptEl && deptIdEl && deptEl.selectedOptions.length) {
+                const opt = deptEl.selectedOptions[0];
+                deptIdEl.value = opt.getAttribute('data-id') || '';
+            }
+
+            // Ensure role-specific sections are toggled correctly
+            this.toggleRoleFields();
+        } catch (e) {
+            console.warn('Unable to restore staff add draft:', e);
+        }
+    },
+
+    // Clear any stored draft (used after successful save)
+    clearDraft() {
+        if (!window.localStorage) return;
+        try {
+            window.localStorage.removeItem('hms_staff_add_draft');
+        } catch (e) {
+            console.warn('Unable to clear staff add draft:', e);
+        }
     },
     
     displayErrors(errors) {

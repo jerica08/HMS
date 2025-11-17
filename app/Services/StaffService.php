@@ -190,6 +190,7 @@ class StaffService
                 ->select('s.*, 
                          CONCAT(s.first_name, " ", s.last_name) as full_name,
                          TIMESTAMPDIFF(YEAR, s.dob, CURDATE()) as age,
+                         dpt.name as department,
                          d.specialization as doctor_specialization,
                          d.license_no as doctor_license_no,
                          d.consultation_fee as doctor_consultation_fee,
@@ -203,6 +204,7 @@ class StaffService
                          s.role_id,
                          rl.slug as role_slug,
                          rl.name as role_name')
+                ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
                 ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
                 ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
                 ->join('pharmacist p', 'p.staff_id = s.staff_id', 'left')
@@ -355,21 +357,47 @@ class StaffService
                 'message' => 'Permission denied',
             ];
         }
+        // Normalize input first (maps designation -> role, normalizes dates, etc.)
+        $input = $this->normalizeInput($input);
 
-        // Get existing staff
+        // Get existing staff (for defaults)
         $existingStaff = $this->getStaff($id);
-        if (!$existingStaff['success']) {
+        if (empty($existingStaff['success']) || empty($existingStaff['staff']) || !is_array($existingStaff['staff'])) {
             return $existingStaff;
         }
 
-        // Merge required defaults from existing record if not provided
-        $input = array_merge([
-            'employee_id' => $existingStaff['staff']['employee_id'] ?? null,
-            'role' => $existingStaff['staff']['role'] ?? null,
-        ], $input);
+        $existing = $existingStaff['staff'];
 
-        // Normalize input prior to validation
-        $input = $this->normalizeInput($input);
+        // If role still empty after normalization, fall back to existing role/role_slug
+        if (empty($input['role'])) {
+            $input['role'] = $existing['role'] ?? ($existing['role_slug'] ?? null);
+        }
+
+        // Ensure employee_id is kept if not provided
+        if (empty($input['employee_id'])) {
+            $input['employee_id'] = $existing['employee_id'] ?? null;
+        }
+
+        // Handle department and department_id so department doesn't become null
+        // If a department name is provided, ensure it exists and set department_id accordingly
+        if (!empty($input['department'])) {
+            $this->ensureDepartmentExists($input['department']);
+            $deptRow = $this->db->table('department')
+                ->where('name', $input['department'])
+                ->get()
+                ->getRowArray();
+            if ($deptRow && isset($deptRow['department_id'])) {
+                $input['department_id'] = $deptRow['department_id'];
+            } elseif (!isset($input['department_id'])) {
+                // Fallback to existing department_id if lookup fails
+                $input['department_id'] = $existing['department_id'] ?? null;
+            }
+        } else {
+            // No department provided in update payload – preserve existing department_id
+            if (!isset($input['department_id'])) {
+                $input['department_id'] = $existing['department_id'] ?? null;
+            }
+        }
 
         // Validation
         $validation = \Config\Services::validation();
@@ -384,9 +412,6 @@ class StaffService
         }
 
         try {
-            if (!empty($input['department'])) {
-                $this->ensureDepartmentExists($input['department']);
-            }
             // Prepare update data and filter to existing columns
             $staffData = $this->prepareStaffData($input);
             $staffData = $this->filterToExistingColumns('staff', $staffData);
@@ -432,11 +457,14 @@ class StaffService
 
             // Get staff info for role-specific cleanup
             $staff = $this->getStaff($id);
-            if ($staff['success']) {
-                $role = $staff['staff']['role'];
-                
-                // Delete role-specific data
-                $this->deleteRoleSpecificData($role, $id);
+            if (!empty($staff['success']) && !empty($staff['staff']) && is_array($staff['staff'])) {
+                // Some schemas may not have a direct 'role' column; fall back to role_slug when needed
+                $role = $staff['staff']['role'] ?? ($staff['staff']['role_slug'] ?? null);
+
+                if (!empty($role)) {
+                    // Delete role-specific data
+                    $this->deleteRoleSpecificData($role, $id);
+                }
             }
 
             // Delete staff record

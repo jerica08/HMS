@@ -8,7 +8,6 @@ class StaffManager {
         this.staff = [];
         this.filteredStaff = [];
         this.currentFilters = {
-            status: '',
             role: '',
             search: ''
         };
@@ -52,16 +51,8 @@ class StaffManager {
         }
 
         // Filter controls
-        const statusFilter = document.getElementById('statusFilter');
         const roleFilter = document.getElementById('roleFilter');
         const searchFilter = document.getElementById('searchFilter');
-
-        if (statusFilter) {
-            statusFilter.addEventListener('change', (e) => {
-                this.currentFilters.status = e.target.value;
-                this.applyFilters();
-            });
-        }
 
         if (roleFilter) {
             roleFilter.addEventListener('change', (e) => {
@@ -123,11 +114,6 @@ class StaffManager {
      */
     applyFilters() {
         this.filteredStaff = this.staff.filter(staff => {
-            // Status filter
-            if (this.currentFilters.status && staff.status !== this.currentFilters.status) {
-                return false;
-            }
-
             // Role filter
             if (this.currentFilters.role && staff.role !== this.currentFilters.role) {
                 return false;
@@ -165,7 +151,7 @@ class StaffManager {
         if (this.filteredStaff.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 2rem;">
+                    <td colspan="5" style="text-align: center; padding: 2rem;">
                         <i class="fas fa-users" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
                         <p>No staff found.</p>
                         ${this.hasActiveFilters() ? `
@@ -229,10 +215,6 @@ class StaffManager {
                     </span>
                 </td>
                 <td>${StaffUtils.escapeHtml(staff.department || 'N/A')}</td>
-                <td>
-                    <i class="fas fa-circle status-${staff.status ? staff.status.toLowerCase() : 'active'}" aria-hidden="true"></i> 
-                    ${StaffUtils.escapeHtml(staff.status ? staff.status.charAt(0).toUpperCase() + staff.status.slice(1) : 'Active')}
-                </td>
                 <td>${dateJoined}</td>
                 <td>
                     <div class="action-buttons">
@@ -375,7 +357,7 @@ class StaffManager {
     generateCSV() {
         const headers = [
             'Staff ID', 'Employee ID', 'First Name', 'Last Name', 'Email',
-            'Role', 'Department', 'Status', 'Date Joined', 'Phone', 'Address'
+            'Role', 'Department', 'Date Joined', 'Phone', 'Address'
         ];
 
         const rows = this.filteredStaff.map(staff => [
@@ -386,7 +368,6 @@ class StaffManager {
             staff.email || '',
             staff.role || '',
             staff.department || '',
-            staff.status || '',
             staff.date_joined || '',
             staff.phone || '',
             staff.address || ''
@@ -403,7 +384,7 @@ class StaffManager {
      * Check if there are active filters
      */
     hasActiveFilters() {
-        return this.currentFilters.status || this.currentFilters.role || this.currentFilters.search;
+        return this.currentFilters.role || this.currentFilters.search;
     }
 
     /**
@@ -428,14 +409,12 @@ class StaffManager {
 // Global functions for backward compatibility
 window.clearFilters = function() {
     if (window.staffManager) {
-        window.staffManager.currentFilters = { status: '', role: '', search: '' };
+        window.staffManager.currentFilters = { role: '', search: '' };
         
         // Reset filter controls
-        const statusFilter = document.getElementById('statusFilter');
         const roleFilter = document.getElementById('roleFilter');
         const searchFilter = document.getElementById('searchFilter');
         
-        if (statusFilter) statusFilter.value = '';
         if (roleFilter) roleFilter.value = '';
         if (searchFilter) searchFilter.value = '';
         

@@ -89,27 +89,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Staff by Role Card -->
-                <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple"><i class="fas fa-user-check"></i></div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Staff Status</h3>
-                            <p class="card-subtitle">Active vs Inactive</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $staffStats['active_staff'] ?? 0 ?></div>
-                            <div class="metric-label">Active</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value green"><?= $staffStats['inactive_staff'] ?? 0 ?></div>
-                            <div class="metric-label">Inactive</div>
-                        </div>
-                    </div>
-                </div>
             <?php elseif ($userRole === 'doctor'): ?>
                 <!-- Department Staff Card -->
                 <div class="overview-card" tabindex="0">
@@ -163,14 +142,13 @@
                             <th scope="col">Staff</th>
                             <th scope="col">Role</th>
                             <th scope="col">Department</th>
-                            <th scope="col">Status</th>
                             <th scope="col">Date Joined</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="staffTableBody">
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 2rem;">
+                            <td colspan="5" style="text-align: center; padding: 2rem;">
                                 <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
                                 <p>Loading staff...</p>
                             </td>

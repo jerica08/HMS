@@ -189,14 +189,6 @@
                         <input type="date" id="e_date_joined" name="date_joined" class="form-input">
                         <small id="e_err_date_joined" style="color:#dc2626"></small>
                     </div>
-                    <div>
-                        <label class="form-label" for="e_status">Status</label>
-                        <select id="e_status" name="status" class="form-select">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                        <small id="e_err_status" style="color:#dc2626"></small>
-                    </div>
                     <div class="full">
                         <label class="form-label" for="e_address">Address</label>
                         <textarea id="e_address" name="address" class="form-input" rows="2"></textarea>

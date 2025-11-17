@@ -127,6 +127,8 @@ $routes->post('admin/resources/add', 'ResourceManagement::add', ['filter' => 'ro
 $routes->get('admin/room-management', 'RoomManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('rooms/api', 'RoomManagement::getRoomsAPI', ['filter' => 'roleauth:admin']);
 $routes->post('rooms/create', 'RoomManagement::createRoom', ['filter' => 'roleauth:admin']);
+$routes->post('rooms/(:num)/update', 'RoomManagement::updateRoom/$1', ['filter' => 'roleauth:admin']);
+$routes->post('rooms/(:num)/delete', 'RoomManagement::deleteRoom/$1', ['filter' => 'roleauth:admin']);
 
 // ===================================================================
 // DEPARTMENT ROUTES

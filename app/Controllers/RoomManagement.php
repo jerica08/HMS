@@ -235,7 +235,63 @@ class RoomManagement extends BaseController
         $result = $this->roomService->createRoom($input);
 
         $statusCode = $result['success'] ? 200 : 400;
-        return $this->response->setStatusCode($statusCode)->setJSON($result);
+        return $this->response
+            ->setStatusCode($statusCode)
+            ->setJSON($this->appendCsrfHash($result));
+    }
+
+    public function updateRoom(int $roomId)
+    {
+        if (! $this->request->is('post')) {
+            return $this->response->setStatusCode(405)->setJSON($this->appendCsrfHash([
+                'success' => false,
+                'message' => 'Method not allowed',
+            ]));
+        }
+
+        $input = $this->request->getPost();
+        if (empty($input)) {
+            $jsonBody = $this->request->getJSON(true);
+            $input = is_array($jsonBody) ? $jsonBody : [];
+        }
+
+        $result = $this->roomService->updateRoom($roomId, $input);
+        $statusCode = $result['success'] ? 200 : 400;
+
+        return $this->response
+            ->setStatusCode($statusCode)
+            ->setJSON($this->appendCsrfHash($result));
+    }
+
+    public function deleteRoom(int $roomId)
+    {
+        if (! $this->request->is('post')) {
+            return $this->response->setStatusCode(405)->setJSON($this->appendCsrfHash([
+                'success' => false,
+                'message' => 'Method not allowed',
+            ]));
+        }
+
+        $input = $this->request->getPost();
+        if (empty($input)) {
+            $jsonBody = $this->request->getJSON(true);
+            $input = is_array($jsonBody) ? $jsonBody : [];
+        }
+
+        $tokenName = csrf_token();
+        if (! isset($input[$tokenName]) || $input[$tokenName] !== csrf_hash()) {
+            return $this->response->setStatusCode(403)->setJSON($this->appendCsrfHash([
+                'success' => false,
+                'message' => 'Invalid CSRF token',
+            ]));
+        }
+
+        $result = $this->roomService->deleteRoom($roomId);
+        $statusCode = $result['success'] ? 200 : 400;
+
+        return $this->response
+            ->setStatusCode($statusCode)
+            ->setJSON($this->appendCsrfHash($result));
     }
 
     private function ensureDefaultRoomTypes(): void
@@ -302,5 +358,11 @@ class RoomManagement extends BaseController
         }
 
         return sprintf('%s-%s-01', $floorCode, $acronym);
+    }
+
+    private function appendCsrfHash(array $payload): array
+    {
+        $payload['csrf_hash'] = csrf_hash();
+        return $payload;
     }
 }

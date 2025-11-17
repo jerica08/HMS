@@ -30,9 +30,15 @@ class RoomService
                 'r.room_id',
                 'r.room_number',
                 'r.room_name',
+                'r.room_type_id',
+                'r.floor_number',
+                'r.department_id',
                 'r.status',
                 'r.bed_capacity',
                 'r.rate_range',
+                'r.hourly_rate',
+                'r.extra_person_charge',
+                'r.overtime_charge_per_hour',
                 'rt.type_name',
                 'd.name as department_name',
             ])
@@ -46,19 +52,7 @@ class RoomService
     public function createRoom(array $input): array
     {
         $builder = $this->db->table('room');
-        $data = [
-            'room_number' => trim($input['room_number'] ?? ''),
-            'room_name' => trim($input['room_name'] ?? ''),
-            'room_type_id' => $input['room_type_id'] ? (int) $input['room_type_id'] : null,
-            'floor_number' => trim($input['floor_number'] ?? ''),
-            'department_id' => $input['department_id'] ? (int) $input['department_id'] : null,
-            'bed_capacity' => $input['bed_capacity'] ? (int) $input['bed_capacity'] : 1,
-            'status' => $input['status'] ?? 'available',
-            'rate_range' => trim($input['rate_range'] ?? ''),
-            'hourly_rate' => $this->sanitizeDecimal($input['hourly_rate'] ?? null),
-            'extra_person_charge' => $this->sanitizeDecimal($input['extra_person_charge'] ?? 0),
-            'overtime_charge_per_hour' => $this->sanitizeDecimal($input['overtime_charge_per_hour'] ?? null),
-        ];
+        $data = $this->mapRoomPayload($input);
 
         try {
             $builder->insert($data);
@@ -76,6 +70,95 @@ class RoomService
                 'message' => 'Could not create room: ' . $e->getMessage(),
             ];
         }
+    }
+
+    public function updateRoom(int $roomId, array $input): array
+    {
+        if ($roomId <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Invalid room ID provided',
+            ];
+        }
+
+        $data = $this->mapRoomPayload($input);
+
+        try {
+            $updated = $this->db->table('room')
+                ->where('room_id', $roomId)
+                ->update($data);
+
+            if (! $updated) {
+                return [
+                    'success' => false,
+                    'message' => 'Room was not updated. Please try again.',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Room updated successfully',
+            ];
+        } catch (\Throwable $e) {
+            log_message('error', 'RoomService::updateRoom failed: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Could not update room: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    public function deleteRoom(int $roomId): array
+    {
+        if ($roomId <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Invalid room ID provided',
+            ];
+        }
+
+        try {
+            $deleted = $this->db->table('room')
+                ->where('room_id', $roomId)
+                ->delete();
+
+            if (! $deleted || ! $this->db->affectedRows()) {
+                return [
+                    'success' => false,
+                    'message' => 'Room not found or already deleted',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Room deleted successfully',
+            ];
+        } catch (\Throwable $e) {
+            log_message('error', 'RoomService::deleteRoom failed: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Could not delete room: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    private function mapRoomPayload(array $input): array
+    {
+        return [
+            'room_number' => trim($input['room_number'] ?? ''),
+            'room_name' => trim($input['room_name'] ?? ''),
+            'room_type_id' => !empty($input['room_type_id']) ? (int) $input['room_type_id'] : null,
+            'floor_number' => trim($input['floor_number'] ?? ''),
+            'department_id' => !empty($input['department_id']) ? (int) $input['department_id'] : null,
+            'bed_capacity' => !empty($input['bed_capacity']) ? (int) $input['bed_capacity'] : 1,
+            'status' => $input['status'] ?? 'available',
+            'rate_range' => trim($input['rate_range'] ?? ''),
+            'hourly_rate' => $this->sanitizeDecimal($input['hourly_rate'] ?? null),
+            'extra_person_charge' => $this->sanitizeDecimal($input['extra_person_charge'] ?? 0),
+            'overtime_charge_per_hour' => $this->sanitizeDecimal($input['overtime_charge_per_hour'] ?? null),
+        ];
     }
 
     private function sanitizeDecimal($value): ?string

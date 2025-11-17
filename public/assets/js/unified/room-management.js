@@ -5,6 +5,7 @@
     const addRoomBtn = document.getElementById('addRoomBtn');
     const addRoomModal = document.getElementById('addRoomModal');
     const saveRoomBtn = document.getElementById('saveRoomBtn');
+    const modalTitle = document.getElementById('addRoomTitle');
     const roomTypeSelect = document.getElementById('modal_room_type');
     const floorInput = document.getElementById('modal_floor');
     const roomNumberInput = document.getElementById('modal_room_number');
@@ -12,7 +13,48 @@
     const roomNotesInput = document.getElementById('modal_notes');
     const roomTypeMetadata = window.roomTypeMetadata || {};
 
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfHashMeta = document.querySelector('meta[name="csrf-hash"]');
+    const csrfTokenName = csrfTokenMeta ? csrfTokenMeta.content : 'csrf_token';
+    let csrfHash = csrfHashMeta ? csrfHashMeta.content : '';
+    const csrfField = document.querySelector(`#addRoomForm input[name="${csrfTokenName}"]`);
     const existingRoomNumbers = new Set();
+    let roomsData = [];
+    let editingRoomId = null;
+
+    const refreshCsrfHash = (newHash) => {
+        if (!newHash) {
+            return;
+        }
+        csrfHash = newHash;
+        if (csrfHashMeta) {
+            csrfHashMeta.setAttribute('content', newHash);
+        }
+        if (csrfField) {
+            csrfField.value = newHash;
+        }
+    };
+
+    const showNotification = (message, type = 'success') => {
+        const iconMap = {
+            success: 'check-circle',
+            error: 'exclamation-triangle',
+            warning: 'exclamation-triangle',
+            info: 'info-circle',
+        };
+
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.style.cssText = 'position:fixed;top:20px;right:20px;z-index:1050;min-width:260px;box-shadow:0 4px 12px rgba(0,0,0,0.2);display:flex;align-items:center;gap:0.5rem;';
+        alert.innerHTML = `
+            <i class="fas fa-${iconMap[type] || 'info-circle'}"></i>
+            <span>${message}</span>
+            <button type="button" class="btn btn-link" style="margin-left:auto" aria-label="Dismiss">&times;</button>
+        `;
+        alert.querySelector('button').addEventListener('click', () => alert.remove());
+        document.body.appendChild(alert);
+        setTimeout(() => alert.remove(), 4000);
+    };
 
     const fetchRooms = async () => {
         try {
@@ -22,6 +64,7 @@
             const payload = await response.json();
             if (!payload?.data) throw new Error('Invalid API response');
 
+            roomsData = payload.data;
             renderRooms(payload.data);
         } catch (error) {
             console.error('Failed to load rooms', error);
@@ -66,9 +109,14 @@
                 <td>${capitalize(room.status || 'unknown')}</td>
                 <td>${escapeHtml(room.rate_range || '—')}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline" disabled>
-                        <i class="fas fa-pen"></i>
-                    </button>
+                    <div class="table-actions">
+                        <button class="btn btn-sm btn-outline" data-action="edit" data-room-id="${room.room_id}" aria-label="Edit room ${escapeHtml(room.room_number)}">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline btn-danger" data-action="delete" data-room-id="${room.room_id}" aria-label="Delete room ${escapeHtml(room.room_number)}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `).join('');
@@ -87,16 +135,27 @@
 
     const capitalize = (value) => value ? value.charAt(0).toUpperCase() + value.slice(1) : '—';
 
-    const openModal = () => {
+    const openModal = ({ skipAutofill = false } = {}) => {
         addRoomModal.style.display = 'block';
         addRoomModal.setAttribute('aria-hidden', 'false');
-        applySelectedRoomTypeMetadata();
+        if (!skipAutofill) {
+            applySelectedRoomTypeMetadata();
+        }
+        if (modalTitle) {
+            modalTitle.querySelector('span')?.remove();
+        }
     };
 
     const closeModal = () => {
         addRoomModal.style.display = 'none';
         addRoomModal.setAttribute('aria-hidden', 'true');
-        document.getElementById('addRoomForm').reset();
+        const form = document.getElementById('addRoomForm');
+        form.reset();
+        form.removeAttribute('data-room-id');
+        editingRoomId = null;
+        if (modalTitle) {
+            modalTitle.innerHTML = '<i class="fas fa-hotel" style="color:#0ea5e9"></i> Add New Room';
+        }
     };
 
     const handleModalClick = (event) => {
@@ -175,13 +234,20 @@
         const form = document.getElementById('addRoomForm');
         const formData = new FormData(form);
 
+        let endpoint = `${baseUrl}/rooms/create`;
+        if (editingRoomId) {
+            formData.append('room_id', editingRoomId);
+            endpoint = `${baseUrl}/rooms/${editingRoomId}/update`;
+        }
+
         try {
-            const response = await fetch(`${baseUrl}/rooms/create`, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 body: formData,
                 headers: { 'Accept': 'application/json' },
             });
             const result = await response.json();
+            refreshCsrfHash(result?.csrf_hash);
             if (!result.success) {
                 throw new Error(result.message || 'Failed to create room');
             }
@@ -191,21 +257,103 @@
                 existingRoomNumbers.add(submittedRoomNumber);
             }
 
-            alert('Room saved successfully.');
+            showNotification(`Room ${editingRoomId ? 'updated' : 'saved'} successfully.`, 'success');
             closeModal();
             fetchRooms();
         } catch (error) {
             console.error(error);
-            alert(error.message || 'Could not add room right now.');
+            showNotification(error.message || 'Could not process room right now.', 'error');
+        }
+    };
+
+    const handleTableClick = (event) => {
+        const actionBtn = event.target.closest('button[data-action]');
+        if (!actionBtn) {
+            return;
+        }
+
+        const { action, roomId } = actionBtn.dataset;
+        const room = roomsData.find((item) => String(item.room_id) === String(roomId));
+        if (!room) {
+            showNotification('Room not found in current list.', 'error');
+            return;
+        }
+
+        if (action === 'edit') {
+            startEditRoom(room);
+        } else if (action === 'delete') {
+            confirmDeleteRoom(room);
+        }
+    };
+
+    const fillFormWithRoom = (room) => {
+        const form = document.getElementById('addRoomForm');
+        form.setAttribute('data-room-id', room.room_id);
+        editingRoomId = room.room_id;
+
+        roomTypeSelect.value = room.room_type_id || '';
+        roomNumberInput.value = room.room_number || '';
+        document.getElementById('modal_room_name').value = room.room_name || '';
+        floorInput.value = room.floor_number || '';
+        rateRangeInput.value = room.rate_range || '';
+        document.getElementById('modal_hourly_rate').value = room.hourly_rate || '';
+        document.getElementById('modal_overtime_charge').value = room.overtime_charge_per_hour || '';
+        document.getElementById('modal_extra_charge').value = room.extra_person_charge || '';
+        document.getElementById('modal_bed_capacity').value = room.bed_capacity || '';
+        document.getElementById('modal_department').value = room.department_id || '';
+        document.getElementById('modal_status').value = room.status || 'available';
+    };
+
+    const startEditRoom = (room) => {
+        fillFormWithRoom(room);
+        if (modalTitle) {
+            modalTitle.innerHTML = '<i class="fas fa-hotel" style="color:#0ea5e9"></i> Edit Room';
+        }
+        openModal({ skipAutofill: true });
+    };
+
+    const confirmDeleteRoom = (room) => {
+        if (!confirm(`Delete room ${room.room_number}? This cannot be undone.`)) {
+            return;
+        }
+        deleteRoom(room.room_id);
+    };
+
+    const deleteRoom = async (roomId) => {
+        try {
+            const payload = new URLSearchParams();
+            payload.append(csrfTokenName, csrfHash);
+
+            const response = await fetch(`${baseUrl}/rooms/${roomId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                },
+                body: payload.toString(),
+            });
+
+            const result = await response.json();
+            refreshCsrfHash(result?.csrf_hash);
+            if (!result.success) {
+                throw new Error(result.message || 'Unable to delete room');
+            }
+
+            showNotification('Room deleted successfully.', 'success');
+            fetchRooms();
+        } catch (error) {
+            console.error(error);
+            showNotification(error.message || 'Could not delete room.', 'error');
         }
     };
 
     if (roomsTableBody) {
         fetchRooms();
+        roomsTableBody.addEventListener('click', handleTableClick);
     }
 
     if (addRoomBtn) {
-        addRoomBtn.addEventListener('click', openModal);
+        addRoomBtn.addEventListener('click', () => openModal());
     }
 
     if (saveRoomBtn) {

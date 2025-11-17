@@ -140,16 +140,13 @@ window.AddUserModal = {
         if (!selectedOption || !selectedOption.value) {
             // Clear dependent fields
             document.getElementById('email').value = '';
-            document.getElementById('role').value = '';
             return;
         }
         
-        // Populate email and role from selected staff
+        // Populate email from selected staff
         const email = selectedOption.dataset.email || '';
-        const role = selectedOption.dataset.role || '';
         
         document.getElementById('email').value = email;
-        document.getElementById('role').value = role;
         
         // Generate username suggestion
         const staff = this.staffCache.find(s => s.staff_id == selectedOption.value);

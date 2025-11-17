@@ -276,6 +276,15 @@ class UserManager {
         const lastLogin = user.last_login ? 
             UserUtils.formatDateTime(user.last_login) : 'Never';
 
+        // Determine role class (slug) and display label (name)
+        const roleSlug = user.role || user.role_slug || '';
+        const roleClass = roleSlug ? roleSlug.toLowerCase().replace('_', '-') : 'user';
+        const roleLabel = user.role_name
+            ? user.role_name
+            : (roleSlug
+                ? roleSlug.charAt(0).toUpperCase() + roleSlug.slice(1).replace('_', ' ')
+                : 'User');
+
         return `
             <tr class="user-row">
                 <td>
@@ -294,8 +303,8 @@ class UserManager {
                     </div>
                 </td>
                 <td>
-                    <span class="role-badge role-${user.role ? user.role.toLowerCase().replace('_', '-') : 'user'}">
-                        ${UserUtils.escapeHtml(user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1).replace('_', ' ') : 'User')}
+                    <span class="role-badge role-${roleClass}">
+                        ${UserUtils.escapeHtml(roleLabel)}
                     </span>
                 </td>
                 <td>${UserUtils.escapeHtml(user.department || 'N/A')}</td>

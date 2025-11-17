@@ -94,7 +94,6 @@ window.EditUserModal = {
             'e_user_id': user.user_id || '',
             'e_username': user.username || '',
             'e_email': user.email || '',
-            'e_role': user.role || '',
             'e_status': user.status || 'active'
         };
         

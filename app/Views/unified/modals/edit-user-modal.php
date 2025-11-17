@@ -25,21 +25,6 @@
                         <small id="e_err_email" style="color:#dc2626"></small>
                     </div>
                     <div>
-                        <label class="form-label" for="e_role">Role*</label>
-                        <select id="e_role" name="role" class="form-select" required>
-                            <option value="">Select role</option>
-                            <option value="admin">Admin</option>
-                            <option value="doctor">Doctor</option>
-                            <option value="nurse">Nurse</option>
-                            <option value="pharmacist">Pharmacist</option>
-                            <option value="receptionist">Receptionist</option>
-                            <option value="laboratorist">Laboratorist</option>
-                            <option value="it_staff">IT Staff</option>
-                            <option value="accountant">Accountant</option>
-                        </select>
-                        <small id="e_err_role" style="color:#dc2626"></small>
-                    </div>
-                    <div>
                         <label class="form-label" for="e_status">Status</label>
                         <select id="e_status" name="status" class="form-select">
                             <option value="active">Active</option>

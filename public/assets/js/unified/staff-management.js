@@ -197,6 +197,15 @@ class StaffManager {
                 day: 'numeric'
             }) : 'N/A';
 
+        // Determine role slug/class and display name
+        const roleSlug = staff.role || staff.role_slug || '';
+        const roleClass = roleSlug ? roleSlug.toLowerCase().replace('_', '-') : 'staff';
+        const roleLabel = staff.role_name
+            ? staff.role_name
+            : (roleSlug
+                ? roleSlug.charAt(0).toUpperCase() + roleSlug.slice(1).replace('_', ' ')
+                : 'Staff');
+
         return `
             <tr class="staff-row">
                 <td>
@@ -215,8 +224,8 @@ class StaffManager {
                     </div>
                 </td>
                 <td>
-                    <span class="role-badge role-${staff.role ? staff.role.toLowerCase().replace('_', '-') : 'staff'}">
-                        ${StaffUtils.escapeHtml(staff.role ? staff.role.charAt(0).toUpperCase() + staff.role.slice(1).replace('_', ' ') : 'Staff')}
+                    <span class="role-badge role-${roleClass}">
+                        ${StaffUtils.escapeHtml(roleLabel)}
                     </span>
                 </td>
                 <td>${StaffUtils.escapeHtml(staff.department || 'N/A')}</td>

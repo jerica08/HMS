@@ -52,21 +52,6 @@
                         <small id="err_email" style="color:#dc2626"></small>
                     </div>
                     <div>
-                        <label class="form-label" for="role">Role*</label>
-                        <select id="role" name="role" class="form-select" required>
-                            <option value="">Select role</option>
-                            <option value="admin">Admin</option>
-                            <option value="doctor">Doctor</option>
-                            <option value="nurse">Nurse</option>
-                            <option value="pharmacist">Pharmacist</option>
-                            <option value="receptionist">Receptionist</option>
-                            <option value="laboratorist">Laboratorist</option>
-                            <option value="it_staff">IT Staff</option>
-                            <option value="accountant">Accountant</option>
-                        </select>
-                        <small id="err_role" style="color:#dc2626"></small>
-                    </div>
-                    <div>
                         <label class="form-label" for="password">Password*</label>
                         <input type="password" id="password" name="password" class="form-input" required minlength="6">
                         <small class="form-help">Minimum 6 characters</small>

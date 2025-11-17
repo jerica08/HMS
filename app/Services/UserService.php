@@ -251,18 +251,36 @@ class UserService
                 throw new \Exception('Staff ID, username, and password are required');
             }
 
-            // Map role slug (from form field 'role') to roles.role_id
-            if (empty($data['role'])) {
-                throw new \Exception('Role is required');
-            }
-
-            $role = $this->db->table('roles')
-                ->where('slug', $data['role'])
+            // Derive role from the selected staff member instead of requiring it from the form
+            $staffId = (int) $data['staff_id'];
+            $staffRow = $this->db->table('staff s')
+                ->select('s.*, rl.role_id as resolved_role_id')
+                ->join('roles rl', 'rl.role_id = s.role_id', 'left')
+                ->where('s.staff_id', $staffId)
                 ->get()
                 ->getRowArray();
 
-            if (!$role) {
-                throw new \Exception('Invalid role selected');
+            if (!$staffRow) {
+                throw new \Exception('Selected staff member not found');
+            }
+
+            // Prefer staff.role_id if available; otherwise try to resolve from staff.role slug
+            $roleId = null;
+            if (!empty($staffRow['role_id'])) {
+                $roleId = (int) $staffRow['role_id'];
+            } elseif (!empty($staffRow['role'])) {
+                $roleRow = $this->db->table('roles')
+                    ->where('slug', $staffRow['role'])
+                    ->get()
+                    ->getRowArray();
+                if (!$roleRow) {
+                    throw new \Exception('Unable to resolve role for selected staff');
+                }
+                $roleId = (int) $roleRow['role_id'];
+            }
+
+            if (empty($roleId)) {
+                throw new \Exception('Unable to determine role for selected staff');
             }
 
             // Check if username already exists
@@ -283,7 +301,7 @@ class UserService
                 'username' => $data['username'],
                 'email' => $data['email'] ?? null,
                 'password' => password_hash($data['password'], PASSWORD_DEFAULT),
-                'role_id' => $role['role_id'],
+                'role_id' => $roleId,
                 'status' => $data['status'] ?? 'active',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
@@ -340,22 +358,6 @@ class UserService
                 if (isset($data[$field]) && $data[$field] !== '') {
                     $updateData[$field] = $data[$field];
                 }
-            }
-
-            // Handle role change: form sends a role slug, we must map it to roles.role_id
-            if (isset($data['role']) && $data['role'] !== '') {
-                $roleSlug = $data['role'];
-
-                $role = $this->db->table('roles')
-                    ->where('slug', $roleSlug)
-                    ->get()
-                    ->getRowArray();
-
-                if (!$role) {
-                    throw new \Exception('Invalid role selected');
-                }
-
-                $updateData['role_id'] = $role['role_id'];
             }
 
             if (empty($updateData)) {

@@ -110,6 +110,14 @@ class StaffService
                 ->get()
                 ->getResultArray();
 
+            // Normalize role field for frontend (prefer slug, then name)
+            $staff = array_map(function ($row) {
+                if (empty($row['role'])) {
+                    $row['role'] = $row['role_slug'] ?? ($row['role_name'] ?? null);
+                }
+                return $row;
+            }, $staff);
+
             return [
                 'success' => true,
                 'data' => $staff,
@@ -304,10 +312,21 @@ class StaffService
 
     try {
         if (!empty($input['department'])) {
+            // Ensure the named department exists
             $this->ensureDepartmentExists($input['department']);
+
+            // Look up its ID and set department_id accordingly
+            $deptRow = $this->db->table('department')
+                ->where('name', $input['department'])
+                ->get()
+                ->getRowArray();
+            if ($deptRow && isset($deptRow['department_id'])) {
+                $input['department_id'] = $deptRow['department_id'];
+            }
+        } else {
+            // No department provided – ensure department_id is null so FK is not violated
+            $input['department_id'] = null;
         }
-        // Insert the core staff record in its own transaction
-        $this->db->transStart();
 
         // Prepare staff data
         $staffData = $this->prepareStaffData($input);
@@ -315,16 +334,25 @@ class StaffService
         // Insert staff record (filter to existing columns)
         $staffData = $this->filterToExistingColumns('staff', $staffData);
         $this->db->table('staff')->insert($staffData);
-        $staffId = $this->db->insertID();
 
-        $this->db->transComplete();
-
-        if ($this->db->transStatus() === false) {
-            $dbError = $this->db->error();
+        // Check for low-level DB error immediately after insert
+        $dbError = $this->db->error();
+        if (!empty($dbError['code'])) {
+            log_message('error', 'StaffService::createStaff DB error: ' . json_encode($dbError) . ' data=' . json_encode($staffData));
             $errMsg = !empty($dbError['message']) ? $dbError['message'] : 'Failed to create staff member';
             return [
                 'success' => false,
                 'message' => $errMsg,
+                'errors'  => $dbError,
+            ];
+        }
+
+        $staffId = $this->db->insertID();
+        if (!$staffId) {
+            log_message('error', 'StaffService::createStaff insertID is zero; data=' . json_encode($staffData));
+            return [
+                'success' => false,
+                'message' => 'Failed to create staff member',
             ];
         }
 
@@ -425,6 +453,24 @@ class StaffService
             $this->db->table('staff')
                 ->where('staff_id', $id)
                 ->update($staffData);
+
+            // Keep linked user role in sync with staff role
+            $roleId = $staffData['role_id'] ?? null;
+            if (empty($roleId) && !empty($input['role'])) {
+                $roleRow = $this->db->table('roles')
+                    ->where('slug', $input['role'])
+                    ->get()
+                    ->getRowArray();
+                if ($roleRow && isset($roleRow['role_id'])) {
+                    $roleId = (int) $roleRow['role_id'];
+                }
+            }
+
+            if (!empty($roleId)) {
+                $this->db->table('users')
+                    ->where('staff_id', $id)
+                    ->update(['role_id' => $roleId]);
+            }
 
             return [
                 'success' => true,

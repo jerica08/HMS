@@ -10,12 +10,22 @@ class AdminUserSeeder extends Seeder
     {
         $db = \Config\Database::connect();
 
+        // Resolve shared IDs from reference tables
+        $adminDeptId  = $this->getDepartmentId($db, 'Administration');
+        $nurseDeptId  = $this->getDepartmentId($db, 'Nursing');
+        $receptDeptId = $this->getDepartmentId($db, 'Reception');
+
+        $adminRoleId  = $this->getRoleId($db, 'admin');
+        $nurseRoleId  = $this->getRoleId($db, 'nurse');
+        $receptRoleId = $this->getRoleId($db, 'receptionist');
+
         // 1) Ensure an Admin staff exists
         $staff = $db->table('staff')->where('email', 'admin@hospital.com')->get()->getRowArray();
 
         if (!$staff) {
             $db->table('staff')->insert([
                 'employee_id' => 'EMP001',
+                'department_id' => $adminDeptId,
                 'first_name'  => 'Admin',
                 'last_name'   => 'User',
                 'gender'      => 'male',
@@ -23,9 +33,7 @@ class AdminUserSeeder extends Seeder
                 'contact_no'  => '1234567890',
                 'email'       => 'admin@hospital.com',
                 'address'     => 'Hospital Address',
-                'department'  => 'Administration',
-                'designation' => 'Administrator',
-                'role'        => 'admin', // matches ENUM in staff table
+                'role_id'     => $adminRoleId,
                 'date_joined' => date('Y-m-d'),
             ]);
 
@@ -44,7 +52,7 @@ class AdminUserSeeder extends Seeder
             'last_name'  => 'User',
             'username'   => 'admin',
             'password'   => password_hash('admin123', PASSWORD_DEFAULT),
-            'role'       => 'admin', // matches ENUM in users table
+            'role_id'    => $adminRoleId,
             'status'     => 'active',
             'created_at' => date('Y-m-d H:i:s'),
         ];
@@ -64,12 +72,16 @@ class AdminUserSeeder extends Seeder
 
     private function createNurseAccounts($db)
     {
+        $nurseDeptId = $this->getDepartmentId($db, 'Nursing');
+        $nurseRoleId = $this->getRoleId($db, 'nurse');
+
         // Create Senior Nurse staff
         $nurseStaff = $db->table('staff')->where('email', 'nurse.senior@hospital.com')->get()->getRowArray();
 
         if (!$nurseStaff) {
             $db->table('staff')->insert([
                 'employee_id' => 'NUR001',
+                'department_id' => $nurseDeptId,
                 'first_name'  => 'Sarah',
                 'last_name'   => 'Johnson',
                 'gender'      => 'female',
@@ -77,9 +89,7 @@ class AdminUserSeeder extends Seeder
                 'contact_no'  => '2345678901',
                 'email'       => 'nurse.senior@hospital.com',
                 'address'     => 'Hospital Staff Quarters',
-                'department'  => 'Nursing',
-                'designation' => 'Senior Nurse',
-                'role'        => 'nurse',
+                'role_id'     => $nurseRoleId,
                 'date_joined' => date('Y-m-d'),
             ]);
 
@@ -98,7 +108,7 @@ class AdminUserSeeder extends Seeder
             'last_name'  => 'Johnson',
             'username'   => 'nurse',
             'password'   => password_hash('nurse123', PASSWORD_DEFAULT),
-            'role'       => 'nurse',
+            'role_id'    => $nurseRoleId,
             'status'     => 'active',
             'created_at' => date('Y-m-d H:i:s'),
         ];
@@ -115,6 +125,7 @@ class AdminUserSeeder extends Seeder
         if (!$juniorNurseStaff) {
             $db->table('staff')->insert([
                 'employee_id' => 'NUR002',
+                'department_id' => $nurseDeptId,
                 'first_name'  => 'Michael',
                 'last_name'   => 'Chen',
                 'gender'      => 'male',
@@ -122,9 +133,7 @@ class AdminUserSeeder extends Seeder
                 'contact_no'  => '3456789012',
                 'email'       => 'nurse.junior@hospital.com',
                 'address'     => 'Hospital Staff Quarters',
-                'department'  => 'Nursing',
-                'designation' => 'Junior Nurse',
-                'role'        => 'nurse',
+                'role_id'     => $nurseRoleId,
                 'date_joined' => date('Y-m-d'),
             ]);
 
@@ -143,7 +152,7 @@ class AdminUserSeeder extends Seeder
             'last_name'  => 'Chen',
             'username'   => 'nurse2',
             'password'   => password_hash('nurse123', PASSWORD_DEFAULT),
-            'role'       => 'nurse',
+            'role_id'    => $nurseRoleId,
             'status'     => 'active',
             'created_at' => date('Y-m-d H:i:s'),
         ];
@@ -157,12 +166,16 @@ class AdminUserSeeder extends Seeder
 
     private function createReceptionistAccount($db)
     {
+        $receptDeptId = $this->getDepartmentId($db, 'Reception');
+        $receptRoleId = $this->getRoleId($db, 'receptionist');
+
         // Create Receptionist staff
         $receptionistStaff = $db->table('staff')->where('email', 'receptionist@hospital.com')->get()->getRowArray();
 
         if (!$receptionistStaff) {
             $db->table('staff')->insert([
                 'employee_id' => 'REC001',
+                'department_id' => $receptDeptId,
                 'first_name'  => 'Maria',
                 'last_name'   => 'Santos',
                 'gender'      => 'female',
@@ -170,9 +183,7 @@ class AdminUserSeeder extends Seeder
                 'contact_no'  => '09123456789',
                 'email'       => 'receptionist@hospital.com',
                 'address'     => 'Hospital Reception',
-                'department'  => 'Reception',
-                'designation' => 'Senior Receptionist',
-                'role'        => 'receptionist',
+                'role_id'     => $receptRoleId,
                 'date_joined' => date('Y-m-d'),
             ]);
 
@@ -191,7 +202,7 @@ class AdminUserSeeder extends Seeder
             'last_name'  => 'Santos',
             'username'   => 'receptionist',
             'password'   => password_hash('receptionist123', PASSWORD_DEFAULT),
-            'role'       => 'receptionist',
+            'role_id'    => $receptRoleId,
             'status'     => 'active',
             'created_at' => date('Y-m-d H:i:s'),
         ];
@@ -201,5 +212,17 @@ class AdminUserSeeder extends Seeder
         } else {
             $db->table('users')->insert($receptionistUserData);
         }
+    }
+
+    private function getDepartmentId($db, string $name): ?int
+    {
+        $row = $db->table('department')->select('department_id')->where('name', $name)->get()->getRowArray();
+        return $row ? (int) $row['department_id'] : null;
+    }
+
+    private function getRoleId($db, string $slug): ?int
+    {
+        $row = $db->table('roles')->select('role_id')->where('slug', $slug)->get()->getRowArray();
+        return $row ? (int) $row['role_id'] : null;
     }
 }

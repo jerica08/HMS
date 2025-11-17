@@ -199,8 +199,10 @@
                                 </td>
                                 <td><?= esc($user['department'] ?? 'N/A') ?></td>
                                 <td>
-                                    <i class="fas fa-circle status-<?= esc($user['status'] ? strtolower($user['status']) : 'active') ?>" aria-hidden="true"></i> 
-                                    <?= esc($user['status'] ? ucfirst($user['status']) : 'Active') ?>
+                                    <?php $status = strtolower($user['status'] ?? 'active'); ?>
+                                    <span class="status-badge <?= esc($status) ?>">
+                                        <?= esc(ucfirst($status)) ?>
+                                    </span>
                                 </td>
                                 <td><?= esc($user['last_login'] ?? 'Never') ?></td>
                                 <td>
@@ -219,14 +221,6 @@
                                                     data-user-id="<?= esc($user['user_id']) ?>"
                                                     aria-label="Reset Password for <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?>">
                                                 <i class="fas fa-key" aria-hidden="true"></i> Reset
-                                            </button>
-                                        <?php endif; ?>
-                                        <?php if (($permissions['canDelete'] ?? false) && (($user['role_slug'] ?? '') !== 'admin')): ?>
-                                            <button class="btn btn-danger btn-small action-btn" 
-                                                    data-action="delete" 
-                                                    data-user-id="<?= esc($user['user_id']) ?>"
-                                                    aria-label="Delete User <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?>">
-                                                <i class="fas fa-trash" aria-hidden="true"></i> Delete
                                             </button>
                                         <?php endif; ?>
                                     </div>

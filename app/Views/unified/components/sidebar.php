@@ -93,7 +93,7 @@ elseif ($userRole === 'accountant') {
 elseif ($userRole === 'it_staff') {
     $navigationItems = [
         ['url' => 'it-staff/dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
-        ['url' => 'it-staff/staff-management', 'icon' => 'fas fa-user-tie', 'label' => 'Staff Management'],
+        ['url' => 'it-staff/staff', 'icon' => 'fas fa-user-tie', 'label' => 'Staff Management'],
         ['url' => 'it-staff/users', 'icon' => 'fas fa-users', 'label' => 'User Management'],
         //['url' => 'it-staff/system-settings', 'icon' => 'fas fa-cogs', 'label' => 'System Settings'],
        // ['url' => 'it-staff/backups', 'icon' => 'fas fa-database', 'label' => 'Backups'],

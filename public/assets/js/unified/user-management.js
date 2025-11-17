@@ -37,6 +37,42 @@ class UserManager {
         }
     }
 
+    async restoreUser(userId) {
+        if (!this.canRestore()) {
+            UserUtils.showNotification('You do not have permission to restore users', 'error');
+            return;
+        }
+
+        const user = this.users.find(u => u.user_id == userId);
+        if (!user) {
+            UserUtils.showNotification('User not found', 'error');
+            return;
+        }
+
+        const fullName = UserUtils.formatFullName(user.first_name, user.last_name);
+
+        if (!confirm(`Are you sure you want to restore user "${fullName}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await UserUtils.makeRequest(
+                UserConfig.getUrl(`${UserConfig.endpoints.userRestore}/${userId}`),
+                { method: 'POST' }
+            );
+
+            if (response.status === 'success') {
+                UserUtils.showNotification(response.message || 'User restored successfully', 'success');
+                this.loadUsers(); // IT staff list will update (user disappears because now active)
+            } else {
+                throw new Error(response.message || 'Failed to restore user');
+            }
+        } catch (error) {
+            console.error('Error restoring user:', error);
+            UserUtils.showNotification('Failed to restore user: ' + error.message, 'error');
+        }
+    }
+
     /**
      * Bind event listeners
      */
@@ -233,6 +269,9 @@ class UserManager {
     createUserRow(user) {
         const fullName = UserUtils.formatFullName(user.first_name, user.last_name);
         
+        // Normalize status value
+        const statusValue = (user.status || 'active').toLowerCase();
+
         // Format last login
         const lastLogin = user.last_login ? 
             UserUtils.formatDateTime(user.last_login) : 'Never';
@@ -261,8 +300,9 @@ class UserManager {
                 </td>
                 <td>${UserUtils.escapeHtml(user.department || 'N/A')}</td>
                 <td>
-                    <i class="fas fa-circle status-${user.status ? user.status.toLowerCase() : 'active'}" aria-hidden="true"></i> 
-                    ${UserUtils.escapeHtml(user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Active')}
+                    <span class="status-badge ${statusValue}">
+                        ${UserUtils.escapeHtml(statusValue.charAt(0).toUpperCase() + statusValue.slice(1))}
+                    </span>
                 </td>
                 <td>${lastLogin}</td>
                 <td>
@@ -279,12 +319,12 @@ class UserManager {
                                 aria-label="Reset Password for ${UserUtils.escapeHtml(fullName)}">
                             <i class="fas fa-key" aria-hidden="true"></i> Reset
                         </button>
-                        ${this.canDelete() ? `
-                            <button class="btn btn-danger btn-small action-btn" 
-                                    data-action="delete" 
+                        ${statusValue === 'inactive' && this.canRestore() ? `
+                            <button class="btn btn-success btn-small action-btn" 
+                                    data-action="restore" 
                                     data-user-id="${user.user_id}"
-                                    aria-label="Delete User ${UserUtils.escapeHtml(fullName)}">
-                                <i class="fas fa-trash" aria-hidden="true"></i> Delete
+                                    aria-label="Restore User ${UserUtils.escapeHtml(fullName)}">
+                                <i class="fas fa-undo" aria-hidden="true"></i> Restore
                             </button>
                         ` : ''}
                     </div>
@@ -307,8 +347,8 @@ class UserManager {
             case 'reset':
                 this.resetPassword(userId);
                 break;
-            case 'delete':
-                this.deleteUser(userId);
+            case 'restore':
+                this.restoreUser(userId);
                 break;
         }
     }
@@ -375,45 +415,6 @@ class UserManager {
         } catch (error) {
             console.error('Error resetting password:', error);
             UserUtils.showNotification('Failed to reset password: ' + error.message, 'error');
-        }
-    }
-
-    /**
-     * Delete user
-     */
-    async deleteUser(userId) {
-        if (!this.canDelete()) {
-            UserUtils.showNotification('You do not have permission to delete users', 'error');
-            return;
-        }
-
-        const user = this.users.find(u => u.user_id == userId);
-        if (!user) {
-            UserUtils.showNotification('User not found', 'error');
-            return;
-        }
-
-        const fullName = UserUtils.formatFullName(user.first_name, user.last_name);
-        
-        if (!confirm(`Are you sure you want to delete user "${fullName}"? This action cannot be undone.`)) {
-            return;
-        }
-
-        try {
-            const response = await UserUtils.makeRequest(
-                UserConfig.getUrl(`${UserConfig.endpoints.userDelete}/${userId}`),
-                { method: 'DELETE' }
-            );
-
-            if (response.status === 'success') {
-                UserUtils.showNotification('User deleted successfully', 'success');
-                this.loadUsers(); // Reload the list
-            } else {
-                throw new Error(response.message || 'Failed to delete user');
-            }
-        } catch (error) {
-            console.error('Error deleting user:', error);
-            UserUtils.showNotification('Failed to delete user: ' + error.message, 'error');
         }
     }
 
@@ -496,6 +497,11 @@ class UserManager {
     }
 
     canResetPassword() {
+        return ['admin', 'it_staff'].includes(UserConfig.userRole);
+    }
+
+    canRestore() {
+        // Allow restore for IT staff and admin
         return ['admin', 'it_staff'].includes(UserConfig.userRole);
     }
 }

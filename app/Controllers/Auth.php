@@ -25,7 +25,7 @@ class Auth extends BaseController
                 case 'receptionist':
                     return redirect()->to('/receptionist/dashboard');
                 case 'it_staff':
-                    return redirect()->to('/it/dashboard');
+                    return redirect()->to('/it-staff/dashboard');
                 case 'pharmacist':
                     return redirect()->to('/pharmacists/dashboard');
                 case 'laboratorist':
@@ -112,7 +112,8 @@ class Auth extends BaseController
                         case 'receptionist':
                             return redirect()->to('/receptionist/dashboard');
                         case 'it_staff':
-                            return redirect()->to('/it/dashboard');
+                            // Unified IT staff dashboard
+                            return redirect()->to('/it-staff/dashboard');
                         case 'pharmacist':
                             return redirect()->to('/pharmacists/dashboard');
                         case 'laboratorist':

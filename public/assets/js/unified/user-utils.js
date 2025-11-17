@@ -16,6 +16,7 @@ window.UserConfig = {
         userGet: 'users',
         userDelete: 'users/delete',
         userResetPassword: 'users/reset-password',
+        userRestore: 'users/restore',
         availableStaff: 'users/available-staff'
     },
     
@@ -26,9 +27,7 @@ window.UserConfig = {
 
 // Utility functions
 window.UserUtils = {
-    /**
-     * Escape HTML to prevent XSS
-     */
+    
     escapeHtml: function(text) {
         if (text === null || text === undefined) return '';
         const div = document.createElement('div');

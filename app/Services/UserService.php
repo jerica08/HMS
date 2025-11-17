@@ -44,10 +44,23 @@ class UserService
 
             switch ($userRole) {
                 case 'admin':
+                    // Admin: focus on active users by default
+                    $users = $builder
+                        ->where('u.status', 'active')
+                        ->orderBy('u.created_at', 'DESC')
+                        ->get()
+                        ->getResultArray();
+                    log_message('debug', 'UserService: Admin query (active users only) returned ' . count($users) . ' users');
+                    break;
+
                 case 'it_staff':
-                    // Admin and IT staff can see all users
-                    $users = $builder->orderBy('u.created_at', 'DESC')->get()->getResultArray();
-                    log_message('debug', 'UserService: Admin/IT staff query returned ' . count($users) . ' users');
+                    // IT staff: view only inactive (soft-deleted) users
+                    $users = $builder
+                        ->where('u.status', 'inactive')
+                        ->orderBy('u.created_at', 'DESC')
+                        ->get()
+                        ->getResultArray();
+                    log_message('debug', 'UserService: IT staff query (inactive users only) returned ' . count($users) . ' users');
                     break;
                     
                 case 'doctor':
@@ -94,14 +107,13 @@ class UserService
                     log_message('debug', 'UserService: Default role query returned ' . count($users) . ' users');
             }
 
-            // If join query failed, return basic user data
-            if (empty($users) && !empty($allUsers)) {
-                log_message('warning', 'UserService: Join query failed, returning basic user data');
-                $users = $allUsers;
-            }
-
             // Format user data
             $formattedUsers = array_map(function($user) {
+                // Normalize role for frontend (use slug when available)
+                if (!isset($user['role']) || empty($user['role'])) {
+                    $user['role'] = $user['role_slug'] ?? ($user['role_name'] ?? null);
+                }
+
                 $user['full_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
                 if (empty($user['full_name'])) {
                     $user['full_name'] = $user['username'] ?? 'Unknown User';
@@ -117,6 +129,52 @@ class UserService
             log_message('error', 'UserService getUsersByRole error: ' . $e->getMessage());
             log_message('error', 'UserService Stack trace: ' . $e->getTraceAsString());
             return [];
+        }
+    }
+
+    /**
+     * Restore a previously deactivated (inactive) user
+     */
+    public function restoreUser($userId, $userRole)
+    {
+        // Require edit permission to restore
+        if (!PermissionManager::hasPermission($userRole, 'users', 'edit')) {
+            throw new \Exception('Insufficient permissions to restore users');
+        }
+
+        try {
+            // Get existing user
+            $existingUser = $this->userBuilder->where('user_id', $userId)->get()->getRowArray();
+
+            if (!$existingUser) {
+                throw new \Exception('User not found');
+            }
+
+            if (($existingUser['status'] ?? 'active') === 'active') {
+                return [
+                    'status' => 'success',
+                    'message' => 'User is already active'
+                ];
+            }
+
+            $result = $this->userBuilder
+                ->where('user_id', $userId)
+                ->update([
+                    'status' => 'active',
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+
+            if (!$result) {
+                throw new \Exception('Failed to restore user');
+            }
+
+            return [
+                'status' => 'success',
+                'message' => 'User restored successfully'
+            ];
+
+        } catch (\Exception $e) {
+            throw $e;
         }
     }
 
@@ -274,12 +332,30 @@ class UserService
 
             // Prepare update data
             $updateData = [];
-            $allowedFields = ['username', 'email', 'role', 'status'];
-            
-            foreach ($allowedFields as $field) {
+
+            // Basic fields that exist directly on users table
+            $basicFields = ['username', 'email', 'status'];
+
+            foreach ($basicFields as $field) {
                 if (isset($data[$field]) && $data[$field] !== '') {
                     $updateData[$field] = $data[$field];
                 }
+            }
+
+            // Handle role change: form sends a role slug, we must map it to roles.role_id
+            if (isset($data['role']) && $data['role'] !== '') {
+                $roleSlug = $data['role'];
+
+                $role = $this->db->table('roles')
+                    ->where('slug', $roleSlug)
+                    ->get()
+                    ->getRowArray();
+
+                if (!$role) {
+                    throw new \Exception('Invalid role selected');
+                }
+
+                $updateData['role_id'] = $role['role_id'];
             }
 
             if (empty($updateData)) {
@@ -345,15 +421,28 @@ class UserService
                 throw new \Exception('Cannot delete admin users');
             }
 
-            $result = $this->userBuilder->where('user_id', $userId)->delete();
+            // Soft delete: mark user as inactive instead of removing record
+            if ($existingUser['status'] === 'inactive') {
+                return [
+                    'status' => 'success',
+                    'message' => 'User is already inactive'
+                ];
+            }
+
+            $result = $this->userBuilder
+                ->where('user_id', $userId)
+                ->update([
+                    'status' => 'inactive',
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
 
             if (!$result) {
-                throw new \Exception('Failed to delete user');
+                throw new \Exception('Failed to deactivate user');
             }
 
             return [
                 'status' => 'success',
-                'message' => 'User deleted successfully'
+                'message' => 'User set to inactive successfully'
             ];
 
         } catch (\Exception $e) {
@@ -368,9 +457,10 @@ class UserService
     {
         try {
             $user = $this->db->table('users u')
-                ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id')
+                ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id, rl.slug as role_slug, rl.name as role_name')
                 ->join('staff s', 's.staff_id = u.staff_id', 'left')
                 ->join('department d', 'd.department_id = s.department_id', 'left')
+                ->join('roles rl', 'rl.role_id = u.role_id', 'left')
                 ->where('u.user_id', $userId)
                 ->get()->getRowArray();
 
@@ -382,6 +472,9 @@ class UserService
             if (!$this->canViewUser($user, $userRole)) {
                 throw new \Exception('Insufficient permissions to view this user');
             }
+
+            // Normalize role field for frontend (use slug when available)
+            $user['role'] = $user['role_slug'] ?? ($user['role_name'] ?? null);
 
             $user['full_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
             $user['id'] = $user['user_id'];

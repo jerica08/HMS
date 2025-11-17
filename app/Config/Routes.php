@@ -64,6 +64,7 @@ $routes->post('users/create', 'UserManagement::create', ['filter' => 'roleauth:a
 $routes->post('users/update/(:num)', 'UserManagement::update/$1', ['filter' => 'roleauth:admin,it_staff']);
 $routes->post('users/reset-password/(:num)', 'UserManagement::resetPassword/$1', ['filter' => 'roleauth:admin,it_staff']);
 $routes->delete('users/delete/(:num)', 'UserManagement::delete/$1', ['filter' => 'roleauth:admin,it_staff']);
+$routes->post('users/restore/(:num)', 'UserManagement::restore/$1', ['filter' => 'roleauth:admin,it_staff']);
 
 // Legacy Admin User Management Routes
 $routes->post('admin/user-management/create', 'UserManagement::create', ['filter' => 'roleauth:admin']);

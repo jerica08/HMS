@@ -78,10 +78,6 @@
                         </select>
                     </div>
 
-                    <div class="full">
-                        <label class="form-label" for="shiftNotes">Notes</label>
-                        <textarea id="shiftNotes" name="notes" class="form-input" rows="3" placeholder="Optional notes..." style="resize: vertical; min-height: 80px;"></textarea>
-                    </div>
                 </div>
             </div>
 

@@ -392,7 +392,76 @@ class ShiftManagement extends BaseController
                 ]);
             }
 
-            // Mock successful update
+            $id = (int) $input['id'];
+
+            $db = \Config\Database::connect();
+
+            // Build fields we allow to be updated from the schedule edit form
+            $data = [];
+
+            // Doctor/staff change (optional)
+            if (!empty($input['staff_id']) || !empty($input['doctor_id'])) {
+                $staffId = $input['staff_id'] ?? $input['doctor_id'];
+
+                // Ensure provided staff_id belongs to a doctor
+                $isDoctor = $db->table('doctor')
+                    ->where('staff_id', $staffId)
+                    ->countAllResults() > 0;
+
+                if (!$isDoctor) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status'  => 'error',
+                        'message' => 'Only doctors can have schedules',
+                        'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
+                    ]);
+                }
+
+                $data['staff_id'] = (int) $staffId;
+            }
+
+            if (isset($input['weekday']) && $input['weekday'] !== '') {
+                $data['weekday'] = (int) $input['weekday'];
+            }
+
+            if (isset($input['slot']) && $input['slot'] !== '') {
+                $data['slot'] = $input['slot'];
+            }
+
+            if (!empty($input['status'])) {
+                
+                $status = strtolower($input['status']);
+
+                if (in_array($status, ['scheduled', 'active'], true)) {
+                    $data['status'] = 'active';
+                } else {
+                   
+                    $data['status'] = 'inactive';
+                }
+            }
+
+            // Always update timestamp
+            $data['updated_at'] = date('Y-m-d H:i:s');
+
+            if (empty($data)) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'message' => 'No valid fields provided for update',
+                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                ]);
+            }
+
+            $db->table('staff_schedule')
+                ->where('id', $id)
+                ->update($data);
+
+            if ($db->affectedRows() === 0) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Shift not found or no changes detected',
+                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                ]);
+            }
+
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Shift updated successfully',
@@ -403,7 +472,7 @@ class ShiftManagement extends BaseController
             log_message('error', 'ShiftManagement::update error: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
-                'message' => 'Failed to update shift',
+                'message' => 'Failed to update shift: ' . $e->getMessage(),
                 'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
             ]);
         }

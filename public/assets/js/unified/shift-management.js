@@ -273,30 +273,43 @@ class ShiftManager {
     }
 
     renderShiftRow(shift) {
-        const statusClass = shift.status ? shift.status.toLowerCase() : 'scheduled';
+        // Map schedule data (weekday/slot/status) to the table row
+        const weekdayLabel = shift.weekday ? this.formatWeekday(shift.weekday) : '-';
+        const slotLabel = shift.slot ? this.formatSlot(shift.slot) : '-';
+
+        const rawStatus = (shift.status || 'active').toString().toLowerCase();
+        let displayStatus = 'Scheduled';
+        let statusClass = 'scheduled';
+
+        if (rawStatus === 'active' || rawStatus === 'scheduled') {
+            displayStatus = 'Scheduled';
+            statusClass = 'scheduled';
+        } else if (rawStatus === 'completed' || rawStatus === 'done' || rawStatus === 'finished') {
+            displayStatus = 'Completed';
+            statusClass = 'completed';
+        } else if (rawStatus === 'cancelled' || rawStatus === 'canceled' || rawStatus === 'inactive') {
+            displayStatus = 'Cancelled';
+            statusClass = 'cancelled';
+        } else {
+            // Fallback: title-case any other status value
+            displayStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+        }
+
         const canEdit = this.canEditShift(shift);
         const canDelete = this.canDeleteShift(shift);
-        
+
         return `
             <tr class="fade-in">
                 <td>
                     <div class="doctor-info">
                         <div class="doctor-name">${this.escapeHtml(shift.doctor_name || 'Unknown')}</div>
-                        <div class="doctor-department">${this.escapeHtml(shift.department || '')}</div>
                     </div>
                 </td>
-                <td>${this.formatDate(shift.date)}</td>
-                <td>
-                    <div class="time-info">
-                        <div>${this.formatTime(shift.start)} - ${this.formatTime(shift.end)}</div>
-                        <div class="duration">${shift.duration_hours || 0}h</div>
-                    </div>
-                </td>
-                <td>${this.escapeHtml(shift.department || '-')}</td>
-                <td>${this.escapeHtml(shift.shift_type || '-')}</td>
+                <td>${this.escapeHtml(weekdayLabel)}</td>
+                <td>${this.escapeHtml(slotLabel)}</td>
                 <td>
                     <span class="status-badge ${statusClass}">
-                        ${this.escapeHtml(shift.status || 'Scheduled')}
+                        ${this.escapeHtml(displayStatus)}
                     </span>
                 </td>
                 <td>
@@ -437,21 +450,32 @@ class ShiftManager {
     }
 
     async editShift(shiftId) {
-        try {
-            const response = await fetch(`${this.config.endpoints.getShift}/${shiftId}`);
-            const data = await response.json();
+        // Use the already-loaded schedule list (this.shifts) to populate the edit modal
+        const shift = this.shifts.find(s => String(s.id) === String(shiftId));
 
-            if (data.status === 'success' && data.data) {
-                this.populateForm(data.data);
-                document.getElementById('modalTitle').textContent = 'Edit Shift';
-                document.getElementById('shiftId').value = shiftId;
-                document.getElementById('shiftModal').classList.add('active');
-            } else {
-                this.showError('Failed to load shift details');
-            }
-        } catch (error) {
-            console.error('Error loading shift:', error);
+        if (!shift) {
             this.showError('Failed to load shift details');
+            return;
+        }
+
+        this.populateForm(shift);
+
+        const modalTitleEl = document.getElementById('modalTitle');
+        if (modalTitleEl) {
+            modalTitleEl.textContent = 'Edit Shift';
+        }
+
+        const idInput = document.getElementById('shiftId');
+        if (idInput) {
+            idInput.value = shiftId;
+        }
+
+        const modal = document.getElementById('shiftModal');
+        if (modal) {
+            modal.classList.add('active');
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
         }
     }
 
@@ -632,7 +656,18 @@ class ShiftManager {
         }
 
         if (statusSelect) {
-            statusSelect.value = shift.status || 'Scheduled';
+            const raw = (shift.status || 'Scheduled').toString().toLowerCase();
+            let mapped = 'Scheduled';
+
+            if (raw === 'active' || raw === 'scheduled') {
+                mapped = 'Scheduled';
+            } else if (raw === 'completed' || raw === 'done' || raw === 'finished') {
+                mapped = 'Completed';
+            } else if (raw === 'cancelled' || raw === 'canceled' || raw === 'inactive') {
+                mapped = 'Cancelled';
+            }
+
+            statusSelect.value = mapped;
         }
 
         if (notesTextarea) {
@@ -672,7 +707,18 @@ class ShiftManager {
 
         if (statusInput) {
             const rawStatus = (shift.status || 'scheduled').toString().toLowerCase();
-            const label = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+            let label = 'Scheduled';
+
+            if (rawStatus === 'active' || rawStatus === 'scheduled') {
+                label = 'Scheduled';
+            } else if (rawStatus === 'completed' || rawStatus === 'done' || rawStatus === 'finished') {
+                label = 'Completed';
+            } else if (rawStatus === 'cancelled' || rawStatus === 'canceled' || rawStatus === 'inactive') {
+                label = 'Cancelled';
+            } else {
+                label = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+            }
+
             statusInput.value = label;
         }
 

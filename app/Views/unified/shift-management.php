@@ -283,10 +283,8 @@
                         <thead>
                             <tr>
                                 <th scope="col">Doctor</th>
-                                <th scope="col">Date</th>
-                                <th scope="col">Time</th>
-                                <th scope="col">Department</th>
-                                <th scope="col">Type</th>
+                                <th scope="col">Day</th>
+                                <th scope="col">Slot</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Actions</th>
                             </tr>

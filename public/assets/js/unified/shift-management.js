@@ -309,11 +309,6 @@ class ShiftManager {
                                 <i class="fas fa-edit"></i>
                             </button>
                         ` : ''}
-                        ${this.canUpdateStatus(shift) ? `
-                            <button type="button" class="btn btn-sm btn-status" data-shift-id="${shift.id}" data-status="Completed" title="Mark Completed">
-                                <i class="fas fa-check"></i>
-                            </button>
-                        ` : ''}
                         ${canDelete ? `
                             <button type="button" class="btn btn-sm btn-delete" data-shift-id="${shift.id}" title="Delete Shift">
                                 <i class="fas fa-trash"></i>
@@ -461,20 +456,36 @@ class ShiftManager {
     }
 
     async viewShift(shiftId) {
-        try {
-            const response = await fetch(`${this.config.endpoints.getShift}/${shiftId}`);
-            const data = await response.json();
+        // Use already-loaded shifts list instead of calling backend again.
+        const shift = this.shifts.find(s => String(s.id) === String(shiftId));
 
-            if (data.status === 'success' && data.data) {
-                this.populateViewModal(data.data);
-                document.getElementById('viewShiftModal').classList.add('active');
-            } else {
-                this.showError('Failed to load shift details');
-            }
-        } catch (error) {
-            console.error('Error loading shift:', error);
+        if (!shift) {
             this.showError('Failed to load shift details');
+            return;
         }
+
+        // Prefer using a dedicated view modal if it exists; otherwise show a simple popup.
+        const modal = document.getElementById('viewShiftModal');
+        if (modal) {
+            this.populateViewModal(shift);
+            modal.classList.add('active');
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            return;
+        }
+
+        // Fallback: simple read-only alert using available fields (supports old shift or new schedule data).
+        const parts = [];
+        if (shift.doctor_name) parts.push(`Doctor: ${shift.doctor_name}`);
+        if (shift.weekday) parts.push(`Weekday: ${shift.weekday}`);
+        if (shift.slot) parts.push(`Slot: ${shift.slot}`);
+        if (shift.date) parts.push(`Date: ${shift.date}`);
+        if (shift.start || shift.end) parts.push(`Time: ${shift.start || ''}${shift.end ? ' - ' + shift.end : ''}`);
+        if (shift.department) parts.push(`Department: ${shift.department}`);
+        if (shift.status) parts.push(`Status: ${shift.status}`);
+
+        alert(parts.join('\n') || 'No details available for this schedule.');
     }
 
     async deleteShift(shiftId) {
@@ -600,31 +611,70 @@ class ShiftManager {
     }
 
     populateForm(shift) {
-        document.getElementById('doctorSelect').value = shift.doctor_id || '';
-        document.getElementById('shiftDate').value = shift.date || '';
-        document.getElementById('shiftStart').value = shift.start || '';
-        document.getElementById('shiftEnd').value = shift.end || '';
-        document.getElementById('shiftDepartment').value = shift.department || '';
-        document.getElementById('shiftType').value = shift.shift_type || '';
-        document.getElementById('roomWard').value = shift.room_ward || '';
-        document.getElementById('shiftStatus').value = shift.status || 'Scheduled';
-        document.getElementById('shiftNotes').value = shift.notes || '';
+        // Updated to match the new schedule form (doctor, weekday, slot, status, notes)
+        const doctorSelect   = document.getElementById('doctorSelect');
+        const weekdaySelect  = document.getElementById('weekday');
+        const slotSelect     = document.getElementById('slot');
+        const statusSelect   = document.getElementById('shiftStatus');
+        const notesTextarea  = document.getElementById('shiftNotes');
+
+        if (doctorSelect) {
+            const value = shift.staff_id || shift.doctor_id || '';
+            doctorSelect.value = value;
+        }
+
+        if (weekdaySelect && typeof shift.weekday !== 'undefined') {
+            weekdaySelect.value = String(shift.weekday || '');
+        }
+
+        if (slotSelect && shift.slot) {
+            slotSelect.value = shift.slot;
+        }
+
+        if (statusSelect) {
+            statusSelect.value = shift.status || 'Scheduled';
+        }
+
+        if (notesTextarea) {
+            notesTextarea.value = shift.notes || '';
+        }
     }
 
     populateViewModal(shift) {
-        document.getElementById('viewDoctorName').textContent = shift.doctor_name || 'Unknown';
-        document.getElementById('viewShiftDate').textContent = this.formatDate(shift.date);
-        document.getElementById('viewShiftTime').textContent = `${this.formatTime(shift.start)} - ${this.formatTime(shift.end)}`;
-        document.getElementById('viewShiftDuration').textContent = `${shift.duration_hours || 0} hours`;
-        document.getElementById('viewShiftDepartment').textContent = shift.department || '-';
-        document.getElementById('viewShiftType').textContent = shift.shift_type || '-';
-        document.getElementById('viewRoomWard').textContent = shift.room_ward || '-';
-        
-        const statusBadge = document.getElementById('viewShiftStatus');
-        statusBadge.textContent = shift.status || 'Scheduled';
-        statusBadge.className = `status-badge ${(shift.status || 'scheduled').toLowerCase()}`;
-        
-        document.getElementById('viewShiftNotes').textContent = shift.notes || 'No notes available';
+        // If the view modal is not present on this page, do nothing safely
+        const modal = document.getElementById('viewShiftModal');
+        if (!modal) {
+            console.warn('View shift modal not found; skipping populateViewModal');
+            return;
+        }
+
+        const doctorInput = document.getElementById('viewDoctorName');
+        const weekdayInput = document.getElementById('viewScheduleWeekday');
+        const slotInput = document.getElementById('viewScheduleSlot');
+        const statusInput = document.getElementById('viewShiftStatus');
+
+        if (doctorInput) {
+            const name = (shift.doctor_name || 'N/A') + (shift.specialization ? ' - ' + shift.specialization : '');
+            doctorInput.value = name;
+        }
+
+        if (weekdayInput) {
+            const weekdayLabel = shift.weekday
+                ? this.formatWeekday(shift.weekday)
+                : (shift.date ? this.formatDate(shift.date) : 'N/A');
+            weekdayInput.value = weekdayLabel;
+        }
+
+        if (slotInput) {
+            const slotLabel = shift.slot ? this.formatSlot(shift.slot) : (shift.shift_type || 'N/A');
+            slotInput.value = slotLabel;
+        }
+
+        if (statusInput) {
+            const rawStatus = (shift.status || 'scheduled').toString().toLowerCase();
+            const label = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+            statusInput.value = label;
+        }
 
         // Store shift data for edit functionality
         this.currentViewShift = shift;
@@ -644,7 +694,12 @@ class ShiftManager {
     }
 
     closeViewShiftModal() {
-        document.getElementById('viewShiftModal').classList.remove('active');
+        const modal = document.getElementById('viewShiftModal');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+        }
+        document.body.style.overflow = '';
         this.currentViewShift = null;
     }
 
@@ -812,6 +867,31 @@ class ShiftManager {
         } catch (e) {
             return timeString;
         }
+    }
+
+    formatWeekday(weekday) {
+        const labels = {
+            1: 'Monday',
+            2: 'Tuesday',
+            3: 'Wednesday',
+            4: 'Thursday',
+            5: 'Friday',
+            6: 'Saturday',
+            7: 'Sunday'
+        };
+        const w = parseInt(weekday, 10);
+        return labels[w] || 'N/A';
+    }
+
+    formatSlot(slot) {
+        if (!slot) return 'N/A';
+        const map = {
+            'morning': 'Morning',
+            'afternoon': 'Afternoon',
+            'night': 'Night',
+            'all_day': 'All Day'
+        };
+        return map[slot] || slot;
     }
 
     escapeHtml(text) {

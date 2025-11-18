@@ -13,7 +13,7 @@ if ($userRole === 'admin') {
         ['url' => 'admin/staff-management', 'icon' => 'fas fa-user-tie', 'label' => 'Staff Management'],
         ['url' => 'admin/user-management', 'icon' => 'fas fa-users', 'label' => 'User Management'],
         ['url' => 'admin/patient-management', 'icon' => 'fas fa-user-injured', 'label' => 'Patient Management'],
-        ['url' => 'admin/shifts', 'icon' => 'fas fa-calendar-days', 'label' => 'Shifts Management'],
+        ['url' => 'admin/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule Management'],
         ['url' => 'admin/appointments', 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
         ['url' => 'admin/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resource Management'],
@@ -32,7 +32,7 @@ elseif ($userRole === 'doctor') {
         ['url' => 'doctor/appointments', 'icon' => 'fas fa-calendar-alt', 'label' => 'Appointments'],
         ['url' => 'doctor/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         //['url' => 'doctor/lab-results', 'icon' => 'fas fa-flask', 'label' => 'Lab-Results'],
-        ['url' => 'doctor/shifts', 'icon' => 'fas fa-calendar-days', 'label' => 'Shifts '],
+        ['url' => 'doctor/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule'],
         //['url' => 'doctor/schedule', 'icon' => 'fas fa-clock', 'label' => 'My Schedule'],
     ];
 }

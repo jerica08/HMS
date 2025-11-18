@@ -27,9 +27,9 @@ class Auth extends BaseController
                 case 'it_staff':
                     return redirect()->to('/it-staff/dashboard');
                 case 'pharmacist':
-                    return redirect()->to('/pharmacists/dashboard');
+                    return redirect()->to('/pharmacist/dashboard');
                 case 'laboratorist':
-                    return redirect()->to('/laboratorists/dashboard');
+                    return redirect()->to('/laboratorist/dashboard');
                 case 'accountant':
                     return redirect()->to('/accountant/dashboard');
                 default:
@@ -121,9 +121,9 @@ class Auth extends BaseController
                             // Unified IT staff dashboard
                             return redirect()->to('/it-staff/dashboard');
                         case 'pharmacist':
-                            return redirect()->to('/pharmacists/dashboard');
+                            return redirect()->to('/pharmacist/dashboard');
                         case 'laboratorist':
-                            return redirect()->to('/laboratorists/dashboard');
+                            return redirect()->to('/laboratorist/dashboard');
                         case 'accountant':
                             return redirect()->to('/accountant/dashboard');
                         default:

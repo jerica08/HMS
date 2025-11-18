@@ -137,20 +137,30 @@ $routes->post('rooms/(:num)/delete', 'RoomManagement::deleteRoom/$1', ['filter' 
 $routes->match(['get','post','options'], 'departments/create', 'Departments::create');
 
 // ===================================================================
-// UNIFIED SHIFT MANAGEMENT
+// UNIFIED SCHEDULE MANAGEMENT (formerly Shift Management)
 // ===================================================================
 
-// Shift Management Views - Role-specific entry points
-$routes->get('admin/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:admin']); // Main admin shift management route
+// Schedule Management Views - Role-specific entry points (new preferred URLs)
+$routes->get('admin/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:admin']); // Main admin schedule management route
+$routes->get('doctor/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('it-staff/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:it_staff']);
+$routes->get('nurse/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:receptionist']);
+
+// Backward-compatible Shift Management URLs
+$routes->get('admin/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('doctor/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:doctor']);
 $routes->get('it-staff/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:it_staff']);
 $routes->get('nurse/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:nurse']);
 $routes->get('receptionist/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:receptionist']);
 
-// Unified Shift Management Route
+// Unified Schedule Management Route
+$routes->get('unified/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:admin,doctor,it_staff,nurse,receptionist']);
+
+// Backward-compatible unified shifts URL
 $routes->get('unified/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:admin,doctor,it_staff,nurse,receptionist']);
 
-// Shift Management API Routes
+// Schedule Management API Routes (keep existing paths for now)
 $routes->get('shifts/api', 'ShiftManagement::getShiftsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('shifts/(:num)', 'ShiftManagement::getShift/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('shifts/available-staff', 'ShiftManagement::getAvailableStaffAPI', ['filter' => 'roleauth:admin,it_staff']);

@@ -171,17 +171,71 @@ class ShiftManagement extends BaseController
      */
     private function getMockStats()
     {
-        return [
-            'total_shifts' => 24,
-            'scheduled_shifts' => 18,
-            'today_shifts' => 6,
-            'active_doctors' => 8,
-            'my_shifts' => 4,
-            'week_shifts' => 12,
-            'upcoming_shifts' => 3,
+        // Default fallback values (previous mock data)
+        $fallback = [
+            'total_shifts'      => 24,
+            'scheduled_shifts'  => 18,
+            'today_shifts'      => 6,
+            'active_doctors'    => 8,
+            'my_shifts'         => 4,
+            'week_shifts'       => 12,
+            'upcoming_shifts'   => 3,
             'department_shifts' => 6,
-            'department' => 'Emergency'
+            'department'        => 'Emergency',
         ];
+
+        try {
+            $db = \Config\Database::connect();
+
+            // Determine today's weekday (1 = Monday ... 7 = Sunday)
+            $todayWeekday = (int) date('N');
+
+            // Total active schedule entries (all doctors, all days)
+            $totalSchedules = $db->table('staff_schedule')
+                ->where('status', 'active')
+                ->countAllResults();
+
+            // Today's schedules (pattern for today's weekday)
+            $todaySchedules = $db->table('staff_schedule')
+                ->where('status', 'active')
+                ->where('weekday', $todayWeekday)
+                ->countAllResults();
+
+            // Active doctors from doctor table
+            $activeDoctors = $db->table('doctor')
+                ->where('status', 'Active')
+                ->countAllResults();
+
+            // Current user's schedules (if staffId is set)
+            $mySchedules = 0;
+            if (!empty($this->staffId)) {
+                $mySchedules = $db->table('staff_schedule')
+                    ->where('status', 'active')
+                    ->where('staff_id', $this->staffId)
+                    ->countAllResults();
+            }
+
+            // For now, treat week_shifts as total active schedules,
+            // and upcoming_shifts as today's schedules (pattern-based)
+            $stats = [
+                'total_shifts'      => $totalSchedules,
+                'scheduled_shifts'  => $totalSchedules,
+                'today_shifts'      => $todaySchedules,
+                'active_doctors'    => $activeDoctors,
+                'my_shifts'         => $mySchedules,
+                'week_shifts'       => $totalSchedules,
+                'upcoming_shifts'   => $todaySchedules,
+                'department_shifts' => $todaySchedules,
+                'department'        => 'All Departments',
+            ];
+
+            return $stats;
+
+        } catch (\Throwable $e) {
+            log_message('error', 'ShiftManagement::getMockStats (real stats) error: ' . $e->getMessage());
+            // On error, return the original mock stats so the UI still works
+            return $fallback;
+        }
     }
 
     /**
@@ -203,18 +257,35 @@ class ShiftManagement extends BaseController
     public function getShiftsAPI()
     {
         try {
-            $shifts = $this->getMockShifts();
-            
+            $db = \Config\Database::connect();
+
+            // Base query: schedules for doctors only
+            $builder = $db->table('staff_schedule ss')
+                ->select('ss.id, ss.staff_id, ss.weekday, ss.slot, ss.status, '
+                    . "CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS doctor_name, "
+                    . 'd.specialization')
+                ->join('doctor d', 'd.staff_id = ss.staff_id', 'inner')
+                ->join('staff s', 's.staff_id = ss.staff_id', 'left')
+                ->where('ss.status', 'active');
+
+            // Role-based filtering
+            if ($this->userRole === 'doctor' && !empty($this->staffId)) {
+                // Doctor sees only their own schedules
+                $builder->where('ss.staff_id', $this->staffId);
+            }
+
+            $result = $builder->get()->getResultArray();
+
             return $this->response->setJSON([
                 'status' => 'success',
-                'data' => $shifts
+                'data'   => $result,
             ]);
 
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::getShiftsAPI error: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to load shifts'
+                'status'  => 'error',
+                'message' => 'Failed to load schedule',
             ]);
         }
     }
@@ -226,70 +297,81 @@ class ShiftManagement extends BaseController
     {
         try {
             $input = $this->request->getJSON(true) ?? $this->request->getPost();
-            
+
+           
+            $staffId = $input['staff_id'] ?? $input['doctor_id'] ?? null;
+
             // Validate required fields
-            $requiredFields = ['doctor_id', 'shift_date', 'shift_start', 'shift_end'];
-            foreach ($requiredFields as $field) {
-                if (empty($input[$field])) {
-                    return $this->response->setStatusCode(422)->setJSON([
-                        'status' => 'error',
-                        'message' => "Field '{$field}' is required",
-                        'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                    ]);
-                }
-            }
-            
-            // Prepare shift data
-            $shiftData = [
-                'doctor_id' => $input['doctor_id'],
-                'shift_date' => $input['shift_date'],
-                'shift_start' => $input['shift_start'],
-                'shift_end' => $input['shift_end'],
-                'shift_type' => $input['shift_type'] ?? null,
-                'room_ward' => $input['room_ward'] ?? null,
-                'status' => $input['status'] ?? 'Scheduled',
-                'notes' => $input['notes'] ?? null,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
-            
-            // Calculate duration if start and end times are provided
-            if (!empty($input['shift_start']) && !empty($input['shift_end'])) {
-                $start = new \DateTime($input['shift_start']);
-                $end = new \DateTime($input['shift_end']);
-                if ($end > $start) {
-                    $interval = $start->diff($end);
-                    $duration = $interval->h + ($interval->i / 60);
-                    $shiftData['duration_hours'] = $duration;
-                }
-            }
-            
-            // Insert into doctor_shift table
-            $db = \Config\Database::connect();
-            $result = $db->table('doctor_shift')->insert($shiftData);
-            
-            if ($result) {
-                $shiftId = $db->insertID();
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'message' => 'Shift created successfully',
-                    'id' => $shiftId,
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                ]);
-            } else {
-                return $this->response->setStatusCode(500)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Failed to create shift',
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+            if (empty($staffId)) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status'  => 'error',
+                    'message' => "Field 'staff_id' (doctor) is required",
+                    'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
                 ]);
             }
 
-        } catch (\Throwable $e) {
-            log_message('error', 'ShiftManagement::create error: ' . $e->getMessage());
+            if (empty($input['weekday']) || empty($input['slot'])) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Fields weekday and slot are required',
+                    'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+
+            // Ensure staff_id belongs to a doctor by checking doctor table
+            // (staff table may not have a role column in this installation)
+            $isDoctor = $db->table('doctor')
+                ->where('staff_id', $staffId)
+                ->countAllResults() > 0;
+
+            if (!$isDoctor) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Only doctors can have schedules',
+                    'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
+                ]);
+            }
+
+            // Prepare schedule data (weekday-based doctor schedule)
+            $scheduleData = [
+                'staff_id'       => (int) $staffId,
+                'weekday'        => (int) $input['weekday'],      // 1–7
+                'slot'           => $input['slot'],               // morning/afternoon/night/all_day
+                'start_time'     => $input['start_time'] ?? null,
+                'end_time'       => $input['end_time'] ?? null,
+                'status'         => 'active',
+                'effective_from' => $input['effective_from'] ?? null,
+                'effective_to'   => $input['effective_to'] ?? null,
+                'created_at'     => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s'),
+            ];
+
+            $result = $db->table('staff_schedule')->insert($scheduleData);
+
+            if ($result) {
+                $scheduleId = $db->insertID();
+                return $this->response->setJSON([
+                    'status'  => 'success',
+                    'message' => 'Schedule entry created successfully',
+                    'id'      => $scheduleId,
+                    'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
+                ]);
+            }
+
             return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to create shift: ' . $e->getMessage(),
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                'status'  => 'error',
+                'message' => 'Failed to create schedule entry',
+                'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
+            ]);
+
+        } catch (\Throwable $e) {
+            log_message('error', 'ShiftManagement::create (schedule) error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status'  => 'error',
+                'message' => 'Failed to create schedule entry: ' . $e->getMessage(),
+                'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
             ]);
         }
     }
@@ -344,10 +426,24 @@ class ShiftManagement extends BaseController
                 ]);
             }
 
-            // Mock successful deletion
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Shift deleted successfully',
+            $db = \Config\Database::connect();
+
+            // Delete from staff_schedule since we now store schedules there
+            $db->table('staff_schedule')
+                ->where('id', (int) $id)
+                ->delete();
+
+            if ($db->affectedRows() > 0) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Shift deleted successfully',
+                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                ]);
+            }
+
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Shift not found or already deleted',
                 'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
             ]);
 
@@ -495,36 +591,36 @@ class ShiftManagement extends BaseController
     {
         $configs = [
             'admin' => [
-                'title' => 'Shift Management',
-                'subtitle' => 'Manage all staff shifts and schedules',
+                'title' => 'Schedule Management',
+                'subtitle' => 'Manage all staff schedules and shifts',
                 'redirectUrl' => 'admin/dashboard',
                 'showSidebar' => true,
                 'sidebarType' => 'admin'
             ],
             'doctor' => [
-                'title' => 'My Shifts',
-                'subtitle' => 'View and manage your shift schedule',
+                'title' => 'My Schedule',
+                'subtitle' => 'View and manage your work schedule',
                 'redirectUrl' => 'doctor/dashboard',
                 'showSidebar' => true,
                 'sidebarType' => 'doctor'
             ],
             'nurse' => [
-                'title' => 'Department Shifts',
-                'subtitle' => 'View department shift schedules',
+                'title' => 'Department Schedule',
+                'subtitle' => 'View department work schedules',
                 'redirectUrl' => 'nurse/dashboard',
                 'showSidebar' => true,
                 'sidebarType' => 'nurse'
             ],
             'receptionist' => [
-                'title' => 'Shift Schedule',
-                'subtitle' => 'View staff shift schedules for coordination',
+                'title' => 'Schedule Overview',
+                'subtitle' => 'View staff schedules for coordination',
                 'redirectUrl' => 'receptionist/dashboard',
                 'showSidebar' => true,
                 'sidebarType' => 'receptionist'
             ],
             'it_staff' => [
-                'title' => 'Shift Management',
-                'subtitle' => 'System administration of staff shifts',
+                'title' => 'Schedule Management',
+                'subtitle' => 'System administration of staff schedules',
                 'redirectUrl' => 'it-staff/dashboard',
                 'showSidebar' => true,
                 'sidebarType' => 'admin'

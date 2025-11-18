@@ -17,27 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
  * Initialize shift management functionality
  */
 function initializeShiftManagement() {
-    // Clear table immediately and multiple times to ensure it's empty
-    const tbody = document.getElementById('shiftsTableBody');
-    if (tbody) {
-        tbody.innerHTML = '';
-        console.log('Table cleared on initialization');
-    }
-    
-    // Set empty data and render
-    shiftsData = [];
-    renderShiftsTable(shiftsData);
-    
-    // Clear again after a short delay to override any late-loading data
-    setTimeout(() => {
-        if (tbody) {
-            tbody.innerHTML = '';
-            shiftsData = [];
-            renderShiftsTable(shiftsData);
-            console.log('Table cleared again after delay');
-        }
-    }, 100);
-    
+    // Load initial schedule data
+    loadShifts();
+
     // Ensure add shift modal is hidden on page load
     const addModal = document.getElementById('shiftModal');
     if (addModal) {
@@ -49,6 +31,31 @@ function initializeShiftManagement() {
     
     setupEventListeners();
     setupModals();
+}
+
+function formatWeekday(weekday) {
+    const labels = {
+        1: 'Monday',
+        2: 'Tuesday',
+        3: 'Wednesday',
+        4: 'Thursday',
+        5: 'Friday',
+        6: 'Saturday',
+        7: 'Sunday',
+    };
+    const w = parseInt(weekday, 10);
+    return labels[w] || 'N/A';
+}
+
+function formatSlot(slot) {
+    if (!slot) return 'N/A';
+    const map = {
+        'morning': 'Morning',
+        'afternoon': 'Afternoon',
+        'night': 'Night',
+        'all_day': 'All Day',
+    };
+    return map[slot] || slot;
 }
 
 /**
@@ -122,12 +129,6 @@ async function loadShifts() {
     try {
         showLoadingState();
         
-        // Temporarily return empty data to remove example shifts
-        shiftsData = [];
-        renderShiftsTable(shiftsData);
-        hideLoadingState();
-        return;
-        
         const response = await fetch(`${getBaseUrl()}shifts/api?${new URLSearchParams(currentFilters)}`, {
             method: 'GET',
             headers: {
@@ -141,6 +142,7 @@ async function loadShifts() {
         if (result.status === 'success') {
             shiftsData = result.data;
             renderShiftsTable(shiftsData);
+            hideLoadingState();
         } else {
             showError('Failed to load shifts: ' + result.message);
         }
@@ -179,8 +181,8 @@ function renderShiftsTable(shifts) {
     tbody.innerHTML = shifts.map(shift => `
         <tr>
             <td>${escapeHtml(shift.doctor_name || 'N/A')}</td>
-            <td>${formatDate(shift.shift_date)}</td>
-            <td>${formatTime(shift.start_time)} - ${formatTime(shift.end_time)}</td>
+            <td>${formatWeekday(shift.weekday)}</td>
+            <td>${formatSlot(shift.slot)}</td>
             <td>${escapeHtml(shift.department || 'N/A')}</td>
             <td>${escapeHtml(shift.shift_type || 'N/A')}</td>
             <td>
@@ -190,17 +192,17 @@ function renderShiftsTable(shifts) {
             </td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-action btn-view" onclick="viewShift(${shift.id})" title="View">
-                        <i class="fas fa-eye"></i>
+                    <button class="btn btn-primary btn-small action-btn" onclick="viewShift(${shift.id})" title="View">
+                        <i class="fas fa-eye" aria-hidden="true"></i> View
                     </button>
                     ${canEditShift(shift) ? `
-                        <button class="btn-action btn-edit" onclick="editShift(${shift.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
+                        <button class="btn btn-warning btn-small action-btn" onclick="editShift(${shift.id})" title="Edit">
+                            <i class="fas fa-edit" aria-hidden="true"></i> Edit
                         </button>
                     ` : ''}
                     ${canDeleteShift(shift) ? `
-                        <button class="btn-action btn-delete" onclick="deleteShift(${shift.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
+                        <button class="btn btn-danger btn-small action-btn" onclick="deleteShift(${shift.id})" title="Delete">
+                            <i class="fas fa-trash" aria-hidden="true"></i> Delete
                         </button>
                     ` : ''}
                 </div>
@@ -337,9 +339,6 @@ function showCreateShiftModal() {
     console.log('Modal element found:', !!modal);
     
     if (modal) {
-        // Reset form and show modal
-        resetCreateForm();
-        
         // Use the same approach that works for the yellow test button
         modal.classList.add('active');
         modal.style.display = 'flex';
@@ -492,20 +491,28 @@ async function loadViewShiftModal(shiftId) {
  * View shift details
  */
 function viewShift(shiftId) {
+    console.log('viewShift called for ID:', shiftId);
     const shift = shiftsData.find(s => s.id === shiftId);
-    if (!shift) return;
+    console.log('viewShift found shift:', shift);
+    if (!shift) {
+        console.warn('viewShift: no shift found for ID', shiftId);
+        return;
+    }
 
     // Dynamically load the view modal if it doesn't exist
     if (!document.getElementById('viewShiftModal')) {
+        console.log('viewShift: viewShiftModal not found, calling loadViewShiftModal');
         loadViewShiftModal(shiftId);
     } else {
         // Modal exists, just show it
         const modal = document.getElementById('viewShiftModal');
+        console.log('viewShift: using existing viewShiftModal, element:', modal);
         if (modal) {
             populateViewModal(shift);
             modal.classList.add('active');
             modal.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
+            console.log('viewShift: modal should now be active with classes:', modal.className);
         }
     }
 }
@@ -762,32 +769,35 @@ function populateEditForm(shift) {
 }
 
 function populateViewModal(shift) {
-    // Populate view modal with shift data
+    // Populate schedule view modal with doctor, weekday, slot, and status
     const modal = document.getElementById('viewShiftModal');
-    if (modal) {
-        const elements = {
-            'viewDoctorName': (shift.doctor_name || 'N/A') + (shift.specialization ? ' - ' + shift.specialization : ''),
-            'viewShiftDate': formatDate(shift.shift_date),
-            'viewShiftTime': `${formatTime(shift.start_time)} - ${formatTime(shift.end_time)}`,
-            'viewShiftDuration': calculateDuration(shift.start_time, shift.end_time),
-            'viewShiftDepartment': shift.department || 'N/A',
-            'viewShiftType': shift.shift_type || 'N/A',
-            'viewRoomWard': shift.room_ward || 'N/A',
-            'viewShiftStatus': shift.status || 'Scheduled',
-            'viewShiftNotes': shift.notes || 'No notes available'
-        };
+    if (!modal) return;
 
-        Object.entries(elements).forEach(([id, value]) => {
-            const element = document.getElementById(id);
-            if (element) {
-                if (id === 'viewShiftStatus') {
-                    element.textContent = value;
-                    element.className = `status-badge ${value.toLowerCase()}`;
-                } else {
-                    element.textContent = value;
-                }
-            }
-        });
+    const doctorInput = document.getElementById('viewDoctorName');
+    const weekdayInput = document.getElementById('viewScheduleWeekday');
+    const slotInput = document.getElementById('viewScheduleSlot');
+    const statusInput = document.getElementById('viewShiftStatus');
+
+    if (doctorInput) {
+        const name = (shift.doctor_name || 'N/A') + (shift.specialization ? ' - ' + shift.specialization : '');
+        doctorInput.value = name;
+    }
+
+    if (weekdayInput) {
+        // Prefer numeric weekday (1-7); fall back to any provided label
+        const weekdayLabel = shift.weekday ? formatWeekday(shift.weekday) : (shift.shift_date ? formatDate(shift.shift_date) : 'N/A');
+        weekdayInput.value = weekdayLabel;
+    }
+
+    if (slotInput) {
+        const slotLabel = shift.slot ? formatSlot(shift.slot) : (shift.shift_type || 'N/A');
+        slotInput.value = slotLabel;
+    }
+
+    if (statusInput) {
+        const rawStatus = (shift.status || 'scheduled').toString().toLowerCase();
+        const label = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+        statusInput.value = label;
     }
 }
 

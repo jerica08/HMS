@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="<?= csrf_token() ?>">
     <meta name="csrf-hash" content="<?= csrf_hash() ?>">
     <meta name="user-role" content="<?= esc($userRole) ?>">
-    <title><?= esc($title ?? 'Shift Management') ?> - HMS</title>
+    <title><?= esc($title ?? 'Schedule Management') ?> - HMS</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
      <link rel="stylesheet" href="<?= base_url('assets/css/unified/shift-management.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -21,7 +21,7 @@
     <main class="content" role="main">
         <h1 class="page-title">
             <i class="fas fa-calendar-alt"></i>
-            <?= esc($title ?? 'Shift Management') ?>
+            <?= esc($title ?? 'Schedule Management') ?>
         </h1>
         <div class="page-actions">
             <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift" onclick="handleAddShiftClick()">
@@ -33,6 +33,44 @@
                 </button>
             <?php endif; ?>
         </div>
+
+<!-- Schedule View Modal (match view-staff modal styling) -->
+<div id="viewShiftModal" class="hms-modal-overlay" aria-hidden="true">
+    <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="viewScheduleTitle">
+        <div class="hms-modal-header">
+            <div class="hms-modal-title" id="viewScheduleTitle">
+                <i class="fas fa-calendar-check" style="color:#4f46e5"></i>
+                Schedule Details
+            </div>
+            <button type="button" class="btn btn-secondary btn-small" id="closeViewShiftModal" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="hms-modal-body">
+            <div class="form-grid">
+                <div class="full">
+                    <label class="form-label">Doctor</label>
+                    <input type="text" id="viewDoctorName" class="form-input" readonly disabled>
+                </div>
+                <div>
+                    <label class="form-label">Weekday</label>
+                    <input type="text" id="viewScheduleWeekday" class="form-input" readonly disabled>
+                </div>
+                <div>
+                    <label class="form-label">Slot</label>
+                    <input type="text" id="viewScheduleSlot" class="form-input" readonly disabled>
+                </div>
+                <div>
+                    <label class="form-label">Status</label>
+                    <input type="text" id="viewShiftStatus" class="form-input" readonly disabled>
+                </div>
+            </div>
+        </div>
+        <div class="hms-modal-actions">
+            <button type="button" class="btn btn-success" id="closeViewShiftBtn">Close</button>
+        </div>
+    </div>
+</div>
 
         <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
             <div id="flashNotice" role="alert" aria-live="polite" style="
@@ -238,7 +276,7 @@
 
         <div class="shift-table-container">
                 <div class="table-header">
-                    <h3>Shifts</h3>
+                    <h3>Schedule</h3>
                 </div>
                 <div class="table-responsive">
                     <table class="table" id="shiftsTable" aria-describedby="shiftsTableCaption">
@@ -296,39 +334,6 @@ echo "<!-- INCLUDE TEST: Modal included -->";
 
 <!-- Shift Management Scripts -->
 <script>
-// Immediately clear any shifts and show empty state
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Clearing shifts table...');
-    const tbody = document.getElementById('shiftsTableBody');
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align: center; padding: 2rem;">
-                    <i class="fas fa-calendar-times" style="font-size: 2rem; color: #d1d5db; margin-bottom: 1rem;"></i>
-                    <p style="color: #6b7280;">No shifts found</p>
-                </td>
-            </tr>
-        `;
-        console.log('Table cleared and showing no shifts message');
-    }
-    
-    // Continuously clear table every 500ms to prevent any data from loading
-    setInterval(() => {
-        const tbody = document.getElementById('shiftsTableBody');
-        if (tbody && tbody.innerHTML.trim() !== '' && !tbody.innerHTML.includes('No shifts found')) {
-            console.log('Detected unwanted shifts data, clearing...');
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 2rem;">
-                        <i class="fas fa-calendar-times" style="font-size: 2rem; color: #d1d5db; margin-bottom: 1rem;"></i>
-                        <p style="color: #6b7280;">No shifts found</p>
-                    </td>
-                </tr>
-            `;
-        }
-    }, 500);
-});
-
 // Pass initial data to JavaScript
 window.initialShifts = []; // Clear example data
 window.userRole = <?= json_encode($userRole ?? 'admin') ?>;
@@ -347,18 +352,6 @@ window.handleAddShiftClick = function() {
     console.log('Modal element found:', !!modal);
     
     if (modal) {
-        // Reset form and show modal
-        const form = document.getElementById('shiftForm');
-        if (form) {
-            form.reset();
-            const idField = document.getElementById('shiftId');
-            if (idField) {
-                idField.value = '';
-            }
-        }
-        
-        // Data is now populated by PHP, no need for AJAX loading
-        
         // Show modal using the same approach that works
         modal.classList.add('active');
         modal.style.display = 'flex';

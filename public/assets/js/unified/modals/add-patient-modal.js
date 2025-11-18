@@ -7,34 +7,47 @@ const AddPatientModal = {
     modal: null,
     form: null,
     doctorsCache: null,
+    forms: {},
+    tabButtons: null,
+    formWrapper: null,
+    activeFormKey: 'outpatient',
+    saveBtn: null,
 
     /**
      * Initialize the modal
      */
     init() {
         this.modal = document.getElementById('addPatientModal');
-        this.form = document.getElementById('addPatientForm');
-        
-        if (!this.modal || !this.form) return;
+        this.forms = {
+            outpatient: document.getElementById('addPatientForm'),
+            inpatient: document.getElementById('addInpatientForm')
+        };
+        this.formWrapper = document.querySelector('[data-form-wrapper]');
+        this.tabButtons = document.querySelectorAll('.patient-tabs__btn');
+        this.saveBtn = document.getElementById('savePatientBtn');
+
+        // pick default form
+        this.form = this.forms.outpatient || this.forms.inpatient || null;
+        this.activeFormKey = this.form ? (this.form.dataset.formType || 'outpatient') : 'outpatient';
+
+        if (!this.modal || !this.formWrapper || !this.saveBtn || !this.form) return;
         
         this.bindEvents();
-
-        // Initialize inpatient/outpatient view based on default patient type
-        this.updateInpatientVisibility();
+        this.bindTabEvents();
+        this.updateSaveButtonTarget();
+        this.switchTab('outpatientTab');
     },
 
     /**
      * Bind event listeners
      */
     bindEvents() {
-        // Form submission
-        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
-
-        // Patient type change - toggle inpatient-only fields
-        const patientTypeSelect = document.getElementById('patient_type');
-        if (patientTypeSelect) {
-            patientTypeSelect.addEventListener('change', () => this.updateInpatientVisibility());
-        }
+        // Form submissions for both outpatient and inpatient
+        Object.values(this.forms).forEach(form => {
+            if (form) {
+                form.addEventListener('submit', (e) => this.handleSubmit(e));
+            }
+        });
 
         // Date of birth change - update age display and pediatric logic
         const dobInput = document.getElementById('date_of_birth');
@@ -68,6 +81,21 @@ const AddPatientModal = {
     },
 
     /**
+     * Bind tab navigation buttons
+     */
+    bindTabEvents() {
+        if (!this.tabButtons) return;
+        this.tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.dataset.tabTarget;
+                if (targetId) {
+                    this.switchTab(targetId);
+                }
+            });
+        });
+    },
+
+    /**
      * Open the modal
      */
     async open() {
@@ -75,6 +103,7 @@ const AddPatientModal = {
             this.modal.style.display = 'flex';
             this.modal.removeAttribute('hidden');
             this.resetForm();
+            this.switchTab('outpatientTab');
             await this.loadDoctors();
         }
     },
@@ -94,64 +123,23 @@ const AddPatientModal = {
      * Reset form to initial state
      */
     resetForm() {
-        if (this.form) {
-            this.form.reset();
-            
-            // Clear validation states
-            this.form.querySelectorAll('.is-invalid').forEach(el => {
-                el.classList.remove('is-invalid');
-            });
-            this.form.querySelectorAll('.invalid-feedback').forEach(el => {
+        Object.values(this.forms).forEach(form => {
+            if (!form) return;
+            form.reset();
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            form.querySelectorAll('.invalid-feedback, .form-error').forEach(el => {
                 el.textContent = '';
             });
-
-            // Reset inpatient visibility to match default patient type
-            this.updateInpatientVisibility();
-        }
+        });
+        this.setActiveFormByType('outpatient');
+        this.updateSaveButtonTarget();
     },
 
     /**
      * Show/hide inpatient-only sections based on selected patient type
      */
     updateInpatientVisibility() {
-        const patientTypeSelect = document.getElementById('patient_type');
-        const typeValue = (patientTypeSelect ? patientTypeSelect.value : 'Outpatient') || 'Outpatient';
-        const normalizedType = typeValue.toLowerCase();
-
-        const inpatientSections = this.form ? this.form.querySelectorAll('[data-section="inpatient-only"]') : [];
-        const isInpatientLike = normalizedType === 'inpatient' || normalizedType === 'emergency';
-
-        inpatientSections.forEach(section => {
-            const inputs = section.querySelectorAll('input, select, textarea');
-            if (isInpatientLike) {
-                section.style.display = '';
-                // For inpatient, keep required attributes as defined in HTML
-                inputs.forEach(input => {
-                    if (input.dataset.originalRequired === 'true') {
-                        input.required = true;
-                    }
-                });
-            } else {
-                section.style.display = 'none';
-                // For outpatient, remove required from inpatient-only fields and clear errors
-                inputs.forEach(input => {
-                    if (input.required) {
-                        // Remember which fields were originally required so we can restore later
-                        if (!input.dataset.originalRequired) {
-                            input.dataset.originalRequired = 'true';
-                        }
-                        input.required = false;
-                    }
-                    // Clear values for hidden inpatient fields
-                    input.value = '';
-                    const errEl = this.form.querySelector(`#err_${input.name}`);
-                    if (errEl) {
-                        errEl.textContent = '';
-                    }
-                    input.classList.remove('is-invalid');
-                });
-            }
-        });
+        // No-op with new separated forms (kept for backward compatibility)
     },
 
     /**
@@ -367,26 +355,24 @@ const AddPatientModal = {
      */
     async handleSubmit(e) {
         e.preventDefault();
-        
-        const submitBtn = document.getElementById('savePatientBtn');
+        const form = e.currentTarget;
+        if (!form) return;
+        this.setActiveFormByType(form.dataset.formType || 'outpatient');
+
+        const submitBtn = this.saveBtn;
         const originalText = submitBtn.innerHTML;
         
         try {
-            // Show loading state
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             
-            // Collect form data
-            const formData = this.collectFormData();
-            
-            // Validate form data
-            const errors = this.validateFormData(formData);
+            const formData = this.collectFormData(form);
+            const errors = this.validateFormData(formData, form.dataset.formType);
             if (Object.keys(errors).length > 0) {
-                PatientUtils.displayFormErrors(errors, this.form);
+                PatientUtils.displayFormErrors(errors, form);
                 return;
             }
             
-            // Submit form
             const response = await PatientUtils.makeRequest(
                 PatientConfig.getUrl(PatientConfig.endpoints.patientCreate),
                 {
@@ -399,7 +385,6 @@ const AddPatientModal = {
                 PatientUtils.showNotification('Patient added successfully!', 'success');
                 this.close();
                 
-                // Refresh patient list
                 if (window.patientManager) {
                     window.patientManager.refresh();
                 }
@@ -411,7 +396,6 @@ const AddPatientModal = {
             console.error('Error adding patient:', error);
             PatientUtils.showNotification('Failed to add patient: ' + error.message, 'error');
         } finally {
-            // Restore button state
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
         }
@@ -420,8 +404,8 @@ const AddPatientModal = {
     /**
      * Collect form data
      */
-    collectFormData() {
-        const formData = new FormData(this.form);
+    collectFormData(form) {
+        const formData = new FormData(form);
         const data = {};
         
         for (let [key, value] of formData.entries()) {
@@ -434,35 +418,107 @@ const AddPatientModal = {
     /**
      * Validate form data
      */
-    validateFormData(data) {
-        const typeValue = (data.patient_type || 'Outpatient').toLowerCase();
+    validateFormData(data, formType = 'outpatient') {
+        const typeValue = (formType || data.patient_type || 'outpatient').toLowerCase();
+        let rules = {};
 
-        // Base rules for all patients (outpatient + inpatient)
-        const rules = {
-            first_name: { required: true, label: 'First Name' },
-            last_name: { required: true, label: 'Last Name' },
-            gender: { required: true, label: 'Gender' },
-            date_of_birth: { required: true, label: 'Date of Birth' },
-            civil_status: { required: true, label: 'Civil Status' },
-            phone: { required: true, label: 'Phone Number' },
-            address: { required: true, label: 'Address' },
-            email: { email: true, label: 'Email' }
-        };
-
-        // Inpatient/Emergency require full details
-        if (typeValue === 'inpatient' || typeValue === 'emergency') {
-            Object.assign(rules, {
-                province: { required: true, label: 'Province' },
-                city: { required: true, label: 'City' },
-                barangay: { required: true, label: 'Barangay' },
-                zip_code: { required: true, label: 'ZIP Code' },
+        if (typeValue === 'outpatient') {
+            rules = {
+                first_name: { required: true, label: 'First Name' },
+                last_name: { required: true, label: 'Last Name' },
+                gender: { required: true, label: 'Sex' },
+                date_of_birth: { required: true, label: 'Date of Birth' },
+                civil_status: { required: true, label: 'Civil Status' },
+                phone: { required: true, label: 'Contact Number' },
+                address: { required: true, label: 'Address' },
                 emergency_contact_name: { required: true, label: 'Emergency Contact Name' },
-                emergency_contact_phone: { required: true, label: 'Emergency Contact Phone' }
-            });
+                emergency_contact_relationship: { required: true, label: 'Emergency Contact Relationship' },
+                emergency_contact_phone: { required: true, label: 'Emergency Contact Phone' },
+                chief_complaint: { required: true, label: 'Chief Complaint' },
+                department: { required: true, label: 'Department' },
+                appointment_datetime: { required: true, label: 'Appointment Date & Time' },
+                visit_type: { required: true, label: 'Visit Type' },
+                payment_type: { required: true, label: 'Payment Type' },
+                email: { email: true, label: 'Email Address' }
+            };
+        } else {
+            rules = {
+                full_name: { required: true, label: 'Full Name' },
+                age: { required: true, label: 'Age' },
+                gender: { required: true, label: 'Sex' },
+                address: { required: true, label: 'Address' },
+                contact_number: { required: true, label: 'Contact Number' },
+                civil_status: { required: true, label: 'Civil Status' },
+                guardian_name: { required: true, label: 'Guardian Name' },
+                guardian_relationship: { required: true, label: 'Guardian Relationship' },
+                guardian_contact: { required: true, label: 'Guardian Contact' },
+                admission_datetime: { required: true, label: 'Admission Date & Time' },
+                admission_type: { required: true, label: 'Admission Type' },
+                admitting_diagnosis: { required: true, label: 'Admitting Diagnosis' },
+                admitting_doctor: { required: true, label: 'Admitting Doctor' },
+                admitting_department: { required: true, label: 'Department / Ward' },
+                room_type: { required: true, label: 'Room Type' },
+                floor_number: { required: true, label: 'Floor Number' },
+                room_number: { required: true, label: 'Room Number' },
+                bed_number: { required: true, label: 'Bed Number' },
+                patient_classification: { required: true, label: 'Patient Classification' },
+                level_of_consciousness: { required: true, label: 'Level of Consciousness' },
+                payment_method: { required: true, label: 'Payment Method' },
+                billing_responsible_name: { required: true, label: 'Responsible Person Name' },
+                billing_responsible_signature: { required: true, label: 'Responsible Person Signature' },
+                billing_responsible_contact: { required: true, label: 'Responsible Person Contact' }
+            };
         }
 
         return PatientUtils.validateForm(data, rules);
     }
+};
+
+// Tab helpers
+AddPatientModal.switchTab = function(targetPanelId) {
+    if (!this.formWrapper) return;
+    const panels = this.formWrapper.querySelectorAll('.patient-tabs__panel');
+    const targetPanel = document.getElementById(targetPanelId);
+    if (!targetPanel) return;
+
+    panels.forEach(panel => {
+        const isActive = panel.id === targetPanelId;
+        panel.classList.toggle('active', isActive);
+        if (isActive) {
+            panel.removeAttribute('hidden');
+        } else {
+            panel.setAttribute('hidden', '');
+        }
+    });
+
+    if (this.tabButtons) {
+        this.tabButtons.forEach(btn => {
+            const isActive = btn.dataset.tabTarget === targetPanelId;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+    }
+
+    const form = targetPanel.querySelector('form[data-form-type]');
+    if (form) {
+        this.setActiveFormByType(form.dataset.formType || 'outpatient');
+    }
+};
+
+AddPatientModal.setActiveFormByType = function(formType) {
+    if (!formType) return;
+    const normalized = formType.toLowerCase();
+    const selectedForm = this.forms[normalized];
+    if (!selectedForm) return;
+    this.activeFormKey = normalized;
+    this.form = selectedForm;
+    this.updateSaveButtonTarget();
+};
+
+AddPatientModal.updateSaveButtonTarget = function() {
+    if (!this.saveBtn || !this.form) return;
+    this.saveBtn.setAttribute('form', this.form.id);
+    this.saveBtn.dataset.activeForm = this.form.id;
 };
 
 // Export to global scope

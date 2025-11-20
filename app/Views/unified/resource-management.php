@@ -495,6 +495,8 @@
                     // Clear errors
                     const errors = form?.querySelectorAll('[id^="err_res_"]');
                     errors?.forEach(e => e.textContent = '');
+                    // Reload page so resources table is updated after closing the modal
+                    window.location.reload();
                 }
                 function openEditResourceModal() {
                     const modal = document.getElementById('editResourceModal');
@@ -514,6 +516,8 @@
                     // Clear errors
                     const errors = form?.querySelectorAll('[id^="err_er_"]');
                     errors?.forEach(e => e.textContent = '');
+                    // Reload page so resources table is updated after closing the edit modal
+                    window.location.reload();
                 }
 
                 // Add Department modal functions

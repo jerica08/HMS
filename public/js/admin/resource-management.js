@@ -126,7 +126,6 @@
             alert('Resource added successfully.');
             closeAddResourceModal();
             form.reset();
-            window.location.reload();
             return;
           }
           var msg = 'Failed to save resource';
@@ -235,7 +234,6 @@
           if(res && res.status==='success'){
             alert('Resource updated successfully.');
             closeEditResourceModal();
-            window.location.reload();
             return;
           }
           var msg = 'Failed to update resource';

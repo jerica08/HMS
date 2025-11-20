@@ -157,39 +157,6 @@
 
             <!-- Appointments Table -->
             <div class="patient-table">
-                <div class="search-filters">
-                    <h3 style="margin-bottom: 1rem;">Filter Options</h3>
-                    <div class="filter-row">
-                        <div>
-                            <input type="date" class="filter-input" id="dateSelector" value="<?= date('Y-m-d') ?>">
-                        </div>
-                        <div>
-                            <select class="filter-input" id="statusFilter">
-                                <option value="">All Status</option>
-                                <option value="scheduled">Scheduled</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="no-show">No Show</option>
-                            </select>
-                        </div>
-                        <?php if ($userRole === 'admin'): ?>
-                        <div>
-                            <select class="filter-input" id="doctorFilter">
-                                <option value="">All Doctors</option>
-                                <?php if (!empty($doctors)): ?>
-                                    <?php foreach ($doctors as $doctor): ?>
-                                        <option value="<?= $doctor['staff_id'] ?>">
-                                            Dr. <?= esc($doctor['first_name'] . ' ' . $doctor['last_name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                
                 <div class="table-header">
                     <h3 id="scheduleTitle">Today's Schedule - <?= date('F j, Y') ?></h3>
                     <div style="display: flex; gap: 0.5rem;">
@@ -315,7 +282,17 @@
         </main>
     </div>
 
-  
+    <div id="appointmentsNotification" role="alert" aria-live="polite" style="
+        display:none; margin: 1rem 1.5rem 0 1.5rem; padding: 0.75rem 1rem; border-radius: 8px;
+        border: 1px solid #86efac; background: #dcfce7; color: #166534;
+        display:flex; align-items:center; gap:0.5rem;">
+        <i id="appointmentsNotificationIcon" class="fas fa-check-circle" aria-hidden="true"></i>
+        <span id="appointmentsNotificationText"></span>
+        <button type="button" onclick="dismissAppointmentNotification()" aria-label="Dismiss notification" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
     <!-- Include modal with forced doctors data like shift management -->
     <?php 
     // Force set the doctors variable directly like shift management
@@ -388,6 +365,33 @@
 
         // Initialize appointment modal
         initializeAppointmentModal();
+
+        // Initialize filters
+        const dateFilter = document.getElementById('dateSelector');
+        const statusFilter = document.getElementById('statusFilter');
+        const doctorFilter = document.getElementById('doctorFilter');
+        const refreshBtnMain = document.getElementById('refreshBtn');
+
+        if (dateFilter)   dateFilter.addEventListener('change', refreshAppointments);
+        if (statusFilter) statusFilter.addEventListener('change', refreshAppointments);
+        if (doctorFilter) doctorFilter.addEventListener('change', refreshAppointments);
+        if (refreshBtnMain) refreshBtnMain.addEventListener('click', function(e) {
+            e.preventDefault();
+            refreshAppointments();
+        });
+
+        // Initial load based on filters
+        refreshAppointments();
+
+        // When date changes in the new appointment modal, reload available doctors
+        const dateInput = document.getElementById('appointment_date');
+        if (dateInput) {
+            dateInput.addEventListener('change', function() {
+                if (this.value) {
+                    loadAvailableDoctors(this.value);
+                }
+            });
+        }
     });
 
     // Appointment Modal Functions
@@ -438,7 +442,21 @@
             console.log('Modal opened - new classes:', modal.className);
             
             loadPatients();
-            loadDoctors();
+
+            // Load available doctors for the selected date (simple: has schedule that day)
+            const dateInput = document.getElementById('appointment_date');
+            let dateValue = dateInput ? dateInput.value : '';
+
+            if (!dateValue) {
+                // Default to today if no date selected yet
+                const today = new Date().toISOString().split('T')[0];
+                if (dateInput) {
+                    dateInput.value = today;
+                }
+                dateValue = today;
+            }
+
+            loadAvailableDoctors(dateValue);
         } else {
             console.error('Modal not found!');
         }
@@ -478,17 +496,32 @@
             });
     }
 
-    function loadDoctors() {
+    function getWeekdayName(dateStr) {
+        const d = new Date(dateStr);
+        const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        if (isNaN(d.getTime())) return '';
+        return days[d.getDay()];
+    }
+
+    function loadAvailableDoctors(date) {
         const baseUrl = document.querySelector('meta[name="base-url"]').content;
         const doctorSelect = document.getElementById('appointment_doctor');
-        
-        if (!doctorSelect) return; // Only for admin/receptionist
-        
-        fetch(`${baseUrl}/appointments/doctors`)
+        const dateHelp = document.getElementById('appointment_date_help');
+
+        if (!doctorSelect) return; // Only for admin (doctor select not shown for others)
+
+        doctorSelect.innerHTML = '<option value="">Loading available doctors...</option>';
+        if (dateHelp) dateHelp.textContent = '';
+
+        const weekday = getWeekdayName(date);
+        const url = `${baseUrl}/appointments/available-doctors?date=${encodeURIComponent(date)}&weekday=${encodeURIComponent(weekday)}`;
+
+        fetch(url)
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'success') {
-                    doctorSelect.innerHTML = '<option value="">Select Doctor...</option>';
+                doctorSelect.innerHTML = '<option value="">Select Doctor...</option>';
+
+                if (data.status === 'success' && Array.isArray(data.data) && data.data.length) {
                     data.data.forEach(doctor => {
                         const option = document.createElement('option');
                         option.value = doctor.staff_id;
@@ -496,10 +529,15 @@
                         option.textContent = `${doctor.first_name} ${doctor.last_name}${specialization}`;
                         doctorSelect.appendChild(option);
                     });
+                    if (dateHelp) dateHelp.textContent = 'Doctors listed are available on this date.';
+                } else {
+                    if (dateHelp) dateHelp.textContent = 'No doctors are available on this date.';
                 }
             })
             .catch(error => {
-                console.error('Error loading doctors:', error);
+                console.error('Error loading available doctors:', error);
+                doctorSelect.innerHTML = '<option value="">Error loading doctors</option>';
+                if (dateHelp) dateHelp.textContent = 'Failed to load doctor availability.';
             });
     }
 
@@ -522,15 +560,40 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (data.status === 'success') {
+            if (data.success) {
+                showAppointmentsNotification('Appointment scheduled successfully.', 'success');
                 closeNewAppointmentModal();
-                location.reload(); // Refresh to show new appointment
+                setTimeout(function() {
+                    location.reload();
+                }, 800);
             } else {
-                showFormErrors(data.errors || {});
+                const generalError = document.getElementById('appointment_error');
+                if (generalError) {
+                    generalError.style.display = 'block';
+                    generalError.textContent = data.message || 'Failed to schedule appointment. Please check the form and try again.';
+                }
+                // Also show toast notification for backend validation errors
+                if (data.message) {
+                    showAppointmentsNotification(data.message, 'error');
+                }
+                if (data.errors) {
+                    showFormErrors(data.errors);
+                }
+                const dateHelp = document.getElementById('appointment_date_help');
+                if (dateHelp && data.message) {
+                    dateHelp.textContent = data.message;
+                }
             }
         })
         .catch(error => {
             console.error('Error creating appointment:', error);
+            const generalError = document.getElementById('appointment_error');
+            if (generalError) {
+                generalError.style.display = 'block';
+                generalError.textContent = 'An unexpected error occurred while scheduling the appointment. Please try again.';
+            }
+
+            showAppointmentsNotification('Failed to schedule appointment. Please try again.', 'error');
         });
     }
 
@@ -539,6 +602,12 @@
         errorElements.forEach(element => {
             element.textContent = '';
         });
+
+        const generalError = document.getElementById('appointment_error');
+        if (generalError) {
+            generalError.style.display = 'none';
+            generalError.textContent = '';
+        }
     }
 
     function showFormErrors(errors) {
@@ -548,6 +617,251 @@
             if (errorElement) {
                 errorElement.textContent = errors[field];
             }
+        });
+    }
+
+    function showAppointmentsNotification(message, type) {
+        const container = document.getElementById('appointmentsNotification');
+        const iconEl = document.getElementById('appointmentsNotificationIcon');
+        const textEl = document.getElementById('appointmentsNotificationText');
+        if (!container || !iconEl || !textEl) return;
+
+        const isError = type === 'error';
+
+        // Match user-management flashNotice styling
+        container.style.border = isError ? '1px solid #fecaca' : '1px solid #86efac';
+        container.style.background = isError ? '#fee2e2' : '#dcfce7';
+        container.style.color = isError ? '#991b1b' : '#166534';
+
+        iconEl.className = 'fas ' + (isError ? 'fa-exclamation-triangle' : 'fa-check-circle');
+        textEl.textContent = message || '';
+
+        container.style.display = 'flex';
+
+        // Auto-hide after a few seconds
+        setTimeout(function() {
+            container.style.display = 'none';
+        }, 4000);
+    }
+
+    function dismissAppointmentNotification() {
+        const container = document.getElementById('appointmentsNotification');
+        if (container) {
+            container.style.display = 'none';
+        }
+    }
+
+    function formatAppointmentTime(timeStr) {
+        if (!timeStr) return '—';
+        const [h, m] = timeStr.split(':');
+        let hour = parseInt(h, 10);
+        const minutes = m || '00';
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12;
+        if (hour === 0) hour = 12;
+        return `${hour}:${minutes} ${ampm}`;
+    }
+
+    function getStatusBadgeClass(status) {
+        const s = (status || 'scheduled').toLowerCase();
+        switch (s) {
+            case 'completed': return 'badge-success';
+            case 'in-progress': return 'badge-info';
+            case 'cancelled': return 'badge-danger';
+            case 'no-show': return 'badge-warning';
+            default: return 'badge-info';
+        }
+    }
+
+    function refreshAppointments() {
+        const baseUrl = document.querySelector('meta[name="base-url"]').content;
+        const userRole = document.querySelector('meta[name="user-role"]').content || 'guest';
+        const params = new URLSearchParams();
+
+        // Always show today's schedule
+        const today = new Date().toISOString().split('T')[0];
+        params.append('date', today);
+
+        const url = `${baseUrl}/appointments/api?${params.toString()}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    renderAppointmentsTable(data.data || []);
+                } else {
+                    renderAppointmentsTable([]);
+                }
+
+                // Title is already rendered with today's date by PHP
+            })
+            .catch(error => {
+                console.error('Error loading appointments:', error);
+                renderAppointmentsTable([]);
+            });
+    }
+
+    function renderAppointmentsTable(appointments) {
+        const tbody = document.getElementById('appointmentsTableBody');
+        if (!tbody) return;
+
+        const userRole = document.querySelector('meta[name="user-role"]').content || 'guest';
+        const isAdmin = userRole === 'admin';
+
+        while (tbody.firstChild) {
+            tbody.removeChild(tbody.firstChild);
+        }
+
+        if (!appointments || !appointments.length) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = isAdmin ? 8 : 7;
+            td.style.textAlign = 'center';
+            td.style.padding = '2rem';
+            td.style.color = '#6b7280';
+            td.innerHTML = `
+                <i class="fas fa-calendar-times" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                <p>No appointments found for the selected criteria.</p>
+            `;
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            return;
+        }
+
+        appointments.forEach(appt => {
+            const tr = document.createElement('tr');
+
+            const timeTd = document.createElement('td');
+            const timeStrong = document.createElement('strong');
+            timeStrong.textContent = formatAppointmentTime(appt.appointment_time);
+            timeTd.appendChild(timeStrong);
+            if (appt.duration) {
+                const br = document.createElement('br');
+                const small = document.createElement('small');
+                small.textContent = `${appt.duration} min`;
+                timeTd.appendChild(br);
+                timeTd.appendChild(small);
+            }
+            tr.appendChild(timeTd);
+
+            const patientTd = document.createElement('td');
+            const patientDiv = document.createElement('div');
+            const patientStrong = document.createElement('strong');
+            const baseUrl = document.querySelector('meta[name="base-url"]').content;
+            const link = document.createElement('a');
+            link.href = `${baseUrl}/${userRole}/patient-management?patient_id=${appt.patient_id || ''}`;
+            link.className = 'patient-link';
+            link.style.color = '#3b82f6';
+            link.style.textDecoration = 'none';
+            link.textContent = `${appt.patient_first_name || ''} ${appt.patient_last_name || ''}`.trim();
+            patientStrong.appendChild(link);
+            patientDiv.appendChild(patientStrong);
+            const br2 = document.createElement('br');
+            const smallInfo = document.createElement('small');
+            smallInfo.style.color = '#6b7280';
+            const age = appt.patient_age != null ? appt.patient_age : 'N/A';
+            const phone = appt.patient_phone || 'N/A';
+            smallInfo.textContent = `ID: ${appt.patient_id || 'N/A'} | Age: ${age} | Phone: ${phone}`;
+            patientDiv.appendChild(br2);
+            patientDiv.appendChild(smallInfo);
+            patientTd.appendChild(patientDiv);
+            tr.appendChild(patientTd);
+
+            if (isAdmin) {
+                const doctorTd = document.createElement('td');
+                const docDiv = document.createElement('div');
+                const docStrong = document.createElement('strong');
+                docStrong.textContent = `Dr. ${(appt.doctor_first_name || '') + ' ' + (appt.doctor_last_name || '')}`.trim();
+                const br3 = document.createElement('br');
+                const docSmall = document.createElement('small');
+                docSmall.textContent = appt.doctor_department || 'N/A';
+                docDiv.appendChild(docStrong);
+                docDiv.appendChild(br3);
+                docDiv.appendChild(docSmall);
+                doctorTd.appendChild(docDiv);
+                tr.appendChild(doctorTd);
+            }
+
+            const typeTd = document.createElement('td');
+            typeTd.textContent = appt.appointment_type || 'N/A';
+            tr.appendChild(typeTd);
+
+            const reasonTd = document.createElement('td');
+            reasonTd.textContent = appt.reason || 'General consultation';
+            tr.appendChild(reasonTd);
+
+            const durationTd = document.createElement('td');
+            durationTd.textContent = `${appt.duration || 30} min`;
+            tr.appendChild(durationTd);
+
+            const statusTd = document.createElement('td');
+            const badge = document.createElement('span');
+            const status = appt.status || 'scheduled';
+            badge.className = `badge ${getStatusBadgeClass(status)}`;
+            badge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            statusTd.appendChild(badge);
+            tr.appendChild(statusTd);
+
+            const actionsTd = document.createElement('td');
+            const actionsDiv = document.createElement('div');
+            actionsDiv.style.display = 'flex';
+            actionsDiv.style.gap = '0.25rem';
+            actionsDiv.style.flexWrap = 'wrap';
+
+            const viewBtn = document.createElement('button');
+            viewBtn.className = 'btn btn-primary';
+            viewBtn.style.padding = '0.3rem 0.6rem';
+            viewBtn.style.fontSize = '0.75rem';
+            viewBtn.innerHTML = '<i class="fas fa-eye"></i> View';
+            viewBtn.onclick = function() { viewAppointment(appt.appointment_id); };
+            actionsDiv.appendChild(viewBtn);
+
+            const statusLower = (appt.status || 'scheduled').toLowerCase();
+
+            if ((userRole === 'admin' || userRole === 'doctor') && statusLower !== 'completed') {
+                const completeBtn = document.createElement('button');
+                completeBtn.className = 'btn btn-success';
+                completeBtn.style.padding = '0.3rem 0.6rem';
+                completeBtn.style.fontSize = '0.75rem';
+                completeBtn.innerHTML = '<i class="fas fa-check"></i> Complete';
+                completeBtn.onclick = function() { markCompleted(appt.appointment_id); };
+                actionsDiv.appendChild(completeBtn);
+            }
+
+            if (['admin', 'doctor', 'receptionist'].includes(userRole)) {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-warning';
+                editBtn.style.padding = '0.3rem 0.6rem';
+                editBtn.style.fontSize = '0.75rem';
+                editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+                editBtn.onclick = function() { editAppointment(appt.appointment_id); };
+                actionsDiv.appendChild(editBtn);
+            }
+
+            if (userRole === 'admin' || userRole === 'doctor') {
+                const presBtn = document.createElement('button');
+                presBtn.className = 'btn btn-info';
+                presBtn.style.padding = '0.3rem 0.6rem';
+                presBtn.style.fontSize = '0.75rem';
+                presBtn.innerHTML = '<i class="fas fa-prescription-bottle"></i> Prescription';
+                presBtn.onclick = function() { openPrescriptionModal(appt.appointment_id, appt.patient_id); };
+                actionsDiv.appendChild(presBtn);
+            }
+
+            if (userRole === 'admin') {
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn btn-danger';
+                delBtn.style.padding = '0.3rem 0.6rem';
+                delBtn.style.fontSize = '0.75rem';
+                delBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                delBtn.onclick = function() { deleteAppointment(appt.appointment_id); };
+                actionsDiv.appendChild(delBtn);
+            }
+
+            actionsTd.appendChild(actionsDiv);
+            tr.appendChild(actionsTd);
+
+            tbody.appendChild(tr);
         });
     }
 

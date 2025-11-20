@@ -25,7 +25,7 @@
         </h1>
         <div class="page-actions">
             <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift" onclick="handleAddShiftClick()">
-                <i class="fas fa-plus" aria-hidden="true"></i> Add Shift
+                <i class="fas fa-plus" aria-hidden="true"></i> Add Schedule
             </button>
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
                 <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
@@ -109,8 +109,8 @@
                         <div class="card-header-modern">
                             <div class="card-icon-modern blue"><i class="fas fa-calendar-alt"></i></div>
                             <div class="card-info">
-                                <h3 class="card-title-modern">Total Shifts</h3>
-                                <p class="card-subtitle">All scheduled shifts</p>
+                                <h3 class="card-title-modern">Total Schedule</h3>
+                                <p class="card-subtitle">All schedules</p>
                             </div>
                         </div>
                         <div class="card-metrics">

@@ -492,7 +492,7 @@ class AppointmentManagement extends BaseController
     private function getAvailablePatients()
     {
         try {
-            return $this->db->table('patient p')
+            return $this->db->table('patients p')
                 ->select('p.patient_id, p.first_name, p.last_name, p.date_of_birth')
                 ->orderBy('p.first_name', 'ASC')
                 ->get()
@@ -539,6 +539,51 @@ class AppointmentManagement extends BaseController
             return $this->response->setJSON([
                 'status' => 'error',
                 'message' => 'Failed to load doctors'
+            ]);
+        }
+    }
+
+    /**
+     * Get doctors who have an active schedule on a specific date
+     * Simple availability: doctor has a schedule entry that weekday
+     */
+    public function getAvailableDoctorsByDate()
+    {
+        try {
+            $date = $this->request->getGet('date') ?: date('Y-m-d');
+            $timestamp = strtotime($date);
+
+            if (!$timestamp) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invalid date'
+                ]);
+            }
+
+            // 1 (Mon) - 7 (Sun)
+            $weekday = (int) date('N', $timestamp);
+
+            $doctors = $this->db->table('staff_schedule ss')
+                ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
+                ->join('doctor d', 'd.staff_id = ss.staff_id', 'inner')
+                ->join('staff s', 's.staff_id = ss.staff_id', 'inner')
+                ->where('ss.status', 'active')
+                ->where('ss.weekday', $weekday)
+                ->where('d.status', 'Active')
+                ->groupBy('s.staff_id')
+                ->orderBy('s.first_name', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $doctors
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Get available doctors by date error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to load available doctors'
             ]);
         }
     }

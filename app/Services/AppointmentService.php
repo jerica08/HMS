@@ -41,6 +41,53 @@ class AppointmentService
         // Prepare appointment data
         $data = $this->prepareAppointmentData($input, $doctorId, $userRole);
 
+        $appointmentDate = $data['appointment_date'] ?? null;
+
+        if (!$appointmentDate) {
+            return [
+                'success' => false,
+                'message' => 'Invalid appointment date',
+            ];
+        }
+
+        $timestamp = strtotime($appointmentDate);
+
+        if ($timestamp === false) {
+            return [
+                'success' => false,
+                'message' => 'Invalid appointment date',
+            ];
+        }
+
+        $weekdayName = date('N', $timestamp); // 1 (Mon) - 7 (Sun)
+
+        $hasShift = $this->db->table('staff_schedule')
+            ->where('staff_id', $doctorId)
+            ->where('weekday', $weekdayName)
+            ->where('status', 'active')
+            ->countAllResults() > 0;
+
+        if (!$hasShift) {
+            return [
+                'success' => false,
+                'message' => 'Selected doctor has no shift on this day',
+            ];
+        }
+
+       
+        $appointmentsCount = $this->db->table('appointments')
+            ->where('doctor_id', $doctorId)
+            ->where('appointment_date', $appointmentDate)
+            ->whereIn('status', ['scheduled', 'in-progress'])
+            ->countAllResults();
+
+        if ($appointmentsCount > 0) {
+            return [
+                'success' => false,
+                'message' => 'Doctor already has an active appointment on this date',
+            ];
+        }
+
         try {
             $this->db->table('appointments')->insert($data);
             return [
@@ -66,28 +113,20 @@ class AppointmentService
         try {
             $builder = $this->db->table('appointments a')
                 ->select('a.*, 
-                         a.id as appointment_id,
                          p.patient_id,
                          p.first_name as patient_first_name, 
                          p.last_name as patient_last_name,
-                         p.contact_no as patient_phone, 
                          p.email as patient_email,
                          p.date_of_birth,
-                         p.gender,
-                         p.address,
-                         p.emergency_contact_name,
-                         p.emergency_contact_phone,
-                         p.medical_history,
                          TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) as patient_age,
                          CONCAT(p.first_name, " ", p.last_name) as patient_full_name,
                          s.staff_id as doctor_id,
                          s.first_name as doctor_first_name,
                          s.last_name as doctor_last_name,
-                         s.department as doctor_department,
                          CONCAT(s.first_name, " ", s.last_name) as doctor_name,
                          DATE_FORMAT(a.appointment_date, "%W, %M %d, %Y") as formatted_date,
                          TIME_FORMAT(a.appointment_time, "%h:%i %p") as formatted_time')
-                ->join('patient p', 'p.patient_id = a.patient_id', 'left')
+                ->join('patients p', 'p.patient_id = a.patient_id', 'left')
                 ->join('staff s', 's.staff_id = a.doctor_id', 'left');
 
             // Apply filters
@@ -134,7 +173,7 @@ class AppointmentService
         try {
             $appointment = $this->db->table('appointments a')
                 ->select('a.*, p.*, CONCAT(s.first_name, " ", s.last_name) as doctor_name')
-                ->join('patient p', 'p.patient_id = a.patient_id', 'left')
+                ->join('patients p', 'p.patient_id = a.patient_id', 'left')
                 ->join('staff s', 's.staff_id = a.doctor_id', 'left')
                 ->where('a.appointment_id', $id)
                 ->get()
@@ -310,8 +349,7 @@ class AppointmentService
         $baseRules = [
             'patient_id' => 'required|numeric',
             'appointment_date' => 'required|valid_date',
-            'appointment_time' => 'required',
-            'reason' => 'permit_empty|max_length[255]',
+            'appointment_type' => 'required|in_list[Consultation,Follow-up,Check-up]',
         ];
 
         if ($userRole === 'doctor') {
@@ -322,10 +360,8 @@ class AppointmentService
             $baseRules['duration'] = 'required|numeric|greater_than[0]';
             unset($baseRules['appointment_date'], $baseRules['appointment_time']);
         } else {
-            // Receptionist/Admin validation (from Receptionist controller)
-            $baseRules['patient_name'] = 'required|min_length[3]';
-            $baseRules['doctor_id'] = 'required';
-            $baseRules['reason'] = 'required|min_length[5]';
+            // Receptionist/Admin validation for unified modal
+            $baseRules['doctor_id'] = 'required|numeric';
         }
 
         return $baseRules;
@@ -348,12 +384,12 @@ class AppointmentService
             $baseData['reason'] = $input['reason'] ?? null;
             $baseData['duration'] = $input['duration'];
         } else {
-            // Receptionist/Admin format (from Receptionist controller)
+            // Receptionist/Admin format for unified modal
             $baseData['appointment_date'] = $input['appointment_date'];
-            $baseData['appointment_time'] = $input['appointment_time'];
-            $baseData['reason'] = $input['reason'];
-            $baseData['notes'] = $input['notes'] ?? null;
-            $baseData['patient_name'] = $input['patient_name'] ?? null;
+            $baseData['appointment_time'] = '09:00:00';
+            $baseData['appointment_type'] = $input['appointment_type'];
+            $baseData['reason'] = $input['notes'] ?? null;
+            $baseData['duration'] = 30;
         }
 
         return $baseData;

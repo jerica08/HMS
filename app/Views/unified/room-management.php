@@ -19,8 +19,14 @@
       $roomStats = $roomStats ?? [];
     ?>
 </head>
+<body class="<?= esc($userRole ?? 'admin') ?>">
 
 <?php include APPPATH . 'Views/template/header.php'; ?>
+
+<?= $this->include('unified/components/notification', [
+    'id' => 'roomsNotification',
+    'dismissFn' => 'dismissRoomsNotification()'
+]) ?>
 
 <div class="main-container">
     <!-- Unified Sidebar -->
@@ -37,22 +43,6 @@
                 <i class="fas fa-plus" aria-hidden="true"></i> Add New Room
             </button>
         </div>
-
-        <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
-            <div id="flashNotice" role="alert" aria-live="polite" style="
-                margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px;
-                border: 1px solid <?= session()->getFlashdata('success') ? '#86efac' : '#fecaca' ?>;
-                background: <?= session()->getFlashdata('success') ? '#dcfce7' : '#fee2e2' ?>;
-                color: <?= session()->getFlashdata('success') ? '#166534' : '#991b1b' ?>;
-                display:flex; align-items:center; gap:0.5rem;">
-                <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>" aria-hidden="true"></i>
-                <span><?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error')) ?></span>
-                <button type="button" onclick="dismissFlash()" aria-label="Dismiss notification"
-                        style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        <?php endif; ?>
 
         <br />
 
@@ -163,16 +153,47 @@
 
 <script>
 window.roomTypeMetadata = <?= json_encode($roomTypeMetadata ?? [], JSON_HEX_TAG) ?>;
-</script>
 
-<script>
-function dismissFlash() {
-    const flashNotice = document.getElementById('flashNotice');
-    if (flashNotice) {
-        flashNotice.style.display = 'none';
+function showRoomsNotification(message, type) {
+    const container = document.getElementById('roomsNotification');
+    const iconEl = document.getElementById('roomsNotificationIcon');
+    const textEl = document.getElementById('roomsNotificationText');
+
+    if (!container || !iconEl || !textEl) return;
+
+    const isError = type === 'error';
+    const isSuccess = type === 'success';
+
+    container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
+    container.style.background = isError ? '#fee2e2' : '#ecfdf5';
+    container.style.color = isError ? '#991b1b' : '#166534';
+
+    const iconClass = isError ? 'fa-exclamation-triangle' : (isSuccess ? 'fa-check-circle' : 'fa-info-circle');
+    iconEl.className = 'fas ' + iconClass;
+
+    textEl.textContent = String(message || '');
+    container.style.display = 'flex';
+}
+
+function dismissRoomsNotification() {
+    const container = document.getElementById('roomsNotification');
+    if (container) {
+        container.style.display = 'none';
     }
 }
 </script>
+
+<?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            showRoomsNotification(
+                '<?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error'), 'js') ?>',
+                '<?= session()->getFlashdata('success') ? 'success' : 'error' ?>'
+            );
+        });
+    </script>
+<?php endif; ?>
+
 
 <!-- Reuse existing utility styles/behaviour if needed -->
 <script src="<?= base_url('assets/js/unified/patient-utils.js') ?>"></script>

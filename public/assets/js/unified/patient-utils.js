@@ -121,9 +121,39 @@ const PatientUtils = {
 
     /**
      * Show notification
+     * Uses the shared patientsNotification bar when present, otherwise falls back to a floating toast.
      */
     showNotification(message, type = 'info', duration = 5000) {
-        // Create notification element
+        const container = document.getElementById('patientsNotification');
+        const iconEl = document.getElementById('patientsNotificationIcon');
+        const textEl = document.getElementById('patientsNotificationText');
+
+        // Prefer the shared top notification bar when available
+        if (container && iconEl && textEl) {
+            const isError = type === 'error';
+            const isSuccess = type === 'success';
+
+            container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
+            container.style.background = isError ? '#fee2e2' : '#ecfdf5';
+            container.style.color = isError ? '#991b1b' : '#166534';
+
+            const iconClass = isError
+                ? 'fa-exclamation-triangle'
+                : (isSuccess ? 'fa-check-circle' : 'fa-info-circle');
+            iconEl.className = 'fas ' + iconClass;
+
+            textEl.textContent = this.escapeHtml(message || '');
+            container.style.display = 'flex';
+
+            setTimeout(() => {
+                if (container.style.display !== 'none') {
+                    container.style.display = 'none';
+                }
+            }, duration || 4000);
+            return;
+        }
+
+        // Fallback: floating toast notification
         const notification = document.createElement('div');
         notification.className = `alert alert-${type} notification fade-in`;
         notification.style.cssText = `
@@ -146,7 +176,6 @@ const PatientUtils = {
         
         document.body.appendChild(notification);
         
-        // Auto remove after duration
         setTimeout(() => {
             if (notification.parentElement) {
                 notification.remove();
@@ -331,6 +360,14 @@ const PatientUtils = {
         return dateObj.toLocaleDateString('en-US', options[format] || options.short);
     }
 };
+
+// Helper for shared patients notification bar
+function dismissPatientNotification() {
+    const container = document.getElementById('patientsNotification');
+    if (container) {
+        container.style.display = 'none';
+    }
+}
 
 // Export to global scope
 window.PatientConfig = PatientConfig;

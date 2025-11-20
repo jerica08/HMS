@@ -18,6 +18,12 @@
     ?>
 </head>
 <?php include APPPATH . 'Views/template/header.php'; ?> 
+
+<?= $this->include('unified/components/notification', [
+    'id' => 'patientsNotification',
+    'dismissFn' => 'dismissPatientNotification()'
+]) ?>
+
 <div class="main-container">
     <!-- Unified Sidebar -->
      <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
@@ -39,35 +45,7 @@
                 </button>
             <?php endif; ?>
         </div>
-
-        <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
-            <div id="flashNotice" role="alert" aria-live="polite" style="
-                margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px;
-                border: 1px solid <?= session()->getFlashdata('success') ? '#86efac' : '#fecaca' ?>;
-                background: <?= session()->getFlashdata('success') ? '#dcfce7' : '#fee2e2' ?>;
-                color: <?= session()->getFlashdata('success') ? '#166534' : '#991b1b' ?>; display:flex; align-items:center; gap:0.5rem;">
-                <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>" aria-hidden="true"></i>
-                <span>
-                    <?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error')) ?>
-                </span>
-                <button type="button" onclick="dismissFlash()" aria-label="Dismiss notification" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        <?php endif; ?>
-
-        <?php $errors = session()->get('errors'); ?>
-        <?php if (!empty($errors) && is_array($errors)): ?>
-            <div role="alert" aria-live="polite" style="margin-top:0.75rem; padding:0.75rem 1rem; border-radius:8px; border:1px solid #fecaca; background:#fee2e2; color:#991b1b;">
-                <div style="font-weight:600; margin-bottom:0.25rem;"><i class="fas fa-exclamation-circle"></i> Please fix the following errors:</div>
-                <ul style="margin:0; padding-left:1.25rem;">
-                    <?php foreach ($errors as $field => $msg): ?>
-                        <li><?= esc(is_array($msg) ? implode(', ', $msg) : $msg) ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
-
+        
         <br />
         <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
@@ -236,14 +214,6 @@
 <?php endif; ?>
 
 <!-- Patient Management Scripts -->
-<script>
-function dismissFlash() {
-    const flashNotice = document.getElementById('flashNotice');
-    if (flashNotice) {
-        flashNotice.style.display = 'none';
-    }
-}
-</script>
 <script>
     window.PatientRoomInventory = <?= json_encode($roomInventory ?? []) ?>;
 </script>

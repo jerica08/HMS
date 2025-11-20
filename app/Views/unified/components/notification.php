@@ -10,7 +10,6 @@
         border: 1px solid #bbf7d0;
         background: #ecfdf5;
         color: #166534;
-        display:flex;
         align-items:center;
         gap:0.5rem;
         box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);

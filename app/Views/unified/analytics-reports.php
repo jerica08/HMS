@@ -16,6 +16,11 @@
 
     <?php include APPPATH . 'Views/template/header.php'; ?>
 
+    <?= $this->include('unified/components/notification', [
+        'id' => 'analyticsNotification',
+        'dismissFn' => 'dismissAnalyticsNotification()'
+    ]) ?>
+
     <div class="main-container">
         <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
@@ -454,7 +459,46 @@
         // Pass analytics data to JavaScript
         window.analyticsData = <?= json_encode($analytics) ?>;
         window.userRole = '<?= esc($userRole) ?>';
+
+        function showAnalyticsNotification(message, type) {
+            const container = document.getElementById('analyticsNotification');
+            const iconEl = document.getElementById('analyticsNotificationIcon');
+            const textEl = document.getElementById('analyticsNotificationText');
+
+            if (!container || !iconEl || !textEl) return;
+
+            const isError = type === 'error';
+            const isSuccess = type === 'success';
+
+            container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
+            container.style.background = isError ? '#fee2e2' : '#ecfdf5';
+            container.style.color = isError ? '#991b1b' : '#166534';
+
+            const iconClass = isError ? 'fa-exclamation-triangle' : (isSuccess ? 'fa-check-circle' : 'fa-info-circle');
+            iconEl.className = 'fas ' + iconClass;
+
+            textEl.textContent = String(message || '');
+            container.style.display = 'flex';
+        }
+
+        function dismissAnalyticsNotification() {
+            const container = document.getElementById('analyticsNotification');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
     </script>
     <script src="<?= base_url('assets/js/unified/analytics-reports.js') ?>"></script>
+
+    <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                showAnalyticsNotification(
+                    '<?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error'), 'js') ?>',
+                    '<?= session()->getFlashdata('success') ? 'success' : 'error' ?>'
+                );
+            });
+        </script>
+    <?php endif; ?>
 </body>
 </html>

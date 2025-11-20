@@ -911,7 +911,36 @@ class PrescriptionManager {
     }
 
     showNotification(message, type = 'info') {
-        // Create notification element
+        const container = document.getElementById('prescriptionsNotification');
+        const iconEl = document.getElementById('prescriptionsNotificationIcon');
+        const textEl = document.getElementById('prescriptionsNotificationText');
+
+        // Prefer shared top bar when available
+        if (container && iconEl && textEl) {
+            const isError = type === 'error';
+            const isSuccess = type === 'success';
+
+            container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
+            container.style.background = isError ? '#fee2e2' : '#ecfdf5';
+            container.style.color = isError ? '#991b1b' : '#166534';
+
+            const iconClass = isError
+                ? 'fa-exclamation-triangle'
+                : (isSuccess ? 'fa-check-circle' : 'fa-info-circle');
+            iconEl.className = 'fas ' + iconClass;
+
+            textEl.textContent = this.escapeHtml(message || '');
+            container.style.display = 'flex';
+
+            setTimeout(() => {
+                if (container.style.display !== 'none') {
+                    container.style.display = 'none';
+                }
+            }, 4000);
+            return;
+        }
+
+        // Fallback: inline alert at top of content
         const notification = document.createElement('div');
         notification.className = `alert alert-${type} fade-in`;
         notification.innerHTML = `
@@ -919,13 +948,11 @@ class PrescriptionManager {
             ${this.escapeHtml(message)}
         `;
 
-        // Add to page
         const content = document.querySelector('.content');
         if (content) {
             content.insertBefore(notification, content.firstChild);
         }
 
-        // Auto remove after 5 seconds
         setTimeout(() => {
             notification.remove();
         }, 5000);
@@ -970,6 +997,14 @@ class PrescriptionManager {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+}
+
+// Helper for shared prescriptions notification bar
+function dismissPrescriptionsNotification() {
+    const container = document.getElementById('prescriptionsNotification');
+    if (container) {
+        container.style.display = 'none';
     }
 }
 

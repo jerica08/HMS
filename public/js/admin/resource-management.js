@@ -163,8 +163,15 @@
     try { if (csrf.token && csrf.hash) { p.append('csrf_token', csrf.hash); } } catch(e) {}
     fetch(baseUrl + 'admin/resource-management/delete', { method:'POST', headers:{ 'Accept':'application/json' }, body:p })
       .then(function(r){ return r.json().catch(function(){ return {status:'error'}; }); })
-      .then(function(res){ if(res && res.status==='success'){ window.location.reload(); } else { alert('Failed to delete'); } })
-      .catch(function(){ alert('Failed to delete'); });
+      .then(function(res){
+        if(res && res.status==='success'){
+          showNotification('Resource deleted successfully','success');
+          window.location.reload();
+        } else {
+          showNotification(res && res.message ? res.message : 'Failed to delete','error');
+        }
+      })
+      .catch(function(){ showNotification('Failed to delete','error'); });
   };
 
   // Edit Resource -> POST admin/resource-management/update
@@ -244,5 +251,42 @@
         .catch(function(){ alert('Failed to update resource'); });
     });
   })();
+
+  // Shared notification helper using resourcesNotification bar when present
+  function showNotification(message, type){
+    var container = document.getElementById('resourcesNotification');
+    var iconEl = document.getElementById('resourcesNotificationIcon');
+    var textEl = document.getElementById('resourcesNotificationText');
+
+    if (container && iconEl && textEl) {
+      var isError = type === 'error';
+      var isSuccess = type === 'success';
+
+      container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
+      container.style.background = isError ? '#fee2e2' : '#ecfdf5';
+      container.style.color = isError ? '#991b1b' : '#166534';
+
+      var iconClass = isError ? 'fa-exclamation-triangle' : (isSuccess ? 'fa-check-circle' : 'fa-info-circle');
+      iconEl.className = 'fas ' + iconClass;
+
+      textEl.textContent = String(message || '');
+      container.style.display = 'flex';
+
+      setTimeout(function(){
+        if (container.style.display !== 'none') {
+          container.style.display = 'none';
+        }
+      }, 4000);
+      return;
+    }
+
+    // Fallback: simple alert
+    alert(message || (type === 'error' ? 'Error' : 'Notice'));
+  }
+
+  window.dismissResourcesNotification = function(){
+    var container = document.getElementById('resourcesNotification');
+    if (container) container.style.display = 'none';
+  };
 
 })();

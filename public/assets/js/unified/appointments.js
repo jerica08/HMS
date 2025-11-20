@@ -98,6 +98,26 @@
         if (scheduleBtn) {
             scheduleBtn.addEventListener('click', function() {
                 console.log('Schedule button clicked!');
+                // Reset modal to "create" state
+                const titleEl = document.getElementById('newAppointmentTitle');
+                if (titleEl) {
+                    const icon = titleEl.querySelector('i');
+                    titleEl.textContent = ' Schedule New Appointment';
+                    if (icon) {
+                        titleEl.prepend(icon);
+                    }
+                }
+                const saveBtn = document.getElementById('saveAppointmentBtn');
+                if (saveBtn) {
+                    saveBtn.innerHTML = '<i class="fas fa-calendar-check"></i> Schedule Appointment';
+                }
+
+                // Clear any previous appointment id
+                const idInput = document.getElementById('appointment_id');
+                if (idInput) {
+                    idInput.value = '';
+                }
+
                 openNewAppointmentModal();
             });
         }
@@ -544,16 +564,6 @@
                 actionsDiv.appendChild(editBtn);
             }
 
-            if (userRole === 'admin' || userRole === 'doctor') {
-                const presBtn = document.createElement('button');
-                presBtn.className = 'btn btn-info';
-                presBtn.style.padding = '0.3rem 0.6rem';
-                presBtn.style.fontSize = '0.75rem';
-                presBtn.innerHTML = '<i class="fas fa-prescription-bottle"></i> Prescription';
-                presBtn.onclick = function() { openPrescriptionModal(appt.appointment_id, appt.patient_id); };
-                actionsDiv.appendChild(presBtn);
-            }
-
             if (userRole === 'admin') {
                 const delBtn = document.createElement('button');
                 delBtn.className = 'btn btn-danger';
@@ -820,10 +830,14 @@
                     notesTextarea.value = appt.notes || appt.reason || '';
                 }
 
-                // Update modal title/button for edit context (optional, non-breaking)
+                // Update modal title/button for edit context
                 const titleEl = document.getElementById('newAppointmentTitle');
                 if (titleEl) {
-                    titleEl.childNodes[1].nodeValue = ' Edit Appointment';
+                    const icon = titleEl.querySelector('i');
+                    titleEl.textContent = ' Edit Appointment';
+                    if (icon) {
+                        titleEl.prepend(icon);
+                    }
                 }
                 const saveBtn = document.getElementById('saveAppointmentBtn');
                 if (saveBtn) {
@@ -874,52 +888,4 @@
         });
     }
 
-    // Prescription Modal Functions
-    function openPrescriptionModal(appointmentId, patientId) {
-        const modal = document.getElementById('prescriptionModal');
-        if (modal) {
-            // Set the patient in the dropdown
-            const patientSelect = document.getElementById('patientSelect');
-            if (patientSelect && patientId) {
-                patientSelect.value = patientId;
-                patientSelect.disabled = true; // Lock patient selection
-            }
-            
-            // Show modal
-            modal.style.display = 'flex';
-            modal.setAttribute('aria-hidden', 'false');
-        }
-    }
-
-    function closePrescriptionModal() {
-        const modal = document.getElementById('prescriptionModal');
-        if (modal) {
-            modal.style.display = 'none';
-            modal.setAttribute('aria-hidden', 'true');
-            
-            // Reset form
-            const form = document.getElementById('prescriptionForm');
-            if (form) {
-                form.reset();
-                document.getElementById('patientSelect').disabled = false;
-            }
-        }
-    }
-
-    // Initialize prescription modal close button
-    document.addEventListener('DOMContentLoaded', function() {
-        const closeBtn = document.getElementById('closePrescriptionModal');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', closePrescriptionModal);
-        }
-        
-        // Close modal when clicking outside
-        const modal = document.getElementById('prescriptionModal');
-        if (modal) {
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    closePrescriptionModal();
-                }
-            });
-        }
-    });
+    // (Prescription modal helpers removed; prescriptions are managed via dedicated module)

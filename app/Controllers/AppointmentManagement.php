@@ -107,10 +107,12 @@ class AppointmentManagement extends BaseController
                 $updateData['appointment_time'] = $input['appointment_time'];
             }
             if (isset($input['reason'])) {
+                // Explicit reason from caller
                 $updateData['reason'] = $input['reason'];
             }
             if (isset($input['notes'])) {
-                $updateData['notes'] = $input['notes'];
+                // Unified modal sends 'notes' which should be stored in the existing 'reason' column
+                $updateData['reason'] = $input['notes'];
             }
             
             $updateData['updated_at'] = date('Y-m-d H:i:s');

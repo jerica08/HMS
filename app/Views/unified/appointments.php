@@ -11,10 +11,15 @@
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="<?= base_url('assets/css/unified/appointments.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <script src="<?= base_url('assets/js/unified/prescription-management.js') ?>"></script>
 </head>
 
 <?php include APPPATH . 'Views/template/header.php'; ?> 
+
+    <?= $this->include('unified/components/notification', [
+        'id' => 'appointmentsNotification',
+        'dismissFn' => 'dismissAppointmentNotification()'
+    ]) ?>
+
 <div class="main-container">
     <!-- Unified Sidebar -->
      <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
@@ -44,34 +49,6 @@
                 </button>
             <?php endif; ?>
         </div>
-
-        <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
-            <div id="flashNotice" role="alert" aria-live="polite" style="
-                margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px;
-                border: 1px solid <?= session()->getFlashdata('success') ? '#86efac' : '#fecaca' ?>;
-                background: <?= session()->getFlashdata('success') ? '#dcfce7' : '#fee2e2' ?>;
-                color: <?= session()->getFlashdata('success') ? '#166534' : '#991b1b' ?>; display:flex; align-items:center; gap:0.5rem;">
-                <i class="fas <?= session()->getFlashdata('success') ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>" aria-hidden="true"></i>
-                <span>
-                    <?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error')) ?>
-                </span>
-                <button type="button" onclick="dismissFlash()" aria-label="Dismiss notification" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        <?php endif; ?>
-
-        <?php $errors = session()->get('errors'); ?>
-        <?php if (!empty($errors) && is_array($errors)): ?>
-            <div role="alert" aria-live="polite" style="margin-top:0.75rem; padding:0.75rem 1rem; border-radius:8px; border:1px solid #fecaca; background:#fee2e2; color:#991b1b;">
-                <div style="font-weight:600; margin-bottom:0.25rem;"><i class="fas fa-exclamation-circle"></i> Please fix the following errors:</div>
-                <ul style="margin:0; padding-left:1.25rem;">
-                    <?php foreach ($errors as $field => $msg): ?>
-                        <li><?= esc(is_array($msg) ? implode(', ', $msg) : $msg) ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
 
         <br />
 
@@ -213,17 +190,6 @@
         </main>
     </div>
 
-    <div id="appointmentsNotification" role="alert" aria-live="polite" style="
-        display:none; margin: 1rem 1.5rem 0 1.5rem; padding: 0.75rem 1rem; border-radius: 8px;
-        border: 1px solid #86efac; background: #dcfce7; color: #166534;
-        display:flex; align-items:center; gap:0.5rem;">
-        <i id="appointmentsNotificationIcon" class="fas fa-check-circle" aria-hidden="true"></i>
-        <span id="appointmentsNotificationText"></span>
-        <button type="button" onclick="dismissAppointmentNotification()" aria-label="Dismiss notification" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit;">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-
     <!-- Include modal with forced doctors data like shift management -->
     <?php 
     // Force set the doctors variable directly like shift management
@@ -232,7 +198,6 @@
     include(APPPATH . 'Views/unified/modals/new-appointment-modal.php');
     ?>
     <?php include APPPATH . 'Views/unified/modals/view-appointment-modal.php'; ?>
-    <?php include APPPATH . 'Views/unified/modals/add-prescription-modal.php'; ?>
 
  <script src="<?= base_url('assets/js/unified/appointments.js') ?>"></script>
 </body>

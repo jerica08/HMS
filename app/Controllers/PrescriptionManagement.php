@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Services\PrescriptionService;
+use App\Services\ResourceService;
 use App\Libraries\PermissionManager;
 
 class PrescriptionManagement extends BaseController
@@ -385,6 +386,36 @@ class PrescriptionManagement extends BaseController
             return $this->response->setStatusCode(500)->setJSON([
                 'status' => 'error',
                 'message' => 'Failed to load available doctors'
+            ]);
+        }
+    }
+
+    /**
+     * Get available medications from Resource Management (Medications category)
+     */
+    public function getAvailableMedicationsAPI()
+    {
+        try {
+            if (!$this->canCreatePrescription()) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Access denied',
+                ]);
+            }
+
+            $search = $this->request->getGet('search');
+            $resourceService = new ResourceService();
+            $medications = $resourceService->getMedications($search);
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $medications,
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'PrescriptionManagement::getAvailableMedicationsAPI error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to load medications',
             ]);
         }
     }

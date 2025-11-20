@@ -315,7 +315,7 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="res_name">Resource Name*</label>
-                                        <input id="res_name" name="name" type="text" class="form-control" required autocomplete="off" placeholder="Enter resource name">
+                                        <input id="res_name" name="equipment_name" type="text" class="form-control" required autocomplete="off" placeholder="Enter resource name">
                                         <small id="err_res_name" style="color:#dc2626"></small>
                                     </div>
                                     <div class="form-group">
@@ -419,7 +419,7 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="er_name">Resource Name*</label>
-                                        <input id="er_name" name="name" type="text" class="form-control" required autocomplete="off" placeholder="Enter resource name">
+                                        <input id="er_name" name="equipment_name" type="text" class="form-control" required autocomplete="off" placeholder="Enter resource name">
                                         <small id="err_er_name" style="color:#dc2626"></small>
                                     </div>
                                     <div class="form-group">
@@ -667,7 +667,5 @@
             </script>
         </main>
     </div>
-
-    <script src="<?= base_url('js/logout.js') ?>"></script>
 </body>
 </html>

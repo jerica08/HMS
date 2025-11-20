@@ -31,7 +31,8 @@ class PrescriptionManager {
                 getPrescription: `${baseUrl}prescriptions`,
                 updateStatus: `${baseUrl}prescriptions`,
                 availablePatients: `${baseUrl}prescriptions/available-patients`,
-                availableDoctors: `${baseUrl}prescriptions/available-doctors`
+                availableDoctors: `${baseUrl}prescriptions/available-doctors`,
+                availableMedications: `${baseUrl}prescriptions/available-medications`,
             }
         };
     }
@@ -364,11 +365,9 @@ class PrescriptionManager {
         if (modal) {
             // Load available patients
             await this.loadAvailablePatients();
-            
-            // Load available doctors if admin
-            if (this.config.userRole === 'admin') {
-                await this.loadAvailableDoctors();
-            }
+
+            // Load available medications from Resource Management
+            await this.loadAvailableMedications();
             
             // Add active class
             modal.classList.add('active');
@@ -397,11 +396,9 @@ class PrescriptionManager {
             if (data.status === 'success' && data.data) {
                 // Load available patients first
                 await this.loadAvailablePatients();
-                
-                // Load available doctors if admin
-                if (this.config.userRole === 'admin') {
-                    await this.loadAvailableDoctors();
-                }
+
+                // Load medications so selector is populated before filling form
+                await this.loadAvailableMedications();
                 
                 // Populate form with prescription data
                 this.populateForm(data.data);
@@ -700,6 +697,51 @@ class PrescriptionManager {
             document.getElementById('prescriptionDate').value = new Date().toISOString().split('T')[0];
         }
         this.clearValidationErrors();
+    }
+
+    /**
+     * Load medications from Resource Management into the medication selector.
+     */
+    async loadAvailableMedications() {
+        const select = document.getElementById('medicationSelect');
+        const hiddenName = document.getElementById('medication');
+        if (!select || !hiddenName) {
+            return;
+        }
+
+        // Show loading state
+        select.innerHTML = '<option value="">Loading medications...</option>';
+        select.disabled = true;
+
+        try {
+            const response = await fetch(this.config.endpoints.availableMedications);
+            const data = await response.json();
+
+            if (data.status === 'success' && Array.isArray(data.data)) {
+                select.innerHTML = '<option value="">Select medication</option>';
+
+                data.data.forEach(med => {
+                    const opt = document.createElement('option');
+                    opt.value = med.id;
+                    opt.textContent = `${med.equipment_name} (Stock: ${med.quantity})`;
+                    opt.dataset.name = med.equipment_name;
+                    select.appendChild(opt);
+                });
+            } else {
+                select.innerHTML = '<option value="">No medications available</option>';
+            }
+        } catch (error) {
+            console.error('Error loading medications:', error);
+            select.innerHTML = '<option value="">Error loading medications</option>';
+        } finally {
+            select.disabled = false;
+        }
+
+        // Keep hidden medication name in sync with selected resource
+        select.addEventListener('change', () => {
+            const selected = select.options[select.selectedIndex];
+            hiddenName.value = selected && selected.dataset ? (selected.dataset.name || '') : '';
+        });
     }
 
     closePrescriptionModal() {

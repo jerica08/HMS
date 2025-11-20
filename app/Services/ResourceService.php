@@ -328,4 +328,79 @@ class ResourceService
             return [];
         }
     }
+
+    /**
+     * Get medication resources (category = 'Medications') with optional search filter.
+     */
+    public function getMedications(?string $search = null): array
+    {
+        try {
+            $builder = $this->db->table('resources')
+                ->where('category', 'Medications');
+
+            if ($search) {
+                $builder->like('equipment_name', $search);
+            }
+
+            return $builder
+                ->select('id, equipment_name, quantity, status')
+                ->orderBy('equipment_name', 'ASC')
+                ->get()
+                ->getResultArray();
+        } catch (\Exception $e) {
+            log_message('error', 'ResourceService::getMedications - ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Reserve medication stock by decrementing quantity, with availability checks.
+     */
+    public function reserveMedication(int $resourceId, int $quantity): array
+    {
+        try {
+            if ($quantity <= 0) {
+                return ['success' => false, 'message' => 'Quantity must be greater than zero'];
+            }
+
+            $resource = $this->db->table('resources')
+                ->where('id', $resourceId)
+                ->get()
+                ->getRowArray();
+
+            if (!$resource) {
+                return ['success' => false, 'message' => 'Medication resource not found'];
+            }
+
+            if (($resource['category'] ?? '') !== 'Medications') {
+                return ['success' => false, 'message' => 'Selected resource is not a medication'];
+            }
+
+            $currentQty = (int) ($resource['quantity'] ?? 0);
+            if ($currentQty < $quantity) {
+                return [
+                    'success' => false,
+                    'message' => 'Not enough stock for ' . ($resource['equipment_name'] ?? 'selected medication')
+                ];
+            }
+
+            $newQty = $currentQty - $quantity;
+
+            $updated = $this->db->table('resources')
+                ->where('id', $resourceId)
+                ->update(['quantity' => $newQty]);
+
+            if (!$updated) {
+                return ['success' => false, 'message' => 'Failed to update medication stock'];
+            }
+
+            return [
+                'success' => true,
+                'remaining' => $newQty,
+            ];
+        } catch (\Exception $e) {
+            log_message('error', 'ResourceService::reserveMedication - ' . $e->getMessage());
+            return ['success' => false, 'message' => 'An error occurred while updating stock'];
+        }
+    }
 }

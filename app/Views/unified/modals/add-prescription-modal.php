@@ -25,15 +25,6 @@
                         </select>
                     </div>
                     
-                    <?php if (($userRole ?? '') === 'admin'): ?>
-                    <div class="form-group">
-                        <label for="doctorSelect" class="form-label">Assigned Doctor *</label>
-                        <select id="doctorSelect" name="doctor_id" class="form-select" required>
-                            <option value="">Select Doctor</option>
-                            <!-- Doctors will be loaded dynamically via JavaScript -->
-                        </select>
-                    </div>
-                    <?php endif; ?>
                     
                     <div class="form-group">
                         <label for="prescriptionDate" class="form-label">Date Issued *</label>
@@ -41,8 +32,14 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="medication" class="form-label">Medication *</label>
-                        <input type="text" id="medication" name="medication" class="form-input" required placeholder="Enter medication name">
+                        <label for="medicationSelect" class="form-label">Medication *</label>
+                        <select id="medicationSelect" name="medication_resource_id" class="form-select" required>
+                            <option value="">Select medication</option>
+                            <!-- Medications will be loaded dynamically via JavaScript from Resource Management -->
+                        </select>
+                        <!-- Hidden field to store medication name for prescriptions table -->
+                        <input type="hidden" id="medication" name="medication">
+                        <small id="err_medication" class="error-text" style="color:#dc2626"></small>
                     </div>
                     
                     <div class="form-group">
@@ -52,12 +49,29 @@
                     
                     <div class="form-group">
                         <label for="frequency" class="form-label">Frequency *</label>
-                        <input type="text" id="frequency" name="frequency" class="form-input" required placeholder="e.g., Twice daily">
+                        <select id="frequency" name="frequency" class="form-select" required>
+                            <option value="">Select Frequency</option>
+                            <option value="Once daily">Once daily</option>
+                            <option value="Twice daily">Twice daily</option>
+                            <option value="Three times daily">Three times daily</option>
+                            <option value="Every 4 hours">Every 4 hours</option>
+                            <option value="Every 6 hours">Every 6 hours</option>
+                            <option value="Every 8 hours">Every 8 hours</option>
+                            <option value="As needed">As needed</option>
+                        </select>
                     </div>
                     
                     <div class="form-group">
                         <label for="duration" class="form-label">Duration</label>
-                        <input type="text" id="duration" name="duration" class="form-input" placeholder="e.g., 7 days">
+                        <select id="duration" name="duration" class="form-select">
+                            <option value="">Select Duration</option>
+                            <option value="3 days">3 days</option>
+                            <option value="5 days">5 days</option>
+                            <option value="7 days">7 days</option>
+                            <option value="10 days">10 days</option>
+                            <option value="14 days">14 days</option>
+                            <option value="30 days">30 days</option>
+                        </select>
                     </div>
                     
                     <div class="form-group">

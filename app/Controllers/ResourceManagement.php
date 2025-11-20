@@ -81,7 +81,8 @@ class ResourceManagement extends BaseController
         $userRole = session()->get('role');
         $staffId = session()->get('staff_id');
 
-        $data = $this->request->getJSON(true) ?? $this->request->getPost();
+        // Use standard POST data; avoid getJSON(true) to prevent JSON parse errors
+        $data = $this->request->getPost();
         
         $result = $this->resourceService->createResource($data, $userRole, $staffId);
         
@@ -97,7 +98,8 @@ class ResourceManagement extends BaseController
         $userRole = session()->get('role');
         $staffId = session()->get('staff_id');
 
-        $data = $this->request->getJSON(true) ?? $this->request->getPost();
+        // Use standard POST data; avoid getJSON(true) to prevent JSON parse errors
+        $data = $this->request->getPost();
         $resourceId = $data['id'] ?? null;
 
         if (!$resourceId) {
@@ -119,7 +121,8 @@ class ResourceManagement extends BaseController
         $staffId = session()->get('staff_id');
 
         if (!$resourceId) {
-            $data = $this->request->getJSON(true) ?? $this->request->getPost();
+            // Use standard POST data; avoid getJSON(true) to prevent JSON parse errors
+            $data = $this->request->getPost();
             $resourceId = $data['id'] ?? null;
         }
 

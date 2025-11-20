@@ -42,12 +42,12 @@ class PrescriptionService
                     'p.created_by',
                     'COALESCE(pat.patient_id, p.patient_id) as pat_id',
                     'pat.date_of_birth',
-                    'pat.contact_no as patient_phone',
-                    'pat.email as patient_email',
-                    'pat.status as patient_status',
-                    'COALESCE(pat.primary_doctor_id, 0) as doctor_id'
+                    // patients table uses contact_number, not contact_no
+                    'pat.contact_number as patient_phone',
+                    'pat.email as patient_email'
                 ])
-                ->join('patient pat', 'pat.patient_id = p.patient_id', 'left');
+                // Join to the correct patients table so listing works
+                ->join('patients pat', 'pat.patient_id = p.patient_id', 'left');
 
             // Apply role-based filtering
             switch ($userRole) {
@@ -57,21 +57,11 @@ class PrescriptionService
                     break;
                     
                 case 'doctor':
-                    // Doctors see prescriptions for their patients
-                    if ($staffId) {
-                        $builder->where('pat.primary_doctor_id', $staffId);
-                    }
+                    // Doctors: for now, show all prescriptions (no primary_doctor_id column on patients)
                     break;
                     
                 case 'nurse':
-                    // Nurses see prescriptions for patients in their department
-                    if ($staffId) {
-                        $userDept = $this->getUserDepartment($staffId);
-                        if ($userDept) {
-                            $builder->join('staff doc_staff', 'doc_staff.staff_id = pat.primary_doctor_id', 'left')
-                                ->where('doc_staff.department', $userDept);
-                        }
-                    }
+                    // Nurses: for now, show all prescriptions (no primary_doctor_id to derive department)
                     break;
                     
                 case 'pharmacist':
@@ -101,9 +91,7 @@ class PrescriptionService
                 $builder->where('p.patient_id', $filters['patient_id']);
             }
             
-            if (!empty($filters['doctor_id'])) {
-                $builder->where('pat.primary_doctor_id', $filters['doctor_id']);
-            }
+            // Doctor-specific filtering based on patients.primary_doctor_id is disabled
 
             if (!empty($filters['date_range'])) {
                 $builder->where('p.created_at >=', $filters['date_range']['start']);
@@ -248,8 +236,8 @@ class PrescriptionService
             // Generate rx_number
             $rxNumber = $this->generatePrescriptionId();
 
-            // Get patient name
-            $patient = $this->db->table('patient')
+            // Get patient name (use correct patients table)
+            $patient = $this->db->table('patients')
                 ->select('first_name, last_name')
                 ->where('patient_id', $data['patient_id'])
                 ->get()
@@ -266,7 +254,7 @@ class PrescriptionService
                 ->getRowArray();
             
             $prescriberName = $prescriber ? ('Dr. ' . $prescriber['first_name'] . ' ' . $prescriber['last_name']) : 'Unknown';
-            
+
             // Get user_id for created_by (from users table linked to staff_id)
             $user = $this->db->table('users')
                 ->select('user_id')
@@ -275,6 +263,23 @@ class PrescriptionService
                 ->getRowArray();
             
             $createdBy = $user['user_id'] ?? null;
+
+            // If medication is linked to a resource, reserve stock in Resource Management
+            $resourceId = isset($data['medication_resource_id']) ? (int) $data['medication_resource_id'] : 0;
+            $quantity = (int) $data['quantity'];
+
+            if ($resourceId && $quantity > 0) {
+                $resourceService = new \App\Services\ResourceService();
+                $reserveResult = $resourceService->reserveMedication($resourceId, $quantity);
+
+                if (!$reserveResult['success']) {
+                    return [
+                        'success' => false,
+                        'message' => $reserveResult['message'],
+                        'errors'  => ['quantity' => $reserveResult['message']],
+                    ];
+                }
+            }
 
             // Map status values
             $statusMap = [
@@ -566,24 +571,16 @@ class PrescriptionService
     public function getAvailablePatients($userRole, $staffId = null)
     {
         try {
-            $builder = $this->db->table('patient p')
+            // Use the correct patients table and existing columns (match AppointmentManagement)
+            $builder = $this->db->table('patients p')
                 ->select([
                     'p.patient_id',
                     'p.first_name',
                     'p.last_name',
-                    'p.date_of_birth',
-                    'p.contact_no',
-                    'p.email',
-                    'p.primary_doctor_id'
-                ])
-                ->whereIn('p.status', ['Active', 'active']);
+                    'p.date_of_birth'
+                ]);
 
-            // Role-based patient filtering for doctors
-            // The primary_doctor_id in patient table references staff.staff_id directly
-            if ($userRole === 'doctor' && $staffId) {
-                $builder->where('p.primary_doctor_id', $staffId);
-            }
-
+            // For now, do not filter by primary doctor since that column is not present
             return $builder->orderBy('p.first_name', 'ASC')->get()->getResultArray();
 
         } catch (\Throwable $e) {
@@ -604,7 +601,8 @@ class PrescriptionService
         $builder = $this->db->table('prescriptions p');
         
         if ($userRole === 'doctor' && $staffId) {
-            $builder->join('patient pat', 'pat.patient_id = p.patient_id', 'inner')
+            // Join to the correct patients table when filtering by doctor
+            $builder->join('patients pat', 'pat.patient_id = p.patient_id', 'inner')
                 ->where('pat.primary_doctor_id', $staffId);
         }
 

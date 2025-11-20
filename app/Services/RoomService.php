@@ -52,7 +52,18 @@ class RoomService
     public function createRoom(array $input): array
     {
         $builder = $this->db->table('room');
-        $data = $this->mapRoomPayload($input);
+
+        try {
+            $roomTypeId = $this->resolveRoomTypeId($input);
+            $data = $this->mapRoomPayload($input, $roomTypeId);
+        } catch (\Throwable $e) {
+            log_message('error', 'RoomService::createRoom resolveRoomTypeId failed: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Could not create room type: ' . $e->getMessage(),
+            ];
+        }
 
         try {
             $builder->insert($data);
@@ -81,7 +92,17 @@ class RoomService
             ];
         }
 
-        $data = $this->mapRoomPayload($input);
+        try {
+            $roomTypeId = $this->resolveRoomTypeId($input);
+            $data = $this->mapRoomPayload($input, $roomTypeId);
+        } catch (\Throwable $e) {
+            log_message('error', 'RoomService::updateRoom resolveRoomTypeId failed: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Could not update room type: ' . $e->getMessage(),
+            ];
+        }
 
         try {
             $updated = $this->db->table('room')
@@ -144,12 +165,12 @@ class RoomService
         }
     }
 
-    private function mapRoomPayload(array $input): array
+    private function mapRoomPayload(array $input, ?int $roomTypeId = null): array
     {
         return [
             'room_number' => trim($input['room_number'] ?? ''),
             'room_name' => trim($input['room_name'] ?? ''),
-            'room_type_id' => !empty($input['room_type_id']) ? (int) $input['room_type_id'] : null,
+            'room_type_id' => $roomTypeId,
             'floor_number' => trim($input['floor_number'] ?? ''),
             'department_id' => !empty($input['department_id']) ? (int) $input['department_id'] : null,
             'bed_capacity' => !empty($input['bed_capacity']) ? (int) $input['bed_capacity'] : 1,
@@ -158,6 +179,62 @@ class RoomService
             'hourly_rate' => $this->sanitizeDecimal($input['hourly_rate'] ?? null),
             'extra_person_charge' => $this->sanitizeDecimal($input['extra_person_charge'] ?? 0),
             'overtime_charge_per_hour' => $this->sanitizeDecimal($input['overtime_charge_per_hour'] ?? null),
+        ];
+    }
+
+    private function resolveRoomTypeId(array $input): ?int
+    {
+        if (!empty($input['room_type_id'])) {
+            return (int) $input['room_type_id'];
+        }
+
+        $customType = trim($input['custom_room_type'] ?? '');
+        if ($customType === '') {
+            return null;
+        }
+
+        if (! $this->db->tableExists('room_type')) {
+            throw new \RuntimeException('Room type table does not exist.');
+        }
+
+        $roomTypeTable = $this->db->table('room_type');
+        $existing = $roomTypeTable
+            ->select('room_type_id')
+            ->where('type_name', $customType)
+            ->get()
+            ->getRowArray();
+
+        if ($existing) {
+            return (int) $existing['room_type_id'];
+        }
+
+        $payload = $this->buildRoomTypePayload($customType, $input);
+
+        if ($existing) {
+            $roomTypeTable
+                ->where('room_type_id', $existing['room_type_id'])
+                ->update($payload);
+
+            return (int) $existing['room_type_id'];
+        }
+
+        $roomTypeTable->insert($payload);
+
+        return (int) $this->db->insertID();
+    }
+
+    private function buildRoomTypePayload(string $typeName, array $input): array
+    {
+        $dailyRate = $this->sanitizeDecimal($input['rate_range'] ?? null);
+        $hourlyRate = $this->sanitizeDecimal($input['hourly_rate'] ?? null);
+        $notes = trim($input['notes'] ?? '');
+
+        return [
+            'type_name' => $typeName,
+            'description' => $notes ?: null,
+            'base_daily_rate' => $dailyRate ?? 0,
+            'base_hourly_rate' => $hourlyRate,
+            'additional_facility_charge' => null,
         ];
     }
 

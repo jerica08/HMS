@@ -6,7 +6,7 @@
     const addRoomModal = document.getElementById('addRoomModal');
     const saveRoomBtn = document.getElementById('saveRoomBtn');
     const modalTitle = document.getElementById('addRoomTitle');
-    const roomTypeSelect = document.getElementById('modal_room_type');
+    const roomTypeInput = document.getElementById('modal_room_type');
     const floorInput = document.getElementById('modal_floor');
     const roomNumberInput = document.getElementById('modal_room_number');
     const rateRangeInput = document.getElementById('modal_rate_range');
@@ -152,6 +152,7 @@
         const form = document.getElementById('addRoomForm');
         form.reset();
         form.removeAttribute('data-room-id');
+        applySelectedRoomTypeMetadata();
         editingRoomId = null;
         if (modalTitle) {
             modalTitle.innerHTML = '<i class="fas fa-hotel" style="color:#0ea5e9"></i> Add New Room';
@@ -199,11 +200,7 @@
     };
 
     const applySelectedRoomTypeMetadata = () => {
-        if (!roomTypeSelect) {
-            return;
-        }
-
-        const metadata = roomTypeMetadata[roomTypeSelect.value];
+        const metadata = roomTypeMetadata['default'] ?? {};
         if (floorInput) {
             floorInput.value = metadata?.floor_label ?? '';
         }
@@ -222,49 +219,7 @@
         }
     };
 
-    const handleRoomTypeChange = () => {
-        if (!roomTypeSelect) {
-            return;
-        }
-
-        applySelectedRoomTypeMetadata();
-    };
-
-    const submitRoom = async () => {
-        const form = document.getElementById('addRoomForm');
-        const formData = new FormData(form);
-
-        let endpoint = `${baseUrl}/rooms/create`;
-        if (editingRoomId) {
-            formData.append('room_id', editingRoomId);
-            endpoint = `${baseUrl}/rooms/${editingRoomId}/update`;
-        }
-
-        try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                body: formData,
-                headers: { 'Accept': 'application/json' },
-            });
-            const result = await response.json();
-            refreshCsrfHash(result?.csrf_hash);
-            if (!result.success) {
-                throw new Error(result.message || 'Failed to create room');
-            }
-
-            const submittedRoomNumber = (formData.get('room_number') || '').toString().trim().toLowerCase();
-            if (submittedRoomNumber) {
-                existingRoomNumbers.add(submittedRoomNumber);
-            }
-
-            showNotification(`Room ${editingRoomId ? 'updated' : 'saved'} successfully.`, 'success');
-            closeModal();
-            fetchRooms();
-        } catch (error) {
-            console.error(error);
-            showNotification(error.message || 'Could not process room right now.', 'error');
-        }
-    };
+    const handleRoomTypeInput = () => {};
 
     const handleTableClick = (event) => {
         const actionBtn = event.target.closest('button[data-action]');
@@ -291,7 +246,10 @@
         form.setAttribute('data-room-id', room.room_id);
         editingRoomId = room.room_id;
 
-        roomTypeSelect.value = room.room_type_id || '';
+        if (roomTypeInput) {
+            roomTypeInput.value = room.type_name || '';
+        }
+        applySelectedRoomTypeMetadata();
         roomNumberInput.value = room.room_number || '';
         document.getElementById('modal_room_name').value = room.room_name || '';
         floorInput.value = room.floor_number || '';
@@ -317,6 +275,52 @@
             return;
         }
         deleteRoom(room.room_id);
+    };
+
+    const submitRoom = async () => {
+        const form = document.getElementById('addRoomForm');
+        const formData = new FormData(form);
+        const typedRoomType = (roomTypeInput?.value || '').trim();
+
+        if (!typedRoomType) {
+            showNotification('Please enter a room type.', 'error');
+            roomTypeInput?.focus();
+            return;
+        }
+
+        formData.delete('room_type_id');
+        formData.set('custom_room_type', typedRoomType);
+
+        let endpoint = `${baseUrl}/rooms/create`;
+        if (editingRoomId) {
+            formData.append('room_id', editingRoomId);
+            endpoint = `${baseUrl}/rooms/${editingRoomId}/update`;
+        }
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' },
+            });
+            const result = await response.json();
+            refreshCsrfHash(result?.csrf_hash);
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to save room');
+            }
+
+            const submittedRoomNumber = (formData.get('room_number') || '').toString().trim().toLowerCase();
+            if (submittedRoomNumber) {
+                existingRoomNumbers.add(submittedRoomNumber);
+            }
+
+            showNotification(`Room ${editingRoomId ? 'updated' : 'saved'} successfully.`, 'success');
+            closeModal();
+            fetchRooms();
+        } catch (error) {
+            console.error(error);
+            showNotification(error.message || 'Could not process room right now.', 'error');
+        }
     };
 
     const deleteRoom = async (roomId) => {
@@ -364,8 +368,5 @@
         addRoomModal.addEventListener('click', handleModalClick);
     }
 
-    if (roomTypeSelect) {
-        roomTypeSelect.addEventListener('change', handleRoomTypeChange);
-        applySelectedRoomTypeMetadata();
-    }
+    applySelectedRoomTypeMetadata();
 })();

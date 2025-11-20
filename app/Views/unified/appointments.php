@@ -101,58 +101,6 @@
                         </div>
                     </div>
                 </div>
-
-            <!-- This Week Card -->
-            <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple"><i class="fas fa-calendar-alt"></i></div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">This Week</h3>
-                            <p class="card-subtitle">Weekly overview</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value purple"><?= $appointmentStats['week_total'] ?? 0 ?></div>
-                            <div class="metric-label">Scheduled</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value red"><?= $appointmentStats['week_cancelled'] ?? 0 ?></div>
-                            <div class="metric-label">Cancelled</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value orange"><?= $appointmentStats['week_no_shows'] ?? 0 ?></div>
-                            <div class="metric-label">No-shows</div>
-                        </div>
-                    </div>
-                </div>
-
-            <!-- Schedule Overview Card -->
-            <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern green"><i class="fas fa-clock"></i></div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">
-                                <?= $userRole === 'admin' ? 'System Status' : 'Today\'s Schedule' ?>
-                            </h3>
-                            <p class="card-subtitle">Current time: <?= date('h:i A') ?></p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value green"><?= $appointmentStats['next_appointment'] ?? 'None' ?></div>
-                            <div class="metric-label">
-                                <?= $userRole === 'admin' ? 'Active Doctors' : 'Next Appointment' ?>
-                            </div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $appointmentStats['hours_scheduled'] ?? 0 ?></div>
-                            <div class="metric-label">
-                                <?= $userRole === 'admin' ? 'Total Hours' : 'Hours Scheduled' ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Appointments Table -->

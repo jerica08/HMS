@@ -1,5 +1,4 @@
-
-    // Export appointments to Excel
+// Export appointments to Excel
     function exportToExcel() {
         const table = document.querySelector('.table').cloneNode(true);
         
@@ -755,27 +754,47 @@
                     throw new Error('Empty appointment response');
                 }
 
+                // Open modal first so that patient/doctor lists are loaded
+                openNewAppointmentModal();
+
                 // Set hidden id
                 const idInput = document.getElementById('appointment_id');
                 if (idInput) {
                     idInput.value = appt.appointment_id || appointmentId;
                 }
 
-                // Populate patient
+                // Populate patient (after options are loaded by openNewAppointmentModal)
                 const patientSelect = document.getElementById('appointment_patient');
                 if (patientSelect) {
-                    // Ensure patients list is loaded first
-                    loadPatients();
                     setTimeout(function() {
                         patientSelect.value = appt.patient_id || '';
-                    }, 200);
+                    }, 300);
                 }
 
-                // Populate doctor (admin only)
+                // Populate doctor (admin only, after available doctors list is loaded)
                 const doctorSelect = document.getElementById('appointment_doctor');
                 if (doctorSelect && appt.doctor_id) {
-                    // Doctors list is pre-rendered in modal; just set value
-                    doctorSelect.value = appt.doctor_id;
+                    setTimeout(function() {
+                        const targetValue = String(appt.doctor_id);
+                        let foundOption = null;
+
+                        for (let i = 0; i < doctorSelect.options.length; i++) {
+                            if (String(doctorSelect.options[i].value) === targetValue) {
+                                foundOption = doctorSelect.options[i];
+                                break;
+                            }
+                        }
+
+                        // If current doctor is not in the filtered list, append it so it can be selected
+                        if (!foundOption) {
+                            const opt = document.createElement('option');
+                            opt.value = targetValue;
+                            opt.textContent = appt.doctor_name || `Doctor #${targetValue}`;
+                            doctorSelect.appendChild(opt);
+                        }
+
+                        doctorSelect.value = targetValue;
+                    }, 300);
                 }
 
                 // Date
@@ -810,8 +829,6 @@
                 if (saveBtn) {
                     saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
                 }
-
-                openNewAppointmentModal();
             })
             .catch(error => {
                 console.error('Error loading appointment for edit:', error);

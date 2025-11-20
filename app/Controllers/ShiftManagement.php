@@ -334,6 +334,22 @@ class ShiftManagement extends BaseController
                 ]);
             }
 
+           
+            $existing = $db->table('staff_schedule')
+                ->where('staff_id', (int) $staffId)
+                ->where('weekday', (int) $input['weekday'])
+                ->where('slot', $input['slot'])
+                ->where('status', 'active')
+                ->countAllResults();
+
+            if ($existing > 0) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status'  => 'error',
+                    'message' => 'This doctor already has an active schedule for the selected day and slot.',
+                    'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
+                ]);
+            }
+
             // Prepare schedule data (weekday-based doctor schedule)
             $scheduleData = [
                 'staff_id'       => (int) $staffId,

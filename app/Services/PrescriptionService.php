@@ -483,12 +483,11 @@ class PrescriptionService
                     'pat.first_name as patient_first_name',
                     'pat.last_name as patient_last_name',
                     'pat.date_of_birth',
-                    'pat.contact_no as patient_phone',
-                    'pat.email as patient_email',
-                    'pat.status as patient_status',
-                    'COALESCE(pat.primary_doctor_id, 0) as doctor_id'
+                    // patients table uses contact_number, not contact_no, and has no status/primary_doctor_id
+                    'pat.contact_number as patient_phone',
+                    'pat.email as patient_email'
                 ])
-                ->join('patient pat', 'pat.patient_id = p.patient_id', 'left')
+                ->join('patients pat', 'pat.patient_id = p.patient_id', 'left')
                 ->where('p.id', $id)
                 ->get()
                 ->getRowArray();

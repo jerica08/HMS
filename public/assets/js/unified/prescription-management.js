@@ -630,7 +630,9 @@ class PrescriptionManager {
             }
         };
         
-        setFieldValue('patientSelect', prescription.patient_id);
+        // Ensure patient dropdown reflects the prescription's patient
+        const selectedPatientId = prescription.patient_id || prescription.pat_id || '';
+        setFieldValue('patientSelect', selectedPatientId);
         
         // Set doctor field if it exists (admin only)
         if (this.config.userRole === 'admin' && prescription.doctor_id) {
@@ -638,7 +640,21 @@ class PrescriptionManager {
         }
         
         setFieldValue('prescriptionDate', prescription.created_at ? prescription.created_at.split(' ')[0] : '');
+
+        // Medication: set hidden field and try to select matching resource option
         setFieldValue('medication', prescription.medication);
+        const medicationSelect = document.getElementById('medicationSelect');
+        if (medicationSelect && prescription.medication) {
+            const targetName = (prescription.medication || '').toLowerCase();
+            for (let i = 0; i < medicationSelect.options.length; i++) {
+                const opt = medicationSelect.options[i];
+                const optName = (opt.dataset && opt.dataset.name ? opt.dataset.name : opt.textContent || '').toLowerCase();
+                if (optName.startsWith(targetName)) {
+                    medicationSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
         setFieldValue('dosage', prescription.dosage);
         setFieldValue('frequency', prescription.frequency);
         setFieldValue('duration', prescription.duration);

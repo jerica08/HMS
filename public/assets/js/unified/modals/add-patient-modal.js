@@ -2,71 +2,104 @@ const REGION_XII_CODE = '12';
 
 const GeoDataLoader = {
     regionCode: REGION_XII_CODE,
-    provinces: [],
+    provinces: null,
     citiesByProvince: {},
     barangaysByCity: {},
-    loadPromise: null,
+    provincePromise: null,
+    cityPromises: {},
+    barangayPromises: {},
 
-    async load() {
-        if (this.loadPromise) {
-            return this.loadPromise;
+    async loadProvinces() {
+        if (this.provinces) {
+            return this.provinces;
         }
 
-        this.loadPromise = (async () => {
-            const [provinceData, cityData, barangayData] = await Promise.all([
-                this.fetchJson('data/refprovince.json'),
-                this.fetchJson('data/refcitymun.json'),
-                this.fetchJson('data/refbrgy.json')
-            ]);
+        if (!this.provincePromise) {
+            this.provincePromise = this.fetchData('api/geo/provinces', { region: this.regionCode })
+                .then(data => {
+                    this.provinces = data;
+                    return data;
+                })
+                .finally(() => {
+                    this.provincePromise = null;
+                });
+        }
 
-            const provinces = (provinceData.RECORDS || []).filter(record => record.regCode === this.regionCode);
-            this.provinces = provinces.sort((a, b) => a.provDesc.localeCompare(b.provDesc));
-
-            const allowedProvinceCodes = new Set(this.provinces.map(p => p.provCode));
-            const cityRecords = (cityData.RECORDS || []).filter(record => allowedProvinceCodes.has(record.provCode));
-            this.citiesByProvince = cityRecords.reduce((acc, city) => {
-                if (!acc[city.provCode]) {
-                    acc[city.provCode] = [];
-                }
-                acc[city.provCode].push(city);
-                acc[city.provCode].sort((a, b) => a.citymunDesc.localeCompare(b.citymunDesc));
-                return acc;
-            }, {});
-
-            const allowedCityCodes = new Set(cityRecords.map(c => c.citymunCode));
-            const barangayRecords = (barangayData.RECORDS || []).filter(record => allowedCityCodes.has(record.citymunCode));
-            this.barangaysByCity = barangayRecords.reduce((acc, brgy) => {
-                if (!acc[brgy.citymunCode]) {
-                    acc[brgy.citymunCode] = [];
-                }
-                acc[brgy.citymunCode].push(brgy);
-                acc[brgy.citymunCode].sort((a, b) => a.brgyDesc.localeCompare(b.brgyDesc));
-                return acc;
-            }, {});
-        })();
-
-        return this.loadPromise;
+        return this.provincePromise;
     },
 
-    async fetchJson(path) {
-        const url = window.PatientConfig ? PatientConfig.getUrl(path) : `${window.location.origin}/${path}`;
-        const response = await fetch(url);
+    async loadCities(provinceCode) {
+        if (!provinceCode) {
+            return [];
+        }
+
+        if (this.citiesByProvince[provinceCode]) {
+            return this.citiesByProvince[provinceCode];
+        }
+
+        if (!this.cityPromises[provinceCode]) {
+            this.cityPromises[provinceCode] = this.fetchData('api/geo/cities', { province: provinceCode })
+                .then(data => {
+                    this.citiesByProvince[provinceCode] = data;
+                    return data;
+                })
+                .finally(() => {
+                    delete this.cityPromises[provinceCode];
+                });
+        }
+
+        return this.cityPromises[provinceCode];
+    },
+
+    async loadBarangays(cityCode) {
+        if (!cityCode) {
+            return [];
+        }
+
+        if (this.barangaysByCity[cityCode]) {
+            return this.barangaysByCity[cityCode];
+        }
+
+        if (!this.barangayPromises[cityCode]) {
+            this.barangayPromises[cityCode] = this.fetchData('api/geo/barangays', { city: cityCode })
+                .then(data => {
+                    this.barangaysByCity[cityCode] = data;
+                    return data;
+                })
+                .finally(() => {
+                    delete this.barangayPromises[cityCode];
+                });
+        }
+
+        return this.barangayPromises[cityCode];
+    },
+
+    async fetchData(path, params = {}) {
+        let endpoint = path;
+        const filteredParams = Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '');
+        if (filteredParams.length) {
+            const search = new URLSearchParams(filteredParams);
+            endpoint += (endpoint.includes('?') ? '&' : '?') + search.toString();
+        }
+
+        const url = window.PatientConfig?.getUrl ? PatientConfig.getUrl(endpoint) : `${window.location.origin}/${endpoint}`;
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
         if (!response.ok) {
-            throw new Error(`Failed to fetch ${path}`);
+            throw new Error(`Failed to fetch ${endpoint}`);
         }
-        return response.json();
-    },
 
-    getProvinces() {
-        return this.provinces;
-    },
+        const payload = await response.json();
+        if (payload.status !== 'success') {
+            throw new Error(payload.message || 'Geo API responded with error');
+        }
 
-    getCitiesByProvince(provinceCode) {
-        return this.citiesByProvince[provinceCode] || [];
-    },
-
-    getBarangaysByCity(cityCode) {
-        return this.barangaysByCity[cityCode] || [];
+        return payload.data || [];
     }
 };
 /**
@@ -316,7 +349,7 @@ const AddPatientModal = {
         }
 
         this.setAddressLoadingState();
-        GeoDataLoader.load()
+        GeoDataLoader.loadProvinces()
             .then(() => {
                 this.provinceSelect.addEventListener('change', () => this.handleProvinceChange());
                 this.citySelect.addEventListener('change', () => this.handleCityChange());
@@ -375,71 +408,106 @@ const AddPatientModal = {
 
     populateProvinces() {
         if (!this.provinceSelect) return;
-        const provinces = GeoDataLoader.getProvinces();
-        if (!provinces.length) {
-            this.setAddressLoadingState();
-            GeoDataLoader.load().then(() => this.populateProvinces());
-            return;
-        }
 
-        this.provinceSelect.innerHTML = '<option value="">Select a province...</option>';
-        provinces.forEach(province => {
-            const opt = document.createElement('option');
-            opt.value = this.formatLocationName(province.provDesc);
-            opt.textContent = this.formatLocationName(province.provDesc);
-            opt.dataset.code = province.provCode;
-            this.provinceSelect.appendChild(opt);
-        });
-        this.provinceSelect.disabled = false;
-        if (this.citySelect) {
-            this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
-            this.citySelect.disabled = true;
-        }
-        if (this.barangaySelect) {
-            this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
-            this.barangaySelect.disabled = true;
-        }
+        this.setAddressLoadingState();
+        GeoDataLoader.loadProvinces()
+            .then(provinces => {
+                this.provinceSelect.innerHTML = '<option value="">Select a province...</option>';
+                provinces.forEach(province => {
+                    const opt = document.createElement('option');
+                    opt.value = this.formatLocationName(province.name || province.provDesc);
+                    opt.textContent = this.formatLocationName(province.name || province.provDesc);
+                    opt.dataset.code = province.code || province.provCode;
+                    this.provinceSelect.appendChild(opt);
+                });
+                this.provinceSelect.disabled = false;
+                if (this.citySelect) {
+                    this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+                    this.citySelect.disabled = true;
+                }
+                if (this.barangaySelect) {
+                    this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+                    this.barangaySelect.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Failed to populate provinces', error);
+                this.setAddressErrorState();
+            });
     },
 
     handleProvinceChange() {
         if (!this.provinceSelect) return;
         const provinceCode = this.getSelectedOptionCode(this.provinceSelect);
-        const cities = GeoDataLoader.getCitiesByProvince(provinceCode);
 
-        if (!provinceCode || !cities.length) {
-            this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
-            this.citySelect.disabled = true;
-            this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
-            this.barangaySelect.disabled = true;
+        this.citySelect.innerHTML = provinceCode
+            ? '<option value="">Loading cities...</option>'
+            : '<option value="">Select a city or municipality...</option>';
+        this.citySelect.disabled = true;
+        this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+        this.barangaySelect.disabled = true;
+
+        if (!provinceCode) {
             return;
         }
 
-        this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
-        cities.forEach(city => {
-            const opt = document.createElement('option');
-            opt.value = this.formatLocationName(city.citymunDesc);
-            opt.textContent = this.formatLocationName(city.citymunDesc);
-            opt.dataset.code = city.citymunCode;
-            this.citySelect.appendChild(opt);
-        });
-        this.citySelect.disabled = false;
-        this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
-        this.barangaySelect.disabled = true;
+        GeoDataLoader.loadCities(provinceCode)
+            .then(cities => {
+                if (this.getSelectedOptionCode(this.provinceSelect) !== provinceCode) {
+                    return; // selection changed meanwhile
+                }
+                this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+                cities.forEach(city => {
+                    const opt = document.createElement('option');
+                    opt.value = this.formatLocationName(city.name || city.citymunDesc);
+                    opt.textContent = this.formatLocationName(city.name || city.citymunDesc);
+                    opt.dataset.code = city.code || city.citymunCode;
+                    this.citySelect.appendChild(opt);
+                });
+                this.citySelect.disabled = cities.length === 0;
+                this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+                this.barangaySelect.disabled = true;
+            })
+            .catch(error => {
+                console.error('Failed to load cities', error);
+                this.citySelect.innerHTML = '<option value="">Unable to load cities</option>';
+                this.citySelect.disabled = true;
+            });
     },
 
     handleCityChange() {
         if (!this.citySelect) return;
         const cityCode = this.getSelectedOptionCode(this.citySelect);
-        const barangays = GeoDataLoader.getBarangaysByCity(cityCode);
 
-        this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
-        barangays.forEach(brgy => {
-            const opt = document.createElement('option');
-            opt.value = this.formatLocationName(brgy.brgyDesc);
-            opt.textContent = this.formatLocationName(brgy.brgyDesc);
-            this.barangaySelect.appendChild(opt);
-        });
-        this.barangaySelect.disabled = barangays.length === 0;
+        this.barangaySelect.innerHTML = cityCode
+            ? '<option value="">Loading barangays...</option>'
+            : '<option value="">Select a barangay...</option>';
+        this.barangaySelect.disabled = true;
+
+        if (!cityCode) {
+            return;
+        }
+
+        GeoDataLoader.loadBarangays(cityCode)
+            .then(barangays => {
+                if (this.getSelectedOptionCode(this.citySelect) !== cityCode) {
+                    return;
+                }
+                this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+                barangays.forEach(brgy => {
+                    const opt = document.createElement('option');
+                    opt.value = this.formatLocationName(brgy.name || brgy.brgyDesc);
+                    opt.textContent = this.formatLocationName(brgy.name || brgy.brgyDesc);
+                    opt.dataset.code = brgy.code || brgy.brgyCode;
+                    this.barangaySelect.appendChild(opt);
+                });
+                this.barangaySelect.disabled = barangays.length === 0;
+            })
+            .catch(error => {
+                console.error('Failed to load barangays', error);
+                this.barangaySelect.innerHTML = '<option value="">Unable to load barangays</option>';
+                this.barangaySelect.disabled = true;
+            });
     },
 
     getSelectedOptionCode(selectEl) {

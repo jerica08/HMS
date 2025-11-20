@@ -192,6 +192,11 @@ $routes->post('patients/(:num)/status', 'PatientManagement::updatePatientStatus/
 $routes->post('patients/(:num)/assign-doctor', 'PatientManagement::assignDoctor/$1', ['filter' => 'roleauth:admin,receptionist,it_staff']);
 $routes->delete('patients/(:num)', 'PatientManagement::deletePatient/$1', ['filter' => 'roleauth:admin,it_staff']);
 
+// Philippine geographic reference data APIs (Region XII by default)
+$routes->get('api/geo/provinces', 'GeoDataController::provinces', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->get('api/geo/cities', 'GeoDataController::cities', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->get('api/geo/barangays', 'GeoDataController::barangays', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+
 // ===================================================================
 // UNIFIED APPOINTMENT MANAGEMENT
 // ===================================================================

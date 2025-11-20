@@ -223,7 +223,12 @@
 </div>
 
 <!-- Modals -->
-<?= $this->include('unified/modals/add-patient-modal', ['availableDoctors' => $availableDoctors, 'userRole' => $userRole]) ?>
+<?= $this->include('unified/modals/add-patient-modal', [
+    'availableDoctors' => $availableDoctors,
+    'userRole' => $userRole,
+    'roomTypes' => $roomTypes ?? [],
+    'roomInventory' => $roomInventory ?? [],
+]) ?>
 <?= $this->include('unified/modals/view-patient-modal') ?>
 <?= $this->include('unified/modals/edit-patient-modal') ?>
 <?php if (in_array($userRole ?? '', ['admin', 'receptionist', 'it_staff'])): ?>
@@ -238,6 +243,9 @@ function dismissFlash() {
         flashNotice.style.display = 'none';
     }
 }
+</script>
+<script>
+    window.PatientRoomInventory = <?= json_encode($roomInventory ?? []) ?>;
 </script>
 <script src="<?= base_url('assets/js/unified/patient-utils.js') ?>"></script>
 <script src="<?= base_url('assets/js/unified/modals/add-patient-modal.js') ?>"></script>

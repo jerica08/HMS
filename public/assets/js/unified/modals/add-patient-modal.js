@@ -12,6 +12,12 @@ const AddPatientModal = {
     formWrapper: null,
     activeFormKey: 'outpatient',
     saveBtn: null,
+    roomInventory: window.PatientRoomInventory || {},
+    roomTypeSelect: null,
+    roomNumberSelect: null,
+    floorInput: null,
+    dailyRateInput: null,
+    currentRoomTypeRooms: [],
 
     /**
      * Initialize the modal
@@ -25,6 +31,10 @@ const AddPatientModal = {
         this.formWrapper = document.querySelector('[data-form-wrapper]');
         this.tabButtons = document.querySelectorAll('.patient-tabs__btn');
         this.saveBtn = document.getElementById('savePatientBtn');
+        this.roomTypeSelect = document.getElementById('room_type');
+        this.roomNumberSelect = document.getElementById('room_number');
+        this.floorInput = document.getElementById('floor_number');
+        this.dailyRateInput = document.getElementById('daily_rate');
 
         // pick default form
         this.form = this.forms.outpatient || this.forms.inpatient || null;
@@ -34,6 +44,7 @@ const AddPatientModal = {
         
         this.bindEvents();
         this.bindTabEvents();
+        this.setupRoomAssignmentControls();
         this.updateSaveButtonTarget();
         this.switchTab('outpatientTab');
     },
@@ -133,6 +144,8 @@ const AddPatientModal = {
         });
         this.setActiveFormByType('outpatient');
         this.updateSaveButtonTarget();
+        this.resetFloorState();
+        this.handleRoomTypeChange();
     },
 
     /**
@@ -182,6 +195,128 @@ const AddPatientModal = {
 
         console.log('No doctors found in PHP, showing no doctors available');
         doctorSelect.innerHTML = '<option value="">No doctors available</option>';
+    },
+
+    setupRoomAssignmentControls() {
+        if (!this.roomTypeSelect || !this.roomNumberSelect || !this.floorInput) {
+            return;
+        }
+
+        this.roomTypeSelect.addEventListener('change', () => this.handleRoomTypeChange());
+        this.floorInput.addEventListener('change', () => this.handleFloorChange());
+        this.roomNumberSelect.addEventListener('change', () => this.syncSelectedRoomDetails());
+        this.handleRoomTypeChange();
+    },
+
+    resetFloorState(message = 'Select a floor...') {
+        if (!this.floorInput) return;
+        this.floorInput.innerHTML = `<option value="">${message}</option>`;
+        this.floorInput.disabled = true;
+        this.floorInput.value = '';
+    },
+
+    resetRoomNumberState(message = 'Select a room...') {
+        if (!this.roomNumberSelect) return;
+
+        this.roomNumberSelect.innerHTML = `<option value="">${message}</option>`;
+        this.roomNumberSelect.disabled = true;
+    },
+
+    handleRoomTypeChange() {
+        if (!this.roomTypeSelect) return;
+
+        const selectedOption = this.roomTypeSelect.options[this.roomTypeSelect.selectedIndex];
+        const typeId = this.roomTypeSelect.value || '';
+        const rooms = (this.roomInventory?.[typeId]) ?? (this.roomInventory?.[Number(typeId)]) ?? [];
+        const hasRooms = Array.isArray(rooms) && rooms.length > 0;
+        this.currentRoomTypeRooms = rooms;
+
+        this.updateDailyRateDisplay(selectedOption);
+        this.resetRoomNumberState(hasRooms ? 'Select a room...' : 'No rooms available');
+        this.resetFloorState(hasRooms ? 'Select a floor...' : 'No floors available');
+
+        if (!hasRooms) {
+            return;
+        }
+
+        const uniqueFloors = Array.from(new Set(rooms.map(room => (room.floor_number ?? '').toString().trim()).filter(Boolean)));
+        const floorFragment = document.createDocumentFragment();
+        uniqueFloors.forEach(floor => {
+            const opt = document.createElement('option');
+            opt.value = floor;
+            opt.textContent = floor;
+            floorFragment.appendChild(opt);
+        });
+
+        this.floorInput.appendChild(floorFragment);
+        this.floorInput.disabled = false;
+
+        if (uniqueFloors.length === 1) {
+            this.floorInput.value = uniqueFloors[0];
+            this.handleFloorChange();
+        } else {
+            this.resetRoomNumberState('Select a floor first');
+        }
+    },
+
+    handleFloorChange() {
+        if (!this.floorInput) return;
+        const selectedFloor = this.floorInput.value || '';
+        const rooms = Array.isArray(this.currentRoomTypeRooms) ? this.currentRoomTypeRooms : [];
+        const filteredRooms = selectedFloor ? rooms.filter(room => (room.floor_number ?? '').toString().trim() === selectedFloor) : rooms;
+
+        if (!filteredRooms.length) {
+            this.resetRoomNumberState(selectedFloor ? 'No rooms on this floor' : 'Select a room...');
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        filteredRooms.forEach(room => {
+            const opt = document.createElement('option');
+            const roomNumber = room.room_number || '';
+            const roomLabel = room.room_name ? `${roomNumber} – ${room.room_name}` : roomNumber;
+            opt.value = roomNumber;
+            opt.textContent = roomLabel || 'Room';
+            if (room.floor_number) {
+                opt.dataset.floor = room.floor_number;
+            }
+            if (room.room_id) {
+                opt.dataset.roomId = room.room_id;
+            }
+            if (room.status) {
+                opt.dataset.status = room.status;
+            }
+            fragment.appendChild(opt);
+        });
+
+        this.roomNumberSelect.innerHTML = '<option value="">Select a room...</option>';
+        this.roomNumberSelect.appendChild(fragment);
+        this.roomNumberSelect.disabled = false;
+
+        if (filteredRooms.length === 1) {
+            this.roomNumberSelect.value = filteredRooms[0].room_number || filteredRooms[0].room_name || '';
+            this.syncSelectedRoomDetails();
+        }
+    },
+
+    syncSelectedRoomDetails() {
+        if (!this.roomNumberSelect || !this.floorInput) return;
+        const selectedRoomOption = this.roomNumberSelect.options[this.roomNumberSelect.selectedIndex];
+
+        if (!selectedRoomOption) {
+            return;
+        }
+
+        const floor = selectedRoomOption.dataset.floor || '';
+        if (floor && this.floorInput.value !== floor) {
+            this.floorInput.value = floor;
+        }
+    },
+
+    updateDailyRateDisplay(roomTypeOption) {
+        if (!this.dailyRateInput) return;
+        const rate = roomTypeOption?.dataset?.rate?.trim();
+        this.dailyRateInput.value = rate || 'Auto-calculated';
     },
 
     /**
@@ -391,7 +526,6 @@ const AddPatientModal = {
             } else {
                 throw new Error(response.message || 'Failed to add patient');
             }
-            
         } catch (error) {
             console.error('Error adding patient:', error);
             PatientUtils.showNotification('Failed to add patient: ' + error.message, 'error');
@@ -400,10 +534,6 @@ const AddPatientModal = {
             submitBtn.innerHTML = originalText;
         }
     },
-
-    /**
-     * Collect form data
-     */
     collectFormData(form) {
         const formData = new FormData(form);
         const data = {};

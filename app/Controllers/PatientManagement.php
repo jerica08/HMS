@@ -4,11 +4,13 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Services\PatientService;
+use App\Services\RoomService;
 use App\Libraries\PermissionManager;
 
 class PatientManagement extends BaseController
 {
     protected $patientService;
+    protected RoomService $roomService;
     protected $session;
     protected $userRole;
     protected $staffId;
@@ -17,6 +19,7 @@ class PatientManagement extends BaseController
     public function __construct()
     {
         $this->patientService = new PatientService();
+        $this->roomService = new RoomService();
         $this->session = session();
         $this->userRole = $this->session->get('role');
         $this->staffId = $this->session->get('staff_id');
@@ -34,6 +37,32 @@ class PatientManagement extends BaseController
         $patients = $this->patientService->getPatientsByRole($this->userRole, $this->staffId);
         $stats = $this->patientService->getPatientStats($this->userRole, $this->staffId);
         $availableDoctors = $this->patientService->getAvailableDoctors();
+        $roomTypes = $this->db->table('room_type')
+            ->select('room_type_id, type_name, base_daily_rate')
+            ->orderBy('type_name', 'ASC')
+            ->get()
+            ->getResultArray();
+        $rooms = [];
+        $roomInventory = [];
+        if ($this->db->tableExists('room')) {
+            $rooms = $this->roomService->getRooms();
+        }
+
+        foreach ($rooms as $room) {
+            $typeId = (int) ($room['room_type_id'] ?? 0);
+            if (! $typeId) {
+                continue;
+            }
+
+            $roomInventory[$typeId][] = [
+                'room_id' => (int) ($room['room_id'] ?? 0),
+                'room_number' => (string) ($room['room_number'] ?? ''),
+                'room_name' => (string) ($room['room_name'] ?? ''),
+                'floor_number' => (string) ($room['floor_number'] ?? ''),
+                'status' => (string) ($room['status'] ?? ''),
+                'bed_capacity' => (int) ($room['bed_capacity'] ?? 0),
+            ];
+        }
         $permissions = PermissionManager::getRolePermissions($this->userRole);
 
         $data = [
@@ -44,6 +73,8 @@ class PatientManagement extends BaseController
             'availableDoctors' => $availableDoctors,
             'permissions' => $permissions['patients'] ?? [],
             'total_patients' => count($patients),
+            'roomTypes' => $roomTypes,
+            'roomInventory' => $roomInventory,
         ];
 
         // Use unified view for all roles

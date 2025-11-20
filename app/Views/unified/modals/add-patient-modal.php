@@ -408,20 +408,28 @@
                                         <label class="form-label" for="room_type">Room Type*</label>
                                         <select id="room_type" name="room_type" class="form-select" required>
                                             <option value="">Select...</option>
-                                            <option value="Ward">Ward</option>
-                                            <option value="Semi-Private">Semi-Private</option>
-                                            <option value="Private">Private</option>
-                                            <option value="Isolation">Isolation</option>
-                                            <option value="ICU">ICU</option>
+                                            <?php if (!empty($roomTypes)): ?>
+                                                <?php foreach ($roomTypes as $type): ?>
+                                                    <option value="<?= esc($type['room_type_id']) ?>" data-rate="<?= esc($type['base_daily_rate'] ?? '') ?>">
+                                                        <?= esc($type['type_name']) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <option value="" disabled>(No room types defined yet)</option>
+                                            <?php endif; ?>
                                         </select>
                                     </div>
                                     <div>
                                         <label class="form-label" for="floor_number">Floor Number*</label>
-                                        <input type="number" id="floor_number" name="floor_number" class="form-input" required>
+                                        <select id="floor_number" name="floor_number" class="form-select" required disabled>
+                                            <option value="">Select a floor...</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label class="form-label" for="room_number">Room Number*</label>
-                                        <input type="text" id="room_number" name="room_number" class="form-input" required>
+                                        <select id="room_number" name="room_number" class="form-select" required disabled>
+                                            <option value="">Select a room...</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label class="form-label" for="bed_number">Bed Number*</label>

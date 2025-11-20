@@ -129,9 +129,41 @@ window.UserUtils = {
 
     /**
      * Show notification
+     * Uses the shared usersNotification bar when present, otherwise falls back to a floating toast.
      */
     showNotification: function(message, type = 'info') {
-        // Create notification element
+        const container = document.getElementById('usersNotification');
+        const iconEl = document.getElementById('usersNotificationIcon');
+        const textEl = document.getElementById('usersNotificationText');
+
+        // If the shared notification bar exists on the page, prefer that
+        if (container && iconEl && textEl) {
+            const isError = type === 'error';
+            const isSuccess = type === 'success';
+
+            // Match appointments/staff notification styling (soft success/error)
+            container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
+            container.style.background = isError ? '#fee2e2' : '#ecfdf5';
+            container.style.color = isError ? '#991b1b' : '#166534';
+
+            const iconClass = isError
+                ? 'fa-exclamation-triangle'
+                : (isSuccess ? 'fa-check-circle' : 'fa-info-circle');
+            iconEl.className = 'fas ' + iconClass;
+
+            textEl.textContent = this.escapeHtml(message || '');
+            container.style.display = 'flex';
+
+            // Auto-hide after a few seconds
+            setTimeout(() => {
+                if (container.style.display !== 'none') {
+                    container.style.display = 'none';
+                }
+            }, 4000);
+            return;
+        }
+
+        // Fallback: floating toast notification (for pages that don't include the shared bar)
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.style.cssText = `
@@ -149,7 +181,6 @@ window.UserUtils = {
             transition: transform 0.3s ease;
         `;
 
-        // Set background color based on type
         const colors = {
             success: '#10b981',
             error: '#ef4444',
@@ -170,12 +201,10 @@ window.UserUtils = {
 
         document.body.appendChild(notification);
 
-        // Animate in
         setTimeout(() => {
             notification.style.transform = 'translateX(0)';
         }, 100);
 
-        // Auto remove after 5 seconds
         setTimeout(() => {
             notification.style.transform = 'translateX(100%)';
             setTimeout(() => {
@@ -259,6 +288,14 @@ window.UserUtils = {
         }
     }
 };
+
+// Helper for shared users notification bar
+function dismissUserNotification() {
+    const container = document.getElementById('usersNotification');
+    if (container) {
+        container.style.display = 'none';
+    }
+}
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {

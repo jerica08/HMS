@@ -11,6 +11,7 @@
             </button>
         </div>
         <form id="newAppointmentForm">
+            <input type="hidden" id="appointment_id" name="appointment_id" value="">
             <div class="hms-modal-body">
                 <div class="form-grid"> 
                     <div>

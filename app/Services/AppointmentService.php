@@ -172,7 +172,18 @@ class AppointmentService
     {
         try {
             $appointment = $this->db->table('appointments a')
-                ->select('a.*, p.*, CONCAT(s.first_name, " ", s.last_name) as doctor_name')
+                ->select('a.*,
+                         p.patient_id,
+                         p.first_name as patient_first_name,
+                         p.last_name as patient_last_name,
+                         p.email as patient_email,
+                         p.date_of_birth,
+                         TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) as patient_age,
+                         CONCAT(p.first_name, " ", p.last_name) as patient_full_name,
+                         s.staff_id as doctor_id,
+                         s.first_name as doctor_first_name,
+                         s.last_name as doctor_last_name,
+                         CONCAT(s.first_name, " ", s.last_name) as doctor_name')
                 ->join('patients p', 'p.patient_id = a.patient_id', 'left')
                 ->join('staff s', 's.staff_id = a.doctor_id', 'left')
                 ->where('a.appointment_id', $id)

@@ -289,8 +289,12 @@
                                         <input type="text" id="inpatient_full_name" name="full_name" class="form-input" placeholder="Last, First Middle" required>
                                     </div>
                                     <div>
+                                        <label class="form-label" for="inpatient_date_of_birth">Date of Birth*</label>
+                                        <input type="date" id="inpatient_date_of_birth" name="date_of_birth" class="form-input" required>
+                                    </div>
+                                    <div>
                                         <label class="form-label" for="inpatient_age">Age*</label>
-                                        <input type="number" min="0" id="inpatient_age" name="age" class="form-input" required>
+                                        <input type="text" id="inpatient_age" name="age" class="form-input" placeholder="Auto-calculated" readonly required>
                                     </div>
                                     <div>
                                         <label class="form-label" for="inpatient_gender">Sex*</label>

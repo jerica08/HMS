@@ -62,8 +62,12 @@ const AddPatientModal = {
 
         // Date of birth change - update age display and pediatric logic
         const dobInput = document.getElementById('date_of_birth');
+        const inpatientDobInput = document.getElementById('inpatient_date_of_birth');
         if (dobInput) {
             dobInput.addEventListener('change', () => this.handleDobChange());
+        }
+        if (inpatientDobInput) {
+            inpatientDobInput.addEventListener('change', () => this.handleInpatientDobChange());
         }
 
         // Weight/height change - update BMI
@@ -146,6 +150,10 @@ const AddPatientModal = {
         this.updateSaveButtonTarget();
         this.resetFloorState();
         this.handleRoomTypeChange();
+        const inpatientAge = document.getElementById('inpatient_age');
+        if (inpatientAge) {
+            inpatientAge.value = '';
+        }
     },
 
     /**
@@ -344,6 +352,27 @@ const AddPatientModal = {
         }
 
         this.applyPediatricLogic(ageYears);
+    },
+
+    handleInpatientDobChange() {
+        const dobInput = document.getElementById('inpatient_date_of_birth');
+        const ageInput = document.getElementById('inpatient_age');
+        if (!dobInput || !ageInput) return;
+
+        const dobValue = dobInput.value;
+        if (!dobValue) {
+            ageInput.value = '';
+            return;
+        }
+
+        const ageYears = this.calculateAgeYears(dobValue);
+        if (ageYears === null) {
+            ageInput.value = '';
+        } else if (ageYears < 1) {
+            ageInput.value = 'Newborn / < 1 year';
+        } else {
+            ageInput.value = `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+        }
     },
 
     /**

@@ -7,10 +7,12 @@ use CodeIgniter\Database\ConnectionInterface;
 class PatientService
 {
     protected $db;
+    protected string $patientTable;
 
     public function __construct()
     {
         $this->db = \Config\Database::connect();
+        $this->patientTable = $this->resolvePatientTableName();
     }
 
     public function createPatient($input, $userRole, $staffId = null)
@@ -41,7 +43,7 @@ class PatientService
         $data = $this->preparePatientData($input, $primaryDoctorId);
 
         try {
-            $this->db->table('patient')->insert($data);
+            $this->db->table($this->patientTable)->insert($data);
             return [
                 'status' => 'success',
                 'message' => 'Patient added successfully',
@@ -62,7 +64,7 @@ class PatientService
     public function getPatientsByRole($userRole, $staffId)
     {
         try {
-            $builder = $this->db->table('patient p');
+            $builder = $this->db->table($this->patientTable . ' p');
 
             $hasPrimaryDoctor = $this->patientTableHasColumn('primary_doctor_id');
             if ($hasPrimaryDoctor) {
@@ -161,7 +163,7 @@ class PatientService
     public function getPatients($doctorId = null)
     {
         try {
-            $builder = $this->db->table('patient p')
+            $builder = $this->db->table($this->patientTable . ' p')
                 ->select('p.*, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
                 ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left');
 
@@ -202,7 +204,7 @@ class PatientService
     public function getPatient($id)
     {
         try {
-            $patient = $this->db->table('patient')->where('patient_id', $id)->get()->getRowArray();
+            $patient = $this->db->table($this->patientTable)->where('patient_id', $id)->get()->getRowArray();
 
             if (!$patient) {
                 return [
@@ -268,7 +270,7 @@ class PatientService
         ];
 
         try {
-            $this->db->table('patient')->where('patient_id', $id)->update($data);
+            $this->db->table($this->patientTable)->where('patient_id', $id)->update($data);
             return [
                 'status' => 'success',
                 'message' => 'Patient updated successfully',
@@ -289,7 +291,7 @@ class PatientService
     {
         try {
             // Check if patient exists
-            $existing = $this->db->table('patient')->where('patient_id', $id)->get()->getRowArray();
+            $existing = $this->db->table($this->patientTable)->where('patient_id', $id)->get()->getRowArray();
             if (!$existing) {
                 return ['success' => false, 'message' => 'Patient not found'];
             }
@@ -300,7 +302,7 @@ class PatientService
             }
 
             // Delete patient record
-            if ($this->db->table('patient')->where('patient_id', $id)->delete()) {
+            if ($this->db->table($this->patientTable)->where('patient_id', $id)->delete()) {
                 return ['success' => true, 'message' => 'Patient deleted successfully'];
             }
 
@@ -324,12 +326,12 @@ class PatientService
                 case 'admin':
                 case 'it_staff':
                     $stats = [
-                        'total_patients' => $this->db->table('patient')->countAllResults(),
-                        'active_patients' => $this->db->table('patient')->where('status', 'Active')->countAllResults(),
-                        'inactive_patients' => $this->db->table('patient')->where('status', 'Inactive')->countAllResults(),
-                        'outpatients' => $this->db->table('patient')->where('patient_type', 'Outpatient')->countAllResults(),
-                        'inpatients' => $this->db->table('patient')->where('patient_type', 'Inpatient')->countAllResults(),
-                        'emergency_patients' => $this->db->table('patient')->where('patient_type', 'Emergency')->countAllResults(),
+                        'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
+                        'active_patients' => $this->db->table($this->patientTable)->where('status', 'Active')->countAllResults(),
+                        'inactive_patients' => $this->db->table($this->patientTable)->where('status', 'Inactive')->countAllResults(),
+                        'outpatients' => $this->db->table($this->patientTable)->where('patient_type', 'Outpatient')->countAllResults(),
+                        'inpatients' => $this->db->table($this->patientTable)->where('patient_type', 'Inpatient')->countAllResults(),
+                        'emergency_patients' => $this->db->table($this->patientTable)->where('patient_type', 'Emergency')->countAllResults(),
                     ];
                     break;
 
@@ -340,10 +342,10 @@ class PatientService
 
                     if ($doctorId) {
                         $stats = [
-                            'my_patients' => $this->db->table('patient')->where('primary_doctor_id', $doctorId)->countAllResults(),
-                            'active_patients' => $this->db->table('patient')->where('primary_doctor_id', $doctorId)->where('status', 'Active')->countAllResults(),
-                            'new_patients_month' => $this->db->table('patient')->where('primary_doctor_id', $doctorId)->where('date_registered >=', date('Y-m-01'))->countAllResults(),
-                            'emergency_patients' => $this->db->table('patient')->where('primary_doctor_id', $doctorId)->where('patient_type', 'Emergency')->countAllResults(),
+                            'my_patients' => $this->db->table($this->patientTable)->where('primary_doctor_id', $doctorId)->countAllResults(),
+                            'active_patients' => $this->db->table($this->patientTable)->where('primary_doctor_id', $doctorId)->where('status', 'Active')->countAllResults(),
+                            'new_patients_month' => $this->db->table($this->patientTable)->where('primary_doctor_id', $doctorId)->where('date_registered >=', date('Y-m-01'))->countAllResults(),
+                            'emergency_patients' => $this->db->table($this->patientTable)->where('primary_doctor_id', $doctorId)->where('patient_type', 'Emergency')->countAllResults(),
                         ];
                     } else {
                         // No doctor record found, return zeros
@@ -363,11 +365,11 @@ class PatientService
 
                     if ($department) {
                         $stats = [
-                            'department_patients' => $this->db->table('patient p')
+                            'department_patients' => $this->db->table($this->patientTable . ' p')
                                 ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
                                 ->where('s.department', $department)
                                 ->countAllResults(),
-                            'active_patients' => $this->db->table('patient p')
+                            'active_patients' => $this->db->table($this->patientTable . ' p')
                                 ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
                                 ->where('s.department', $department)
                                 ->where('p.status', 'Active')
@@ -378,16 +380,16 @@ class PatientService
 
                 case 'receptionist':
                     $stats = [
-                        'total_patients' => $this->db->table('patient')->countAllResults(),
-                        'active_patients' => $this->db->table('patient')->where('status', 'Active')->countAllResults(),
-                        'new_patients_today' => $this->db->table('patient')->where('date_registered', date('Y-m-d'))->countAllResults(),
-                        'new_patients_week' => $this->db->table('patient')->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))->countAllResults(),
+                        'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
+                        'active_patients' => $this->db->table($this->patientTable)->where('status', 'Active')->countAllResults(),
+                        'new_patients_today' => $this->db->table($this->patientTable)->where('date_registered', date('Y-m-d'))->countAllResults(),
+                        'new_patients_week' => $this->db->table($this->patientTable)->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))->countAllResults(),
                     ];
                     break;
                     
                 case 'pharmacist':
                     $stats = [
-                        'patients_with_prescriptions' => $this->db->table('patient p')
+                        'patients_with_prescriptions' => $this->db->table($this->patientTable . ' p')
                             ->join('prescription pr', 'pr.patient_id = p.patient_id', 'inner')
                             ->countAllResults(),
                         'active_prescriptions' => $this->db->table('prescription')->where('status', 'Active')->countAllResults(),
@@ -396,7 +398,7 @@ class PatientService
                     
                 case 'laboratorist':
                     $stats = [
-                        'patients_with_tests' => $this->db->table('patient p')
+                        'patients_with_tests' => $this->db->table($this->patientTable . ' p')
                             ->join('lab_test lt', 'lt.patient_id = p.patient_id', 'inner')
                             ->countAllResults(),
                         'pending_tests' => $this->db->table('lab_test')->where('status', 'Pending')->countAllResults(),
@@ -405,16 +407,16 @@ class PatientService
                     
                 case 'accountant':
                     $stats = [
-                        'total_patients' => $this->db->table('patient')->countAllResults(),
-                        'active_patients' => $this->db->table('patient')->where('status', 'Active')->countAllResults(),
-                        'patients_with_insurance' => $this->db->table('patient')->where('insurance_provider IS NOT NULL')->countAllResults(),
+                        'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
+                        'active_patients' => $this->db->table($this->patientTable)->where('status', 'Active')->countAllResults(),
+                        'patients_with_insurance' => $this->db->table($this->patientTable)->where('insurance_provider IS NOT NULL')->countAllResults(),
                     ];
                     break;
                     
                 default:
                     $stats = [
-                        'total_patients' => $this->db->table('patient')->countAllResults(),
-                        'active_patients' => $this->db->table('patient')->where('status', 'Active')->countAllResults(),
+                        'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
+                        'active_patients' => $this->db->table($this->patientTable)->where('status', 'Active')->countAllResults(),
                     ];
             }
             
@@ -436,7 +438,7 @@ class PatientService
                 return $this->getPatientsByRole($userRole, $staffId);
             }
 
-            $patients = $this->db->table('patient p')
+            $patients = $this->db->table($this->patientTable . ' p')
                 ->select('p.*, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
                 ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
                 ->orderBy('p.patient_id', 'DESC')
@@ -612,7 +614,7 @@ class PatientService
     private function patientTableHasColumn(string $column): bool
     {
         try {
-            $fields = $this->db->getFieldData('patient');
+            $fields = $this->db->getFieldData($this->patientTable);
             foreach ($fields as $field) {
                 if (($field->name ?? '') === $column) {
                     return true;
@@ -622,5 +624,18 @@ class PatientService
             // If any error occurs, assume column does not exist
         }
         return false;
+    }
+
+    private function resolvePatientTableName(): string
+    {
+        if ($this->db->tableExists('patient')) {
+            return 'patient';
+        }
+
+        if ($this->db->tableExists('patients')) {
+            return 'patients';
+        }
+
+        throw new \RuntimeException('Neither "patient" nor "patients" table exists. Please run the appropriate migrations.');
     }
 }

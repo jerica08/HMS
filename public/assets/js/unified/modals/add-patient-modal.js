@@ -1,3 +1,74 @@
+const REGION_XII_CODE = '12';
+
+const GeoDataLoader = {
+    regionCode: REGION_XII_CODE,
+    provinces: [],
+    citiesByProvince: {},
+    barangaysByCity: {},
+    loadPromise: null,
+
+    async load() {
+        if (this.loadPromise) {
+            return this.loadPromise;
+        }
+
+        this.loadPromise = (async () => {
+            const [provinceData, cityData, barangayData] = await Promise.all([
+                this.fetchJson('data/refprovince.json'),
+                this.fetchJson('data/refcitymun.json'),
+                this.fetchJson('data/refbrgy.json')
+            ]);
+
+            const provinces = (provinceData.RECORDS || []).filter(record => record.regCode === this.regionCode);
+            this.provinces = provinces.sort((a, b) => a.provDesc.localeCompare(b.provDesc));
+
+            const allowedProvinceCodes = new Set(this.provinces.map(p => p.provCode));
+            const cityRecords = (cityData.RECORDS || []).filter(record => allowedProvinceCodes.has(record.provCode));
+            this.citiesByProvince = cityRecords.reduce((acc, city) => {
+                if (!acc[city.provCode]) {
+                    acc[city.provCode] = [];
+                }
+                acc[city.provCode].push(city);
+                acc[city.provCode].sort((a, b) => a.citymunDesc.localeCompare(b.citymunDesc));
+                return acc;
+            }, {});
+
+            const allowedCityCodes = new Set(cityRecords.map(c => c.citymunCode));
+            const barangayRecords = (barangayData.RECORDS || []).filter(record => allowedCityCodes.has(record.citymunCode));
+            this.barangaysByCity = barangayRecords.reduce((acc, brgy) => {
+                if (!acc[brgy.citymunCode]) {
+                    acc[brgy.citymunCode] = [];
+                }
+                acc[brgy.citymunCode].push(brgy);
+                acc[brgy.citymunCode].sort((a, b) => a.brgyDesc.localeCompare(b.brgyDesc));
+                return acc;
+            }, {});
+        })();
+
+        return this.loadPromise;
+    },
+
+    async fetchJson(path) {
+        const url = window.PatientConfig ? PatientConfig.getUrl(path) : `${window.location.origin}/${path}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${path}`);
+        }
+        return response.json();
+    },
+
+    getProvinces() {
+        return this.provinces;
+    },
+
+    getCitiesByProvince(provinceCode) {
+        return this.citiesByProvince[provinceCode] || [];
+    },
+
+    getBarangaysByCity(cityCode) {
+        return this.barangaysByCity[cityCode] || [];
+    }
+};
 /**
  * Add Patient Modal Controller
  * Handles the add patient modal functionality
@@ -18,6 +89,9 @@ const AddPatientModal = {
     floorInput: null,
     dailyRateInput: null,
     currentRoomTypeRooms: [],
+    provinceSelect: null,
+    citySelect: null,
+    barangaySelect: null,
 
     /**
      * Initialize the modal
@@ -35,6 +109,9 @@ const AddPatientModal = {
         this.roomNumberSelect = document.getElementById('room_number');
         this.floorInput = document.getElementById('floor_number');
         this.dailyRateInput = document.getElementById('daily_rate');
+        this.provinceSelect = document.getElementById('inpatient_province');
+        this.citySelect = document.getElementById('inpatient_city');
+        this.barangaySelect = document.getElementById('inpatient_barangay');
 
         // pick default form
         this.form = this.forms.outpatient || this.forms.inpatient || null;
@@ -45,6 +122,7 @@ const AddPatientModal = {
         this.bindEvents();
         this.bindTabEvents();
         this.setupRoomAssignmentControls();
+        this.setupAddressControls();
         this.updateSaveButtonTarget();
         this.switchTab('outpatientTab');
     },
@@ -154,6 +232,8 @@ const AddPatientModal = {
         if (inpatientAge) {
             inpatientAge.value = '';
         }
+        this.resetAddressSelects();
+        this.populateProvinces();
     },
 
     /**
@@ -228,6 +308,152 @@ const AddPatientModal = {
 
         this.roomNumberSelect.innerHTML = `<option value="">${message}</option>`;
         this.roomNumberSelect.disabled = true;
+    },
+
+    setupAddressControls() {
+        if (!this.provinceSelect || !this.citySelect || !this.barangaySelect) {
+            return;
+        }
+
+        this.setAddressLoadingState();
+        GeoDataLoader.load()
+            .then(() => {
+                this.provinceSelect.addEventListener('change', () => this.handleProvinceChange());
+                this.citySelect.addEventListener('change', () => this.handleCityChange());
+                this.populateProvinces();
+            })
+            .catch(error => {
+                console.error('Failed to load geographic data', error);
+                this.setAddressErrorState();
+            });
+    },
+
+    resetAddressSelects() {
+        if (this.provinceSelect) {
+            this.provinceSelect.innerHTML = '<option value="">Select a province...</option>';
+            this.provinceSelect.disabled = true;
+        }
+        if (this.citySelect) {
+            this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+            this.citySelect.disabled = true;
+        }
+        if (this.barangaySelect) {
+            this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+            this.barangaySelect.disabled = true;
+        }
+    },
+
+    setAddressLoadingState() {
+        if (this.provinceSelect) {
+            this.provinceSelect.innerHTML = '<option value="">Loading provinces...</option>';
+            this.provinceSelect.disabled = true;
+        }
+        if (this.citySelect) {
+            this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+            this.citySelect.disabled = true;
+        }
+        if (this.barangaySelect) {
+            this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+            this.barangaySelect.disabled = true;
+        }
+    },
+
+    setAddressErrorState() {
+        if (this.provinceSelect) {
+            this.provinceSelect.innerHTML = '<option value="">Failed to load provinces</option>';
+            this.provinceSelect.disabled = true;
+        }
+        if (this.citySelect) {
+            this.citySelect.innerHTML = '<option value="">Unavailable</option>';
+            this.citySelect.disabled = true;
+        }
+        if (this.barangaySelect) {
+            this.barangaySelect.innerHTML = '<option value="">Unavailable</option>';
+            this.barangaySelect.disabled = true;
+        }
+    },
+
+    populateProvinces() {
+        if (!this.provinceSelect) return;
+        const provinces = GeoDataLoader.getProvinces();
+        if (!provinces.length) {
+            this.setAddressLoadingState();
+            GeoDataLoader.load().then(() => this.populateProvinces());
+            return;
+        }
+
+        this.provinceSelect.innerHTML = '<option value="">Select a province...</option>';
+        provinces.forEach(province => {
+            const opt = document.createElement('option');
+            opt.value = this.formatLocationName(province.provDesc);
+            opt.textContent = this.formatLocationName(province.provDesc);
+            opt.dataset.code = province.provCode;
+            this.provinceSelect.appendChild(opt);
+        });
+        this.provinceSelect.disabled = false;
+        if (this.citySelect) {
+            this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+            this.citySelect.disabled = true;
+        }
+        if (this.barangaySelect) {
+            this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+            this.barangaySelect.disabled = true;
+        }
+    },
+
+    handleProvinceChange() {
+        if (!this.provinceSelect) return;
+        const provinceCode = this.getSelectedOptionCode(this.provinceSelect);
+        const cities = GeoDataLoader.getCitiesByProvince(provinceCode);
+
+        if (!provinceCode || !cities.length) {
+            this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+            this.citySelect.disabled = true;
+            this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+            this.barangaySelect.disabled = true;
+            return;
+        }
+
+        this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+        cities.forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = this.formatLocationName(city.citymunDesc);
+            opt.textContent = this.formatLocationName(city.citymunDesc);
+            opt.dataset.code = city.citymunCode;
+            this.citySelect.appendChild(opt);
+        });
+        this.citySelect.disabled = false;
+        this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+        this.barangaySelect.disabled = true;
+    },
+
+    handleCityChange() {
+        if (!this.citySelect) return;
+        const cityCode = this.getSelectedOptionCode(this.citySelect);
+        const barangays = GeoDataLoader.getBarangaysByCity(cityCode);
+
+        this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+        barangays.forEach(brgy => {
+            const opt = document.createElement('option');
+            opt.value = this.formatLocationName(brgy.brgyDesc);
+            opt.textContent = this.formatLocationName(brgy.brgyDesc);
+            this.barangaySelect.appendChild(opt);
+        });
+        this.barangaySelect.disabled = barangays.length === 0;
+    },
+
+    getSelectedOptionCode(selectEl) {
+        if (!selectEl) return null;
+        const option = selectEl.options[selectEl.selectedIndex];
+        return option?.dataset?.code || null;
+    },
+
+    formatLocationName(name = '') {
+        return name
+            .toLowerCase()
+            .replace(/\b([a-z])/g, letter => letter.toUpperCase())
+            .replace(/\bIi\b/g, 'II')
+            .replace(/\bIii\b/g, 'III');
     },
 
     handleRoomTypeChange() {
@@ -570,6 +796,8 @@ const AddPatientModal = {
         for (let [key, value] of formData.entries()) {
             data[key] = value;
         }
+
+        this.normalizeInpatientPayload(data);
         
         return data;
     },
@@ -631,6 +859,76 @@ const AddPatientModal = {
 
         return PatientUtils.validateForm(data, rules);
     }
+};
+
+AddPatientModal.normalizeInpatientPayload = function(data) {
+    if ((data.patient_type || '').toLowerCase() !== 'inpatient') {
+        return;
+    }
+
+    if ((!data.first_name || !data.last_name) && data.full_name) {
+        const parsed = this.parseFullName(data.full_name);
+        if (parsed.firstName && !data.first_name) data.first_name = parsed.firstName;
+        if (parsed.middleName && !data.middle_name) data.middle_name = parsed.middleName;
+        if (parsed.lastName && !data.last_name) data.last_name = parsed.lastName;
+    }
+
+    if (data.contact_number && !data.phone) {
+        data.phone = data.contact_number;
+    }
+
+    if (!data.address) {
+        const addressParts = [
+            data.house_number,
+            data.building_name,
+            data.subdivision,
+            data.street_name,
+            data.barangay
+        ].filter(Boolean);
+        if (addressParts.length) {
+            data.address = addressParts.join(', ');
+        }
+    }
+
+    if (!data.city && data.city_municipality) {
+        data.city = data.city_municipality;
+    }
+
+    if (!data.province && data.province_name) {
+        data.province = data.province_name;
+    }
+};
+
+AddPatientModal.parseFullName = function(fullName) {
+    const result = { firstName: '', middleName: '', lastName: '' };
+    if (!fullName) {
+        return result;
+    }
+
+    const trimmed = fullName.trim();
+    if (!trimmed) {
+        return result;
+    }
+
+    if (trimmed.includes(',')) {
+        const [last, rest] = trimmed.split(',');
+        result.lastName = last.trim();
+        const restParts = rest ? rest.trim().split(/\s+/) : [];
+        result.firstName = restParts.shift() || '';
+        result.middleName = restParts.join(' ');
+        return result;
+    }
+
+    const parts = trimmed.split(/\s+/);
+    if (parts.length === 1) {
+        result.firstName = parts[0];
+        return result;
+    }
+
+    result.lastName = parts.pop();
+    result.firstName = parts.shift() || '';
+    result.middleName = parts.join(' ');
+    return result;
 };
 
 // Tab helpers

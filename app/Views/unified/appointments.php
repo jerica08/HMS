@@ -167,6 +167,11 @@
                                                     <i class="fas fa-trash"></i> Delete
                                                 </button>
                                             <?php endif; ?>
+                                            <?php if (in_array($userRole, ['admin', 'accountant'])): ?>
+                                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="openBillingModal(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
+                                                    <i class="fas fa-file-invoice-dollar"></i> Add to Bill
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -199,6 +204,38 @@
     ?>
     <?php include APPPATH . 'Views/unified/modals/view-appointment-modal.php'; ?>
 
- <script src="<?= base_url('assets/js/unified/appointments.js') ?>"></script>
+    <!-- Billing modal for adding appointment charges -->
+    <div id="billingModal" class="modal" aria-hidden="true" hidden>
+        <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="billingModalTitle">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="billingModalTitle">
+                        <i class="fas fa-file-invoice-dollar"></i> Add Appointment to Bill
+                    </h5>
+                    <button type="button" class="close" aria-label="Close" onclick="closeBillingModal()">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="billingForm">
+                        <input type="hidden" id="billing_appointment_id" name="appointment_id" value="">
+                        <div class="form-group">
+                            <label for="billing_amount">Consultation Fee</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="billing_amount" name="amount" placeholder="Enter fee" required>
+                            <small class="form-text text-muted">Amount to be added to the patient's billing account for this appointment.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeBillingModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitBillingModal()">
+                        <i class="fas fa-check"></i> Add to Bill
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="<?= base_url('assets/js/unified/appointments.js') ?>"></script>
 </body>
 </html>

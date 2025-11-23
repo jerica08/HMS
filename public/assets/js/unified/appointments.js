@@ -44,6 +44,82 @@
         document.body.removeChild(link);
     }
 
+    // Open billing modal
+    function openBillingModal(appointmentId) {
+        const modal = document.getElementById('billingModal');
+        const idInput = document.getElementById('billing_appointment_id');
+        const amountInput = document.getElementById('billing_amount');
+        if (!modal || !idInput || !amountInput) return;
+
+        idInput.value = appointmentId || '';
+        amountInput.value = '';
+
+        modal.classList.add('active');
+        modal.removeAttribute('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeBillingModal() {
+        const modal = document.getElementById('billingModal');
+        if (!modal) return;
+        modal.classList.remove('active');
+        modal.setAttribute('hidden', 'true');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    function submitBillingModal() {
+        const idInput = document.getElementById('billing_appointment_id');
+        const amountInput = document.getElementById('billing_amount');
+        if (!idInput || !amountInput) return;
+
+        const appointmentId = parseInt(idInput.value, 10);
+        const unitPrice = parseFloat(amountInput.value);
+
+        if (!appointmentId || isNaN(unitPrice) || unitPrice <= 0) {
+            alert('Please enter a valid positive amount.');
+            return;
+        }
+
+        addAppointmentToBill(appointmentId, unitPrice);
+    }
+
+    // Core function to call backend billing endpoint
+    function addAppointmentToBill(appointmentId, unitPrice) {
+        if (!appointmentId) return;
+
+        const baseUrlMeta = document.querySelector('meta[name="base-url"]');
+        const baseUrl = baseUrlMeta ? baseUrlMeta.content : '';
+        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfTokenMeta ? csrfTokenMeta.content : '';
+
+        const url = `${baseUrl}/appointments/${appointmentId}/bill`;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({
+                unit_price: unitPrice,
+                quantity: 1
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAppointmentsNotification(result.message || 'Appointment added to billing.', 'success');
+                closeBillingModal();
+            } else {
+                showAppointmentsNotification(result.message || 'Failed to add appointment to billing.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding appointment to billing:', error);
+            showAppointmentsNotification('Failed to add appointment to billing. Please try again.', 'error');
+        });
+    }
+
     // Dismiss flash notification
     function dismissFlash() {
         const flash = document.getElementById('flashNotice');
@@ -404,11 +480,15 @@
         const userRole = document.querySelector('meta[name="user-role"]').content || 'guest';
         const params = new URLSearchParams();
 
-        // Always show today's schedule
-        const today = new Date().toISOString().split('T')[0];
-        params.append('date', today);
+        // Use date filter only if a date selector exists and has a value
+        const dateFilterEl = document.getElementById('dateSelector');
+        if (dateFilterEl && dateFilterEl.value) {
+            params.append('date', dateFilterEl.value);
+        }
 
-        const url = `${baseUrl}/appointments/api?${params.toString()}`;
+        const url = params.toString()
+            ? `${baseUrl}/appointments/api?${params.toString()}`
+            : `${baseUrl}/appointments/api`;
 
         fetch(url)
             .then(response => response.json())
@@ -572,6 +652,16 @@
                 delBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
                 delBtn.onclick = function() { deleteAppointment(appt.appointment_id); };
                 actionsDiv.appendChild(delBtn);
+            }
+
+            if (userRole === 'admin' || userRole === 'accountant') {
+                const billBtn = document.createElement('button');
+                billBtn.className = 'btn btn-secondary';
+                billBtn.style.padding = '0.3rem 0.6rem';
+                billBtn.style.fontSize = '0.75rem';
+                billBtn.innerHTML = '<i class="fas fa-file-invoice-dollar"></i> Add to Bill';
+                billBtn.onclick = function() { openBillingModal(appt.appointment_id); };
+                actionsDiv.appendChild(billBtn);
             }
 
             actionsTd.appendChild(actionsDiv);
@@ -888,4 +978,3 @@
         });
     }
 
-    // (Prescription modal helpers removed; prescriptions are managed via dedicated module)

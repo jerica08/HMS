@@ -287,26 +287,53 @@
                 </div>
             </div>
 
-            <!-- Financial Transactions Table -->
+            <?php if (isset($accounts)): ?>
+                <!-- DEBUG: accounts count = <?= count($accounts) ?> -->
+            <?php else: ?>
+                <!-- DEBUG: $accounts is NOT set -->
+            <?php endif; ?>
+
+            <!-- Billing Accounts Table -->
             <div class="financial-table-container">
                 <table class="financial-table">
                     <thead>
                         <tr>
-                            <th>Transaction ID</th>
-                            <th>Description</th>
-                            <th>Category</th>
-                            <th>Amount</th>
-                            <th>Date</th>
-                            <th>Type</th>
+                            <th>Billing ID</th>
+                            <th>Patient</th>
+                            <th>Admission</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="financialTableBody">
-                        <tr>
-                            <td colspan="7" class="loading-row">
-                                <i class="fas fa-spinner fa-spin"></i> Loading transactions...
-                            </td>
-                        </tr>
+                        <?php if (!empty($accounts) && is_array($accounts)): ?>
+                            <?php foreach ($accounts as $account): ?>
+                                <tr>
+                                    <td><?= esc($account['billing_id'] ?? '') ?></td>
+                                    <td>
+                                        <strong><?= esc($account['patient_name'] ?? ('Patient #' . ($account['patient_id'] ?? ''))) ?></strong><br>
+                                        <small>ID: <?= esc($account['patient_id'] ?? 'N/A') ?></small>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($account['admission_id'])): ?>
+                                            In-Patient (Admission #<?= esc($account['admission_id']) ?>)
+                                        <?php else: ?>
+                                            OPD / Out-Patient
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-primary btn-small" onclick="openBillingAccountModal(<?= esc($account['billing_id'] ?? 0) ?>)">
+                                            <i class="fas fa-eye"></i> View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="4" class="loading-row">
+                                    <i class="fas fa-file-invoice-dollar"></i> No billing accounts found.
+                                </td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -405,6 +432,44 @@
     
     <!-- Financial Transaction Modal -->
     <?php include APPPATH . 'Views/unified/modals/financial-transaction-modal.php'; ?>
+
+    <!-- Billing Account Details Modal -->
+    <div id="billingAccountModal" class="hms-modal-overlay" aria-hidden="true" style="display: none;">
+        <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="billingAccountTitle">
+            <div class="hms-modal-header">
+                <div class="hms-modal-title" id="billingAccountTitle">
+                    <i class="fas fa-file-invoice-dollar" style="color:#4f46e5"></i>
+                    Billing Account Details
+                </div>
+                <button type="button" class="btn btn-secondary btn-small" onclick="closeBillingAccountModal()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="hms-modal-body">
+                <div id="billingAccountHeader" style="margin-bottom:1rem;"></div>
+                <table class="financial-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="billingItemsBody">
+                        <tr>
+                            <td colspan="4" class="loading-row">
+                                <i class="fas fa-spinner fa-spin"></i> Loading billing details...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="text-align:right; margin-top:0.75rem; font-weight:600;">
+                    Total Amount: <span id="billingAccountTotal">₱0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- JavaScript Files -->
     <script src="<?= base_url('assets/js/unified/financial-utils.js') ?>"></script>

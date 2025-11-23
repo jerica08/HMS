@@ -4,11 +4,14 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Services\AppointmentService;
+use App\Services\FinancialService;
 
 class AppointmentManagement extends BaseController
 {
     protected $db;
     protected $appointmentService;
+    protected $financialService;
+
     protected $userRole;
     protected $staffId;
 
@@ -16,6 +19,7 @@ class AppointmentManagement extends BaseController
     {
         $this->db = \Config\Database::connect();
         $this->appointmentService = new AppointmentService();
+        $this->financialService = new FinancialService();
         
         $session = session();
         $this->userRole = $session->get('role');
@@ -279,6 +283,77 @@ class AppointmentManagement extends BaseController
         );
         
         return $this->response->setJSON($result);
+    }
+
+    /**
+     * Add an appointment charge to patient's billing account (admin/accountant)
+     */
+    public function addToBilling($appointmentId)
+    {
+        if (!in_array($this->userRole, ['admin', 'accountant'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Permission denied'
+            ]);
+        }
+
+        try {
+            $input = $this->request->getJSON(true) ?? $this->request->getPost();
+
+            $unitPrice = isset($input['unit_price']) ? (float)$input['unit_price'] : 0.0;
+            $quantity  = isset($input['quantity']) ? (int)$input['quantity'] : 1;
+
+            if ($unitPrice <= 0) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Invalid unit price'
+                ]);
+            }
+
+            // Load appointment to get patient
+            $appointment = $this->db->table('appointments')
+                ->where('appointment_id', $appointmentId)
+                ->get()
+                ->getRowArray();
+
+            if (!$appointment || empty($appointment['patient_id'])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Appointment or patient not found'
+                ]);
+            }
+
+            $patientId = (int)$appointment['patient_id'];
+
+            // Get or create billing account for this patient
+            $account = $this->financialService->getOrCreateBillingAccountForPatient($patientId, null, (int)$this->staffId);
+
+            if (!$account || empty($account['billing_id'])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Unable to create or load billing account'
+                ]);
+            }
+
+            $billingId = (int)$account['billing_id'];
+
+            // Add appointment item to billing
+            $result = $this->financialService->addItemFromAppointment(
+                $billingId,
+                (int)$appointmentId,
+                $unitPrice,
+                $quantity,
+                (int)$this->staffId
+            );
+
+            return $this->response->setJSON($result);
+        } catch (\Throwable $e) {
+            log_message('error', 'AppointmentManagement::addToBilling error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to add appointment to billing'
+            ]);
+        }
     }
 
     // ===================================================================

@@ -408,4 +408,281 @@ class FinancialService
             return [];
         }
     }
+
+    /**
+     * Billing accounts & items (integration with patients, appointments, prescriptions)
+     */
+
+    public function getOrCreateBillingAccountForPatient(int $patientId, ?int $admissionId = null, int $createdByStaffId = null): ?array
+    {
+        try {
+            if (!$this->db->tableExists('billing_accounts')) {
+                return null;
+            }
+
+            $builder = $this->db->table('billing_accounts');
+            $builder->where('patient_id', $patientId);
+            if ($admissionId !== null) {
+                $builder->where('admission_id', $admissionId);
+            }
+
+            // Optionally filter by status if such a column exists
+            if ($this->db->fieldExists('status', 'billing_accounts')) {
+                $builder->where('status', 'open');
+            }
+
+            $account = $builder->get()->getRowArray();
+            if ($account) {
+                return $account;
+            }
+
+            // Create a new billing account
+            $insertData = [
+                'patient_id' => $patientId,
+            ];
+
+            if ($admissionId !== null) {
+                $insertData['admission_id'] = $admissionId;
+            }
+
+            if ($this->db->fieldExists('status', 'billing_accounts')) {
+                $insertData['status'] = 'open';
+            }
+
+            if ($this->db->fieldExists('created_by', 'billing_accounts') && $createdByStaffId !== null) {
+                $insertData['created_by'] = $createdByStaffId;
+            }
+
+            $this->db->table('billing_accounts')->insert($insertData);
+
+            if ($this->db->affectedRows() <= 0) {
+                log_message('error', 'FinancialService::getOrCreateBillingAccountForPatient insert failed for patient_id ' . $patientId);
+                return null;
+            }
+
+            // Re-query the account using the same criteria instead of relying on insertID
+            $builder = $this->db->table('billing_accounts');
+            $builder->where('patient_id', $patientId);
+            if ($admissionId !== null) {
+                $builder->where('admission_id', $admissionId);
+            }
+            if ($this->db->fieldExists('status', 'billing_accounts')) {
+                $builder->where('status', 'open');
+            }
+
+            return $builder->orderBy('billing_id', 'DESC')->get()->getRowArray();
+
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::getOrCreateBillingAccountForPatient error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function addItemFromAppointment(int $billingId, int $appointmentId, float $unitPrice, int $quantity = 1, ?int $createdByStaffId = null): array
+    {
+        try {
+            if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('appointments')) {
+                return ['success' => false, 'message' => 'Billing or appointments table is missing'];
+            }
+
+            $appointment = $this->db->table('appointments')
+                ->where('appointment_id', $appointmentId)
+                ->get()
+                ->getRowArray();
+
+            if (!$appointment) {
+                return ['success' => false, 'message' => 'Appointment not found'];
+            }
+
+            $patientId = (int)($appointment['patient_id'] ?? 0);
+            if ($patientId <= 0) {
+                return ['success' => false, 'message' => 'Appointment has no patient linked'];
+            }
+
+            $descriptionParts = [];
+            if (!empty($appointment['appointment_type'])) {
+                $descriptionParts[] = $appointment['appointment_type'];
+            } else {
+                $descriptionParts[] = 'Consultation';
+            }
+
+            if (!empty($appointment['appointment_date'])) {
+                $descriptionParts[] = date('Y-m-d', strtotime($appointment['appointment_date']));
+            }
+
+            $description = implode(' - ', $descriptionParts);
+
+            $quantity = max(1, (int)$quantity);
+            $unitPrice = max(0, (float)$unitPrice);
+            $lineTotal = $quantity * $unitPrice;
+
+            $itemData = [
+                'billing_id'      => $billingId,
+                'patient_id'      => $patientId,
+                'appointment_id'  => $appointmentId,
+                'prescription_id' => null,
+                'description'     => $description,
+                'quantity'        => $quantity,
+                'unit_price'      => $unitPrice,
+                'line_total'      => $lineTotal,
+            ];
+
+            if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
+                $itemData['created_by_staff_id'] = $createdByStaffId;
+            }
+
+            $this->db->table('billing_items')->insert($itemData);
+
+            return ['success' => true, 'message' => 'Appointment item added to billing'];
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::addItemFromAppointment error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error adding appointment to billing'];
+        }
+    }
+
+    public function addItemFromPrescription(int $billingId, int $prescriptionId, float $unitPrice, ?int $quantity = null, ?int $createdByStaffId = null): array
+    {
+        try {
+            if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('prescriptions')) {
+                return ['success' => false, 'message' => 'Billing or prescriptions table is missing'];
+            }
+
+            $prescription = $this->db->table('prescriptions')
+                ->where('id', $prescriptionId)
+                ->get()
+                ->getRowArray();
+
+            if (!$prescription) {
+                return ['success' => false, 'message' => 'Prescription not found'];
+            }
+
+            $patientId = (int)($prescription['patient_id'] ?? 0);
+            if ($patientId <= 0) {
+                return ['success' => false, 'message' => 'Prescription has no patient linked'];
+            }
+
+            $descriptionParts = [];
+            if (!empty($prescription['medication'])) {
+                $descriptionParts[] = $prescription['medication'];
+            }
+            if (!empty($prescription['dosage'])) {
+                $descriptionParts[] = $prescription['dosage'];
+            }
+
+            $description = !empty($descriptionParts) ? implode(' - ', $descriptionParts) : 'Medication';
+
+            // Determine quantity: prefer dispensed_quantity, then quantity, then 1
+            if ($quantity === null) {
+                if (!empty($prescription['dispensed_quantity'])) {
+                    $quantity = (int)$prescription['dispensed_quantity'];
+                } elseif (!empty($prescription['quantity'])) {
+                    $quantity = (int)$prescription['quantity'];
+                } else {
+                    $quantity = 1;
+                }
+            }
+
+            $quantity = max(1, (int)$quantity);
+            $unitPrice = max(0, (float)$unitPrice);
+            $lineTotal = $quantity * $unitPrice;
+
+            $itemData = [
+                'billing_id'      => $billingId,
+                'patient_id'      => $patientId,
+                'appointment_id'  => null,
+                'prescription_id' => $prescriptionId,
+                'description'     => $description,
+                'quantity'        => $quantity,
+                'unit_price'      => $unitPrice,
+                'line_total'      => $lineTotal,
+            ];
+
+            if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
+                $itemData['created_by_staff_id'] = $createdByStaffId;
+            }
+
+            $this->db->table('billing_items')->insert($itemData);
+
+            return ['success' => true, 'message' => 'Prescription item added to billing'];
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::addItemFromPrescription error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error adding prescription to billing'];
+        }
+    }
+
+    public function getBillingAccount(int $billingId, string $userRole, ?int $staffId = null): ?array
+    {
+        try {
+            if (!$this->db->tableExists('billing_accounts')) {
+                return null;
+            }
+
+            $account = $this->db->table('billing_accounts')
+                ->where('billing_id', $billingId)
+                ->get()
+                ->getRowArray();
+
+            if (!$account) {
+                return null;
+            }
+
+            if ($this->db->tableExists('billing_items')) {
+                $items = $this->db->table('billing_items')
+                    ->where('billing_id', $billingId)
+                    ->orderBy('item_id', 'ASC')
+                    ->get()
+                    ->getResultArray();
+
+                $totalAmount = 0.0;
+                foreach ($items as $item) {
+                    $totalAmount += (float)($item['line_total'] ?? 0);
+                }
+
+                $account['items'] = $items;
+                $account['total_amount'] = $totalAmount;
+            } else {
+                $account['items'] = [];
+                $account['total_amount'] = 0.0;
+            }
+
+            return $account;
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::getBillingAccount error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function getBillingAccounts(array $filters, string $userRole, ?int $staffId = null): array
+    {
+        try {
+            if (!$this->db->tableExists('billing_accounts')) {
+                return [];
+            }
+
+            $builder = $this->db->table('billing_accounts');
+
+            if (!empty($filters['patient_id'])) {
+                $builder->where('patient_id', (int)$filters['patient_id']);
+            }
+
+            if (!empty($filters['status']) && $this->db->fieldExists('status', 'billing_accounts')) {
+                $builder->where('status', $filters['status']);
+            }
+
+            if (!empty($filters['from_date']) && $this->db->fieldExists('created_at', 'billing_accounts')) {
+                $builder->where('created_at >=', $filters['from_date']);
+            }
+
+            if (!empty($filters['to_date']) && $this->db->fieldExists('created_at', 'billing_accounts')) {
+                $builder->where('created_at <=', $filters['to_date']);
+            }
+
+            $builder->orderBy('billing_id', 'DESC');
+
+            return $builder->get()->getResultArray();
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::getBillingAccounts error: ' . $e->getMessage());
+            return [];
+        }
+    }
 }

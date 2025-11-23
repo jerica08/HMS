@@ -217,6 +217,7 @@ $routes->post('appointments/create', 'AppointmentManagement::createAppointment',
 $routes->put('appointments/(:num)', 'AppointmentManagement::updateAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->post('appointments/(:num)', 'AppointmentManagement::updateAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->post('appointments/(:num)/status', 'AppointmentManagement::updateAppointmentStatus/$1', ['filter' => 'roleauth:admin,doctor,nurse']);
+$routes->post('appointments/(:num)/bill', 'AppointmentManagement::addToBilling/$1', ['filter' => 'roleauth:admin,accountant']);
 $routes->delete('appointments/(:num)', 'AppointmentManagement::deleteAppointment/$1', ['filter' => 'roleauth:admin']);
 
 // ===================================================================
@@ -258,17 +259,17 @@ $routes->put('doctor/prescription/(:any)', 'PrescriptionManagement::update', ['f
 // ===================================================================
 
 // Financial Management Views - Role-specific entry points
-$routes->get('accountant/financial', 'FinancialManagement::index', ['filter' => 'roleauth:accountant']);
-$routes->get('admin/financial-management', 'FinancialManagement::index', ['filter' => 'roleauth:admin']);
-$routes->get('admin/financial', 'FinancialManagement::index', ['filter' => 'roleauth:admin']);
-$routes->get('admin/finance', 'FinancialManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('accountant/financial', 'FinancialController::index', ['filter' => 'roleauth:accountant']);
+$routes->get('admin/financial-management', 'FinancialController::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/financial', 'FinancialController::index', ['filter' => 'roleauth:admin']);
+$routes->get('admin/finance', 'FinancialController::index', ['filter' => 'roleauth:admin']);
 // Redirect common typos to the canonical route
 if (method_exists($routes, 'addRedirect')) {
     $routes->addRedirect('admin/financial%20management', 'admin/financial-management');
     $routes->addRedirect('admin/financial_management', 'admin/financial-management');
 }
-$routes->get('doctor/financial', 'FinancialManagement::index', ['filter' => 'roleauth:doctor']);
-$routes->get('receptionist/financial', 'FinancialManagement::index', ['filter' => 'roleauth:receptionist']);
+$routes->get('doctor/financial', 'FinancialController::index', ['filter' => 'roleauth:doctor']);
+$routes->get('receptionist/financial', 'FinancialController::index', ['filter' => 'roleauth:receptionist']);
 
 // Analytics & Reports Routes
 $routes->get('admin/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:admin']);
@@ -340,6 +341,7 @@ $routes->get('financial-management', 'FinancialController::index');
 $routes->get('financial-management/add', 'FinancialController::addTransaction');
 $routes->post('financial-management/add', 'FinancialController::addTransaction');
 $routes->get('financial-management/categories', 'FinancialController::getCategoriesByType');
+$routes->get('billing/accounts/(:num)', 'FinancialController::getBillingAccount/$1', ['filter' => 'roleauth:admin,accountant']);
 
 // ===================================================================
 // LEGACY COMPATIBILITY ROUTES

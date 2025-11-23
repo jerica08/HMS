@@ -4,16 +4,19 @@ namespace App\Controllers;
 
 use App\Models\FinancialTransactionModel;
 use App\Models\CategoryModel;
+use App\Services\FinancialService;
 
-class FinancialManagement extends BaseController
+class FinancialController extends BaseController
 {
     protected $transactionModel;
     protected $categoryModel;
+    protected $financialService;
 
     public function __construct()
     {
         $this->transactionModel = new FinancialTransactionModel();
         $this->categoryModel = new CategoryModel();
+        $this->financialService = new FinancialService();
     }
 
     public function demo()
@@ -29,18 +32,65 @@ class FinancialManagement extends BaseController
     public function index()
     {
         try {
+            $session = session();
+            $userRole = $session->get('role') ?? 'accountant';
+            $staffId  = (int)($session->get('staff_id') ?? 0);
+
+            // Use FinancialService for high-level stats and billing accounts
+            $stats    = $this->financialService->getFinancialStats($userRole, $staffId);
+            $accounts = $this->financialService->getBillingAccounts([], $userRole, $staffId);
+
+            // Simple permission flags for existing view structure
+            $permissions = [];
+            if (in_array($userRole, ['admin', 'accountant'])) {
+                $permissions[] = 'create_bill';
+                $permissions[] = 'process_payment';
+            }
+            if (in_array($userRole, ['admin', 'accountant'])) {
+                $permissions[] = 'create_expense';
+            }
+
+            // Debug: log how many billing accounts were loaded
+            log_message('debug', 'FinancialController index - accounts count: ' . count($accounts));
+
             $data = [
-                'title' => 'Financial Management',
-                'transactions' => $this->transactionModel->getTransactionsWithDetails(),
-                'summary' => $this->transactionModel->getFinancialSummary(),
-                'categories' => $this->categoryModel->getCategoriesGrouped(),
+                'title'       => 'Financial Management',
+                'userRole'    => $userRole,
+                'stats'       => $stats,
+                'accounts'    => $accounts,
+                'permissions' => $permissions,
             ];
 
             return view('unified/financial-management', $data);
         } catch (\Exception $e) {
+            log_message('error', 'FinancialManagement::index error: ' . $e->getMessage());
             echo "Error: " . $e->getMessage();
             echo "<br><br>Financial management system is being set up. Please try again in a moment.";
         }
+    }
+
+    /**
+     * API: Get single billing account with items for modal view
+     */
+    public function getBillingAccount($billingId)
+    {
+        $session = session();
+        $userRole = $session->get('role') ?? 'accountant';
+        $staffId  = (int)($session->get('staff_id') ?? 0);
+
+        $account = $this->financialService->getBillingAccount((int)$billingId, $userRole, $staffId);
+
+        if (!$account) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Billing account not found',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $account,
+        ]);
     }
 
     public function addTransaction()

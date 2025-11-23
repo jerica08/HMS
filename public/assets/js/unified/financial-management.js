@@ -33,15 +33,8 @@ const FinancialManager = {
     },
 
     async refreshFinancialData() {
-        try {
-            const response = await FinancialUtils.makeRequest('financial/api/stats');
-            
-            if (response.success && response.data) {
-                this.updateStatistics(response.data);
-            }
-        } catch (error) {
-            console.error('Error refreshing financial data:', error);
-        }
+        // Stats are currently rendered server-side; skip background API call
+        return;
     },
 
     updateStatistics(stats) {

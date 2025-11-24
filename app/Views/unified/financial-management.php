@@ -674,6 +674,93 @@
 
         // Set base URL for financial modal AJAX requests
         window.baseUrl = '<?= base_url() ?>';
+
+        // Billing account details modal helpers
+        function openBillingAccountModal(billingId) {
+            const modal = document.getElementById('billingAccountModal');
+            const header = document.getElementById('billingAccountHeader');
+            const body   = document.getElementById('billingItemsBody');
+            const totalEl = document.getElementById('billingAccountTotal');
+            if (!modal || !header || !body || !totalEl) return;
+
+            header.innerHTML = '';
+            body.innerHTML = `
+                <tr>
+                    <td colspan="4" class="loading-row">
+                        <i class="fas fa-spinner fa-spin"></i> Loading billing details...
+                    </td>
+                </tr>
+            `;
+            totalEl.textContent = '₱0.00';
+
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+
+            const baseUrl = window.baseUrl || document.querySelector('meta[name="base-url"]')?.content || '';
+            if (!baseUrl) return;
+
+            fetch(`${baseUrl}/billing/accounts/${billingId}`)
+                .then(r => r.json())
+                .then(result => {
+                    if (!result || result.success === false) {
+                        body.innerHTML = `
+                            <tr>
+                                <td colspan="4" class="loading-row">
+                                    ${result && result.message ? result.message : 'Failed to load billing account.'}
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    const acc = result.data || {};
+                    header.innerHTML = `
+                        <div><strong>Billing ID:</strong> ${acc.billing_id || ''}</div>
+                        <div><strong>Patient:</strong> ${acc.patient_name || ('Patient #' + (acc.patient_id || ''))}</div>
+                    `;
+
+                    const items = Array.isArray(acc.items) ? acc.items : [];
+                    if (!items.length) {
+                        body.innerHTML = `
+                            <tr>
+                                <td colspan="4" class="loading-row">
+                                    <i class="fas fa-info-circle"></i> No billing items for this account.
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        body.innerHTML = '';
+                        items.forEach(item => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${item.description || ''}</td>
+                                <td>${item.quantity || 1}</td>
+                                <td>₱${parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                                <td>₱${parseFloat(item.line_total || 0).toFixed(2)}</td>
+                            `;
+                            body.appendChild(tr);
+                        });
+                    }
+
+                    totalEl.textContent = '₱' + parseFloat(acc.total_amount || 0).toFixed(2);
+                })
+                .catch(() => {
+                    body.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="loading-row">
+                                Failed to load billing account. Please try again.
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        function closeBillingAccountModal() {
+            const modal = document.getElementById('billingAccountModal');
+            if (!modal) return;
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+        }
     </script>
 
     <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>

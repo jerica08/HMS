@@ -245,6 +245,7 @@ $routes->post('prescriptions/create', 'PrescriptionManagement::create', ['filter
 $routes->post('prescriptions/update', 'PrescriptionManagement::update', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
 $routes->post('prescriptions/delete', 'PrescriptionManagement::delete', ['filter' => 'roleauth:admin,doctor']);
 $routes->post('prescriptions/(:num)/status', 'PrescriptionManagement::updateStatus/$1', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
+$routes->post('prescriptions/(:num)/bill', 'PrescriptionManagement::addToBilling/$1', ['filter' => 'roleauth:admin,accountant,pharmacist']);
 
 // Legacy Doctor Prescription Routes
 $routes->get('doctor/create-prescription', 'PrescriptionManagement::index', ['filter' => 'roleauth:doctor']);

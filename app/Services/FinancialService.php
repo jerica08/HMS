@@ -561,6 +561,16 @@ class FinancialService
                 return ['success' => false, 'message' => 'Prescription has no patient linked'];
             }
 
+            // Avoid duplicate billing entries for the same prescription and billing account
+            $existing = $this->db->table('billing_items')
+                ->where('billing_id', $billingId)
+                ->where('prescription_id', $prescriptionId)
+                ->countAllResults();
+
+            if ($existing > 0) {
+                return ['success' => true, 'message' => 'Prescription is already added to this billing account.'];
+            }
+
             $descriptionParts = [];
             if (!empty($prescription['medication'])) {
                 $descriptionParts[] = $prescription['medication'];

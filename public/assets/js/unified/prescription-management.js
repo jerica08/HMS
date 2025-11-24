@@ -156,11 +156,87 @@ class PrescriptionManager {
         }
     }
 
+    // Billing helpers for prescriptions
+    openBillingModal(prescriptionId, patientName, medication) {
+        const modal = document.getElementById('prescriptionBillingModal');
+        const idInput = document.getElementById('billing_prescription_id');
+        const amountInput = document.getElementById('billing_prescription_amount');
+        const qtyInput = document.getElementById('billing_prescription_quantity');
+        const info = document.getElementById('billingPrescriptionInfo');
+        if (!modal || !idInput || !amountInput || !qtyInput) return;
+
+        idInput.value = prescriptionId || '';
+        amountInput.value = '';
+        qtyInput.value = '1';
+        if (info) {
+            info.textContent = `Prescription #${prescriptionId} • ${patientName || 'Unknown patient'} • ${medication || ''}`;
+        }
+
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
+    closeBillingModal() {
+        const modal = document.getElementById('prescriptionBillingModal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    async submitBillingForm(e) {
+        e.preventDefault();
+        const idInput = document.getElementById('billing_prescription_id');
+        const amountInput = document.getElementById('billing_prescription_amount');
+        const qtyInput = document.getElementById('billing_prescription_quantity');
+        if (!idInput || !amountInput || !qtyInput) return;
+
+        const prescriptionId = parseInt(idInput.value, 10);
+        const unitPrice = parseFloat(amountInput.value);
+        const quantity = parseInt(qtyInput.value, 10) || 1;
+
+        if (!prescriptionId || isNaN(unitPrice) || unitPrice <= 0) {
+            this.showError('Please enter a valid positive amount.');
+            return;
+        }
+
+        try {
+            const url = `${this.config.baseUrl}/prescriptions/${prescriptionId}/bill`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': this.config.csrfHash
+                },
+                body: JSON.stringify({
+                    unit_price: unitPrice,
+                    quantity: quantity
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                this.showSuccess(data.message || 'Prescription added to billing.');
+                this.closeBillingModal();
+            } else {
+                this.showError(data.message || 'Failed to add prescription to billing.');
+            }
+        } catch (err) {
+            console.error('Error adding prescription to billing:', err);
+            this.showError('Failed to add prescription to billing. Please try again.');
+        }
+    }
+
     bindFormEvents() {
         const prescriptionForm = document.getElementById('prescriptionForm');
         
         if (prescriptionForm) {
             prescriptionForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+        }
+
+        const billingForm = document.getElementById('prescriptionBillingForm');
+        if (billingForm) {
+            billingForm.addEventListener('submit', (e) => this.submitBillingForm(e));
         }
     }
 
@@ -211,6 +287,16 @@ class PrescriptionManager {
                 const prescriptionId = btn.dataset.prescriptionId;
                 if (prescriptionId) {
                     this.dispensePrescription(prescriptionId);
+                }
+            }
+
+            if (e.target.matches('.btn-bill') || e.target.closest('.btn-bill')) {
+                const btn = e.target.matches('.btn-bill') ? e.target : e.target.closest('.btn-bill');
+                const prescriptionId = btn.dataset.prescriptionId;
+                const patientName = btn.dataset.patientName || '';
+                const medication = btn.dataset.medication || '';
+                if (prescriptionId) {
+                    this.openBillingModal(prescriptionId, patientName, medication);
                 }
             }
         });
@@ -274,6 +360,10 @@ class PrescriptionManager {
         const canEdit = this.canEditPrescription(prescription);
         const canDelete = this.canDeletePrescription(prescription);
         const canDispense = this.canDispensePrescription(prescription);
+        const canBillRole = ['admin', 'accountant', 'pharmacist'].includes(this.config.userRole || '');
+        const statusNormalized = (prescription.status || '').toLowerCase();
+        const canBillStatus = ['completed', 'dispensed'].includes(statusNormalized);
+        const canBill = canBillRole && canBillStatus;
         
         return `
             <tr class="fade-in">
@@ -314,6 +404,11 @@ class PrescriptionManager {
                         ${canDispense ? `
                             <button type="button" class="btn btn-sm btn-success btn-dispense" data-prescription-id="${prescription.id}" data-action="dispense" title="Dispense">
                                 <i class="fas fa-pills"></i> Dispense
+                            </button>
+                        ` : ''}
+                        ${canBill ? `
+                            <button type="button" class="btn btn-sm btn-info btn-bill" data-prescription-id="${prescription.id}" data-patient-name="${this.escapeHtml(prescription.patient_name || '')}" data-medication="${this.escapeHtml(prescription.medication || '')}" title="Add to Bill">
+                                <i class="fas fa-file-invoice-dollar"></i> Add to Bill
                             </button>
                         ` : ''}
                         ${this.canUpdateStatus(prescription) ? `

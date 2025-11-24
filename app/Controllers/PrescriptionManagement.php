@@ -5,12 +5,14 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Services\PrescriptionService;
 use App\Services\ResourceService;
+use App\Services\FinancialService;
 use App\Libraries\PermissionManager;
 
 class PrescriptionManagement extends BaseController
 {
     protected $prescriptionService;
     protected $permissionManager;
+    protected $financialService;
     protected $userRole;
     protected $staffId;
 
@@ -18,11 +20,101 @@ class PrescriptionManagement extends BaseController
     {
         $this->prescriptionService = new PrescriptionService();
         $this->permissionManager = new PermissionManager();
+        $this->financialService = new FinancialService();
         
         // Get user role and staff_id from session
         $session = session();
         $this->userRole = $session->get('role');
         $this->staffId = $session->get('staff_id');
+    }
+
+    /**
+     * Add a prescription to a patient's billing account
+     */
+    public function addToBilling($id)
+    {
+        // Only allow specific roles to bill prescriptions
+        if (!in_array($this->userRole, ['admin', 'accountant', 'pharmacist'])) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'You are not allowed to add prescriptions to billing.'
+            ]);
+        }
+
+        if (strtolower($this->request->getMethod()) !== 'post') {
+            return $this->response->setStatusCode(405)->setJSON([
+                'success' => false,
+                'message' => 'Invalid request method.'
+            ]);
+        }
+
+        try {
+            $payload = $this->request->getJSON(true) ?? $this->request->getPost();
+
+            $unitPrice = isset($payload['unit_price']) ? (float)$payload['unit_price'] : 0.0;
+            $quantity  = isset($payload['quantity']) ? (int)$payload['quantity'] : null;
+
+            if ($unitPrice <= 0) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'Unit price must be greater than zero.'
+                ]);
+            }
+
+            // Load prescription to get patient_id and validate existence
+            $prescription = $this->prescriptionService->getPrescription($id);
+            if (!$prescription) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Prescription not found.'
+                ]);
+            }
+
+            // Only allow completed or dispensed prescriptions to be billed
+            $status = strtolower($prescription['status'] ?? '');
+            if (!in_array($status, ['completed', 'dispensed'])) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'Only completed or dispensed prescriptions can be added to billing.'
+                ]);
+            }
+
+            $patientId = (int)($prescription['patient_id'] ?? $prescription['pat_id'] ?? 0);
+            if ($patientId <= 0) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'Prescription is not linked to a valid patient.'
+                ]);
+            }
+
+            // Ensure the patient has a billing account
+            $account = $this->financialService->getOrCreateBillingAccountForPatient($patientId, null, (int)$this->staffId);
+            if (!$account || empty($account['billing_id'])) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'Unable to create or load billing account for this patient.'
+                ]);
+            }
+
+            $billingId = (int)$account['billing_id'];
+
+            // Add item from prescription
+            $result = $this->financialService->addItemFromPrescription($billingId, (int)$id, $unitPrice, $quantity, (int)$this->staffId);
+
+            $statusCode = !empty($result['success']) ? 200 : 500;
+
+            return $this->response->setStatusCode($statusCode)->setJSON([
+                'success' => !empty($result['success']),
+                'message' => $result['message'] ?? 'Unable to add prescription to billing.'
+            ]);
+
+        } catch (\Throwable $e) {
+            log_message('error', 'PrescriptionManagement::addToBilling error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'An unexpected error occurred while adding prescription to billing.'
+            ]);
+        }
     }
 
     /**

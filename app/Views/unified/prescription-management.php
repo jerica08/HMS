@@ -308,6 +308,41 @@
         </main>
     </div>
 
+    <!-- Prescription Billing Modal -->
+    <div id="prescriptionBillingModal" class="hms-modal-overlay" aria-hidden="true" style="display:none;">
+        <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="prescriptionBillingTitle">
+            <div class="hms-modal-header">
+                <div class="hms-modal-title" id="prescriptionBillingTitle">
+                    <i class="fas fa-file-invoice-dollar" style="color:#4f46e5"></i>
+                    Add Prescription to Billing
+                </div>
+                <button type="button" class="btn btn-secondary btn-small" onclick="closePrescriptionBillingModal()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="prescriptionBillingForm">
+                <input type="hidden" id="billing_prescription_id" name="prescription_id" value="">
+                <div class="hms-modal-body">
+                    <p id="billingPrescriptionInfo" style="margin-bottom:0.75rem; font-size:0.9rem; color:#4b5563;"></p>
+                    <div class="form-grid">
+                        <div>
+                            <label class="form-label" for="billing_prescription_amount">Unit Price* (₱)</label>
+                            <input id="billing_prescription_amount" name="amount" type="number" class="form-input" min="0.01" step="0.01" required autocomplete="off" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="form-label" for="billing_prescription_quantity">Quantity*</label>
+                            <input id="billing_prescription_quantity" name="quantity" type="number" class="form-input" min="1" step="1" required autocomplete="off" placeholder="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="hms-modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closePrescriptionBillingModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Add to Bill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 <!-- Modals -->
 <?php 
     $modalData = [
@@ -323,6 +358,7 @@
 
     <!-- JavaScript -->
     <script src="<?= base_url('assets/js/unified/prescription-management.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/prescription-management-init.js') ?>"></script>
     
     <script>
     // Direct function to show prescription modal

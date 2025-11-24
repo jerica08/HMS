@@ -205,6 +205,13 @@
     color: #1f2937;
 }
 
+/* Financial table action buttons */
+.financial-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
 .financial-table tbody tr:hover {
     background: #f9fafb;
 }

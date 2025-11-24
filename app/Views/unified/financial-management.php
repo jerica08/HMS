@@ -325,415 +325,33 @@
                                         <?php
                                             $status = strtolower($account['status'] ?? 'open');
                                             $label  = ucfirst($status);
-                                        ?>
                                         <span class="status-badge <?= $status === 'paid' ? 'paid' : 'open' ?>">
                                             <?= esc($label) ?>
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-primary btn-small" onclick="openBillingAccountModal(<?= esc($account['billing_id'] ?? 0) ?>)">
-                                            <i class="fas fa-eye"></i> View Details
-                                        </button>
-                                        <?php if (in_array($userRole, ['admin', 'accountant']) && ($status !== 'paid')): ?>
-                                            <button class="btn btn-success btn-small" onclick="markBillingAccountPaid(<?= esc($account['billing_id'] ?? 0) ?>)">
-                                                <i class="fas fa-check-circle"></i> Mark as Paid
+                                        <div class="financial-actions">
+                                            <button
+                                                class="btn btn-primary btn-small"
+                                                data-patient-name="<?= esc($account['patient_name'] ?? ('Patient #' . ($account['patient_id'] ?? ''))) ?>"
+                                                onclick="openBillingAccountModal(<?= esc($account['billing_id'] ?? 0) ?>, this.dataset.patientName)">
+                                                <i class="fas fa-eye"></i> View Details
                                             </button>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="5" class="loading-row">
-                                    <i class="fas fa-file-invoice-dollar"></i> No billing accounts found.
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
 
-            <!-- Add Financial Record Modal -->
-            <?php if (in_array('create_bill', $permissions)): ?>
-            <div id="addFinancialRecordModal" class="hms-modal-overlay" aria-hidden="true">
-                <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addFinancialRecordTitle">
-                    <div class="hms-modal-header">
-                        <div class="hms-modal-title" id="addFinancialRecordTitle">
-                            <i class="fas fa-plus-circle" style="color:#4f46e5"></i>
-                            Add Financial Record
-                        </div>
-                        <button type="button" class="btn btn-secondary btn-small" onclick="closeAddFinancialRecordModal()" aria-label="Close">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <form id="addFinancialRecordForm">
-                        <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>" />
-                        <div class="hms-modal-body">
-                            <div class="form-grid">
-                                <div>
-                                    <label class="form-label" for="fr_transaction_name">Transaction Name*</label>
-                                    <input id="fr_transaction_name" name="transaction_name" type="text" class="form-input" required autocomplete="off" placeholder="Enter transaction name">
-                                    <small id="err_fr_transaction_name" style="color:#dc2626"></small>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="fr_category">Category*</label>
-                                    <select id="fr_category" name="category" class="form-select" required>
-                                        <option value="">Select category</option>
-                                        <option value="Income">Income</option>
-                                        <option value="Expense">Expense</option>
-                                    </select>
-                                    <small id="err_fr_category" style="color:#dc2626"></small>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="fr_amount">Amount* (₱)</label>
-                                    <input id="fr_amount" name="amount" type="number" class="form-input" min="0.01" step="0.01" required autocomplete="off" placeholder="0.00">
-                                    <small id="err_fr_amount" style="color:#dc2626"></small>
-                                </div>
-                                <div>
-                                    <label class="form-label" for="fr_date">Date*</label>
-                                    <input id="fr_date" name="date" type="date" class="form-input" required autocomplete="off">
-                                    <small id="err_fr_date" style="color:#dc2626"></small>
-                                </div>
-                                <div id="payment_method_div" style="display: none;">
-                                    <label class="form-label" for="fr_payment_method">Payment Method</label>
-                                    <select id="fr_payment_method" name="payment_method" class="form-select">
-                                        <option value="cash">Cash</option>
-                                        <option value="card">Card</option>
-                                        <option value="bank_transfer">Bank Transfer</option>
-                                        <option value="check">Check</option>
-                                    </select>
-                                    <small id="err_fr_payment_method" style="color:#dc2626"></small>
-                                </div>
-                                <div id="expense_category_div" style="display: none;">
-                                    <label class="form-label" for="fr_expense_category">Expense Category</label>
-                                    <select id="fr_expense_category" name="expense_category" class="form-select">
-                                        <option value="supplies">Medical Supplies</option>
-                                        <option value="equipment">Equipment</option>
-                                        <option value="utilities">Utilities</option>
-                                        <option value="salaries">Salaries</option>
-                                        <option value="maintenance">Maintenance</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                    <small id="err_fr_expense_category" style="color:#dc2626"></small>
-                                </div>
-                                <div class="full">
-                                    <label class="form-label" for="fr_description">Description</label>
-                                    <textarea id="fr_description" name="description" rows="3" class="form-textarea" autocomplete="off" placeholder="Optional description..."></textarea>
-                                    <small id="err_fr_description" style="color:#dc2626"></small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="hms-modal-actions">
-                            <button type="button" class="btn btn-secondary" onclick="closeAddFinancialRecordModal()">Cancel</button>
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Record</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <?php endif; ?>
-
-    <!-- Include Modal Components -->
-    <?php if (in_array('create_bill', $permissions)): ?>
-        <?php include APPPATH . 'Views/unified/modals/billing-modal.php'; ?>
-    <?php endif; ?>
-    
-    <?php if (in_array('process_payment', $permissions)): ?>
-        <?php include APPPATH . 'Views/unified/modals/payment-modal.php'; ?>
-    <?php endif; ?>
-    
-    <?php if (in_array('create_expense', $permissions)): ?>
-        <?php include APPPATH . 'Views/unified/modals/expense-modal.php'; ?>
-    <?php endif; ?>
-    
-    <!-- Financial Transaction Modal -->
-    <?php include APPPATH . 'Views/unified/modals/financial-transaction-modal.php'; ?>
-
-    <!-- Billing Account Details Modal -->
-    <div id="billingAccountModal" class="hms-modal-overlay" aria-hidden="true" style="display: none;">
-        <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="billingAccountTitle">
-            <div class="hms-modal-header">
-                <div class="hms-modal-title" id="billingAccountTitle">
-                    <i class="fas fa-file-invoice-dollar" style="color:#4f46e5"></i>
-                    Billing Account Details
-                </div>
-                <button type="button" class="btn btn-secondary btn-small" onclick="closeBillingAccountModal()" aria-label="Close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="hms-modal-body">
-                <div id="billingAccountHeader" style="margin-bottom:1rem;"></div>
-                <table class="financial-table">
-                    <thead>
-                        <tr>
-                            <th>Description</th>
-                            <th>Quantity</th>
-                            <th>Unit Price</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="billingItemsBody">
-                        <tr>
-                            <td colspan="4" class="loading-row">
-                                <i class="fas fa-spinner fa-spin"></i> Loading billing details...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div style="text-align:right; margin-top:0.75rem; font-weight:600;">
-                    Total Amount: <span id="billingAccountTotal">₱0.00</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- JavaScript Files -->
-    <script src="<?= base_url('assets/js/unified/financial-utils.js') ?>"></script>
-    
-    <?php if (in_array('create_bill', $permissions)): ?>
-        <script src="<?= base_url('assets/js/unified/billing-modal.js') ?>"></script>
-    <?php endif; ?>
-    
-    <?php if (in_array('process_payment', $permissions)): ?>
-        <script src="<?= base_url('assets/js/unified/payment-modal.js') ?>"></script>
-    <?php endif; ?>
-    
-    <?php if (in_array('create_expense', $permissions)): ?>
-        <script src="<?= base_url('assets/js/unified/expense-modal.js') ?>"></script>
-    <?php endif; ?>
-    
-    <script src="<?= base_url('assets/js/unified/financial-management.js') ?>"></script>
-    <script>
-        function showFinancialNotification(message, type) {
-            const container = document.getElementById('financialNotification');
-            const iconEl = document.getElementById('financialNotificationIcon');
-            const textEl = document.getElementById('financialNotificationText');
-
-            if (!container || !iconEl || !textEl) return;
-
-            const isError = type === 'error';
-            const isSuccess = type === 'success';
-
-            container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
-            container.style.background = isError ? '#fee2e2' : '#ecfdf5';
-            container.style.color = isError ? '#991b1b' : '#166534';
-
-            const iconClass = isError ? 'fa-exclamation-triangle' : (isSuccess ? 'fa-check-circle' : 'fa-info-circle');
-            iconEl.className = 'fas ' + iconClass;
-
-            textEl.textContent = String(message || '');
-            container.style.display = 'flex';
-        }
-
-        function dismissFinancialNotification() {
-            const container = document.getElementById('financialNotification');
-            if (container) {
-                container.style.display = 'none';
-            }
-        }
-
-        async function markBillingAccountPaid(billingId) {
-            if (!billingId) return;
-            if (!confirm('Mark this billing account as PAID?')) {
-                return;
-            }
-
-            try {
-                const meta = document.querySelector('meta[name="base-url"]');
-                const baseUrl = meta ? meta.content : '';
-                const url = baseUrl.replace(/\/$/, '') + '/financial/billing-accounts/' + billingId + '/paid';
-
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                const data = await res.json();
-                if (data.success) {
-                    if (typeof showFinancialNotification === 'function') {
-                        showFinancialNotification(data.message || 'Billing account marked as paid.', 'success');
-                    }
-                    setTimeout(() => window.location.reload(), 600);
-                } else {
-                    const msg = data.message || 'Failed to mark billing account as paid.';
-                    if (typeof showFinancialNotification === 'function') {
-                        showFinancialNotification(msg, 'error');
-                    } else {
-                        alert(msg);
-                    }
-                }
-            } catch (e) {
-                console.error('Error marking billing account as paid:', e);
-                if (typeof showFinancialNotification === 'function') {
-                    showFinancialNotification('Unexpected error while marking account as paid.', 'error');
-                } else {
-                    alert('Unexpected error while marking account as paid.');
-                }
-            }
-        }
-
-        // Add Financial Record modal functions
-        function openAddFinancialRecordModal() {
-            const modal = document.getElementById('addFinancialRecordModal');
-            if (modal) {
-                modal.setAttribute('aria-hidden', 'false');
-                modal.style.display = 'block';
-                // Focus first input
-                setTimeout(() => {
-                    document.getElementById('fr_transaction_name')?.focus();
-                }, 100);
-            }
-        }
-
-        function closeAddFinancialRecordModal() {
-            const modal = document.getElementById('addFinancialRecordModal');
-            const form = document.getElementById('addFinancialRecordForm');
-            if (modal) {
-                modal.setAttribute('aria-hidden', 'true');
-                modal.style.display = 'none';
-            }
-            if (form) form.reset();
-            // Clear errors
-            const errors = form?.querySelectorAll('[id^="err_fr_"]');
-            errors?.forEach(e => e.textContent = '');
-            // Hide conditional fields
-            document.getElementById('payment_method_div')?.style.setProperty('display', 'none');
-            document.getElementById('expense_category_div')?.style.setProperty('display', 'none');
-        }
-
-        // Category change handler
-        document.getElementById('fr_category')?.addEventListener('change', function() {
-            const category = this.value;
-            const paymentMethodDiv = document.getElementById('payment_method_div');
-            const expenseCategoryDiv = document.getElementById('expense_category_div');
-
-            if (category === 'Income') {
-                paymentMethodDiv?.style.setProperty('display', 'block');
-                expenseCategoryDiv?.style.setProperty('display', 'none');
-            } else if (category === 'Expense') {
-                paymentMethodDiv?.style.setProperty('display', 'none');
-                expenseCategoryDiv?.style.setProperty('display', 'block');
-            } else {
-                paymentMethodDiv?.style.setProperty('display', 'none');
-                expenseCategoryDiv?.style.setProperty('display', 'none');
-            }
-        });
-
-        // Add Financial Record form submission
-        const addFinancialRecordForm = document.getElementById('addFinancialRecordForm');
-        if (addFinancialRecordForm) {
-            addFinancialRecordForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-
-                // Clear previous errors
-                const errors = addFinancialRecordForm.querySelectorAll('[id^="err_fr_"]');
-                errors.forEach(error => error.textContent = '');
-
-                // Get form values
-                const transactionName = document.getElementById('fr_transaction_name')?.value?.trim();
-                const category = document.getElementById('fr_category')?.value;
-                const amount = document.getElementById('fr_amount')?.value;
-                const date = document.getElementById('fr_date')?.value;
-
-                // Validate
-                let hasErrors = false;
-                if (!transactionName) {
-                    document.getElementById('err_fr_transaction_name').textContent = 'Transaction name is required.';
-                    hasErrors = true;
-                }
-                if (!category) {
-                    document.getElementById('err_fr_category').textContent = 'Please select a category.';
-                    hasErrors = true;
-                }
-                if (!amount || parseFloat(amount) <= 0) {
-                    document.getElementById('err_fr_amount').textContent = 'Amount must be greater than zero.';
-                    hasErrors = true;
-                }
-                if (!date) {
-                    document.getElementById('err_fr_date').textContent = 'Date is required.';
-                    hasErrors = true;
-                }
-
-                if (hasErrors) return;
-
-                try {
-                    const formData = new FormData(addFinancialRecordForm);
-                    const res = await fetch(window.location.origin + '/financial/record/create', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    let data = null;
-                    try {
-                        const raw = await res.text();
-                        data = raw ? JSON.parse(raw) : null;
-                    } catch (e) {}
-
-                    if (!res.ok || (data && data.success === false)) {
-                        const detail = data?.message || 'Failed to save financial record';
-                        alert('Error: ' + detail);
-                        return;
-                    }
-
-                    closeAddFinancialRecordModal();
-                    if (typeof showFinancialNotification === 'function') {
-                        showFinancialNotification('Financial record saved successfully', 'success');
-                    }
-
-                    // Refresh the page or update stats via AJAX
-                    location.reload();
-                } catch (err) {
-                    if (typeof showFinancialNotification === 'function') {
-                        showFinancialNotification('Failed to save financial record', 'error');
-                    } else {
-                        alert('Failed to save financial record');
-                    }
-                }
-            });
-        }
-
-        // Edit and Delete functions
-        function editTransaction(id) {
-            alert('Edit transaction functionality coming soon! Transaction ID: ' + id);
-        }
-
-        function deleteTransaction(id) {
-            if (confirm('Are you sure you want to delete this transaction?')) {
-                alert('Delete transaction functionality coming soon! Transaction ID: ' + id);
-            }
-        }
-
-        // Simple direct approach - override any existing handlers
-        function setupFinancialModalButton() {
-            const btn = document.getElementById('addFinancialRecordBtn');
-            if (btn) {
-                // Remove all existing event listeners by cloning
-                const newBtn = btn.cloneNode(true);
-                btn.parentNode.replaceChild(newBtn, btn);
-                
-                // Add our click handler
-                newBtn.onclick = function(e) {
-                    e.preventDefault();
-                    if (typeof openFinancialTransactionModal === 'function') {
-                        openFinancialTransactionModal();
-                    } else {
-                        alert('Modal function not found');
-                    }
-                };
-            }
-        }
-
-        // Try multiple times to ensure button is ready
-        setTimeout(setupFinancialModalButton, 100);
-        setTimeout(setupFinancialModalButton, 500);
+                                            <?php if (in_array($userRole, ['admin', 'accountant']) && ($status !== 'paid')): ?>
+                                                <button class="btn btn-success btn-small" onclick="markBillingAccountPaid(<?= esc($account['billing_id'] ?? 0) ?>)">
+                                                    <i class="fas fa-check-circle"></i> Mark as Paid
+                                                </button>
+                                            <?php endif; ?>
+<!-- ... -->
         setTimeout(setupFinancialModalButton, 1000);
 
         // Set base URL for financial modal AJAX requests
         window.baseUrl = '<?= base_url() ?>';
 
         // Billing account details modal helpers
-        function openBillingAccountModal(billingId) {
+        function openBillingAccountModal(billingId, patientNameFromRow) {
+
             const modal = document.getElementById('billingAccountModal');
             const header = document.getElementById('billingAccountHeader');
             const body   = document.getElementById('billingItemsBody');
@@ -741,46 +359,37 @@
             if (!modal || !header || !body || !totalEl) return;
 
             header.innerHTML = '';
+
             body.innerHTML = `
                 <tr>
                     <td colspan="4" class="loading-row">
                         <i class="fas fa-spinner fa-spin"></i> Loading billing details...
                     </td>
-                </tr>
-            `;
-            totalEl.textContent = '₱0.00';
-
-            modal.style.display = 'block';
-            modal.setAttribute('aria-hidden', 'false');
-
-            const baseUrl = window.baseUrl || document.querySelector('meta[name="base-url"]')?.content || '';
-            if (!baseUrl) return;
-
-            fetch(`${baseUrl}/billing/accounts/${billingId}`)
-                .then(r => r.json())
-                .then(result => {
-                    if (!result || result.success === false) {
-                        body.innerHTML = `
-                            <tr>
-                                <td colspan="4" class="loading-row">
-                                    ${result && result.message ? result.message : 'Failed to load billing account.'}
-                                </td>
+<!-- ... -->
                             </tr>
                         `;
                         return;
                     }
 
                     const acc = result.data || {};
+
+                    // Prefer name from table row, then fall back to API fields
+                    const patientName = (patientNameFromRow
+                        || acc.patient_name
+                        || acc.patient_full_name
+                        || ((acc.first_name || acc.last_name) ? `${acc.first_name || ''} ${acc.last_name || ''}`.trim() : '')
+                        || (acc.patient_id ? `Patient #${acc.patient_id}` : 'Unknown patient'));
+
                     header.innerHTML = `
                         <div><strong>Billing ID:</strong> ${acc.billing_id || ''}</div>
-                        <div><strong>Patient:</strong> ${acc.patient_name || ('Patient #' + (acc.patient_id || ''))}</div>
+                        <div><strong>Patient:</strong> ${patientName}</div>
                     `;
 
                     const items = Array.isArray(acc.items) ? acc.items : [];
                     if (!items.length) {
                         body.innerHTML = `
                             <tr>
-                                <td colspan="4" class="loading-row">
+<!-- ... -->
                                     <i class="fas fa-info-circle"></i> No billing items for this account.
                                 </td>
                             </tr>

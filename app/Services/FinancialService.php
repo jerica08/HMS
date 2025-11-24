@@ -674,6 +674,28 @@ class FinancialService
                 return null;
             }
 
+            // Attach patient name details if patients table exists
+            if (!empty($account['patient_id']) && $this->db->tableExists('patients')) {
+                $patient = $this->db->table('patients')
+                    ->where('patient_id', (int)$account['patient_id'])
+                    ->get()
+                    ->getRowArray();
+
+                if ($patient) {
+                    $firstName = $patient['first_name'] ?? '';
+                    $lastName  = $patient['last_name'] ?? '';
+                    $fullName  = trim($firstName . ' ' . $lastName);
+
+                    $account['first_name']        = $firstName;
+                    $account['last_name']         = $lastName;
+                    $account['patient_full_name'] = $fullName !== '' ? $fullName : ($patient['full_name'] ?? '');
+
+                    if (empty($account['patient_name'])) {
+                        $account['patient_name'] = $account['patient_full_name'] ?: ('Patient #' . $account['patient_id']);
+                    }
+                }
+            }
+
             if ($this->db->tableExists('billing_items')) {
                 $items = $this->db->table('billing_items')
                     ->where('billing_id', $billingId)
@@ -707,27 +729,56 @@ class FinancialService
                 return [];
             }
 
-            $builder = $this->db->table('billing_accounts');
+            // Base query for billing accounts
+            $builder = $this->db->table('billing_accounts ba');
+
+            // Join patients table when available so we can show patient names
+            if ($this->db->tableExists('patients')) {
+                $builder = $builder
+                    ->join('patients p', 'p.patient_id = ba.patient_id', 'left')
+                    ->select('ba.*, p.first_name, p.last_name');
+            } else {
+                $builder = $builder->select('ba.*');
+            }
 
             if (!empty($filters['patient_id'])) {
-                $builder->where('patient_id', (int)$filters['patient_id']);
+                $builder->where('ba.patient_id', (int)$filters['patient_id']);
             }
 
             if (!empty($filters['status']) && $this->db->fieldExists('status', 'billing_accounts')) {
-                $builder->where('status', $filters['status']);
+                $builder->where('ba.status', $filters['status']);
             }
 
             if (!empty($filters['from_date']) && $this->db->fieldExists('created_at', 'billing_accounts')) {
-                $builder->where('created_at >=', $filters['from_date']);
+                $builder->where('ba.created_at >=', $filters['from_date']);
             }
 
             if (!empty($filters['to_date']) && $this->db->fieldExists('created_at', 'billing_accounts')) {
-                $builder->where('created_at <=', $filters['to_date']);
+                $builder->where('ba.created_at <=', $filters['to_date']);
             }
 
-            $builder->orderBy('billing_id', 'DESC');
+            $builder->orderBy('ba.billing_id', 'DESC');
 
-            return $builder->get()->getResultArray();
+            $accounts = $builder->get()->getResultArray();
+
+            // Attach patient name details if patients table exists
+            if ($this->db->tableExists('patients')) {
+                foreach ($accounts as &$account) {
+                    if (!empty($account['patient_id'])) {
+                        $firstName = $account['first_name'] ?? '';
+                        $lastName  = $account['last_name'] ?? '';
+                        $fullName  = trim($firstName . ' ' . $lastName);
+
+                        $account['patient_full_name'] = $fullName !== '' ? $fullName : ($account['full_name'] ?? '');
+
+                        if (empty($account['patient_name'])) {
+                            $account['patient_name'] = $account['patient_full_name'] ?: ('Patient #' . $account['patient_id']);
+                        }
+                    }
+                }
+            }
+
+            return $accounts;
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::getBillingAccounts error: ' . $e->getMessage());
             return [];

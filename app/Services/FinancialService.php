@@ -478,6 +478,44 @@ class FinancialService
         }
     }
 
+    /**
+     * Update the status of a billing account (if the status column exists).
+     */
+    public function updateBillingAccountStatus(int $billingId, string $status): array
+    {
+        try {
+            if (!$this->db->tableExists('billing_accounts')) {
+                return ['success' => false, 'message' => 'Billing accounts table is missing'];
+            }
+
+            if (!$this->db->fieldExists('status', 'billing_accounts')) {
+                // Be defensive: do not throw, just report that the field is not present
+                return ['success' => false, 'message' => 'Status field does not exist on billing_accounts'];
+            }
+
+            $this->db->table('billing_accounts')
+                ->where('billing_id', $billingId)
+                ->update(['status' => $status]);
+
+            if ($this->db->affectedRows() <= 0) {
+                return ['success' => false, 'message' => 'Billing account not found or status unchanged'];
+            }
+
+            return ['success' => true, 'message' => 'Billing account status updated'];
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::updateBillingAccountStatus error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error updating billing account status'];
+        }
+    }
+
+    /**
+     * Convenience wrapper to mark an account as paid.
+     */
+    public function markBillingAccountPaid(int $billingId): array
+    {
+        return $this->updateBillingAccountStatus($billingId, 'paid');
+    }
+
     public function addItemFromAppointment(int $billingId, int $appointmentId, float $unitPrice, int $quantity = 1, ?int $createdByStaffId = null): array
     {
         try {

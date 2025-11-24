@@ -301,6 +301,7 @@
                             <th>Billing ID</th>
                             <th>Patient</th>
                             <th>Admission</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -321,15 +322,29 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
+                                        <?php
+                                            $status = strtolower($account['status'] ?? 'open');
+                                            $label  = ucfirst($status);
+                                        ?>
+                                        <span class="status-badge <?= $status === 'paid' ? 'paid' : 'open' ?>">
+                                            <?= esc($label) ?>
+                                        </span>
+                                    </td>
+                                    <td>
                                         <button class="btn btn-primary btn-small" onclick="openBillingAccountModal(<?= esc($account['billing_id'] ?? 0) ?>)">
                                             <i class="fas fa-eye"></i> View Details
                                         </button>
+                                        <?php if (in_array($userRole, ['admin', 'accountant']) && ($status !== 'paid')): ?>
+                                            <button class="btn btn-success btn-small" onclick="markBillingAccountPaid(<?= esc($account['billing_id'] ?? 0) ?>)">
+                                                <i class="fas fa-check-circle"></i> Mark as Paid
+                                            </button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="4" class="loading-row">
+                                <td colspan="5" class="loading-row">
                                     <i class="fas fa-file-invoice-dollar"></i> No billing accounts found.
                                 </td>
                             </tr>
@@ -513,6 +528,48 @@
             const container = document.getElementById('financialNotification');
             if (container) {
                 container.style.display = 'none';
+            }
+        }
+
+        async function markBillingAccountPaid(billingId) {
+            if (!billingId) return;
+            if (!confirm('Mark this billing account as PAID?')) {
+                return;
+            }
+
+            try {
+                const meta = document.querySelector('meta[name="base-url"]');
+                const baseUrl = meta ? meta.content : '';
+                const url = baseUrl.replace(/\/$/, '') + '/financial/billing-accounts/' + billingId + '/paid';
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    if (typeof showFinancialNotification === 'function') {
+                        showFinancialNotification(data.message || 'Billing account marked as paid.', 'success');
+                    }
+                    setTimeout(() => window.location.reload(), 600);
+                } else {
+                    const msg = data.message || 'Failed to mark billing account as paid.';
+                    if (typeof showFinancialNotification === 'function') {
+                        showFinancialNotification(msg, 'error');
+                    } else {
+                        alert(msg);
+                    }
+                }
+            } catch (e) {
+                console.error('Error marking billing account as paid:', e);
+                if (typeof showFinancialNotification === 'function') {
+                    showFinancialNotification('Unexpected error while marking account as paid.', 'error');
+                } else {
+                    alert('Unexpected error while marking account as paid.');
+                }
             }
         }
 

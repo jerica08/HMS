@@ -93,6 +93,37 @@ class FinancialController extends BaseController
         ]);
     }
 
+    /**
+     * Mark a billing account as paid.
+     */
+    public function markBillingAccountPaid($billingId)
+    {
+        $session  = session();
+        $userRole = $session->get('role') ?? 'accountant';
+
+        if (!in_array($userRole, ['admin', 'accountant'], true)) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'You are not allowed to mark billing accounts as paid.',
+            ]);
+        }
+
+        if (strtolower($this->request->getMethod()) !== 'post') {
+            return $this->response->setStatusCode(405)->setJSON([
+                'success' => false,
+                'message' => 'Invalid request method.',
+            ]);
+        }
+
+        $result = $this->financialService->markBillingAccountPaid((int)$billingId);
+        $status = !empty($result['success']) ? 200 : 400;
+
+        return $this->response->setStatusCode($status)->setJSON([
+            'success' => !empty($result['success']),
+            'message' => $result['message'] ?? 'Unable to update billing account status.',
+        ]);
+    }
+
     public function addTransaction()
     {
         if ($this->request->getMethod() === 'POST') {

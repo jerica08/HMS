@@ -272,6 +272,9 @@ if (method_exists($routes, 'addRedirect')) {
 $routes->get('doctor/financial', 'FinancialController::index', ['filter' => 'roleauth:doctor']);
 $routes->get('receptionist/financial', 'FinancialController::index', ['filter' => 'roleauth:receptionist']);
 
+// Billing account actions
+$routes->post('financial/billing-accounts/(:num)/paid', 'FinancialController::markBillingAccountPaid/$1', ['filter' => 'roleauth:admin,accountant']);
+
 // Analytics & Reports Routes
 $routes->get('admin/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('accountant/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:accountant']);

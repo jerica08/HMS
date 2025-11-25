@@ -26,6 +26,8 @@
                     <section id="outpatientTab" class="patient-tabs__panel active" role="tabpanel" aria-labelledby="outpatientTabBtn">
                         <form id="addPatientForm" class="patient-form" data-form-type="outpatient" novalidate>
                             <input type="hidden" name="patient_type" value="Outpatient">
+                            <input type="hidden" name="country" value="Philippines">
+                            <input type="hidden" name="region" value="Region XII - SOCCSKSARGEN">
 
                             <div class="form-section">
                                 <div class="section-header">
@@ -93,10 +95,43 @@
                                         <input type="email" id="email" name="email" class="form-input">
                                         <small id="err_email" class="form-error"></small>
                                     </div>
-                                    <div class="full">
-                                        <label class="form-label" for="address">Address (Full)*</label>
-                                        <textarea id="address" name="address" class="form-input" rows="2" required></textarea>
-                                        <small id="err_address" class="form-error"></small>
+                                    <div>
+                                        <label class="form-label" for="outpatient_province">Province*</label>
+                                        <select id="outpatient_province" name="province" class="form-select" required disabled>
+                                            <option value="">Select a province...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_city">City / Municipality*</label>
+                                        <select id="outpatient_city" name="city" class="form-select" required disabled>
+                                            <option value="">Select a city or municipality...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_barangay">Barangay*</label>
+                                        <select id="outpatient_barangay" name="barangay" class="form-select" required disabled>
+                                            <option value="">Select a barangay...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_street_name">Street Name*</label>
+                                        <input type="text" id="outpatient_street_name" name="street_name" class="form-input" placeholder="e.g., Mabini St." required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_subdivision">Subdivision / Village</label>
+                                        <input type="text" id="outpatient_subdivision" name="subdivision" class="form-input" placeholder="Optional">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_building_name">Building Name</label>
+                                        <input type="text" id="outpatient_building_name" name="building_name" class="form-input" placeholder="Optional">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_house_number">House / Lot / Block / Unit No.*</label>
+                                        <input type="text" id="outpatient_house_number" name="house_number" class="form-input" placeholder="e.g., Blk 4 Lot 8" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_zip_code">ZIP Code</label>
+                                        <input type="text" id="outpatient_zip_code" name="zip_code" class="form-input" placeholder="Optional">
                                     </div>
                                 </div>
                             </div>

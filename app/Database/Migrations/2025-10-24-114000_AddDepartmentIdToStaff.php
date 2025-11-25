@@ -17,13 +17,16 @@ class AddDepartmentIdToStaff extends Migration
                     'type'     => 'INT',
                     'unsigned' => true,
                     'null'     => true,
-                    'after'    => 'department',
+                    'after'    => 'employee_id',
                 ],
             ]);
         }
 
-        // Add FK constraint if not present
-        $db->query('ALTER TABLE staff ADD INDEX idx_staff_department_id (department_id)');
+        // Add index if missing
+        $indexExists = $db->query("SHOW INDEX FROM staff WHERE Key_name = 'idx_staff_department_id'")->getResult();
+        if (empty($indexExists)) {
+            $db->query('ALTER TABLE staff ADD INDEX idx_staff_department_id (department_id)');
+        }
         // Use try/catch to avoid error if FK exists
         try {
             $db->query('ALTER TABLE staff ADD CONSTRAINT fk_staff_department FOREIGN KEY (department_id) REFERENCES department(department_id) ON UPDATE CASCADE ON DELETE SET NULL');
@@ -31,8 +34,10 @@ class AddDepartmentIdToStaff extends Migration
             // ignore if already exists
         }
 
-        // Backfill department_id from existing department names
-        $db->query('UPDATE staff s LEFT JOIN department d ON d.name = s.department SET s.department_id = d.department_id WHERE s.department IS NOT NULL AND s.department != ""');
+        // Backfill department_id from existing department names if the legacy column exists
+        if ($db->fieldExists('department', 'staff')) {
+            $db->query('UPDATE staff s LEFT JOIN department d ON d.name = s.department SET s.department_id = d.department_id WHERE s.department IS NOT NULL AND s.department != ""');
+        }
     }
 
     public function down()

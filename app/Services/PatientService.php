@@ -17,14 +17,16 @@ class PatientService
 
     public function createPatient($input, $userRole, $staffId = null)
     {
-        // Determine primary doctor assignment
-        $primaryDoctorId = $this->determinePrimaryDoctor($input, $userRole, $staffId);
-        
-        if (!$primaryDoctorId) {
-            return [
-                'status' => 'error',
-                'message' => 'No doctor available for assignment',
-            ];
+        // Determine primary doctor assignment when the schema supports it
+        $primaryDoctorId = null;
+        $hasPrimaryDoctorColumn = $this->patientTableHasColumn('primary_doctor_id');
+
+        if ($hasPrimaryDoctorColumn) {
+            $primaryDoctorId = $this->determinePrimaryDoctor($input, $userRole, $staffId);
+
+            if (!$primaryDoctorId) {
+                log_message('warning', 'PatientService::createPatient - No doctor available for assignment, defaulting to NULL');
+            }
         }
 
         // Validation

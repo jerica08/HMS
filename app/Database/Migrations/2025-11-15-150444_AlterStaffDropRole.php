@@ -13,7 +13,23 @@ class AlterStaffDropRole extends Migration
         $fields = $db->getFieldNames('staff');
 
         if (!in_array('role_id', $fields)) {
-            throw new \RuntimeException('role_id column must exist before dropping staff.role column.');
+            $this->forge->addColumn('staff', [
+                'role_id' => [
+                    'type'       => 'INT',
+                    'constraint' => 11,
+                    'unsigned'   => true,
+                    'null'       => true,
+                    'after'      => 'role',
+                ],
+            ]);
+
+            if ($db->tableExists('roles')) {
+                $db->query('
+                    UPDATE staff s
+                    JOIN roles r ON r.slug = s.role
+                    SET s.role_id = r.role_id
+                ');
+            }
         }
 
         // Drop the old ENUM role column from staff

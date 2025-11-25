@@ -122,9 +122,7 @@ const AddPatientModal = {
     floorInput: null,
     dailyRateInput: null,
     currentRoomTypeRooms: [],
-    provinceSelect: null,
-    citySelect: null,
-    barangaySelect: null,
+    addressControls: {},
 
     /**
      * Initialize the modal
@@ -142,9 +140,10 @@ const AddPatientModal = {
         this.roomNumberSelect = document.getElementById('room_number');
         this.floorInput = document.getElementById('floor_number');
         this.dailyRateInput = document.getElementById('daily_rate');
-        this.provinceSelect = document.getElementById('inpatient_province');
-        this.citySelect = document.getElementById('inpatient_city');
-        this.barangaySelect = document.getElementById('inpatient_barangay');
+        this.addressControls = {
+            outpatient: this.buildAddressControls('outpatient'),
+            inpatient: this.buildAddressControls('inpatient')
+        };
 
         // pick default form
         this.form = this.forms.outpatient || this.forms.inpatient || null;
@@ -266,7 +265,7 @@ const AddPatientModal = {
             inpatientAge.value = '';
         }
         this.resetAddressSelects();
-        this.populateProvinces();
+        this.populateProvincesForAll();
     },
 
     /**
@@ -343,109 +342,131 @@ const AddPatientModal = {
         this.roomNumberSelect.disabled = true;
     },
 
+    buildAddressControls(prefix) {
+        return {
+            provinceSelect: document.getElementById(`${prefix}_province`),
+            citySelect: document.getElementById(`${prefix}_city`),
+            barangaySelect: document.getElementById(`${prefix}_barangay`)
+        };
+    },
+
     setupAddressControls() {
-        if (!this.provinceSelect || !this.citySelect || !this.barangaySelect) {
-            return;
-        }
+        Object.entries(this.addressControls).forEach(([formKey, controls]) => {
+            if (!controls.provinceSelect || !controls.citySelect || !controls.barangaySelect) {
+                return;
+            }
 
-        this.setAddressLoadingState();
-        GeoDataLoader.loadProvinces()
-            .then(() => {
-                this.provinceSelect.addEventListener('change', () => this.handleProvinceChange());
-                this.citySelect.addEventListener('change', () => this.handleCityChange());
-                this.populateProvinces();
-            })
-            .catch(error => {
-                console.error('Failed to load geographic data', error);
-                this.setAddressErrorState();
-            });
+            this.setAddressLoadingState(controls);
+            GeoDataLoader.loadProvinces()
+                .then(() => {
+                    controls.provinceSelect.addEventListener('change', () => this.handleProvinceChange(controls));
+                    controls.citySelect.addEventListener('change', () => this.handleCityChange(controls));
+                    this.populateProvinces(controls);
+                })
+                .catch(error => {
+                    console.error('Failed to load geographic data', error);
+                    this.setAddressErrorState(controls);
+                });
+        });
     },
 
-    resetAddressSelects() {
-        if (this.provinceSelect) {
-            this.provinceSelect.innerHTML = '<option value="">Select a province...</option>';
-            this.provinceSelect.disabled = true;
-        }
-        if (this.citySelect) {
-            this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
-            this.citySelect.disabled = true;
-        }
-        if (this.barangaySelect) {
-            this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
-            this.barangaySelect.disabled = true;
-        }
+    resetAddressSelects(formKey = null) {
+        const targets = formKey ? { [formKey]: this.addressControls[formKey] } : this.addressControls;
+        Object.values(targets).forEach(controls => {
+            if (!controls) return;
+            if (controls.provinceSelect) {
+                controls.provinceSelect.innerHTML = '<option value="">Select a province...</option>';
+                controls.provinceSelect.disabled = true;
+            }
+            if (controls.citySelect) {
+                controls.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+                controls.citySelect.disabled = true;
+            }
+            if (controls.barangaySelect) {
+                controls.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+                controls.barangaySelect.disabled = true;
+            }
+        });
     },
 
-    setAddressLoadingState() {
-        if (this.provinceSelect) {
-            this.provinceSelect.innerHTML = '<option value="">Loading provinces...</option>';
-            this.provinceSelect.disabled = true;
+    setAddressLoadingState(controls) {
+        if (controls.provinceSelect) {
+            controls.provinceSelect.innerHTML = '<option value="">Loading provinces...</option>';
+            controls.provinceSelect.disabled = true;
         }
-        if (this.citySelect) {
-            this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
-            this.citySelect.disabled = true;
+        if (controls.citySelect) {
+            controls.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+            controls.citySelect.disabled = true;
         }
-        if (this.barangaySelect) {
-            this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
-            this.barangaySelect.disabled = true;
-        }
-    },
-
-    setAddressErrorState() {
-        if (this.provinceSelect) {
-            this.provinceSelect.innerHTML = '<option value="">Failed to load provinces</option>';
-            this.provinceSelect.disabled = true;
-        }
-        if (this.citySelect) {
-            this.citySelect.innerHTML = '<option value="">Unavailable</option>';
-            this.citySelect.disabled = true;
-        }
-        if (this.barangaySelect) {
-            this.barangaySelect.innerHTML = '<option value="">Unavailable</option>';
-            this.barangaySelect.disabled = true;
+        if (controls.barangaySelect) {
+            controls.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+            controls.barangaySelect.disabled = true;
         }
     },
 
-    populateProvinces() {
-        if (!this.provinceSelect) return;
+    setAddressErrorState(controls) {
+        if (controls.provinceSelect) {
+            controls.provinceSelect.innerHTML = '<option value="">Failed to load provinces</option>';
+            controls.provinceSelect.disabled = true;
+        }
+        if (controls.citySelect) {
+            controls.citySelect.innerHTML = '<option value="">Unavailable</option>';
+            controls.citySelect.disabled = true;
+        }
+        if (controls.barangaySelect) {
+            controls.barangaySelect.innerHTML = '<option value="">Unavailable</option>';
+            controls.barangaySelect.disabled = true;
+        }
+    },
 
-        this.setAddressLoadingState();
+    populateProvincesForAll() {
+        Object.values(this.addressControls).forEach(controls => {
+            if (controls?.provinceSelect) {
+                this.populateProvinces(controls);
+            }
+        });
+    },
+
+    populateProvinces(controls) {
+        if (!controls || !controls.provinceSelect) return;
+
+        this.setAddressLoadingState(controls);
         GeoDataLoader.loadProvinces()
             .then(provinces => {
-                this.provinceSelect.innerHTML = '<option value="">Select a province...</option>';
+                controls.provinceSelect.innerHTML = '<option value="">Select a province...</option>';
                 provinces.forEach(province => {
                     const opt = document.createElement('option');
                     opt.value = this.formatLocationName(province.name || province.provDesc);
                     opt.textContent = this.formatLocationName(province.name || province.provDesc);
                     opt.dataset.code = province.code || province.provCode;
-                    this.provinceSelect.appendChild(opt);
+                    controls.provinceSelect.appendChild(opt);
                 });
-                this.provinceSelect.disabled = false;
-                if (this.citySelect) {
-                    this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
-                    this.citySelect.disabled = true;
+                controls.provinceSelect.disabled = false;
+                if (controls.citySelect) {
+                    controls.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+                    controls.citySelect.disabled = true;
                 }
-                if (this.barangaySelect) {
-                    this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
-                    this.barangaySelect.disabled = true;
+                if (controls.barangaySelect) {
+                    controls.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+                    controls.barangaySelect.disabled = true;
                 }
             })
             .catch(error => {
                 console.error('Failed to populate provinces', error);
-                this.setAddressErrorState();
+                this.setAddressErrorState(controls);
             });
     },
 
-    handleProvinceChange() {
-        if (!this.provinceSelect) return;
-        const provinceCode = this.getSelectedOptionCode(this.provinceSelect);
+    handleProvinceChange(controls) {
+        if (!controls?.provinceSelect || !controls.citySelect || !controls.barangaySelect) return;
+        const provinceCode = this.getSelectedOptionCode(controls.provinceSelect);
 
-        this.citySelect.innerHTML = provinceCode
+        controls.citySelect.innerHTML = provinceCode
             ? '<option value="">Loading cities...</option>'
             : '<option value="">Select a city or municipality...</option>';
-        this.citySelect.disabled = true;
-        this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
-        this.barangaySelect.disabled = true;
+        controls.citySelect.disabled = true;
+        controls.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+        controls.barangaySelect.disabled = true;
 
         if (!provinceCode) {
             return;
@@ -453,36 +474,36 @@ const AddPatientModal = {
 
         GeoDataLoader.loadCities(provinceCode)
             .then(cities => {
-                if (this.getSelectedOptionCode(this.provinceSelect) !== provinceCode) {
+                if (this.getSelectedOptionCode(controls.provinceSelect) !== provinceCode) {
                     return; // selection changed meanwhile
                 }
-                this.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
+                controls.citySelect.innerHTML = '<option value="">Select a city or municipality...</option>';
                 cities.forEach(city => {
                     const opt = document.createElement('option');
                     opt.value = this.formatLocationName(city.name || city.citymunDesc);
                     opt.textContent = this.formatLocationName(city.name || city.citymunDesc);
                     opt.dataset.code = city.code || city.citymunCode;
-                    this.citySelect.appendChild(opt);
+                    controls.citySelect.appendChild(opt);
                 });
-                this.citySelect.disabled = cities.length === 0;
-                this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
-                this.barangaySelect.disabled = true;
+                controls.citySelect.disabled = cities.length === 0;
+                controls.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+                controls.barangaySelect.disabled = true;
             })
             .catch(error => {
                 console.error('Failed to load cities', error);
-                this.citySelect.innerHTML = '<option value="">Unable to load cities</option>';
-                this.citySelect.disabled = true;
+                controls.citySelect.innerHTML = '<option value="">Unable to load cities</option>';
+                controls.citySelect.disabled = true;
             });
     },
 
-    handleCityChange() {
-        if (!this.citySelect) return;
-        const cityCode = this.getSelectedOptionCode(this.citySelect);
+    handleCityChange(controls) {
+        if (!controls?.citySelect || !controls.barangaySelect) return;
+        const cityCode = this.getSelectedOptionCode(controls.citySelect);
 
-        this.barangaySelect.innerHTML = cityCode
+        controls.barangaySelect.innerHTML = cityCode
             ? '<option value="">Loading barangays...</option>'
             : '<option value="">Select a barangay...</option>';
-        this.barangaySelect.disabled = true;
+        controls.barangaySelect.disabled = true;
 
         if (!cityCode) {
             return;
@@ -490,23 +511,23 @@ const AddPatientModal = {
 
         GeoDataLoader.loadBarangays(cityCode)
             .then(barangays => {
-                if (this.getSelectedOptionCode(this.citySelect) !== cityCode) {
+                if (this.getSelectedOptionCode(controls.citySelect) !== cityCode) {
                     return;
                 }
-                this.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
+                controls.barangaySelect.innerHTML = '<option value="">Select a barangay...</option>';
                 barangays.forEach(brgy => {
                     const opt = document.createElement('option');
                     opt.value = this.formatLocationName(brgy.name || brgy.brgyDesc);
                     opt.textContent = this.formatLocationName(brgy.name || brgy.brgyDesc);
                     opt.dataset.code = brgy.code || brgy.brgyCode;
-                    this.barangaySelect.appendChild(opt);
+                    controls.barangaySelect.appendChild(opt);
                 });
-                this.barangaySelect.disabled = barangays.length === 0;
+                controls.barangaySelect.disabled = barangays.length === 0;
             })
             .catch(error => {
                 console.error('Failed to load barangays', error);
-                this.barangaySelect.innerHTML = '<option value="">Unable to load barangays</option>';
-                this.barangaySelect.disabled = true;
+                controls.barangaySelect.innerHTML = '<option value="">Unable to load barangays</option>';
+                controls.barangaySelect.disabled = true;
             });
     },
 
@@ -866,6 +887,7 @@ const AddPatientModal = {
         }
 
         this.normalizeInpatientPayload(data);
+        this.normalizeOutpatientPayload(data);
         
         return data;
     },
@@ -964,6 +986,28 @@ AddPatientModal.normalizeInpatientPayload = function(data) {
 
     if (!data.province && data.province_name) {
         data.province = data.province_name;
+    }
+};
+
+AddPatientModal.normalizeOutpatientPayload = function(data) {
+    if ((data.patient_type || '').toLowerCase() !== 'outpatient') {
+        return;
+    }
+
+    if (!data.address) {
+        const addressParts = [
+            data.house_number,
+            data.building_name,
+            data.subdivision,
+            data.street_name,
+            data.barangay,
+            data.city,
+            data.province
+        ].filter(Boolean);
+
+        if (addressParts.length) {
+            data.address = addressParts.join(', ');
+        }
     }
 };
 

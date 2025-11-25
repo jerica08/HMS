@@ -8,16 +8,18 @@ class AlterUsersDropRole extends Migration
 {
     public function up()
     {
-        // Make sure role_id exists before dropping role
-        $db     = \Config\Database::connect();
+        $db = \Config\Database::connect();
         $fields = $db->getFieldNames('users');
 
-        if (!in_array('role_id', $fields)) {
-            throw new \RuntimeException('role_id column must exist before dropping role column.');
+        // Only proceed if the role column exists
+        if (in_array('role', $fields)) {
+            // If role_id exists, it's safe to drop the role column
+            if (in_array('role_id', $fields)) {
+                $this->forge->dropColumn('users', 'role');
+            }
+            // If role_id doesn't exist, we'll skip dropping the role column
+            // This handles the case where this migration was already run partially
         }
-
-        // Drop the old ENUM role column
-        $this->forge->dropColumn('users', 'role');
     }
 
     public function down()

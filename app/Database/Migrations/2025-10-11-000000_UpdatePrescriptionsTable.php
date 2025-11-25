@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreatePrescriptionsTable extends Migration
+class UpdatePrescriptionsTable extends Migration
 {
     public function up()
     {

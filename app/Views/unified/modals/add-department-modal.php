@@ -5,7 +5,7 @@
                 <i class="fas fa-building" style="color:#2563eb"></i>
                 Add Department
             </div>
-            <button type="button" class="btn btn-secondary btn-small" onclick="window.AddDepartmentModal?.close()" aria-label="Close">
+            <button type="button" class="btn btn-secondary btn-small" data-close="add-department" aria-label="Close">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -16,23 +16,35 @@
                     <div class="section-header">
                         <div>
                             <h4>Department Details</h4>
-                            <p class="section-subtitle">Provide the core information for this department.</p>
                         </div>
                     </div>
                     <div class="form-grid">
                         <div class="full">
                             <label class="form-label" for="department_name">Department Name*</label>
                             <input type="text" id="department_name" name="name" class="form-input" required maxlength="150">
-                            <small class="form-error" id="err_department_name"></small>
-                        </div>
-                        <div class="full">
-                            <label class="form-label" for="department_description">Description</label>
-                            <textarea id="department_description" name="description" class="form-input" rows="3" placeholder="Optional description"></textarea>
                         </div>
                         <div>
-                            <label class="form-label" for="department_head">Department Head</label>
+                            <label class="form-label" for="department_code">Department Code</label>
+                            <input type="text" id="department_code" name="code" class="form-input" maxlength="50" placeholder="Optional">
+                        </div>
+                        <div>
+                            <label class="form-label" for="department_floor">Floor / Building</label>
+                            <input type="text" id="department_floor" name="floor" class="form-input" placeholder="e.g., 3F Main Wing" maxlength="100">
+                        </div>
+                        <div>
+                            <label class="form-label" for="department_type">Department Type</label>
+                            <select id="department_type" name="department_type" class="form-select" required>
+                                <option value="">Select type...</option>
+                                <option value="Clinical">Clinical</option>
+                                <option value="Administrative">Administrative</option>
+                                <option value="Emergency">Emergency</option>
+                                <option value="Diagnostic">Diagnostic</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="department_head">Head of Department</label>
                             <select id="department_head" name="department_head" class="form-select">
-                                <option value="">Select Head (Optional)</option>
+                                <option value="">Select doctor...</option>
                                 <?php foreach (($departmentHeads ?? []) as $head): ?>
                                     <option value="<?= esc($head['staff_id']) ?>">
                                         <?= esc($head['full_name']) ?>
@@ -42,6 +54,10 @@
                             </select>
                         </div>
                         <div>
+                            <label class="form-label" for="department_contact">Contact Number</label>
+                            <input type="text" id="department_contact" name="contact_number" class="form-input" placeholder="Optional">
+                        </div>
+                        <div>
                             <label class="form-label" for="department_status">Status</label>
                             <select id="department_status" name="status" class="form-select">
                                 <option value="Active">Active</option>
@@ -49,13 +65,8 @@
                             </select>
                         </div>
                         <div class="full">
-                            <label class="form-label" for="department_specialties">Specialties / Services</label>
-                            <select id="department_specialties" name="specialties[]" class="form-select" multiple size="4">
-                                <?php foreach (($specialties ?? []) as $spec): ?>
-                                    <option value="<?= esc($spec) ?>"><?= esc($spec) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <small class="form-hint">Hold CTRL (or CMD) to select multiple specialties.</small>
+                            <label class="form-label" for="department_description">Description</label>
+                            <textarea id="department_description" name="description" class="form-input" rows="3" placeholder="Department details"></textarea>
                         </div>
                     </div>
                 </div>
@@ -63,7 +74,7 @@
         </div>
 
         <div class="hms-modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="window.AddDepartmentModal?.close()">Cancel</button>
+            <button type="button" class="btn btn-secondary" data-close="add-department">Cancel</button>
             <button type="submit" class="btn btn-success" form="addDepartmentForm" id="saveDepartmentBtn">
                 <i class="fas fa-save"></i> Save Department
             </button>

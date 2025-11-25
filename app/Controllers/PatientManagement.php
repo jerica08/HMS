@@ -65,6 +65,15 @@ class PatientManagement extends BaseController
         }
         $permissions = PermissionManager::getRolePermissions($this->userRole);
 
+        $departments = [];
+        if ($this->db->tableExists('department')) {
+            $departments = $this->db->table('department')
+                ->select('department_id, name')
+                ->orderBy('name','ASC')
+                ->get()
+                ->getResultArray();
+        }
+
         $data = [
             'title' => $this->getPageTitle(),
             'userRole' => $this->userRole,
@@ -75,6 +84,7 @@ class PatientManagement extends BaseController
             'total_patients' => count($patients),
             'roomTypes' => $roomTypes,
             'roomInventory' => $roomInventory,
+            'departments' => $departments,
         ];
 
         // Use unified view for all roles

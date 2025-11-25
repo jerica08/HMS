@@ -226,14 +226,23 @@
                                     <div>
                                         <label class="form-label" for="department">Department / Clinic*</label>
                                         <select id="department" name="department" class="form-select" required>
-                                            <option value="">Select department...</option>
-                                            <option value="Internal Medicine">Internal Medicine</option>
-                                            <option value="Pediatrics">Pediatrics</option>
-                                            <option value="OB-GYN">OB-GYN</option>
-                                            <option value="Surgery">Surgery</option>
-                                            <option value="ENT">ENT</option>
-                                            <option value="Cardiology">Cardiology</option>
-                                            <option value="Dermatology">Dermatology</option>
+                                            <?php if (!empty($departments)): ?>
+                                                <option value="">Select department...</option>
+                                                <?php foreach ($departments as $department): ?>
+                                                    <option value="<?= esc($department['department_id']) ?>">
+                                                        <?= esc($department['name']) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <option value="">Select department...</option>
+                                                <option value="Internal Medicine">Internal Medicine</option>
+                                                <option value="Pediatrics">Pediatrics</option>
+                                                <option value="OB-GYN">OB-GYN</option>
+                                                <option value="Surgery">Surgery</option>
+                                                <option value="ENT">ENT</option>
+                                                <option value="Cardiology">Cardiology</option>
+                                                <option value="Dermatology">Dermatology</option>
+                                            <?php endif; ?>
                                         </select>
                                     </div>
                                     <?php if (in_array($userRole ?? '', ['admin', 'receptionist', 'it_staff'])): ?>

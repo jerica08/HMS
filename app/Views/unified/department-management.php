@@ -29,12 +29,19 @@
     'dismissFn' => 'dismissDepartmentsNotification()'
 ]) ?>
 
-
 <div class="main-container">
     <!-- Unified Sidebar -->
     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
 
     <main class="content" role="main">
+        <!-- Notification Container -->
+        <div id="departmentsNotification" class="notification" style="display: none;">
+            <div class="notification-content">
+                <span id="departmentsNotificationMessage"></span>
+                <button onclick="dismissDepartmentsNotification()" class="notification-close">&times;</button>
+            </div>
+        </div>
+
         <h1 class="page-title">
             <i class="fas fa-building"></i>
             <?= esc($title ?? 'Department Management') ?>
@@ -156,25 +163,22 @@
 
 
 <script>
-function showDepartmentsNotification(message, type) {
+function showDepartmentsNotification(message, type = 'success') {
     const container = document.getElementById('departmentsNotification');
-    const iconEl = document.getElementById('departmentsNotificationIcon');
-    const textEl = document.getElementById('departmentsNotificationText');
+    const messageEl = document.getElementById('departmentsNotificationMessage');
+    if (!container || !messageEl) {
+        return;
+    }
 
-    if (!container || !iconEl || !textEl) return;
+    if (window.departmentsNotificationTimeout) {
+        clearTimeout(window.departmentsNotificationTimeout);
+    }
 
-    const isError = type === 'error';
-    const isSuccess = type === 'success';
-
-    container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
-    container.style.background = isError ? '#fee2e2' : '#ecfdf5';
-    container.style.color = isError ? '#991b1b' : '#166534';
-
-    const iconClass = isError ? 'fa-exclamation-triangle' : (isSuccess ? 'fa-check-circle' : 'fa-info-circle');
-    iconEl.className = 'fas ' + iconClass;
-
-    textEl.textContent = String(message || '');
+    container.className = `notification ${type}`;
+    messageEl.textContent = String(message || '');
     container.style.display = 'flex';
+
+    window.departmentsNotificationTimeout = setTimeout(dismissDepartmentsNotification, 5000);
 }
 
 function dismissDepartmentsNotification() {

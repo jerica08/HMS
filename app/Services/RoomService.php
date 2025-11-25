@@ -15,17 +15,31 @@ class RoomService
 
     public function getRoomStats(): array
     {
+        if (! $this->db->tableExists('room')) {
+            return [
+                'total_rooms' => 0,
+                'occupied_rooms' => 0,
+                'available_rooms' => 0,
+                'maintenance_rooms' => 0,
+            ];
+        }
+
+        $builder = $this->db->table('room');
         return [
-            'total_rooms' => (int) $this->db->table('room')->countAllResults(),
-            'occupied_rooms' => (int) $this->db->table('room')->where('status', 'occupied')->countAllResults(),
-            'available_rooms' => (int) $this->db->table('room')->where('status', 'available')->countAllResults(),
-            'maintenance_rooms' => (int) $this->db->table('room')->where('status', 'maintenance')->countAllResults(),
+            'total_rooms' => (int) $builder->countAllResults(),
+            'occupied_rooms' => (int) $builder->where('status', 'occupied')->countAllResults(),
+            'available_rooms' => (int) $builder->where('status', 'available')->countAllResults(),
+            'maintenance_rooms' => (int) $builder->where('status', 'maintenance')->countAllResults(),
         ];
     }
 
     public function getRooms(): array
     {
-        return $this->db->table('room r')
+        if (! $this->db->tableExists('room')) {
+            return [];
+        }
+
+        $builder = $this->db->table('room r')
             ->select([
                 'r.room_id',
                 'r.room_number',
@@ -39,14 +53,20 @@ class RoomService
                 'r.hourly_rate',
                 'r.extra_person_charge',
                 'r.overtime_charge_per_hour',
-                'rt.type_name',
-                'd.name as department_name',
             ])
-            ->join('room_type rt', 'rt.room_type_id = r.room_type_id', 'left')
-            ->join('department d', 'd.department_id = r.department_id', 'left')
-            ->orderBy('r.room_number', 'ASC')
-            ->get()
-            ->getResultArray();
+            ->orderBy('r.room_number', 'ASC');
+
+        if ($this->db->tableExists('room_type')) {
+            $builder->select('rt.type_name')
+                ->join('room_type rt', 'rt.room_type_id = r.room_type_id', 'left');
+        }
+
+        if ($this->db->tableExists('department')) {
+            $builder->select('d.name as department_name')
+                ->join('department d', 'd.department_id = r.department_id', 'left');
+        }
+
+        return $builder->get()->getResultArray();
     }
 
     public function createRoom(array $input): array

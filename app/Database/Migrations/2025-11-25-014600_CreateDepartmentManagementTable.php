@@ -37,11 +37,6 @@ class CreateDepartmentManagementTable extends Migration
                 'constraint' => 50,
                 'null'       => true,
             ],
-            'building' => [
-                'type'       => 'VARCHAR',
-                'constraint' => 100,
-                'null'       => true,
-            ],
             'department_head_id' => [
                 'type'     => 'INT',
                 'unsigned' => true,

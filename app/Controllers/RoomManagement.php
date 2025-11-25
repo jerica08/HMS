@@ -29,11 +29,14 @@ class RoomManagement extends BaseController
                 ->getResultArray();
         }
 
-        $departments = $this->db->table('department')
-            ->select('department_id, name')
-            ->orderBy('name', 'ASC')
-            ->get()
-            ->getResultArray();
+        $departments = [];
+        if ($this->db->tableExists('department')) {
+            $departments = $this->db->table('department')
+                ->select('department_id, name')
+                ->orderBy('name', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
 
         return view('unified/room-management', [
             'title' => 'Room Management',

@@ -28,8 +28,8 @@
                             <input type="text" id="department_code" name="code" class="form-input" maxlength="50" placeholder="Optional">
                         </div>
                         <div>
-                            <label class="form-label" for="department_floor">Floor / Building</label>
-                            <input type="text" id="department_floor" name="floor" class="form-input" placeholder="e.g., 3F Main Wing" maxlength="100">
+                            <label class="form-label" for="department_floor">Floor</label>
+                            <input type="text" id="department_floor" name="floor" class="form-input" placeholder="e.g., 3F" maxlength="100">
                         </div>
                         <div>
                             <label class="form-label" for="department_type">Department Type</label>

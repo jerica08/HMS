@@ -53,43 +53,71 @@ class DashboardService
         $stats = [];
 
         // Total patients
-        $stats['total_patients'] = $this->db->table('patient')->countAllResults();
-        $stats['active_patients'] = $this->db->table('patient')
-            ->where('status', 'Active')
-            ->countAllResults();
+        if ($this->db->tableExists('patient')) {
+            $stats['total_patients'] = $this->db->table('patient')->countAllResults();
+            $stats['active_patients'] = $this->db->table('patient')
+                ->where('status', 'Active')
+                ->countAllResults();
+        } else {
+            $stats['total_patients'] = 0;
+            $stats['active_patients'] = 0;
+        }
 
         // Staff statistics
-        $stats['total_staff'] = $this->db->table('staff')->countAllResults();
-        $stats['total_doctors'] = $this->db->table('staff')
-            ->where('role', 'doctor')
-            ->countAllResults();
+        if ($this->db->tableExists('staff')) {
+            $stats['total_staff'] = $this->db->table('staff')->countAllResults();
+            $stats['total_doctors'] = $this->db->table('staff')
+                ->where('role', 'doctor')
+                ->countAllResults();
+        } else {
+            $stats['total_staff'] = 0;
+            $stats['total_doctors'] = 0;
+        }
 
         // Appointments
         $today = date('Y-m-d');
-        $stats['today_appointments'] = $this->db->table('appointments')
-            ->where('appointment_date', $today)
-            ->countAllResults();
+        if ($this->db->tableExists('appointments')) {
+            $stats['today_appointments'] = $this->db->table('appointments')
+                ->where('appointment_date', $today)
+                ->countAllResults();
+            
+            $stats['pending_appointments'] = $this->db->table('appointments')
+                ->where('status', 'scheduled')
+                ->countAllResults();
+            
+            $stats['completed_appointments'] = $this->db->table('appointments')
+                ->where('status', 'completed')
+                ->where('appointment_date', $today)
+                ->countAllResults();
+        } else {
+            $stats['today_appointments'] = 0;
+            $stats['pending_appointments'] = 0;
+            $stats['completed_appointments'] = 0;
+        }
         
-        $stats['pending_appointments'] = $this->db->table('appointments')
-            ->where('status', 'scheduled')
-            ->countAllResults();
-        
-        $stats['completed_appointments'] = $this->db->table('appointments')
-            ->where('status', 'completed')
-            ->where('appointment_date', $today)
-            ->countAllResults();
-
         // Users
-        $stats['total_users'] = $this->db->table('users')->countAllResults();
+        if ($this->db->tableExists('users')) {
+            $stats['total_users'] = $this->db->table('users')->countAllResults();
+        } else {
+            $stats['total_users'] = 0;
+        }
 
         // Weekly and monthly stats
-        $stats['weekly_appointments'] = $this->db->table('appointments')
-            ->where('appointment_date >=', date('Y-m-d', strtotime('-7 days')))
-            ->countAllResults();
-        
-        $stats['monthly_patients'] = $this->db->table('patient')
-            ->where('date_registered >=', date('Y-m-d', strtotime('-30 days')))
-            ->countAllResults();
+        if ($this->db->tableExists('appointments')) {
+            $stats['weekly_appointments'] = $this->db->table('appointments')
+                ->where('appointment_date >=', date('Y-m-d', strtotime('-7 days')))
+                ->countAllResults();
+        } else {
+            $stats['weekly_appointments'] = 0;
+        }
+
+        if ($this->db->tableExists('patient')) {
+            $stats['monthly_patients'] = $this->db->table('patient')
+                ->where('date_registered >=', date('Y-m-d', strtotime('-30 days')))
+                ->countAllResults();
+        } else {
+            $stats['monthly_patients'] = 0;
+        }
 
         return $stats;
     }
@@ -318,39 +346,40 @@ class DashboardService
         $activities = [];
 
         // Recent appointments
-        $appointments = $this->db->table('appointments a')
-            ->select('a.created_at, p.first_name, p.last_name, s.first_name as doctor_first_name, s.last_name as doctor_last_name')
-            ->join('patient p', 'p.patient_id = a.patient_id')
-            ->join('staff s', 's.staff_id = a.doctor_id')
-            ->orderBy('a.created_at', 'DESC')
-            ->limit(3)
-            ->get()
-            ->getResultArray();
+        if ($this->db->tableExists('appointments') && $this->db->tableExists('patient') && $this->db->tableExists('staff')) {
+            $appointments = $this->db->table('appointments a')
+                ->select('a.created_at, p.first_name, p.last_name, s.first_name as doctor_first_name, s.last_name as doctor_last_name')
+                ->join('patient p', 'p.patient_id = a.patient_id')
+                ->join('staff s', 's.staff_id = a.doctor_id')
+                ->orderBy('a.created_at', 'DESC')
+                ->limit(3)
+                ->get()
+                ->getResultArray();
 
-        foreach ($appointments as $appointment) {
-            $activities[] = [
-                'message' => "New appointment scheduled for {$appointment['first_name']} {$appointment['last_name']} with Dr. {$appointment['doctor_first_name']} {$appointment['doctor_last_name']}",
-                'time' => $appointment['created_at'],
-                'icon' => 'fas fa-calendar-plus',
-                'color' => 'blue'
-            ];
-        }
+            foreach ($appointments as $appointment) {
+                $activities[] = [
+                    'message' => "New appointment scheduled for {$appointment['first_name']} {$appointment['last_name']} with Dr. {$appointment['doctor_first_name']} {$appointment['doctor_last_name']}",
+                    'time' => $appointment['created_at'],
+                    'icon' => 'fas fa-calendar-plus',
+                    'color' => 'blue'
+                ];
+            }
 
-        // Recent patient registrations
-        $patients = $this->db->table('patient')
-            ->select('first_name, last_name, date_registered')
-            ->orderBy('date_registered', 'DESC')
-            ->limit(2)
-            ->get()
-            ->getResultArray();
+            $patients = $this->db->table('patient')
+                ->select('first_name, last_name, date_registered')
+                ->orderBy('date_registered', 'DESC')
+                ->limit(2)
+                ->get()
+                ->getResultArray();
 
-        foreach ($patients as $patient) {
-            $activities[] = [
-                'message' => "New patient registered: {$patient['first_name']} {$patient['last_name']}",
-                'time' => $patient['date_registered'],
-                'icon' => 'fas fa-user-plus',
-                'color' => 'green'
-            ];
+            foreach ($patients as $patient) {
+                $activities[] = [
+                    'message' => "New patient registered: {$patient['first_name']} {$patient['last_name']}",
+                    'time' => $patient['date_registered'],
+                    'icon' => 'fas fa-user-plus',
+                    'color' => 'green'
+                ];
+            }
         }
 
         // Sort by time and limit

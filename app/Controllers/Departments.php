@@ -41,7 +41,14 @@ class Departments extends BaseController
                 $input = $this->request->getPost();
             }
             $name = trim(preg_replace('/\s+/', ' ', (string)($input['name'] ?? '')));
-            $description = $input['description'] ?? null;
+            $description = $this->sanitizeString($input['description'] ?? null);
+            $code = $this->sanitizeString($input['code'] ?? null, 20);
+            $floor = $this->sanitizeString($input['floor'] ?? null, 50);
+            $building = $this->sanitizeString($input['building'] ?? null, 100);
+            $contactNumber = $this->sanitizeString($input['contact_number'] ?? null, 20);
+            $departmentHeadId = $this->parseNullableInt($input['department_head'] ?? null);
+            $status = $this->normalizeStatus($input['status'] ?? null);
+            $departmentType = $this->normalizeDepartmentType($input['department_type'] ?? null);
 
             if ($name === '') {
                 return $this->response->setStatusCode(422)->setJSON([
@@ -100,10 +107,35 @@ class Departments extends BaseController
 
             // Try a series of inserts, progressively reducing columns
             $now = date('Y-m-d H:i:s');
+            $payload = [$nameColumn => $name];
+
+            $optionalColumns = [
+                'code' => $code,
+                'floor' => $floor,
+                'building' => $building,
+                'department_head_id' => $departmentHeadId,
+                'contact_number' => $contactNumber,
+                'description' => $description,
+                'status' => $status,
+                'type' => $departmentType,
+            ];
+
+            foreach ($optionalColumns as $column => $value) {
+                if ($this->fieldExists($column, $table)) {
+                    $payload[$column] = $value;
+                }
+            }
+
+            if ($this->fieldExists('created_at', $table)) {
+                $payload['created_at'] = $now;
+            }
+            if ($this->fieldExists('updated_at', $table)) {
+                $payload['updated_at'] = $now;
+            }
+
             $attempts = [
-                [ $nameColumn => $name, 'description' => $description, 'created_at' => $now, 'updated_at' => $now ],
-                [ $nameColumn => $name, 'description' => $description ],
-                [ $nameColumn => $name ],
+                $payload,
+                [$nameColumn => $name],
             ];
 
             $ok = false;
@@ -133,6 +165,69 @@ class Departments extends BaseController
                 'message' => 'Server error',
                 'exception' => $e->getMessage(),
             ]);
+        }
+    }
+
+    private function sanitizeString(?string $value, ?int $maxLength = null): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $clean = trim(preg_replace('/\s+/', ' ', strip_tags($value)));
+        if ($clean === '') {
+            return null;
+        }
+
+        if ($maxLength !== null) {
+            $clean = mb_substr($clean, 0, $maxLength);
+        }
+
+        return $clean;
+    }
+
+    private function parseNullableInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+
+        return null;
+    }
+
+    private function normalizeStatus(?string $value): ?string
+    {
+        $allowed = ['Active', 'Inactive'];
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = ucfirst(strtolower(trim($value)));
+        return in_array($normalized, $allowed, true) ? $normalized : null;
+    }
+
+    private function normalizeDepartmentType(?string $value): ?string
+    {
+        $allowed = ['Clinical', 'Administrative', 'Emergency', 'Diagnostic'];
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = ucfirst(strtolower(trim($value)));
+        return in_array($normalized, $allowed, true) ? $normalized : null;
+    }
+
+    private function fieldExists(string $field, string $table): bool
+    {
+        try {
+            return \Config\Database::connect()->fieldExists($field, $table);
+        } catch (\Throwable $e) {
+            log_message('warning', 'fieldExists check failed: ' . $e->getMessage());
+            return false;
         }
     }
 }

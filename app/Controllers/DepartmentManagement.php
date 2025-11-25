@@ -107,34 +107,58 @@ class DepartmentManagement extends BaseController
             return [];
         }
 
-        $builder = $this->db->table('staff')
-            ->select('staff_id, first_name, last_name');
+        $doctorTable = $this->db->tableExists('doctor') ? 'doctor' : null;
 
-        if ($this->fieldExists('department_id', 'staff')) {
-            $builder->select('department_id');
+        $builder = $this->db->table('staff s')
+            ->select($this->getStaffSelectColumns());
+
+        if ($doctorTable) {
+            $builder->join('doctor d', 'd.staff_id = s.staff_id', 'inner')
+                ->where('d.status', 'Active')
+                ->select($this->fieldExists('specialization', 'doctor') ? 'd.specialization' : null);
+        } else {
+            $builder->where('s.role', 'doctor');
         }
 
-        if ($this->fieldExists('position', 'staff')) {
-            $builder->select('position');
+        $builder->orderBy('s.first_name', 'ASC');
+
+        try {
+            $rows = $builder->get()->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('warning', 'Failed to fetch department heads: ' . $e->getMessage());
+            if (! $this->db->tableExists('staff')) {
+                return [];
+            }
+            $rows = $this->db->table('staff')
+                ->select('staff_id, first_name, last_name, position, role')
+                ->where('role', 'doctor')
+                ->orderBy('first_name', 'ASC')
+                ->get()
+                ->getResultArray();
         }
-
-        if ($this->fieldExists('role', 'staff')) {
-            $builder->select('role');
-        }
-
-        $builder->orderBy('first_name', 'ASC');
-
-        $rows = $builder->get()->getResultArray();
 
         return array_map(static function (array $row) {
             $fullName = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
             return [
                 'staff_id' => $row['staff_id'],
                 'full_name' => $fullName !== '' ? $fullName : 'Staff #' . $row['staff_id'],
-                'department_id' => $row['department_id'] ?? null,
                 'position' => $row['position'] ?? ($row['role'] ?? null),
+                'specialization' => $row['specialization'] ?? null,
             ];
         }, $rows);
+    }
+
+    private function getStaffSelectColumns(): array
+    {
+        $columns = ['s.staff_id', 's.first_name', 's.last_name'];
+        if ($this->fieldExists('position', 'staff')) {
+            $columns[] = 's.position';
+        }
+        if ($this->fieldExists('role', 'staff')) {
+            $columns[] = 's.role';
+        }
+
+        return $columns;
     }
 
     private function getAvailableSpecialties(): array

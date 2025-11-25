@@ -468,37 +468,21 @@ class PatientService
      */
     public function getAvailableDoctors()
     {
-        try {
-            log_message('debug', 'PatientService::getAvailableDoctors called');
-            
-            // Get doctors ONLY from the doctor table joined with staff table
-            $fromDoctorTable = $this->db->table('doctor d')
-                ->select('s.staff_id, s.first_name, s.last_name, s.department, d.specialization')
-                ->join('staff s', 's.staff_id = d.staff_id', 'inner') // Inner join to ensure we only get doctors with staff records
-                ->orderBy('s.first_name', 'ASC')
-                ->get()
-                ->getResultArray();
-
-            log_message('debug', 'PatientService::getAvailableDoctors found ' . count($fromDoctorTable) . ' doctors from doctor table');
-            
-            // Log the actual results for debugging
-            if (!empty($fromDoctorTable)) {
-                foreach ($fromDoctorTable as $doctor) {
-                    log_message('debug', 'PatientService - Doctor found: ID=' . $doctor['staff_id'] . ', Name=' . $doctor['first_name'] . ' ' . $doctor['last_name'] . ', Spec=' . ($doctor['specialization'] ?? 'None'));
-                }
-            }
-            
-            return $this->formatDoctorData($fromDoctorTable);
-
-        } catch (\Throwable $e) {
-            log_message('error', 'Available doctors fetch error: ' . $e->getMessage());
+        if (!$this->db->tableExists('staff')) {
             return [];
         }
+
+        $staffDoctors = $this->db->table('staff s')
+            ->select('s.staff_id, s.first_name, s.last_name')
+            ->join('roles r', 'r.role_id = s.role_id', 'inner')
+            ->where('r.slug', 'doctor')
+            ->orderBy('s.first_name', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        return $this->formatDoctorData($staffDoctors);
     }
 
-    /**
-     * Format doctor data for consistent output
-     */
     private function formatDoctorData($doctors)
     {
         return array_map(function($d) {

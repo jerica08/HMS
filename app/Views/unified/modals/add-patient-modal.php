@@ -253,7 +253,7 @@
                                                 <option value="">Select Doctor (Optional)</option>
                                                 <?php foreach ($availableDoctors as $d): ?>
                                                     <option value="<?= esc($d['staff_id'] ?? $d['id']) ?>" data-department="<?= esc($d['department'] ?? '') ?>">
-                                                        <?= esc(trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''))) ?><?= !empty($d['specialization']) ? ' - ' . esc($d['specialization']) : '' ?>
+                                                        <?= esc(trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''))) ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             <?php else: ?>

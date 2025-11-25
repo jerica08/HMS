@@ -17,6 +17,7 @@ if ($userRole === 'admin') {
         ['url' => 'admin/appointments', 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
         ['url' => 'admin/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resource Management'],
+        ['url' => 'admin/department-management', 'icon' => 'fas fa-building', 'label' => 'Department Management'],
         ['url' => 'admin/room-management', 'icon' => 'fas fa-bed', 'label' => 'Room Management'],
         ['url' => 'admin/financial-management', 'icon' => 'fas fa-dollar-sign', 'label' => 'Financial Management'],
         ['url' => 'admin/analytics', 'icon' => 'fas fa-chart-bar', 'label' => 'Analytics & Reports'],

@@ -8,11 +8,13 @@ class PatientService
 {
     protected $db;
     protected string $patientTable;
+    protected array $patientTableColumns = [];
 
     public function __construct()
     {
         $this->db = \Config\Database::connect();
         $this->patientTable = $this->resolvePatientTableName();
+        $this->patientTableColumns = $this->loadPatientTableColumns();
     }
 
     public function createPatient($input, $userRole, $staffId = null)
@@ -43,13 +45,16 @@ class PatientService
 
         // Prepare data
         $data = $this->preparePatientData($input, $primaryDoctorId);
+        $data = $this->sanitizePatientDataForTable($data);
 
         try {
             $this->db->table($this->patientTable)->insert($data);
+            $newPatientId = (int) $this->db->insertID();
+            $this->persistRoleSpecificRecords($newPatientId, $input);
             return [
                 'status' => 'success',
                 'message' => 'Patient added successfully',
-                'id' => $this->db->insertID(),
+                'id' => $newPatientId,
             ];
         } catch (\Throwable $e) {
             log_message('error', 'Failed to insert patient: ' . $e->getMessage());
@@ -271,6 +276,8 @@ class PatientService
             'status' => ucfirst(strtolower($input['status'] ?? 'Active')),
         ];
 
+        $data = $this->sanitizePatientDataForTable($data);
+
         try {
             $this->db->table($this->patientTable)->where('patient_id', $id)->update($data);
             return [
@@ -329,28 +336,29 @@ class PatientService
                 case 'it_staff':
                     $stats = [
                         'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
-                        'active_patients' => $this->db->table($this->patientTable)->where('status', 'Active')->countAllResults(),
-                        'inactive_patients' => $this->db->table($this->patientTable)->where('status', 'Inactive')->countAllResults(),
-                        'outpatients' => $this->db->table($this->patientTable)->where('patient_type', 'Outpatient')->countAllResults(),
-                        'inpatients' => $this->db->table($this->patientTable)->where('patient_type', 'Inpatient')->countAllResults(),
-                        'emergency_patients' => $this->db->table($this->patientTable)->where('patient_type', 'Emergency')->countAllResults(),
+                        'active_patients' => $this->countPatientFieldValue('status', 'Active'),
+                        'inactive_patients' => $this->countPatientFieldValue('status', 'Inactive'),
+                        'outpatients' => $this->countPatientFieldValue('patient_type', 'Outpatient'),
+                        'inpatients' => $this->countPatientFieldValue('patient_type', 'Inpatient'),
+                        'emergency_patients' => $this->countPatientFieldValue('patient_type', 'Emergency'),
                     ];
                     break;
 
                 case 'doctor':
-                    // Get doctor_id from doctor table using staff_id
                     $doctorInfo = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
                     $doctorId = $doctorInfo['doctor_id'] ?? null;
 
                     if ($doctorId) {
                         $stats = [
                             'my_patients' => $this->db->table($this->patientTable)->where('primary_doctor_id', $doctorId)->countAllResults(),
-                            'active_patients' => $this->db->table($this->patientTable)->where('primary_doctor_id', $doctorId)->where('status', 'Active')->countAllResults(),
-                            'new_patients_month' => $this->db->table($this->patientTable)->where('primary_doctor_id', $doctorId)->where('date_registered >=', date('Y-m-01'))->countAllResults(),
-                            'emergency_patients' => $this->db->table($this->patientTable)->where('primary_doctor_id', $doctorId)->where('patient_type', 'Emergency')->countAllResults(),
+                            'active_patients' => $this->countPatientFieldValue('status', 'Active', ['primary_doctor_id' => $doctorId]),
+                            'new_patients_month' => $this->db->table($this->patientTable)
+                                ->where('primary_doctor_id', $doctorId)
+                                ->where('date_registered >=', date('Y-m-01'))
+                                ->countAllResults(),
+                            'emergency_patients' => $this->countPatientFieldValue('patient_type', 'Emergency', ['primary_doctor_id' => $doctorId]),
                         ];
                     } else {
-                        // No doctor record found, return zeros
                         $stats = [
                             'my_patients' => 0,
                             'active_patients' => 0,
@@ -361,7 +369,6 @@ class PatientService
                     break;
 
                 case 'nurse':
-                    // Get department-based stats
                     $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
                     $department = $nurseInfo['department'] ?? null;
 
@@ -371,11 +378,13 @@ class PatientService
                                 ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
                                 ->where('s.department', $department)
                                 ->countAllResults(),
-                            'active_patients' => $this->db->table($this->patientTable . ' p')
-                                ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
-                                ->where('s.department', $department)
-                                ->where('p.status', 'Active')
-                                ->countAllResults(),
+                            'active_patients' => $this->countPatientFieldValue('status', 'Active', ['s.department' => $department])
+                                ? $this->db->table($this->patientTable . ' p')
+                                    ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
+                                    ->where('s.department', $department)
+                                    ->where('p.status', 'Active')
+                                    ->countAllResults()
+                                : 0,
                         ];
                     }
                     break;
@@ -383,12 +392,12 @@ class PatientService
                 case 'receptionist':
                     $stats = [
                         'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
-                        'active_patients' => $this->db->table($this->patientTable)->where('status', 'Active')->countAllResults(),
+                        'active_patients' => $this->countPatientFieldValue('status', 'Active'),
                         'new_patients_today' => $this->db->table($this->patientTable)->where('date_registered', date('Y-m-d'))->countAllResults(),
                         'new_patients_week' => $this->db->table($this->patientTable)->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))->countAllResults(),
                     ];
                     break;
-                    
+
                 case 'pharmacist':
                     $stats = [
                         'patients_with_prescriptions' => $this->db->table($this->patientTable . ' p')
@@ -397,7 +406,7 @@ class PatientService
                         'active_prescriptions' => $this->db->table('prescription')->where('status', 'Active')->countAllResults(),
                     ];
                     break;
-                    
+
                 case 'laboratorist':
                     $stats = [
                         'patients_with_tests' => $this->db->table($this->patientTable . ' p')
@@ -406,28 +415,43 @@ class PatientService
                         'pending_tests' => $this->db->table('lab_test')->where('status', 'Pending')->countAllResults(),
                     ];
                     break;
-                    
+
                 case 'accountant':
                     $stats = [
                         'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
-                        'active_patients' => $this->db->table($this->patientTable)->where('status', 'Active')->countAllResults(),
+                        'active_patients' => $this->countPatientFieldValue('status', 'Active'),
                         'patients_with_insurance' => $this->db->table($this->patientTable)->where('insurance_provider IS NOT NULL')->countAllResults(),
                     ];
                     break;
-                    
+
                 default:
                     $stats = [
                         'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
-                        'active_patients' => $this->db->table($this->patientTable)->where('status', 'Active')->countAllResults(),
+                        'active_patients' => $this->countPatientFieldValue('status', 'Active'),
                     ];
             }
-            
+
             return $stats;
-            
         } catch (\Throwable $e) {
             log_message('error', 'Patient stats error: ' . $e->getMessage());
             return [];
         }
+    }
+
+    private function countPatientFieldValue(string $field, $value, array $additionalConditions = []): int
+    {
+        if (! $this->patientTableHasColumn($field)) {
+            return 0;
+        }
+
+        $builder = $this->db->table($this->patientTable);
+        $builder->where($field, $value);
+
+        foreach ($additionalConditions as $key => $val) {
+            $builder->where($key, $val);
+        }
+
+        return $builder->countAllResults();
     }
 
     /**
@@ -599,19 +623,131 @@ class PatientService
      */
     private function patientTableHasColumn(string $column): bool
     {
-        try {
-            $fields = $this->db->getFieldData($this->patientTable);
-            foreach ($fields as $field) {
-                if (($field->name ?? '') === $column) {
-                    return true;
-                }
-            }
-        } catch (\Throwable $e) {
-            // If any error occurs, assume column does not exist
-        }
-        return false;
+        return in_array($column, $this->patientTableColumns, true);
     }
 
+    private function loadPatientTableColumns(): array
+    {
+        try {
+            if (! $this->db->tableExists($this->patientTable)) {
+                return [];
+            }
+
+            $fields = $this->db->getFieldData($this->patientTable);
+            $columns = array_map(fn ($field) => $field->name ?? null, $fields);
+            return array_filter($columns);
+        } catch (\Throwable $e) {
+            log_message('warning', 'Unable to load patient table columns: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function sanitizePatientDataForTable(array $data): array
+    {
+        if (empty($this->patientTableColumns)) {
+            return $data;
+        }
+
+        $allowed = array_flip($this->patientTableColumns);
+        return array_intersect_key($data, $allowed);
+    }
+
+    private function persistRoleSpecificRecords(int $patientId, array $input): void
+    {
+        if (!$patientId) {
+            return;
+        }
+
+        $patientType = strtolower($input['patient_type'] ?? 'outpatient');
+
+        if ($patientType === 'inpatient') {
+            $this->createInpatientAdmissionRecord($patientId, $input);
+            return;
+        }
+
+        $this->createOutpatientVisitRecord($patientId, $input);
+    }
+
+    private function createOutpatientVisitRecord(int $patientId, array $input): void
+    {
+        if (! $this->db->tableExists('outpatient_visits')) {
+            return;
+        }
+
+        $visitData = [
+            'patient_id' => $patientId,
+            'department' => $input['department'] ?? null,
+            'assigned_doctor' => $this->resolveDoctorFullName($input['assigned_doctor'] ?? null),
+            'appointment_datetime' => $input['appointment_datetime'] ?? null,
+            'visit_type' => $input['visit_type'] ?? null,
+            'chief_complaint' => $input['chief_complaint'] ?? null,
+            'allergies' => $input['allergies'] ?? null,
+            'existing_conditions' => $input['existing_conditions'] ?? null,
+            'current_medications' => $input['current_medications'] ?? null,
+            'blood_pressure' => $input['blood_pressure'] ?? null,
+            'heart_rate' => $input['heart_rate'] ?? null,
+            'respiratory_rate' => $input['respiratory_rate'] ?? null,
+            'temperature' => $input['temperature'] ?? null,
+            'weight' => $input['weight_kg'] ?? $input['weight'] ?? null,
+            'height' => $input['height_cm'] ?? $input['height'] ?? null,
+            'payment_type' => $input['payment_type'] ?? null,
+        ];
+
+        try {
+            $this->db->table('outpatient_visits')->insert($visitData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to insert outpatient visit for patient ' . $patientId . ': ' . $e->getMessage());
+        }
+    }
+
+    private function createInpatientAdmissionRecord(int $patientId, array $input): void
+    {
+        if (! $this->db->tableExists('inpatient_admissions')) {
+            return;
+        }
+
+        $consent = $input['consent_uploaded'] ?? $input['consent_signed'] ?? null;
+        $admissionData = [
+            'patient_id' => $patientId,
+            'admission_datetime' => $input['admission_datetime'] ?? null,
+            'admission_type' => $input['admission_type'] ?? null,
+            'admitting_diagnosis' => $input['admitting_diagnosis'] ?? null,
+            'admitting_doctor' => $input['admitting_doctor'] ?? null,
+            'department' => $input['admitting_department'] ?? $input['department'] ?? null,
+            'patient_classification' => $input['patient_classification'] ?? null,
+            'consent_signed' => in_array($consent, ['1', 'true', 'yes', 'on'], true) ? 1 : 0,
+        ];
+
+        try {
+            $this->db->table('inpatient_admissions')->insert($admissionData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to insert inpatient admission for patient ' . $patientId . ': ' . $e->getMessage());
+        }
+    }
+
+    private function resolveDoctorFullName(mixed $staffId): ?string
+    {
+        if (! $staffId || ! $this->db->tableExists('staff')) {
+            return null;
+        }
+
+        $staff = $this->db->table('staff')
+            ->select('first_name, last_name')
+            ->where('staff_id', (int) $staffId)
+            ->get()
+            ->getRowArray();
+
+        if (! $staff) {
+            return null;
+        }
+
+        $fullName = trim(($staff['first_name'] ?? '') . ' ' . ($staff['last_name'] ?? ''));
+        return $fullName !== '' ? $fullName : null;
+    }
+
+    /**
+     * Resolve patient table name
+     */
     private function resolvePatientTableName(): string
     {
         if ($this->db->tableExists('patient')) {

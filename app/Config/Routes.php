@@ -131,10 +131,11 @@ $routes->post('rooms/(:num)/update', 'RoomManagement::updateRoom/$1', ['filter' 
 $routes->post('rooms/(:num)/delete', 'RoomManagement::deleteRoom/$1', ['filter' => 'roleauth:admin']);
 
 // ===================================================================
-// DEPARTMENT ROUTES
+// DEPARTMENT MANAGEMENT
 // ===================================================================
 
-$routes->match(['get','post','options'], 'departments/create', 'Departments::create');
+$routes->get('admin/department-management', 'DepartmentManagement::index', ['filter' => 'roleauth:admin']);
+$routes->match(['get','post','options'], 'departments/create', 'Departments::create', ['filter' => 'roleauth:admin,it_staff']);
 
 // ===================================================================
 // UNIFIED SCHEDULE MANAGEMENT (formerly Shift Management)

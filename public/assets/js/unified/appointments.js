@@ -521,7 +521,8 @@
         if (!appointments || !appointments.length) {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
-            td.colSpan = isAdmin ? 8 : 7;
+            // Match PHP view headers: Patient, [Doctor if admin], Type, Status, Actions
+            td.colSpan = isAdmin ? 5 : 4;
             td.style.textAlign = 'center';
             td.style.padding = '2rem';
             td.style.color = '#6b7280';
@@ -537,19 +538,6 @@
         appointments.forEach(appt => {
             const tr = document.createElement('tr');
 
-            const timeTd = document.createElement('td');
-            const timeStrong = document.createElement('strong');
-            timeStrong.textContent = formatAppointmentTime(appt.appointment_time);
-            timeTd.appendChild(timeStrong);
-            if (appt.duration) {
-                const br = document.createElement('br');
-                const small = document.createElement('small');
-                small.textContent = `${appt.duration} min`;
-                timeTd.appendChild(br);
-                timeTd.appendChild(small);
-            }
-            tr.appendChild(timeTd);
-
             const patientTd = document.createElement('td');
             const patientDiv = document.createElement('div');
             const patientStrong = document.createElement('strong');
@@ -562,14 +550,6 @@
             link.textContent = `${appt.patient_first_name || ''} ${appt.patient_last_name || ''}`.trim();
             patientStrong.appendChild(link);
             patientDiv.appendChild(patientStrong);
-            const br2 = document.createElement('br');
-            const smallInfo = document.createElement('small');
-            smallInfo.style.color = '#6b7280';
-            const age = appt.patient_age != null ? appt.patient_age : 'N/A';
-            const phone = appt.patient_phone || 'N/A';
-            smallInfo.textContent = `ID: ${appt.patient_id || 'N/A'} | Age: ${age} | Phone: ${phone}`;
-            patientDiv.appendChild(br2);
-            patientDiv.appendChild(smallInfo);
             patientTd.appendChild(patientDiv);
             tr.appendChild(patientTd);
 
@@ -591,14 +571,6 @@
             const typeTd = document.createElement('td');
             typeTd.textContent = appt.appointment_type || 'N/A';
             tr.appendChild(typeTd);
-
-            const reasonTd = document.createElement('td');
-            reasonTd.textContent = appt.reason || 'General consultation';
-            tr.appendChild(reasonTd);
-
-            const durationTd = document.createElement('td');
-            durationTd.textContent = `${appt.duration || 30} min`;
-            tr.appendChild(durationTd);
 
             const statusTd = document.createElement('td');
             const badge = document.createElement('span');

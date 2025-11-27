@@ -94,7 +94,6 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Time</th>
                             <th>Patient</th>
                             <?php if ($userRole === 'admin'): ?>
                                 <th>Doctor</th>
@@ -108,12 +107,6 @@
                         <?php if (!empty($appointments) && is_array($appointments)): ?>
                             <?php foreach ($appointments as $appointment): ?>
                                 <tr>
-                                    <td>
-                                        <strong><?= date('g:i A', strtotime($appointment['appointment_time'] ?? '00:00:00')) ?></strong>
-                                        <?php if (!empty($appointment['duration'])): ?>
-                                            <br><small><?= esc($appointment['duration']) ?> min</small>
-                                        <?php endif; ?>
-                                    </td>
                                     <td>
                                         <div>
                                             <strong>
@@ -178,7 +171,7 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="<?= $userRole === 'admin' ? '6' : '5' ?>" style="text-align: center; padding: 2rem; color: #6b7280;">
+                                <td colspan="<?= $userRole === 'admin' ? '5' : '4' ?>" style="text-align: center; padding: 2rem; color: #6b7280;">
                                     <i class="fas fa-calendar-times" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
                                     <p>No appointments found for the selected criteria.</p>
                                     <?php if (in_array($userRole, ['admin', 'doctor', 'receptionist'])): ?>

@@ -75,11 +75,24 @@ class CreateDepartmentManagementTable extends Migration
 
         $this->forge->createTable($this->table, true, ['ENGINE' => 'InnoDB']);
 
-        // Add foreign key after table creation if staff table exists
+        // Ensure department_head_id column exists even if table pre-existed
         $db = \Config\Database::connect();
-        if ($db->tableExists('staff')) {
+        $table = $this->table;
+
+        if ($db->tableExists($table) && !$db->fieldExists('department_head_id', $table)) {
+            $this->forge->addColumn($table, [
+                'department_head_id' => [
+                    'type'     => 'INT',
+                    'unsigned' => true,
+                    'null'     => true,
+                ],
+            ]);
+        }
+
+        // Add foreign key after table creation only if both column and staff table exist
+        if ($db->tableExists('staff') && $db->fieldExists('department_head_id', $table)) {
             $this->db->query(
-                'ALTER TABLE ' . $this->db->escapeString($this->table) .
+                'ALTER TABLE ' . $this->db->escapeString($table) .
                 ' ADD CONSTRAINT fk_department_head_staff
                   FOREIGN KEY (department_head_id) REFERENCES staff(staff_id)
                   ON UPDATE CASCADE ON DELETE SET NULL'

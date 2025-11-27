@@ -658,6 +658,83 @@ class FinancialService
         }
     }
 
+    public function addItemFromLabOrder(int $billingId, int $labOrderId, float $unitPrice, ?int $createdByStaffId = null): array
+    {
+        try {
+            if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('lab_orders')) {
+                return ['success' => false, 'message' => 'Billing or lab_orders table is missing'];
+            }
+
+            $order = $this->db->table('lab_orders')
+                ->where('lab_order_id', $labOrderId)
+                ->get()
+                ->getRowArray();
+
+            if (!$order) {
+                return ['success' => false, 'message' => 'Lab order not found'];
+            }
+
+            $patientId = (int)($order['patient_id'] ?? 0);
+            if ($patientId <= 0) {
+                return ['success' => false, 'message' => 'Lab order has no patient linked'];
+            }
+
+            // Avoid duplicate billing entries for the same lab order and billing account when we have a lab_order_id column
+            if ($this->db->fieldExists('lab_order_id', 'billing_items')) {
+                $existing = $this->db->table('billing_items')
+                    ->where('billing_id', $billingId)
+                    ->where('lab_order_id', $labOrderId)
+                    ->countAllResults();
+
+                if ($existing > 0) {
+                    return ['success' => true, 'message' => 'Lab order is already added to this billing account.'];
+                }
+            }
+
+            $descriptionParts = [];
+            if (!empty($order['test_name'])) {
+                $descriptionParts[] = $order['test_name'];
+            }
+            if (!empty($order['test_code'])) {
+                $descriptionParts[] = $order['test_code'];
+            }
+
+            $description = !empty($descriptionParts)
+                ? implode(' - ', $descriptionParts)
+                : 'Laboratory Test';
+
+            $quantity  = 1;
+            $unitPrice = max(0, (float)$unitPrice);
+            $lineTotal = $quantity * $unitPrice;
+
+            $itemData = [
+                'billing_id'      => $billingId,
+                'patient_id'      => $patientId,
+                'appointment_id'  => !empty($order['appointment_id']) ? (int)$order['appointment_id'] : null,
+                'prescription_id' => null,
+                'description'     => $description,
+                'quantity'        => $quantity,
+                'unit_price'      => $unitPrice,
+                'line_total'      => $lineTotal,
+            ];
+
+            if ($this->db->fieldExists('lab_order_id', 'billing_items')) {
+                $itemData['lab_order_id'] = $labOrderId;
+            }
+
+            if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
+                $itemData['created_by_staff_id'] = $createdByStaffId;
+            }
+
+            $this->db->table('billing_items')->insert($itemData);
+
+            return ['success' => true, 'message' => 'Lab order item added to billing'];
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::addItemFromLabOrder error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error adding lab order to billing'];
+        }
+    }
+
     public function getBillingAccount(int $billingId, string $userRole, ?int $staffId = null): ?array
     {
         try {

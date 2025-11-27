@@ -286,7 +286,7 @@
     </div>
 
     <!-- Billing Account Details Modal -->
-    <div id="billingAccountModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:1050; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center;">
+    <div id="billingAccountModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:1050; background:rgba(0,0,0,0.4); align-items:center; justify-content:center;">
         <div class="modal-dialog" style="max-width:800px; width:90%; margin:0;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -395,6 +395,39 @@
             if (!modal) return;
             modal.style.display = 'none';
             modal.setAttribute('aria-hidden', 'true');
+        }
+
+        function markBillingAccountPaid(billingId) {
+            if (!billingId) return;
+
+            if (!window.confirm('Mark this billing account as PAID?')) {
+                return;
+            }
+
+            const url = `${window.baseUrl}/financial/billing-accounts/${billingId}/paid`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ billing_id: billingId })
+            })
+                .then(resp => resp.json())
+                .then(result => {
+                    const ok = result && (result.success === true || result.status === 'success');
+                    alert(result.message || (ok ? 'Billing account marked as paid.' : 'Failed to mark billing account as paid.'));
+
+                    if (ok) {
+                        // Simple approach: reload to refresh statuses and totals
+                        window.location.reload();
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to mark billing account paid', err);
+                    alert('Failed to mark billing account as paid.');
+                });
         }
     </script>
 

@@ -349,6 +349,32 @@ $routes->get('financial-management/categories', 'FinancialController::getCategor
 $routes->get('billing/accounts/(:num)', 'FinancialController::getBillingAccount/$1', ['filter' => 'roleauth:admin,accountant']);
 
 // ===================================================================
+// UNIFIED LAB MANAGEMENT
+// ===================================================================
+
+// Lab Management Views - Role-specific entry points
+$routes->get('admin/labs', 'LabManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('doctor/labs', 'LabManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('laboratorist/labs', 'LabManagement::index', ['filter' => 'roleauth:laboratorist']);
+$routes->get('receptionist/labs', 'LabManagement::index', ['filter' => 'roleauth:receptionist']);
+
+// Unified Lab Route
+$routes->get('unified/labs', 'LabManagement::index', ['filter' => 'roleauth:admin,doctor,laboratorist,receptionist,accountant,it_staff']);
+
+// Lab Management API Routes
+$routes->get('labs/api', 'LabManagement::getLabOrdersAPI', ['filter' => 'roleauth:admin,doctor,laboratorist,receptionist,accountant,it_staff']);
+$routes->get('labs/(:num)', 'LabManagement::getLabOrder/$1', ['filter' => 'roleauth:admin,doctor,laboratorist,receptionist,accountant,it_staff']);
+$routes->get('labs/patients', 'LabManagement::getLabPatientsAPI', ['filter' => 'roleauth:admin,doctor,laboratorist,it_staff']);
+$routes->get('labs/tests', 'LabManagement::getLabTestsAPI', ['filter' => 'roleauth:admin,doctor,laboratorist,it_staff']);
+$routes->post('labs/tests', 'LabManagement::createLabTest', ['filter' => 'roleauth:admin,it_staff']);
+$routes->post('labs/tests/(:num)', 'LabManagement::updateLabTest/$1', ['filter' => 'roleauth:admin,it_staff']);
+$routes->delete('labs/tests/(:num)', 'LabManagement::deleteLabTest/$1', ['filter' => 'roleauth:admin,it_staff']);
+$routes->post('labs/create', 'LabManagement::createLabOrder', ['filter' => 'roleauth:admin,doctor,it_staff']);
+$routes->post('labs/update', 'LabManagement::updateLabOrder', ['filter' => 'roleauth:admin,doctor,it_staff']);
+$routes->post('labs/(:num)/status', 'LabManagement::updateStatus/$1', ['filter' => 'roleauth:admin,doctor,laboratorist,it_staff']);
+$routes->post('labs/(:num)/bill', 'LabManagement::addToBilling/$1', ['filter' => 'roleauth:admin,accountant']);
+
+// ===================================================================
 // LEGACY COMPATIBILITY ROUTES
 // ===================================================================
 

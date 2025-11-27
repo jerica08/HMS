@@ -16,6 +16,7 @@ if ($userRole === 'admin') {
         ['url' => 'admin/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule Management'],
         ['url' => 'admin/appointments', 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
         ['url' => 'admin/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
+        ['url' => 'admin/labs', 'icon' => 'fas fa-flask', 'label' => 'Labs'],
         ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resource Management'],
         ['url' => 'admin/department-management', 'icon' => 'fas fa-building', 'label' => 'Department Management'],
         ['url' => 'admin/room-management', 'icon' => 'fas fa-bed', 'label' => 'Room Management'],
@@ -32,7 +33,7 @@ elseif ($userRole === 'doctor') {
         ['url' => 'doctor/patient-management', 'icon' => 'fas fa-users', 'label' => 'Patient Management'],
         ['url' => 'doctor/appointments', 'icon' => 'fas fa-calendar-alt', 'label' => 'Appointments'],
         ['url' => 'doctor/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
-        //['url' => 'doctor/lab-results', 'icon' => 'fas fa-flask', 'label' => 'Lab-Results'],
+        ['url' => 'doctor/labs', 'icon' => 'fas fa-flask', 'label' => 'Lab Orders'],
         ['url' => 'doctor/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule'],
         //['url' => 'doctor/schedule', 'icon' => 'fas fa-clock', 'label' => 'My Schedule'],
     ];
@@ -75,7 +76,7 @@ elseif ($userRole === 'pharmacist') {
 elseif ($userRole === 'laboratorist') {
     $navigationItems = [
         ['url' => 'laboratorist/dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
-        ['url' => 'laboratorist/lab-tests', 'icon' => 'fas fa-flask', 'label' => 'Lab Tests'],
+        ['url' => 'laboratorist/labs', 'icon' => 'fas fa-flask', 'label' => 'Lab Worklist'],
         ['url' => 'laboratorist/results', 'icon' => 'fas fa-file-medical-alt', 'label' => 'Test Results'],
         ['url' => 'laboratorist/reports', 'icon' => 'fas fa-chart-bar', 'label' => 'Reports'],
     ];

@@ -298,7 +298,23 @@
                                 <div class="form-grid">
                                     <div>
                                         <label class="form-label" for="insurance_provider">Insurance Provider</label>
-                                        <input type="text" id="insurance_provider" name="insurance_provider" class="form-input">
+                                        <select id="insurance_provider" name="insurance_provider" class="form-select">
+                                            <option value="">Select provider...</option>
+                                            <option value="Maxicare">Maxicare</option>
+                                            <option value="Intellicare">Intellicare</option>
+                                            <option value="Medicard">Medicard</option>
+                                            <option value="PhilCare">PhilCare</option>
+                                            <option value="Avega">Avega</option>
+                                            <option value="Generali Philippines">Generali Philippines</option>
+                                            <option value="Insular Health Care">Insular Health Care</option>
+                                            <option value="EastWest Healthcare">EastWest Healthcare</option>
+                                            <option value="ValuCare (ValueCare)">ValuCare (ValueCare)</option>
+                                            <option value="Caritas Health Shield">Caritas Health Shield</option>
+                                            <option value="FortuneCare">FortuneCare</option>
+                                            <option value="Kaiser">Kaiser</option>
+                                            <option value="Pacific Cross">Pacific Cross</option>
+                                            <option value="Asalus Health Care (Healthway / FamilyDOC)">Asalus Health Care (Healthway / FamilyDOC)</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label class="form-label" for="insurance_card_number">Card Number</label>

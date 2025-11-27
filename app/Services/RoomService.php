@@ -103,6 +103,200 @@ class RoomService
         }
     }
 
+    public function dischargeRoom(int $roomId, ?int $staffId = null): array
+    {
+        if ($roomId <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Invalid room ID',
+            ];
+        }
+
+        if (! $this->db->tableExists('room') || ! $this->db->tableExists('room_assignment')) {
+            return [
+                'success' => false,
+                'message' => 'Room or room_assignment table is missing',
+            ];
+        }
+
+        $assignment = $this->db->table('room_assignment')
+            ->where('room_id', $roomId)
+            ->where('status', 'active')
+            ->orderBy('assignment_id', 'DESC')
+            ->get()
+            ->getRowArray();
+
+        if (! $assignment) {
+            return [
+                'success' => false,
+                'message' => 'No active room assignment found for this room',
+            ];
+        }
+
+        $now = new \DateTime();
+        try {
+            $dateIn = new \DateTime($assignment['date_in']);
+        } catch (\Throwable $e) {
+            $dateIn = clone $now;
+        }
+
+        $interval   = $dateIn->diff($now);
+        $totalDays  = (int) $interval->days;
+        $totalHours = $totalDays * 24 + (int) $interval->h + (int) floor($interval->i / 60);
+
+        if ($totalDays <= 0 && $totalHours > 0) {
+            $totalDays = 1;
+        } elseif ($totalDays <= 0) {
+            $totalDays = 1;
+        }
+
+        $updatePayload = [
+            'date_out'    => $now->format('Y-m-d H:i:s'),
+            'total_days'  => $totalDays,
+            'total_hours' => $totalHours,
+            'status'      => 'completed',
+        ];
+
+        if ($this->db->fieldExists('updated_at', 'room_assignment')) {
+            $updatePayload['updated_at'] = $now->format('Y-m-d H:i:s');
+        }
+
+        try {
+            $this->db->transStart();
+
+            $this->db->table('room_assignment')
+                ->where('assignment_id', $assignment['assignment_id'])
+                ->update($updatePayload);
+
+            $this->db->table('room')
+                ->where('room_id', $roomId)
+                ->update(['status' => 'available']);
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Failed to discharge room in transaction');
+            }
+
+            return [
+                'success'        => true,
+                'message'        => 'Room discharged successfully',
+                'assignment_id'  => (int) $assignment['assignment_id'],
+                'patient_id'     => (int) ($assignment['patient_id'] ?? 0),
+                'admission_id'   => isset($assignment['admission_id']) ? (int) $assignment['admission_id'] : null,
+            ];
+        } catch (\Throwable $e) {
+            $this->db->transRollback();
+            log_message('error', 'RoomService::dischargeRoom failed: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Could not discharge room: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    public function assignRoomToPatient(int $roomId, int $patientId, ?int $assignedByStaffId = null, ?int $admissionId = null): array
+    {
+        if ($roomId <= 0 || $patientId <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Invalid room or patient ID',
+            ];
+        }
+
+        if (! $this->db->tableExists('room') || ! $this->db->tableExists('patients')) {
+            return [
+                'success' => false,
+                'message' => 'Room or patients table is missing',
+            ];
+        }
+
+        if (! $this->db->tableExists('room_assignment')) {
+            return [
+                'success' => false,
+                'message' => 'Room assignment table is missing',
+            ];
+        }
+
+        $room = $this->db->table('room')
+            ->where('room_id', $roomId)
+            ->get()
+            ->getRowArray();
+
+        if (! $room) {
+            return [
+                'success' => false,
+                'message' => 'Room not found',
+            ];
+        }
+
+        if (! empty($room['status']) && $room['status'] === 'occupied') {
+            return [
+                'success' => false,
+                'message' => 'Room is already occupied',
+            ];
+        }
+
+        $patient = $this->db->table('patients')
+            ->where('patient_id', $patientId)
+            ->get()
+            ->getRowArray();
+
+        if (! $patient) {
+            return [
+                'success' => false,
+                'message' => 'Patient not found',
+            ];
+        }
+
+        $builder = $this->db->table('room_assignment');
+
+        $payload = [
+            'patient_id'      => $patientId,
+            'room_id'         => $roomId,
+            'bed_id'          => null,
+            'admission_id'    => $admissionId,
+            'assigned_by'     => $assignedByStaffId,
+            'date_in'         => date('Y-m-d H:i:s'),
+            'date_out'        => null,
+            'total_days'      => 0,
+            'total_hours'     => 0,
+            'room_rate_at_time' => $room['rate_range'] ?? null,
+            'bed_rate_at_time'  => null,
+            'status'          => 'active',
+        ];
+
+        try {
+            $this->db->transStart();
+
+            $builder->insert($payload);
+
+            $this->db->table('room')
+                ->where('room_id', $roomId)
+                ->update(['status' => 'occupied']);
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Failed to assign room in transaction');
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Room assigned successfully',
+            ];
+        } catch (\Throwable $e) {
+            $this->db->transRollback();
+            log_message('error', 'RoomService::assignRoomToPatient failed: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Could not assign room: ' . $e->getMessage(),
+            ];
+        }
+    }
+
     public function updateRoom(int $roomId, array $input): array
     {
         if ($roomId <= 0) {

@@ -149,6 +149,7 @@
 </div>
 
 <?= $this->include('unified/modals/add-room-modal', ['roomTypes' => $roomTypes ?? [], 'departments' => $departments ?? []]) ?>
+<?= $this->include('unified/modals/assign-room-modal') ?>
 
 
 <script>

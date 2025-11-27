@@ -15,15 +15,13 @@
                 <div class="form-grid">
                     <div>
                         <label class="form-label" for="modal_room_type">Room Type</label>
-                        <input type="text" id="modal_room_type" name="room_type_name" class="form-input" placeholder="Enter room type" autocomplete="off" />
-                        <input type="hidden" id="modal_room_type_id" name="room_type_id" />
-                        <input type="hidden" id="modal_custom_room_type" name="custom_room_type" />
-                        <datalist id="room_type_options" hidden>
+                        <select id="modal_room_type" name="room_type_id" class="form-input" required>
+                            <option value="">Select room type</option>
                             <?php foreach ($roomTypes as $type): ?>
-                                <option value="<?= esc($type['type_name']) ?>" data-room-type-id="<?= esc($type['room_type_id']) ?>"></option>
+                                <option value="<?= esc($type['room_type_id']) ?>"><?= esc($type['type_name']) ?></option>
                             <?php endforeach; ?>
-                        </datalist>
-                        <small class="form-hint">Type any room type name. Known names will auto-fill related details.</small>
+                        </select>
+                        <small class="form-hint">Choose a room type. Known types will auto-fill related details.</small>
                     </div>
                     <div>
                         <label class="form-label" for="modal_room_number">Room Number*</label>

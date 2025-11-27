@@ -735,6 +735,103 @@ class FinancialService
         }
     }
 
+    public function addItemFromRoomAssignment(int $billingId, int $assignmentId, ?float $unitPricePerDay = null, ?int $createdByStaffId = null): array
+    {
+        try {
+            if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('room_assignment')) {
+                return ['success' => false, 'message' => 'Billing or room_assignment table is missing'];
+            }
+
+            $assignment = $this->db->table('room_assignment')
+                ->where('assignment_id', $assignmentId)
+                ->get()
+                ->getRowArray();
+
+            if (!$assignment) {
+                return ['success' => false, 'message' => 'Room assignment not found'];
+            }
+
+            $patientId = (int)($assignment['patient_id'] ?? 0);
+            if ($patientId <= 0) {
+                return ['success' => false, 'message' => 'Room assignment has no patient linked'];
+            }
+
+            if ($this->db->fieldExists('room_assignment_id', 'billing_items')) {
+                $existing = $this->db->table('billing_items')
+                    ->where('billing_id', $billingId)
+                    ->where('room_assignment_id', $assignmentId)
+                    ->countAllResults();
+
+                if ($existing > 0) {
+                    return ['success' => true, 'message' => 'Room assignment is already added to this billing account.'];
+                }
+            }
+
+            $totalDays  = (int)($assignment['total_days'] ?? 0);
+            $totalHours = (int)($assignment['total_hours'] ?? 0);
+
+            if ($totalDays <= 0 && $totalHours > 0) {
+                $totalDays = 1;
+            } elseif ($totalDays <= 0) {
+                $totalDays = 1;
+            }
+
+            $dailyRate = $unitPricePerDay !== null
+                ? (float)$unitPricePerDay
+                : (float)($assignment['room_rate_at_time'] ?? 0);
+
+            if ($dailyRate <= 0 && isset($assignment['bed_rate_at_time'])) {
+                $dailyRate = (float)$assignment['bed_rate_at_time'];
+            }
+
+            if ($dailyRate <= 0) {
+                return ['success' => false, 'message' => 'No valid room rate available for this assignment'];
+            }
+
+            $quantity  = max(1, $totalDays);
+            $unitPrice = max(0, $dailyRate);
+            $lineTotal = $quantity * $unitPrice;
+
+            $descriptionParts = ['Room charge'];
+            if (!empty($assignment['admission_id'])) {
+                $descriptionParts[] = 'Admission #' . $assignment['admission_id'];
+            }
+            if (!empty($assignment['date_in'])) {
+                $descriptionParts[] = 'from ' . date('Y-m-d', strtotime($assignment['date_in']));
+            }
+            if (!empty($assignment['date_out'])) {
+                $descriptionParts[] = 'to ' . date('Y-m-d', strtotime($assignment['date_out']));
+            }
+            $description = implode(' - ', $descriptionParts);
+
+            $itemData = [
+                'billing_id'      => $billingId,
+                'patient_id'      => $patientId,
+                'appointment_id'  => null,
+                'prescription_id' => null,
+                'description'     => $description,
+                'quantity'        => $quantity,
+                'unit_price'      => $unitPrice,
+                'line_total'      => $lineTotal,
+            ];
+
+            if ($this->db->fieldExists('room_assignment_id', 'billing_items')) {
+                $itemData['room_assignment_id'] = $assignmentId;
+            }
+
+            if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
+                $itemData['created_by_staff_id'] = $createdByStaffId;
+            }
+
+            $this->db->table('billing_items')->insert($itemData);
+
+            return ['success' => true, 'message' => 'Room assignment item added to billing'];
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::addItemFromRoomAssignment error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error adding room assignment to billing'];
+        }
+    }
+
     public function getBillingAccount(int $billingId, string $userRole, ?int $staffId = null): ?array
     {
         try {

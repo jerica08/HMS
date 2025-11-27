@@ -6,6 +6,11 @@
     const addRoomModal = document.getElementById('addRoomModal');
     const saveRoomBtn = document.getElementById('saveRoomBtn');
     const modalTitle = document.getElementById('addRoomTitle');
+    const assignRoomModal = document.getElementById('assignRoomModal');
+    const assignRoomForm = document.getElementById('assignRoomForm');
+    const assignRoomIdInput = document.getElementById('assign_room_id');
+    const assignPatientSelect = document.getElementById('assign_patient_id');
+    const saveAssignRoomBtn = document.getElementById('saveAssignRoomBtn');
     const roomTypeInput = document.getElementById('modal_room_type');
     const floorInput = document.getElementById('modal_floor');
     const roomNumberInput = document.getElementById('modal_room_number');
@@ -97,7 +102,9 @@
             return;
         }
 
-        roomsTableBody.innerHTML = rooms.map((room) => `
+        roomsTableBody.innerHTML = rooms.map((room) => {
+            const isOccupied = (room.status || '').toLowerCase() === 'occupied';
+            return `
             <tr>
                 <td>
                     ${escapeHtml(room.room_number)}
@@ -113,13 +120,19 @@
                         <button class="btn btn-sm btn-outline" data-action="edit" data-room-id="${room.room_id}" aria-label="Edit room ${escapeHtml(room.room_number)}">
                             <i class="fas fa-pen"></i>
                         </button>
+                        <button class="btn btn-sm btn-outline" data-action="assign" data-room-id="${room.room_id}" aria-label="Assign room ${escapeHtml(room.room_number)} to patient">
+                            <i class="fas fa-user-plus"></i>
+                        </button>
+                        ${isOccupied ? `<button class="btn btn-sm btn-outline" data-action="discharge" data-room-id="${room.room_id}" aria-label="Discharge room ${escapeHtml(room.room_number)}">
+                            <i class="fas fa-door-open"></i>
+                        </button>` : ''}
                         <button class="btn btn-sm btn-outline btn-danger" data-action="delete" data-room-id="${room.room_id}" aria-label="Delete room ${escapeHtml(room.room_number)}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     };
 
     const escapeHtml = (value) => {
@@ -238,6 +251,10 @@
             startEditRoom(room);
         } else if (action === 'delete') {
             confirmDeleteRoom(room);
+        } else if (action === 'assign') {
+            openAssignModal(room);
+        } else if (action === 'discharge') {
+            confirmDischargeRoom(room);
         }
     };
 
@@ -247,7 +264,7 @@
         editingRoomId = room.room_id;
 
         if (roomTypeInput) {
-            roomTypeInput.value = room.type_name || '';
+            roomTypeInput.value = room.room_type_id || '';
         }
         applySelectedRoomTypeMetadata();
         roomNumberInput.value = room.room_number || '';
@@ -277,19 +294,146 @@
         deleteRoom(room.room_id);
     };
 
+    const confirmDischargeRoom = (room) => {
+        if (!confirm(`Discharge room ${room.room_number}? This will free the room and finalize the stay.`)) {
+            return;
+        }
+        dischargeRoom(room.room_id);
+    };
+
+    const dischargeRoom = async (roomId) => {
+        const formData = new FormData();
+        formData.set('room_id', roomId);
+        formData.set(csrfTokenName, csrfHash);
+
+        try {
+            const response = await fetch(`${baseUrl}/rooms/discharge`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' },
+            });
+
+            const result = await response.json();
+            refreshCsrfHash(result?.csrf_hash);
+
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to discharge room');
+            }
+
+            const msg = result.billing_message || 'Room discharged successfully.';
+            showNotification(msg, 'success');
+            fetchRooms();
+        } catch (error) {
+            console.error(error);
+            showNotification(error.message || 'Could not discharge room right now.', 'error');
+        }
+    };
+
+    const openAssignModal = (room) => {
+        if (!assignRoomModal || !assignRoomForm || !assignRoomIdInput || !assignPatientSelect) {
+            return;
+        }
+
+        assignRoomIdInput.value = room.room_id;
+        assignPatientSelect.innerHTML = '<option value="">Loading patients...</option>';
+
+        assignRoomModal.style.display = 'block';
+        assignRoomModal.setAttribute('aria-hidden', 'false');
+
+        loadPatientsForAssign();
+    };
+
+    const closeAssignModal = () => {
+        if (!assignRoomModal || !assignRoomForm || !assignPatientSelect) return;
+        assignRoomModal.style.display = 'none';
+        assignRoomModal.setAttribute('aria-hidden', 'true');
+        assignRoomForm.reset();
+        assignPatientSelect.innerHTML = '<option value="">Select patient</option>';
+    };
+
+    const loadPatientsForAssign = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/rooms/patients`, {
+                headers: { 'Accept': 'application/json' },
+            });
+            const payload = await response.json();
+            const patients = payload?.data || [];
+
+            if (!patients.length) {
+                assignPatientSelect.innerHTML = '<option value="">No patients available</option>';
+                return;
+            }
+
+            assignPatientSelect.innerHTML = [
+                '<option value="">Select patient</option>',
+                ...patients.map((p) => {
+                    const name = escapeHtml(p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || `Patient #${p.patient_id}`);
+                    return `<option value="${p.patient_id}">${name}</option>`;
+                }),
+            ].join('');
+        } catch (error) {
+            console.error('Failed to load patients for room assignment', error);
+            assignPatientSelect.innerHTML = '<option value="">Error loading patients</option>';
+        }
+    };
+
+    const submitAssignRoom = async () => {
+        if (!assignRoomForm || !assignPatientSelect || !assignRoomIdInput) return;
+
+        const patientId = (assignPatientSelect.value || '').trim();
+        const roomId = (assignRoomIdInput.value || '').trim();
+
+        if (!roomId) {
+            showNotification('Room information is missing.', 'error');
+            return;
+        }
+
+        if (!patientId) {
+            showNotification('Please select a patient.', 'error');
+            assignPatientSelect.focus();
+            return;
+        }
+
+        const formData = new FormData(assignRoomForm);
+        formData.set('room_id', roomId);
+        formData.set('patient_id', patientId);
+
+        try {
+            const response = await fetch(`${baseUrl}/rooms/assign`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' },
+            });
+
+            const result = await response.json();
+            refreshCsrfHash(result?.csrf_hash);
+
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to assign room');
+            }
+
+            showNotification('Room assigned to patient successfully.', 'success');
+            closeAssignModal();
+            fetchRooms();
+        } catch (error) {
+            console.error(error);
+            showNotification(error.message || 'Could not assign room right now.', 'error');
+        }
+    };
+
     const submitRoom = async () => {
         const form = document.getElementById('addRoomForm');
         const formData = new FormData(form);
-        const typedRoomType = (roomTypeInput?.value || '').trim();
+        const selectedRoomTypeId = (roomTypeInput?.value || '').trim();
 
-        if (!typedRoomType) {
-            showNotification('Please enter a room type.', 'error');
+        if (!selectedRoomTypeId) {
+            showNotification('Please select a room type.', 'error');
             roomTypeInput?.focus();
             return;
         }
 
-        formData.delete('room_type_id');
-        formData.set('custom_room_type', typedRoomType);
+        formData.set('room_type_id', selectedRoomTypeId);
+        formData.set('custom_room_type', '');
 
         let endpoint = `${baseUrl}/rooms/create`;
         if (editingRoomId) {
@@ -366,6 +510,18 @@
 
     if (addRoomModal) {
         addRoomModal.addEventListener('click', handleModalClick);
+    }
+
+    if (assignRoomModal) {
+        assignRoomModal.addEventListener('click', (event) => {
+            if (event.target === assignRoomModal || event.target.getAttribute('data-dismiss') === 'modal') {
+                closeAssignModal();
+            }
+        });
+    }
+
+    if (saveAssignRoomBtn) {
+        saveAssignRoomBtn.addEventListener('click', submitAssignRoom);
     }
 
     applySelectedRoomTypeMetadata();

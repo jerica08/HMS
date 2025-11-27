@@ -100,7 +100,7 @@
 }
 
 .card-metrics {
-    display: none;
+    display: block;
 }
 
 .metric {

@@ -87,7 +87,11 @@
                                 <h3 class="card-title-modern">Total Patients</h3>
                             </div>
                         </div>
-                        <div class="card-metrics"></div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value"><?= number_format($analytics['patient_analytics']['total_patients'] ?? 0) ?></div>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Total Appointments Card -->
@@ -98,7 +102,11 @@
                                 <h3 class="card-title-modern">Total Appointments</h3>
                             </div>
                         </div>
-                        <div class="card-metrics"></div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value"><?= number_format($analytics['appointment_analytics']['total_appointments'] ?? 0) ?></div>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Total Revenue Card -->
@@ -109,7 +117,11 @@
                                 <h3 class="card-title-modern">Total Revenue</h3>
                             </div>
                         </div>
-                        <div class="card-metrics"></div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value">₱<?= number_format($analytics['financial_analytics']['total_revenue'] ?? 0, 2) ?></div>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Active Staff Card -->
@@ -120,7 +132,11 @@
                                 <h3 class="card-title-modern">Active Staff</h3>
                             </div>
                         </div>
-                        <div class="card-metrics"></div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value"><?= number_format($analytics['staff_analytics']['active_staff'] ?? 0) ?></div>
+                            </div>
+                        </div>
                     </div>
                 <?php elseif ($userRole === 'doctor'): ?>
                     <!-- My Patients Card -->

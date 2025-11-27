@@ -25,17 +25,64 @@ class AnalyticsController extends BaseController
         $data = [
             'title' => 'Analytics & Reports',
             'userRole' => session()->get('role'),
-            'userId' => session()->get('userId')
+            'userId' => session()->get('userId'),
+            'permissions' => ['generate_reports', 'export'] // Add any required permissions
         ];
 
         // Get date range (default: last 30 days)
         $endDate = date('Y-m-d');
         $startDate = date('Y-m-d', strtotime('-30 days'));
 
-        // Get analytics data based on user role
-        $data['analytics'] = $this->getAnalyticsData($data['userRole'], $data['userId'], $startDate, $endDate);
+        // Directly fetch the data we need
+        $db = \Config\Database::connect();
+        
+        // Get total patients
+        $totalPatients = $db->table('patients')->countAllResults();
+        
+        // Get total appointments
+        $totalAppointments = $db->table('appointments')
+            ->where('appointment_date >=', $startDate)
+            ->where('appointment_date <=', $endDate)
+            ->countAllResults();
+            
+        // Get total revenue
+        $revenueResult = $db->table('billing_accounts')
+            ->selectSum('total_amount')
+            ->where('created_at >=', $startDate)
+            ->where('created_at <=', $endDate)
+            ->get()
+            ->getRow();
+            
+        $totalRevenue = $revenueResult ? $revenueResult->total_amount : 0;
+        
+        // Get active staff
+        $activeStaff = $db->table('staff')
+            ->where('status', 'active')
+            ->countAllResults();
 
-        return view('analytics/dashboard', $data);
+        // Structure the data as expected by the view
+        $data['analytics'] = [
+            'patient_analytics' => [
+                'total_patients' => $totalPatients,
+                'new_patients' => 0, // You can update this if needed
+                'active_patients' => 0 // You can update this if needed
+            ],
+            'appointment_analytics' => [
+                'total_appointments' => $totalAppointments,
+                'appointments_by_status' => [],
+                'appointments_by_type' => []
+            ],
+            'financial_analytics' => [
+                'total_revenue' => $totalRevenue,
+                'revenue_by_type' => []
+            ],
+            'staff_analytics' => [
+                'active_staff' => $activeStaff,
+                'staff_by_department' => []
+            ]
+        ];
+
+        return view('unified/analytics-reports', $data);
     }
 
     public function getData()

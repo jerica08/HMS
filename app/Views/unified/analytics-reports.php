@@ -85,19 +85,9 @@
                             <div class="card-icon-modern blue"><i class="fas fa-users"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Patients</h3>
-                                <p class="card-subtitle">Patient statistics</p>
                             </div>
                         </div>
-                        <div class="card-metrics">
-                            <div class="metric">
-                                <div class="metric-value blue"><?= $analytics['patient_analytics']['total_patients'] ?? 0 ?></div>
-                                <div class="metric-label">Total</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value green">+<?= $analytics['patient_analytics']['new_patients'] ?? 0 ?></div>
-                                <div class="metric-label">New</div>
-                            </div>
-                        </div>
+                        <div class="card-metrics"></div>
                     </div>
                     
                     <!-- Total Appointments Card -->
@@ -106,15 +96,9 @@
                             <div class="card-icon-modern purple"><i class="fas fa-calendar-check"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Appointments</h3>
-                                <p class="card-subtitle">This period</p>
                             </div>
                         </div>
-                        <div class="card-metrics">
-                            <div class="metric">
-                                <div class="metric-value purple"><?= $analytics['appointment_analytics']['total_appointments'] ?? 0 ?></div>
-                                <div class="metric-label">Total</div>
-                            </div>
-                        </div>
+                        <div class="card-metrics"></div>
                     </div>
                     
                     <!-- Total Revenue Card -->
@@ -123,19 +107,9 @@
                             <div class="card-icon-modern green"><i class="fas fa-dollar-sign"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Revenue</h3>
-                                <p class="card-subtitle">Financial performance</p>
                             </div>
                         </div>
-                        <div class="card-metrics">
-                            <div class="metric">
-                                <div class="metric-value green">₱<?= number_format($analytics['financial_analytics']['total_revenue'] ?? 0, 0) ?></div>
-                                <div class="metric-label">Revenue</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value blue">₱<?= number_format($analytics['financial_analytics']['net_profit'] ?? 0, 0) ?></div>
-                                <div class="metric-label">Net Profit</div>
-                            </div>
-                        </div>
+                        <div class="card-metrics"></div>
                     </div>
                     
                     <!-- Active Staff Card -->
@@ -144,15 +118,9 @@
                             <div class="card-icon-modern orange"><i class="fas fa-user-md"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Active Staff</h3>
-                                <p class="card-subtitle">All departments</p>
                             </div>
                         </div>
-                        <div class="card-metrics">
-                            <div class="metric">
-                                <div class="metric-value orange"><?= $analytics['staff_analytics']['total_staff'] ?? 0 ?></div>
-                                <div class="metric-label">Staff Members</div>
-                            </div>
-                        </div>
+                        <div class="card-metrics"></div>
                     </div>
                 <?php elseif ($userRole === 'doctor'): ?>
                     <!-- My Patients Card -->
@@ -302,47 +270,22 @@
                 <div class="charts-section">
                     <!-- Full Width Chart -->
                     <div class="chart-container full-width">
-                        <div class="chart-header">
-                            <h3 class="chart-title">Appointment Trends</h3>
-                            <span class="chart-period">Last 30 Days</span>
-                        </div>
+                        <div class="chart-header"></div>
                         <canvas id="appointmentTrendsChart" height="80"></canvas>
                     </div>
 
                     <!-- Two Column Charts -->
                     <div class="charts-row">
                         <div class="chart-container">
-                            <div class="chart-header">
-                                <h3 class="chart-title">Patient Distribution</h3>
-                                <span class="chart-period">By Type</span>
-                            </div>
+                            <div class="chart-header"></div>
                             <canvas id="patientTypeChart"></canvas>
                         </div>
                         <div class="chart-container">
-                            <div class="chart-header">
-                                <h3 class="chart-title">Appointment Status</h3>
-                                <span class="chart-period">Current Period</span>
-                            </div>
+                            <div class="chart-header"></div>
                             <canvas id="appointmentStatusChart"></canvas>
                         </div>
                     </div>
 
-                    <div class="charts-row">
-                        <div class="chart-container">
-                            <div class="chart-header">
-                                <h3 class="chart-title">Revenue Trend</h3>
-                                <span class="chart-period">Monthly</span>
-                            </div>
-                            <canvas id="revenueTrendChart"></canvas>
-                        </div>
-                        <div class="chart-container">
-                            <div class="chart-header">
-                                <h3 class="chart-title">Staff Distribution</h3>
-                                <span class="chart-period">By Role</span>
-                            </div>
-                            <canvas id="staffDistributionChart"></canvas>
-                        </div>
-                    </div>
                 </div>
                 <?php elseif ($userRole === 'doctor'): ?>
                 <div class="charts-section">
@@ -350,14 +293,12 @@
                         <div class="chart-container">
                             <div class="chart-header">
                                 <h3 class="chart-title">My Appointments</h3>
-                                <span class="chart-period">This Month</span>
                             </div>
                             <canvas id="doctorAppointmentsChart"></canvas>
                         </div>
                         <div class="chart-container">
                             <div class="chart-header">
                                 <h3 class="chart-title">Patient Growth</h3>
-                                <span class="chart-period">Last 6 Months</span>
                             </div>
                             <canvas id="patientGrowthChart"></canvas>
                         </div>
@@ -365,38 +306,6 @@
                 </div>
                 <?php endif; ?>
 
-                <!-- Data Tables -->
-                <?php if (in_array('view_all', $permissions) || in_array('advanced_analytics', $permissions)): ?>
-                <div class="data-table-container">
-                    <div class="table-header">
-                        <h3>Recent Activity</h3>
-                        <div class="table-actions">
-                            <?php if (in_array('export', $permissions)): ?>
-                            <button class="btn btn-secondary btn-sm" onclick="AnalyticsManager.exportData()">
-                                <i class="fas fa-download"></i> Export
-                            </button>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Activity Type</th>
-                                    <th>Details</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="activityTableBody">
-                                <tr>
-                                    <td colspan="4" class="text-center">Loading data...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-            </div>
-            <?php endif; ?>
 
         </main>
     </div>

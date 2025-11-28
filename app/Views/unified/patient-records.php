@@ -22,11 +22,6 @@
                     <?= esc($title ?? 'Patient Records') ?>
                 </h1>
             </div>
-            <div class="page-actions">
-                <button type="button" class="btn btn-primary" aria-label="Add Patient Record">
-                    <i class="fas fa-plus"></i> Add Record
-                </button>
-            </div>
         </header>
 
         <section class="dashboard-overview" role="region" aria-label="dashboard overview cards">
@@ -74,19 +69,30 @@
             </article>
         </section>
 
+
         <section class="record-panel">
             <div class="panel-header">
                 <h2>Patient Records</h2>
+            </div>
+            <div class="panel-search">
+                <label class="form-label" for="patientRecordSearch">Search records</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input id="patientRecordSearch" class="form-input" type="search" placeholder="Search by patient name, type, or status" aria-label="Search patient records">
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table" aria-label="Patient records table">
                     <thead>
                         <tr>
-                            <th scope="col">Patient</th>
-                            <th scope="col">Age / Sex</th>
-                            <th scope="col">Type</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Insurance</th>
+                            <th scope="col">Case No.</th>
+                            <th scope="col">Last Name</th>
+                            <th scope="col">First Name</th>
+                            <th scope="col">Middle Name</th>
+                            <th scope="col">Gender</th>
+                            <th scope="col">Age</th>
+                            <th scope="col">Patient Type</th>
+                            <th scope="col">Date Added</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>

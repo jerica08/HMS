@@ -22,6 +22,7 @@ if ($userRole === 'admin') {
         ['url' => 'admin/room-management', 'icon' => 'fas fa-bed', 'label' => 'Room Management'],
         ['url' => 'admin/financial-management', 'icon' => 'fas fa-dollar-sign', 'label' => 'Financial Management'],
         ['url' => 'admin/analytics', 'icon' => 'fas fa-chart-bar', 'label' => 'Analytics & Reports'],
+        ['url' => 'unified/patient-records', 'icon' => 'fas fa-folder-open', 'label' => 'Patient Records'],
         
     ];
 }
@@ -35,6 +36,7 @@ elseif ($userRole === 'doctor') {
         ['url' => 'doctor/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         ['url' => 'doctor/labs', 'icon' => 'fas fa-flask', 'label' => 'Lab Orders'],
         ['url' => 'doctor/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule'],
+        ['url' => 'unified/patient-records', 'icon' => 'fas fa-folder-open', 'label' => 'Patient Records'],
         //['url' => 'doctor/schedule', 'icon' => 'fas fa-clock', 'label' => 'My Schedule'],
     ];
 }
@@ -46,6 +48,7 @@ elseif ($userRole === 'nurse') {
         ['url' => 'nurse/patients', 'icon' => 'fas fa-users', 'label' => 'Patients'],
         ['url' => 'nurse/appointments', 'icon' => 'fas fa-calendar-alt', 'label' => 'Appointments'],
         ['url' => 'nurse/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
+        ['url' => 'unified/patient-records', 'icon' => 'fas fa-folder-open', 'label' => 'Patient Records'],
         //['url' => 'nurse/lab-results', 'icon' => 'fas fa-flask', 'label' => 'Lab Results'],
         //['url' => 'nurse/schedule', 'icon' => 'fas fa-clock', 'label' => 'My Schedule'],
     ];
@@ -68,6 +71,7 @@ elseif ($userRole === 'pharmacist') {
         ['url' => 'pharmacist/dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
         ['url' => 'pharmacist/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         ['url' => 'pharmacist/inventory', 'icon' => 'fas fa-pills', 'label' => 'Pharmacy Inventory'],
+        ['url' => 'unified/patient-records', 'icon' => 'fas fa-folder-open', 'label' => 'Patient Records'],
         ['url' => 'pharmacist/reports', 'icon' => 'fas fa-chart-bar', 'label' => 'Reports'],
     ];
 }
@@ -78,6 +82,7 @@ elseif ($userRole === 'laboratorist') {
         ['url' => 'laboratorist/dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
         ['url' => 'laboratorist/labs', 'icon' => 'fas fa-flask', 'label' => 'Lab Worklist'],
         ['url' => 'laboratorist/results', 'icon' => 'fas fa-file-medical-alt', 'label' => 'Test Results'],
+        ['url' => 'unified/patient-records', 'icon' => 'fas fa-folder-open', 'label' => 'Patient Records'],
         ['url' => 'laboratorist/reports', 'icon' => 'fas fa-chart-bar', 'label' => 'Reports'],
     ];
 }

@@ -21,12 +21,8 @@
                     <i class="fas fa-file-medical-alt"></i>
                     <?= esc($title ?? 'Patient Records') ?>
                 </h1>
-                <p class="page-subtitle">Browse patient dossiers and quickly access medical summaries.</p>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-secondary" aria-label="Search Records">
-                    <i class="fas fa-search"></i> Search
-                </button>
                 <button type="button" class="btn btn-primary" aria-label="Add Patient Record">
                     <i class="fas fa-plus"></i> Add Record
                 </button>
@@ -81,26 +77,9 @@
         <section class="record-panel">
             <div class="panel-header">
                 <h2>Patient Records</h2>
-                <div class="panel-controls">
-                    <label class="form-label" for="filterStatus">Status</label>
-                    <select id="filterStatus" class="form-select">
-                        <option value="">All statuses</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                        <option value="Discharged">Discharged</option>
-                    </select>
-                    <label class="form-label" for="filterType">Type</label>
-                    <select id="filterType" class="form-select">
-                        <option value="">All types</option>
-                        <option value="Outpatient">Outpatient</option>
-                        <option value="Inpatient">Inpatient</option>
-                        <option value="Emergency">Emergency</option>
-                    </select>
-                </div>
             </div>
             <div class="table-responsive">
                 <table class="table" aria-label="Patient records table">
-                    <caption id="patientRecordsCaption">Latest patient records generated for the facility.</caption>
                     <thead>
                         <tr>
                             <th scope="col">Patient</th>

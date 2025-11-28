@@ -92,6 +92,26 @@ class PatientManagement extends BaseController
     }
 
     /**
+     * Patient Records front-end placeholder view
+     */
+    public function patientRecords()
+    {
+        if (!in_array($this->userRole, ['admin', 'doctor', 'nurse', 'pharmacist', 'laboratorist'], true)) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
+        }
+
+        $stats = $this->patientService->getPatientStats($this->userRole, $this->staffId);
+
+        $data = [
+            'title' => 'Patient Records',
+            'userRole' => $this->userRole,
+            'patientStats' => $stats,
+        ];
+
+        return view('unified/patient-records', $data);
+    }
+
+    /**
      * Create Patient - All authorized roles
      */
     public function createPatient()

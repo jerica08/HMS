@@ -184,6 +184,13 @@ $routes->get('doctor/patients', 'PatientManagement::index', ['filter' => 'roleau
 $routes->get('it-staff/patients', 'PatientManagement::index', ['filter' => 'roleauth:it_staff']);
 $routes->get('nurse/patients', 'PatientManagement::index', ['filter' => 'roleauth:nurse']);
 $routes->get('receptionist/patients', 'PatientManagement::index', ['filter' => 'roleauth:receptionist']);
+// Patient Records View (shared for multiple roles)
+$routes->get('unified/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,laboratorist']);
+$routes->get('admin/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:admin']);
+$routes->get('doctor/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:nurse']);
+$routes->get('pharmacist/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:pharmacist']);
+$routes->get('laboratorist/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:laboratorist']);
 
 // Patient Management API Routes
 $routes->get('patients/api', 'PatientManagement::getPatientsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);

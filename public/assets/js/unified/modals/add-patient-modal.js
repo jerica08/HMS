@@ -849,6 +849,7 @@ const AddPatientModal = {
             const errors = this.validateFormData(formData, form.dataset.formType);
             if (Object.keys(errors).length > 0) {
                 PatientUtils.displayFormErrors(errors, form);
+                PatientUtils.showNotification('Please correct the highlighted fields before saving.', 'error');
                 return;
             }
             
@@ -923,7 +924,6 @@ const AddPatientModal = {
                 full_name: { required: true, label: 'Full Name' },
                 age: { required: true, label: 'Age' },
                 gender: { required: true, label: 'Sex' },
-                address: { required: true, label: 'Address' },
                 contact_number: { required: true, label: 'Contact Number' },
                 civil_status: { required: true, label: 'Civil Status' },
                 guardian_name: { required: true, label: 'Guardian Name' },
@@ -939,11 +939,7 @@ const AddPatientModal = {
                 room_number: { required: true, label: 'Room Number' },
                 bed_number: { required: true, label: 'Bed Number' },
                 patient_classification: { required: true, label: 'Patient Classification' },
-                level_of_consciousness: { required: true, label: 'Level of Consciousness' },
-                payment_method: { required: true, label: 'Payment Method' },
-                billing_responsible_name: { required: true, label: 'Responsible Person Name' },
-                billing_responsible_signature: { required: true, label: 'Responsible Person Signature' },
-                billing_responsible_contact: { required: true, label: 'Responsible Person Contact' }
+                level_of_consciousness: { required: true, label: 'Level of Consciousness' }
             };
         }
 

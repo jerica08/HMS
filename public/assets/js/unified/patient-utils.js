@@ -282,12 +282,21 @@ const PatientUtils = {
         // Display new errors
         for (const [field, message] of Object.entries(errors)) {
             const input = formElement.querySelector(`[name="${field}"]`);
-            const feedback = formElement.querySelector(`[name="${field}"] + .invalid-feedback`) ||
-                           formElement.querySelector(`[name="${field}"]`).parentElement.querySelector('.invalid-feedback');
-            
+            let feedback = null;
+
             if (input) {
+                // Try direct sibling first
+                const sibling = input.nextElementSibling;
+                if (sibling && sibling.classList && sibling.classList.contains('invalid-feedback')) {
+                    feedback = sibling;
+                } else if (input.parentElement) {
+                    // Fallback: look within parent container
+                    feedback = input.parentElement.querySelector('.invalid-feedback');
+                }
+
                 input.classList.add('is-invalid');
             }
+
             if (feedback) {
                 feedback.textContent = message;
             }

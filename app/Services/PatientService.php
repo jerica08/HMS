@@ -720,8 +720,152 @@ class PatientService
 
         try {
             $this->db->table('inpatient_admissions')->insert($admissionData);
+
+            $admissionId = (int) $this->db->insertID();
+
+            if ($admissionId) {
+                $this->createInpatientMedicalHistoryRecord($admissionId, $input);
+                $this->createInpatientInitialAssessmentRecord($admissionId, $input);
+                $this->createInpatientRoomAssignmentRecord($admissionId, $input);
+
+                $this->createInsuranceClaimForInpatient($patientId, $admissionId, $input);
+            }
         } catch (\Throwable $e) {
             log_message('error', 'Failed to insert inpatient admission for patient ' . $patientId . ': ' . $e->getMessage());
+        }
+    }
+
+    private function createInpatientMedicalHistoryRecord(int $admissionId, array $input): void
+    {
+        if (! $this->db->tableExists('inpatient_medical_history')) {
+            return;
+        }
+
+        $historyData = [
+            'admission_id' => $admissionId,
+            'allergies' => $input['history_allergies'] ?? $input['allergies'] ?? null,
+            'past_medical_history' => $input['past_medical_history'] ?? null,
+            'past_surgical_history' => $input['past_surgical_history'] ?? null,
+            'family_history' => $input['family_history'] ?? null,
+            'current_medications' => $input['history_current_medications'] ?? $input['current_medications'] ?? null,
+        ];
+
+        try {
+            $this->db->table('inpatient_medical_history')->insert($historyData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to insert inpatient medical history for admission ' . $admissionId . ': ' . $e->getMessage());
+        }
+    }
+
+    private function createInpatientInitialAssessmentRecord(int $admissionId, array $input): void
+    {
+        if (! $this->db->tableExists('inpatient_initial_assessment')) {
+            return;
+        }
+
+        $assessmentData = [
+            'admission_id' => $admissionId,
+            'blood_pressure' => $input['assessment_bp'] ?? null,
+            'heart_rate' => $input['assessment_hr'] ?? null,
+            'respiratory_rate' => $input['assessment_rr'] ?? null,
+            'temperature' => $input['assessment_temp'] ?? null,
+            'spo2' => $input['assessment_spo2'] ?? null,
+            'level_of_consciousness' => $input['level_of_consciousness'] ?? null,
+            'pain_level' => $input['pain_level'] ?? null,
+            'initial_findings' => $input['initial_findings'] ?? null,
+            'remarks' => $input['assessment_remarks'] ?? null,
+        ];
+
+        try {
+            $this->db->table('inpatient_initial_assessment')->insert($assessmentData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to insert inpatient initial assessment for admission ' . $admissionId . ': ' . $e->getMessage());
+        }
+    }
+
+    private function createInpatientRoomAssignmentRecord(int $admissionId, array $input): void
+    {
+        if (! $this->db->tableExists('inpatient_room_assignments')) {
+            return;
+        }
+
+        $roomData = [
+            'admission_id' => $admissionId,
+            // room_type is stored as textual classification in this table; UI may provide
+            // an internal ID, so we default to null here to avoid ENUM conflicts.
+            'room_type' => null,
+            'floor_number' => $input['floor_number'] ?? null,
+            'room_number' => $input['room_number'] ?? null,
+            'bed_number' => $input['bed_number'] ?? null,
+            'daily_rate' => $input['daily_rate'] ?? null,
+        ];
+
+        try {
+            $this->db->table('inpatient_room_assignments')->insert($roomData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to insert inpatient room assignment for admission ' . $admissionId . ': ' . $e->getMessage());
+        }
+    }
+
+    private function createInsuranceClaimForInpatient(int $patientId, int $admissionId, array $input): void
+    {
+        if (! $this->db->tableExists('insurance_claims')) {
+            return;
+        }
+
+        $hasInsurance = (
+            ! empty($input['insurance_provider'] ?? null) ||
+            ! empty($input['insurance_card_number'] ?? null) ||
+            ! empty($input['hmo_member_id'] ?? null)
+        );
+
+        if (! $hasInsurance) {
+            return;
+        }
+
+        $patientName = trim(
+            ($input['first_name'] ?? '') . ' ' .
+            ($input['last_name'] ?? '')
+        );
+
+        if ($patientName === '') {
+            try {
+                $patientTable = $this->resolvePatientTableName();
+                $row = $this->db->table($patientTable)
+                    ->select('first_name, last_name')
+                    ->where('patient_id', $patientId)
+                    ->get()
+                    ->getRowArray();
+
+                if ($row) {
+                    $patientName = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+                }
+            } catch (\Throwable $e) {
+                // Fallback: keep empty patient name if lookup fails
+            }
+        }
+
+        $policyNo = $input['insurance_card_number'] ?? ($input['hmo_member_id'] ?? '');
+        $diagnosisCode = $input['admitting_diagnosis'] ?? null;
+
+        $refNo = 'IC-' . date('Ymd-His') . '-' . random_int(100, 999);
+
+        $claimData = [
+            'ref_no'        => $refNo,
+            'patient_name'  => $patientName !== '' ? $patientName : 'Inpatient Patient',
+            'policy_no'     => $policyNo,
+            'claim_amount'  => 0.00,
+            'diagnosis_code'=> $diagnosisCode,
+            'notes'         => 'Inpatient claim for admission ID ' . $admissionId,
+            'status'        => 'Pending',
+            'created_at'    => date('Y-m-d H:i:s'),
+            'updated_at'    => null,
+        ];
+
+        try {
+            $this->db->table('insurance_claims')->insert($claimData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to create insurance claim for inpatient admission ' . $admissionId . ': ' . $e->getMessage());
         }
     }
 

@@ -364,6 +364,13 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="form-actions" style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                                <button type="submit" id="saveOutpatientBtn" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Save Outpatient Patient
+                                </button>
+                            </div>
+
                         </form>
                     </section>
                     <section id="inpatientTab" class="patient-tabs__panel" role="tabpanel" aria-labelledby="inpatientTabBtn" hidden>
@@ -753,13 +760,20 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="form-actions" style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                                <button type="submit" id="saveInpatientBtn" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Save Inpatient Patient
+                                </button>
+                            </div>
+
                         </div>
                         </form>
                     </section>
                 </div>
             </div>
         </div>
-        <div class="hms-modal-actions">
+        <div class="hms-modal-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
             <button type="button" class="btn btn-secondary" onclick="closeAddPatientModal()">Cancel</button>
             <button type="submit" id="savePatientBtn" class="btn btn-success" data-active-form="addPatientForm">
                 <i class="fas fa-save"></i> Save Patient

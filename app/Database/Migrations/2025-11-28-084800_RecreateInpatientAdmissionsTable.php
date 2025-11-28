@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreateInpatientAdmissionsTable extends Migration
+class RecreateInpatientAdmissionsTable extends Migration
 {
     public function up()
     {
@@ -37,14 +37,57 @@ class CreateInpatientAdmissionsTable extends Migration
                 'constraint' => 150,
                 'null'       => true,
             ],
-            'department' => [
+            'insurance_provider' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'insurance_card_number' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 100,
                 'null'       => true,
             ],
+            'insurance_validity' => [
+                'type' => 'DATE',
+                'null' => true,
+            ],
             'patient_classification' => [
                 'type'       => 'ENUM',
                 'constraint' => ['Medical', 'Surgical', 'Maternity', 'Pediatric', 'Geriatric', 'Infectious', 'Psychiatric', 'Rehabilitation'],
+                'null'       => true,
+            ],
+            'hmo_member_id' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'hmo_approval_code' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'hmo_cardholder_name' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'hmo_coverage_type' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'hmo_expiry_date' => [
+                'type' => 'DATE',
+                'null' => true,
+            ],
+            'hmo_contact_person' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'hmo_attachment' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 255,
                 'null'       => true,
             ],
             'consent_signed' => [

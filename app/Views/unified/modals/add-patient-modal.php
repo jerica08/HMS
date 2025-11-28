@@ -325,6 +325,44 @@
                                         <input type="date" id="insurance_validity" name="insurance_validity" class="form-input">
                                     </div>
                                 </div>
+                                <div class="form-grid">
+                                    <div>
+                                        <label class="form-label" for="outpatient_hmo_member_id">HMO Member ID / Card Number</label>
+                                        <input type="text" id="outpatient_hmo_member_id" name="hmo_member_id" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_hmo_approval_code">HMO Approval Code / LOA Number</label>
+                                        <input type="text" id="outpatient_hmo_approval_code" name="hmo_approval_code" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_hmo_cardholder">HMO Cardholder Name</label>
+                                        <input type="text" id="outpatient_hmo_cardholder" name="hmo_cardholder_name" class="form-input">
+                                    </div>
+                                </div>
+                                <div class="form-grid">
+                                    <div>
+                                        <label class="form-label" for="outpatient_hmo_coverage_type">HMO Coverage Type</label>
+                                        <select id="outpatient_hmo_coverage_type" name="hmo_coverage_type" class="form-select">
+                                            <option value="">Select...</option>
+                                            <option value="Outpatient">Outpatient</option>
+                                            <option value="Inpatient">Inpatient</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_hmo_expiry">HMO Expiry Date</label>
+                                        <input type="date" id="outpatient_hmo_expiry" name="hmo_expiry_date" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_hmo_contact">HMO Contact Person (optional)</label>
+                                        <input type="text" id="outpatient_hmo_contact" name="hmo_contact_person" class="form-input">
+                                    </div>
+                                </div>
+                                <div class="form-grid">
+                                    <div class="full">
+                                        <label class="form-label" for="outpatient_hmo_attachment">Attachment Upload (LOA / ID)</label>
+                                        <input type="file" id="outpatient_hmo_attachment" name="hmo_attachment" class="form-input">
+                                    </div>
+                                </div>
                             </div>
                         </form>
                     </section>
@@ -480,10 +518,6 @@
                                     <div>
                                         <label class="form-label" for="admitting_doctor">Admitting Doctor*</label>
                                         <input type="text" id="admitting_doctor" name="admitting_doctor" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="admitting_department">Department / Ward*</label>
-                                        <input type="text" id="admitting_department" name="admitting_department" class="form-input" required>
                                     </div>
                                     <div>
                                         <label class="form-label" for="consent_uploaded">Consent Form Uploaded?</label>
@@ -646,67 +680,80 @@
                             <div class="form-section">
                                 <div class="section-header">
                                     <div>
-                                        <h4>8. Insurance / Billing Details</h4>
+                                        <h4>8. HMO / Insurance (Optional)</h4>
+                                        <p class="section-subtitle">Complete these only if the patient is covered.</p>
                                     </div>
                                 </div>
                                 <div class="form-grid">
                                     <div>
-                                        <label class="form-label" for="philhealth_number">PhilHealth Number</label>
-                                        <input type="text" id="philhealth_number" name="philhealth_number" class="form-input">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="hmo_provider">HMO Provider</label>
-                                        <input type="text" id="hmo_provider" name="hmo_provider" class="form-input">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="hmo_approval_code">HMO Approval Code</label>
-                                        <input type="text" id="hmo_approval_code" name="hmo_approval_code" class="form-input">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="company_guarantee">Company Guarantee Letter</label>
-                                        <select id="company_guarantee" name="company_guarantee" class="form-select">
-                                            <option value="">Select...</option>
-                                            <option value="1">Yes</option>
-                                            <option value="0">No</option>
+                                        <label class="form-label" for="inpatient_insurance_provider">Insurance Provider</label>
+                                        <select id="inpatient_insurance_provider" name="insurance_provider" class="form-select">
+                                            <option value="">Select provider...</option>
+                                            <option value="Maxicare">Maxicare</option>
+                                            <option value="Intellicare">Intellicare</option>
+                                            <option value="Medicard">Medicard</option>
+                                            <option value="PhilCare">PhilCare</option>
+                                            <option value="Avega">Avega</option>
+                                            <option value="Generali Philippines">Generali Philippines</option>
+                                            <option value="Insular Health Care">Insular Health Care</option>
+                                            <option value="EastWest Healthcare">EastWest Healthcare</option>
+                                            <option value="ValuCare (ValueCare)">ValuCare (ValueCare)</option>
+                                            <option value="Caritas Health Shield">Caritas Health Shield</option>
+                                            <option value="FortuneCare">FortuneCare</option>
+                                            <option value="Kaiser">Kaiser</option>
+                                            <option value="Pacific Cross">Pacific Cross</option>
+                                            <option value="Asalus Health Care (Healthway / FamilyDOC)">Asalus Health Care (Healthway / FamilyDOC)</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="billing_payment_method">Payment Method*</label>
-                                        <select id="billing_payment_method" name="payment_method" class="form-select" required>
-                                            <option value="">Select...</option>
-                                            <option value="Cash Deposit">Cash Deposit</option>
-                                            <option value="Insurance">Insurance</option>
-                                            <option value="Company Billing">Company Billing</option>
-                                        </select>
+                                        <label class="form-label" for="inpatient_insurance_card_number">Card Number</label>
+                                        <input type="text" id="inpatient_insurance_card_number" name="insurance_card_number" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="inpatient_insurance_validity">Validity</label>
+                                        <input type="date" id="inpatient_insurance_validity" name="insurance_validity" class="form-input">
                                     </div>
                                 </div>
-                            </div>
-
-                            <div class="form-section">
-                                <div class="section-header">
+                                <div class="form-grid">
                                     <div>
-                                        <h4>9. Consent &amp; Legal Information</h4>
+                                        <label class="form-label" for="inpatient_hmo_member_id">HMO Member ID / Card Number</label>
+                                        <input type="text" id="inpatient_hmo_member_id" name="hmo_member_id" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="inpatient_hmo_approval_code">HMO Approval Code / LOA Number</label>
+                                        <input type="text" id="inpatient_hmo_approval_code" name="hmo_approval_code" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="inpatient_hmo_cardholder">HMO Cardholder Name</label>
+                                        <input type="text" id="inpatient_hmo_cardholder" name="hmo_cardholder_name" class="form-input">
+                                    </div>
+                                </div>
+                                <div class="form-grid">
+                                    <div>
+                                        <label class="form-label" for="inpatient_hmo_coverage_type">HMO Coverage Type</label>
+                                        <select id="inpatient_hmo_coverage_type" name="hmo_coverage_type" class="form-select">
+                                            <option value="">Select...</option>
+                                            <option value="Outpatient">Outpatient</option>
+                                            <option value="Inpatient">Inpatient</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="inpatient_hmo_expiry">HMO Expiry Date</label>
+                                        <input type="date" id="inpatient_hmo_expiry" name="hmo_expiry_date" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="inpatient_hmo_contact">HMO Contact Person (optional)</label>
+                                        <input type="text" id="inpatient_hmo_contact" name="hmo_contact_person" class="form-input">
                                     </div>
                                 </div>
                                 <div class="form-grid">
                                     <div class="full">
-                                        <label class="form-label" for="consent_upload">Signed Admission Consent</label>
-                                        <input type="file" id="consent_upload" name="consent_upload" class="form-input">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="billing_responsible_name">Responsible Person (Full Name)*</label>
-                                        <input type="text" id="billing_responsible_name" name="billing_responsible_name" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="billing_responsible_signature">Signature*</label>
-                                        <input type="text" id="billing_responsible_signature" name="billing_responsible_signature" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="billing_responsible_contact">Contact Number*</label>
-                                        <input type="text" id="billing_responsible_contact" name="billing_responsible_contact" class="form-input" required>
+                                        <label class="form-label" for="inpatient_hmo_attachment">Attachment Upload (LOA / ID)</label>
+                                        <input type="file" id="inpatient_hmo_attachment" name="hmo_attachment" class="form-input">
                                     </div>
                                 </div>
                             </div>
+                        </div>
                         </form>
                     </section>
                 </div>

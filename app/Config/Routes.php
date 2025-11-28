@@ -285,6 +285,8 @@ $routes->get('receptionist/financial', 'FinancialController::index', ['filter' =
 
 // Billing account actions
 $routes->post('financial/billing-accounts/(:num)/paid', 'FinancialController::markBillingAccountPaid/$1', ['filter' => 'roleauth:admin,accountant']);
+// Delete billing account
+$routes->post('financial/billing-accounts/(:num)/delete', 'FinancialController::deleteBillingAccount/$1', ['filter' => 'roleauth:admin,accountant']);
 
 // Analytics & Reports Routes
 $routes->get('admin/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:admin']);

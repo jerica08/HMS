@@ -516,6 +516,39 @@ class FinancialService
         return $this->updateBillingAccountStatus($billingId, 'paid');
     }
 
+    /**
+     * Delete a billing account and its related billing items.
+     */
+    public function deleteBillingAccount(int $billingId): array
+    {
+        try {
+            if (!$this->db->tableExists('billing_accounts')) {
+                return ['success' => false, 'message' => 'Billing accounts table is missing'];
+            }
+
+            // Optionally delete related billing items first when table exists
+            if ($this->db->tableExists('billing_items')) {
+                $this->db->table('billing_items')
+                    ->where('billing_id', $billingId)
+                    ->delete();
+            }
+
+            $this->db->table('billing_accounts')
+                ->where('billing_id', $billingId)
+                ->delete();
+
+            if ($this->db->affectedRows() <= 0) {
+                return ['success' => false, 'message' => 'Billing account not found'];
+            }
+
+            return ['success' => true, 'message' => 'Billing account deleted successfully'];
+
+        } catch (\Exception $e) {
+            log_message('error', 'FinancialService::deleteBillingAccount error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error deleting billing account'];
+        }
+    }
+
     public function addItemFromAppointment(int $billingId, int $appointmentId, float $unitPrice, int $quantity = 1, ?int $createdByStaffId = null): array
     {
         try {

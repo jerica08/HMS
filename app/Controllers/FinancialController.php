@@ -124,6 +124,37 @@ class FinancialController extends BaseController
         ]);
     }
 
+    /**
+     * Delete a billing account and its items.
+     */
+    public function deleteBillingAccount($billingId)
+    {
+        $session  = session();
+        $userRole = $session->get('role') ?? 'accountant';
+
+        if (!in_array($userRole, ['admin', 'accountant'], true)) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'You are not allowed to delete billing accounts.',
+            ]);
+        }
+
+        if (strtolower($this->request->getMethod()) !== 'post') {
+            return $this->response->setStatusCode(405)->setJSON([
+                'success' => false,
+                'message' => 'Invalid request method.',
+            ]);
+        }
+
+        $result = $this->financialService->deleteBillingAccount((int)$billingId);
+        $status = !empty($result['success']) ? 200 : 400;
+
+        return $this->response->setStatusCode($status)->setJSON([
+            'success' => !empty($result['success']),
+            'message' => $result['message'] ?? 'Unable to delete billing account.',
+        ]);
+    }
+
     public function addTransaction()
     {
         if ($this->request->getMethod() === 'POST') {

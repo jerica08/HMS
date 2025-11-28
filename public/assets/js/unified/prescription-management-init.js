@@ -1,7 +1,5 @@
-// Initialize PrescriptionManager and expose closePrescriptionBillingModal globally
+// Helper to expose closePrescriptionBillingModal globally without re-instantiating PrescriptionManager
 (function() {
-    const manager = new PrescriptionManager();
-    window.prescriptionManager = manager;
     window.closePrescriptionBillingModal = function() {
         if (window.prescriptionManager && typeof window.prescriptionManager.closeBillingModal === 'function') {
             window.prescriptionManager.closeBillingModal();

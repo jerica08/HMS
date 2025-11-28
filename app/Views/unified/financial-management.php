@@ -272,6 +272,13 @@
                                                 <i class="fas fa-check-circle"></i> Mark as Paid
                                             </button>
                                         <?php endif; ?>
+
+                                        <?php if (in_array($userRole, ['admin','accountant'])): ?>
+                                            <button class="btn btn-danger btn-small"
+                                                onclick="deleteBillingAccount(<?= esc($account['billing_id']) ?>)">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
 
@@ -427,6 +434,38 @@
                 .catch(err => {
                     console.error('Failed to mark billing account paid', err);
                     alert('Failed to mark billing account as paid.');
+                });
+        }
+
+        function deleteBillingAccount(billingId) {
+            if (!billingId) return;
+
+            if (!window.confirm('Delete this billing account and all its items? This action cannot be undone.')) {
+                return;
+            }
+
+            const url = `${window.baseUrl}/financial/billing-accounts/${billingId}/delete`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ billing_id: billingId })
+            })
+                .then(resp => resp.json())
+                .then(result => {
+                    const ok = result && (result.success === true || result.status === 'success');
+                    alert(result.message || (ok ? 'Billing account deleted successfully.' : 'Failed to delete billing account.'));
+
+                    if (ok) {
+                        window.location.reload();
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to delete billing account', err);
+                    alert('Failed to delete billing account.');
                 });
         }
     </script>

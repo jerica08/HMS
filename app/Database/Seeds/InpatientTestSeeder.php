@@ -105,6 +105,38 @@ class InpatientTestSeeder extends Seeder
             $db->table('inpatient_room_assignments')->insert($roomData);
         }
 
+        // 6. Insurance claim linked to inpatient admission
+        if ($db->tableExists('insurance_claims')) {
+            $claimData = [
+                'ref_no'              => 'INP-' . str_pad($admissionId, 6, '0', STR_PAD_LEFT),
+                'patient_name'        => implode(' ', [$patientData['first_name'], $patientData['middle_name'], $patientData['last_name']]),
+                'policy_no'           => 'INP-POL-' . time(),
+                'claim_amount'        => 0.00,
+                'notes'               => 'Claim generated for inpatient admission',
+                'status'              => 'Pending',
+                'patient_id'          => $patientId,
+                'admission_id'        => $admissionId,
+                'claim_source'        => 'inpatient',
+                'insurance_provider'  => 'Test HMO',
+                'insurance_card_number'=> 'INP-123456789',
+                'insurance_valid_from'=> date('Y-m-d'),
+                'insurance_valid_to'  => date('Y-m-d', strtotime('+1 year')),
+                'hmo_member_id'       => 'HMO-' . $patientId,
+                'hmo_approval_code'   => 'HMO-APP-' . $admissionId,
+                'hmo_cardholder_name' => $patientData['first_name'] . ' ' . $patientData['last_name'],
+                'hmo_contact_person'  => 'HMO Representative',
+                'hmo_attachment'      => null,
+            ];
+            $existingColumns = $db->getFieldNames('insurance_claims');
+            $claimData = array_filter(
+                $claimData,
+                fn($value, $key) => in_array($key, $existingColumns, true),
+                ARRAY_FILTER_USE_BOTH
+            );
+
+            $db->table('insurance_claims')->insert($claimData);
+        }
+
         echo "Inpatient test data seeded successfully. Patient ID: {$patientId}, Admission ID: {$admissionId}\n";
     }
 }

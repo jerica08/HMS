@@ -51,6 +51,59 @@ class UpdateInsuranceClaimsForPatients extends Migration
             ];
         }
 
+        $insuranceFields = [
+            'insurance_provider' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+                'after'      => 'claim_source',
+            ],
+            'insurance_card_number' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 100,
+                'null'       => true,
+            ],
+            'insurance_valid_from' => [
+                'type' => 'DATE',
+                'null' => true,
+            ],
+            'insurance_valid_to' => [
+                'type' => 'DATE',
+                'null' => true,
+            ],
+            'hmo_member_id' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'hmo_approval_code' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'hmo_cardholder_name' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'hmo_contact_person' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 150,
+                'null'       => true,
+            ],
+            'hmo_attachment' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 255,
+                'null'       => true,
+            ],
+        ];
+
+        foreach ($insuranceFields as $name => $definition) {
+            if (! $this->db->fieldExists($name, 'insurance_claims')) {
+                $fields[$name] = $definition;
+            }
+        }
+
         if (! empty($fields)) {
             $this->forge->addColumn('insurance_claims', $fields);
         }
@@ -63,7 +116,21 @@ class UpdateInsuranceClaimsForPatients extends Migration
         }
 
         $drop = [];
-        foreach (['claim_source', 'visit_id', 'admission_id', 'patient_id'] as $field) {
+        foreach ([
+            'hmo_attachment',
+            'hmo_contact_person',
+            'hmo_cardholder_name',
+            'hmo_approval_code',
+            'hmo_member_id',
+            'insurance_valid_to',
+            'insurance_valid_from',
+            'insurance_card_number',
+            'insurance_provider',
+            'claim_source',
+            'visit_id',
+            'admission_id',
+            'patient_id',
+        ] as $field) {
             if ($this->db->fieldExists($field, 'insurance_claims')) {
                 $drop[] = $field;
             }

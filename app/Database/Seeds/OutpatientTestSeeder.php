@@ -68,6 +68,37 @@ class OutpatientTestSeeder extends Seeder
             return;
         }
 
+        if ($db->tableExists('insurance_claims')) {
+            $claimData = [
+                'ref_no'               => 'OUT-' . str_pad($visitId, 6, '0', STR_PAD_LEFT),
+                'patient_name'         => implode(' ', [$patientData['first_name'], $patientData['middle_name'], $patientData['last_name']]),
+                'policy_no'            => 'OUT-POL-' . time(),
+                'claim_amount'         => 0.00,
+                'notes'                => 'Claim generated for outpatient visit',
+                'status'               => 'Pending',
+                'patient_id'           => $patientId,
+                'visit_id'             => $visitId,
+                'claim_source'         => 'outpatient',
+                'insurance_provider'   => 'Test PPO',
+                'insurance_card_number'=> 'OUT-987654321',
+                'insurance_valid_from' => date('Y-m-d'),
+                'insurance_valid_to'   => date('Y-m-d', strtotime('+1 year')),
+                'hmo_member_id'        => 'PPO-' . $patientId,
+                'hmo_approval_code'    => 'PPO-APP-' . $visitId,
+                'hmo_cardholder_name'  => $patientData['first_name'] . ' ' . $patientData['last_name'],
+                'hmo_contact_person'   => 'PPO Representative',
+                'hmo_attachment'       => null,
+            ];
+            $existingColumns = $db->getFieldNames('insurance_claims');
+            $claimData = array_filter(
+                $claimData,
+                fn($value, $key) => in_array($key, $existingColumns, true),
+                ARRAY_FILTER_USE_BOTH
+            );
+
+            $db->table('insurance_claims')->insert($claimData);
+        }
+
         echo "Outpatient test data seeded successfully. Patient ID: {$patientId}, Visit ID: {$visitId}\n";
     }
 }

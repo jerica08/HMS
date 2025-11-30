@@ -114,28 +114,20 @@
                                         </select>
                                     </div>
                                     <div>
-<<<<<<< HEAD
                                         <label class="form-label" for="outpatient_street_name">Street Name*</label>
                                         <input type="text" id="outpatient_street_name" name="street_name" class="form-input" placeholder="e.g., Mabini St." required>
                                     </div>
                                     <div>
-=======
->>>>>>> 3b7d5d2 (Commit)
                                         <label class="form-label" for="outpatient_subdivision">Subdivision / Village</label>
                                         <input type="text" id="outpatient_subdivision" name="subdivision" class="form-input" placeholder="Optional">
                                     </div>
                                     <div>
-<<<<<<< HEAD
                                         <label class="form-label" for="outpatient_building_name">Building Name</label>
                                         <input type="text" id="outpatient_building_name" name="building_name" class="form-input" placeholder="Optional">
                                     </div>
                                     <div>
                                         <label class="form-label" for="outpatient_house_number">House / Lot / Block / Unit No.*</label>
                                         <input type="text" id="outpatient_house_number" name="house_number" class="form-input" placeholder="e.g., Blk 4 Lot 8" required>
-=======
-                                        <label class="form-label" for="outpatient_house_number">House / Lot / Block / Unit No.*</label>
-                                        <input type="text" id="outpatient_house_number" name="house_number" class="form-input" placeholder="Optional" required>
->>>>>>> 3b7d5d2 (Commit)
                                     </div>
                                     <div>
                                         <label class="form-label" for="outpatient_zip_code">ZIP Code</label>
@@ -159,24 +151,7 @@
                                     </div>
                                     <div>
                                         <label class="form-label" for="emergency_contact_relationship">Relationship*</label>
-<<<<<<< HEAD
                                         <input type="text" id="emergency_contact_relationship" name="emergency_contact_relationship" class="form-input" required>
-=======
-                                        <select id="emergency_contact_relationship" name="emergency_contact_relationship" class="form-input" required>
-                                            <option value="" disabled selected>Select a relationship</option>
-                                            <option value="Mother">Mother</option>
-                                            <option value="Father">Father</option>
-                                            <option value="Parent (if unspecified which)">Parent (if unspecified which)</option>
-                                            <option value="Spouse / Husband">Spouse / Husband</option>
-                                            <option value="Wife">Wife</option>
-                                            <option value="Son">Son</option>
-                                            <option value="Daughter">Daughter</option>
-                                            <option value="Child (general)">Child (general)</option>
-                                            <option value="Brother">Brother</option>
-                                            <option value="Sister">Sister</option>
-                                            <option value="Sibling (general)">Sibling (general)</option>
-                                        </select>
->>>>>>> 3b7d5d2 (Commit)
                                     </div>
                                     <div>
                                         <label class="form-label" for="emergency_contact_phone">Contact Number*</label>
@@ -200,11 +175,7 @@
                                     </div>
                                     <div class="full">
                                         <label class="form-label" for="allergies">Allergies</label>
-<<<<<<< HEAD
                                         <textarea id="allergies" name="allergies" class="form-input" rows="2" placeholder="e.g., Penicillin, Latex"></textarea>
-=======
-                                        <textarea id="allergies" name="allergies" class="form-input" rows="2" placeholder="Optional(if there are any)"></textarea>
->>>>>>> 3b7d5d2 (Commit)
                                     </div>
                                     <div class="full">
                                         <label class="form-label" for="existing_conditions">Existing Conditions</label>
@@ -415,7 +386,6 @@
                                         <p class="section-subtitle">Baseline identity details for admission.</p>
                                     </div>
                                 </div>
-<<<<<<< HEAD
                                 <div class="form-grid">
                                     <div>
                                         <label class="form-label" for="inpatient_patient_id">Patient ID</label>
@@ -436,46 +406,11 @@
                                     <div>
                                         <label class="form-label" for="inpatient_gender">Sex*</label>
                                         <select id="inpatient_gender" name="gender" class="form-select" required>
-=======
-                                 <div class="form-grid">
-                                    <div>
-                                        <label class="form-label" for="patient_identifier">Patient ID</label>
-                                        <input type="text" id="patient_identifier" class="form-input" value="Auto-generated" readonly>
-                                        <small class="form-hint">Assigned automatically after saving.</small>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="last_name">Last Name*</label>
-                                        <input type="text" id="last_name" name="last_name" class="form-input" required>
-                                        <small id="err_last_name" class="form-error"></small>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="first_name">First Name*</label>
-                                        <input type="text" id="first_name" name="first_name" class="form-input" required>
-                                        <small id="err_first_name" class="form-error"></small>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="middle_name">Middle Name</label>
-                                        <input type="text" id="middle_name" name="middle_name" class="form-input">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="date_of_birth">Date of Birth*</label>
-                                        <input type="date" id="date_of_birth" name="date_of_birth" class="form-input" required>
-                                        <small id="err_date_of_birth" class="form-error"></small>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="age_display">Age</label>
-                                        <input type="text" id="age_display" class="form-input" readonly placeholder="Auto-calculated">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="gender">Sex*</label>
-                                        <select id="gender" name="gender" class="form-select" required>
->>>>>>> 3b7d5d2 (Commit)
                                             <option value="">Select...</option>
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
                                             <option value="other">Other</option>
                                         </select>
-<<<<<<< HEAD
                                     </div>
                                     <div>
                                         <label class="form-label" for="inpatient_province">Province*</label>
@@ -522,62 +457,11 @@
                                     <div>
                                         <label class="form-label" for="inpatient_civil_status">Civil Status*</label>
                                         <select id="inpatient_civil_status" name="civil_status" class="form-select" required>
-=======
-                                        <small id="err_gender" class="form-error"></small>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="civil_status">Civil Status*</label>
-                                        <select id="civil_status" name="civil_status" class="form-select" required>
->>>>>>> 3b7d5d2 (Commit)
                                             <option value="">Select...</option>
                                             <option value="Single">Single</option>
                                             <option value="Married">Married</option>
                                             <option value="Widowed">Widowed</option>
                                         </select>
-<<<<<<< HEAD
-=======
-                                        <small id="err_civil_status" class="form-error"></small>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="phone">Contact Number*</label>
-                                        <input type="text" id="phone" name="phone" class="form-input" required>
-                                        <small id="err_phone" class="form-error"></small>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="email">Email Address</label>
-                                        <input type="email" id="email" name="email" class="form-input">
-                                        <small id="err_email" class="form-error"></small>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="outpatient_province">Province*</label>
-                                        <select id="outpatient_province" name="province" class="form-select" required disabled>
-                                            <option value="">Select a province...</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="outpatient_city">City / Municipality*</label>
-                                        <select id="outpatient_city" name="city" class="form-select" required disabled>
-                                            <option value="">Select a city or municipality...</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="outpatient_barangay">Barangay*</label>
-                                        <select id="outpatient_barangay" name="barangay" class="form-select" required disabled>
-                                            <option value="">Select a barangay...</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="outpatient_subdivision">Subdivision / Village</label>
-                                        <input type="text" id="outpatient_subdivision" name="subdivision" class="form-input" placeholder="Optional">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="outpatient_house_number">House / Lot / Block / Unit No.*</label>
-                                        <input type="text" id="outpatient_house_number" name="house_number" class="form-input" placeholder="Optional" required>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="outpatient_zip_code">ZIP Code</label>
-                                        <input type="text" id="outpatient_zip_code" name="zip_code" class="form-input" placeholder="Optional">
->>>>>>> 3b7d5d2 (Commit)
                                     </div>
                                 </div>
                             </div>
@@ -595,26 +479,8 @@
                                         <input type="text" id="guardian_name" name="guardian_name" class="form-input" required>
                                     </div>
                                     <div>
-<<<<<<< HEAD
                                         <label class="form-label" for="guardian_relationship">Relationship*</label>
                                         <input type="text" id="guardian_relationship" name="guardian_relationship" class="form-input" required>
-=======
-                                        <label class="form-label" for="emergency_contact_relationship">Relationship*</label>
-                                        <select id="emergency_contact_relationship" name="emergency_contact_relationship" class="form-input" required>
-                                            <option value="" disabled selected>Select a relationship</option>
-                                            <option value="Mother">Mother</option>
-                                            <option value="Father">Father</option>
-                                            <option value="Parent (if unspecified which)">Parent (if unspecified which)</option>
-                                            <option value="Spouse / Husband">Spouse / Husband</option>
-                                            <option value="Wife">Wife</option>
-                                            <option value="Son">Son</option>
-                                            <option value="Daughter">Daughter</option>
-                                            <option value="Child (general)">Child (general)</option>
-                                            <option value="Brother">Brother</option>
-                                            <option value="Sister">Sister</option>
-                                            <option value="Sibling (general)">Sibling (general)</option>
-                                        </select>
->>>>>>> 3b7d5d2 (Commit)
                                     </div>
                                     <div>
                                         <label class="form-label" for="guardian_contact">Contact Number*</label>
@@ -649,11 +515,7 @@
                                             <option value="">Select...</option>
                                             <option value="ER">ER Admission</option>
                                             <option value="Scheduled">Scheduled Admission</option>
-<<<<<<< HEAD
                                             <option value="Transfer">Transfer from Other Facility</option>
-=======
-                                            <option value="Transfer">Transfer from other Facility/Hospital</option>
->>>>>>> 3b7d5d2 (Commit)
                                         </select>
                                     </div>
                                     <div class="full">
@@ -729,11 +591,7 @@
                                 </div>
                                 <div class="pill-select">
                                     <?php
-<<<<<<< HEAD
                                     $classifications = ['Medical', 'Surgical', 'Maternity', 'Pediatric', 'Geriatric', 'Infectious', 'Psychiatric', 'Rehabilitation'];
-=======
-                                    $classifications = ['Medical', 'Surgical', 'Maternity', 'Pediatric', 'Geriatric', 'Infectious', 'Psychiatric', 'Rehabilitation','Others'];
->>>>>>> 3b7d5d2 (Commit)
                                     foreach ($classifications as $classification): ?>
                                         <label class="pill-option">
                                             <input type="radio" name="patient_classification" value="<?= esc($classification) ?>">
@@ -741,21 +599,6 @@
                                         </label>
                                     <?php endforeach; ?>
                                 </div>
-<<<<<<< HEAD
-=======
-                                <div class="form-grid" style="margin-top:1rem;">
-                                    <div>
-                                        <label class="form-label" for="case_severity">Case Severity*</label>
-                                        <select id="case_severity" name="case_severity" class="form-select" required>
-                                            <option value="">Select severity...</option>
-                                            <option value="Mild">Mild</option>
-                                            <option value="Moderate">Moderate</option>
-                                            <option value="Severe">Severe</option>
-                                            <option value="Critical">Critical</option>
-                                        </select>
-                                    </div>
-                                </div>
->>>>>>> 3b7d5d2 (Commit)
                             </div>
 
                             <div class="form-section">

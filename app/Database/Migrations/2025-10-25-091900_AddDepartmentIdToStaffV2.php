@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class AddDepartmentIdToStaff extends Migration
+class AddDepartmentIdToStaffV2 extends Migration
 {
     public function up()
     {

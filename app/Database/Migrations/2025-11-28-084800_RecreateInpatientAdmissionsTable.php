@@ -8,6 +8,20 @@ class RecreateInpatientAdmissionsTable extends Migration
 {
     public function up()
     {
+        $db = \Config\Database::connect();
+
+        if ($db->tableExists('patients') && $db->fieldExists('patient_id', 'patients')) {
+            try {
+                $db->query('ALTER TABLE patients ENGINE=InnoDB');
+                $column = $db->query("SHOW COLUMNS FROM patients WHERE Field = 'patient_id'")->getRow();
+                if ($column && ! str_contains(strtolower($column->Type), 'unsigned')) {
+                    $db->query('ALTER TABLE patients MODIFY patient_id INT UNSIGNED NOT NULL AUTO_INCREMENT');
+                }
+            } catch (\Throwable $e) {
+                // ignore modifier failures
+            }
+        }
+
         $this->forge->addField([
             'admission_id' => [
                 'type'           => 'INT',
@@ -103,13 +117,19 @@ class RecreateInpatientAdmissionsTable extends Migration
         ]);
 
         $this->forge->addKey('admission_id', true);
-        $this->forge->addForeignKey('patient_id', 'patients', 'patient_id', 'CASCADE', 'CASCADE', 'fk_inpatient_admissions_patient');
 
         $this->forge->createTable('inpatient_admissions');
 
-        $db = \Config\Database::connect();
         $db->query('ALTER TABLE inpatient_admissions ENGINE=InnoDB');
         $db->query('ALTER TABLE inpatient_admissions MODIFY created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP');
+
+        if ($db->tableExists('patients') && $db->fieldExists('patient_id', 'patients')) {
+            try {
+                $db->query('ALTER TABLE inpatient_admissions ADD CONSTRAINT fk_inpatient_admissions_patient FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE ON UPDATE CASCADE');
+            } catch (\Throwable $e) {
+                // ignore malformed constraints
+            }
+        }
     }
 
     public function down()

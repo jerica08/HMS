@@ -57,13 +57,13 @@
                                         <input type="text" id="middle_name" name="middle_name" class="form-input">
                                     </div>
                                     <div>
-                                        <label class="form-label" for="date_of_birth">Date of Birth*</label>
-                                        <input type="date" id="date_of_birth" name="date_of_birth" class="form-input" required>
+                                        <label class="form-label" for="inpatient_date_of_birth">Date of Birth*</label>
+                                        <input type="date" id="inpatient_date_of_birth" name="date_of_birth" class="form-input" required>
                                         <small id="err_date_of_birth" class="form-error"></small>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="age_display">Age</label>
-                                        <input type="text" id="age_display" class="form-input" readonly placeholder="Auto-calculated">
+                                        <label class="form-label" for="inpatient_age">Age</label>
+                                        <input type="text" id="inpatient_age" name="age" class="form-input" readonly placeholder="Auto-calculated">
                                     </div>
                                     <div>
                                         <label class="form-label" for="gender">Sex*</label>
@@ -114,20 +114,12 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_street_name">Street Name*</label>
-                                        <input type="text" id="outpatient_street_name" name="street_name" class="form-input" placeholder="e.g., Mabini St." required>
-                                    </div>
-                                    <div>
                                         <label class="form-label" for="outpatient_subdivision">Subdivision / Village</label>
                                         <input type="text" id="outpatient_subdivision" name="subdivision" class="form-input" placeholder="Optional">
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_building_name">Building Name</label>
-                                        <input type="text" id="outpatient_building_name" name="building_name" class="form-input" placeholder="Optional">
-                                    </div>
-                                    <div>
                                         <label class="form-label" for="outpatient_house_number">House / Lot / Block / Unit No.*</label>
-                                        <input type="text" id="outpatient_house_number" name="house_number" class="form-input" placeholder="e.g., Blk 4 Lot 8" required>
+                                        <input type="text" id="outpatient_house_number" name="house_number" class="form-input" placeholder="" required>
                                     </div>
                                     <div>
                                         <label class="form-label" for="outpatient_zip_code">ZIP Code</label>
@@ -388,80 +380,92 @@
                                 </div>
                                 <div class="form-grid">
                                     <div>
-                                        <label class="form-label" for="inpatient_patient_id">Patient ID</label>
-                                        <input type="text" id="inpatient_patient_id" class="form-input" value="Auto-generated" readonly>
-                                    </div>
-                                    <div class="full">
-                                        <label class="form-label" for="inpatient_full_name">Full Name*</label>
-                                        <input type="text" id="inpatient_full_name" name="full_name" class="form-input" placeholder="Last, First Middle" required>
+                                        <label class="form-label" for="patient_identifier">Patient ID</label>
+                                        <input type="text" id="patient_identifier" class="form-input" value="Auto-generated" readonly>
+                                        <small class="form-hint">Assigned automatically after saving.</small>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="inpatient_date_of_birth">Date of Birth*</label>
-                                        <input type="date" id="inpatient_date_of_birth" name="date_of_birth" class="form-input" required>
+                                        <label class="form-label" for="last_name">Last Name*</label>
+                                        <input type="text" id="last_name" name="last_name" class="form-input" required>
+                                        <small id="err_last_name" class="form-error"></small>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="inpatient_age">Age*</label>
-                                        <input type="text" id="inpatient_age" name="age" class="form-input" placeholder="Auto-calculated" readonly required>
+                                        <label class="form-label" for="first_name">First Name*</label>
+                                        <input type="text" id="first_name" name="first_name" class="form-input" required>
+                                        <small id="err_first_name" class="form-error"></small>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="inpatient_gender">Sex*</label>
-                                        <select id="inpatient_gender" name="gender" class="form-select" required>
+                                        <label class="form-label" for="middle_name">Middle Name</label>
+                                        <input type="text" id="middle_name" name="middle_name" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="date_of_birth">Date of Birth*</label>
+                                        <input type="date" id="date_of_birth" name="date_of_birth" class="form-input" required>
+                                        <small id="err_date_of_birth" class="form-error"></small>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="age_display">Age</label>
+                                        <input type="text" id="age_display" class="form-input" readonly placeholder="Auto-calculated">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="gender">Sex*</label>
+                                        <select id="gender" name="gender" class="form-select" required>
                                             <option value="">Select...</option>
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
                                             <option value="other">Other</option>
                                         </select>
+                                        <small id="err_gender" class="form-error"></small>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="inpatient_province">Province*</label>
-                                        <select id="inpatient_province" name="province" class="form-select" required disabled>
-                                            <option value="">Select a province...</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="inpatient_city">City / Municipality*</label>
-                                        <select id="inpatient_city" name="city" class="form-select" required disabled>
-                                            <option value="">Select a city or municipality...</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="inpatient_barangay">Barangay*</label>
-                                        <select id="inpatient_barangay" name="barangay" class="form-select" required disabled>
-                                            <option value="">Select a barangay...</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="street_name">Street Name*</label>
-                                        <input type="text" id="street_name" name="street_name" class="form-input" placeholder="e.g., Mabini St." required>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="subdivision">Subdivision / Village</label>
-                                        <input type="text" id="subdivision" name="subdivision" class="form-input" placeholder="Optional">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="building_name">Building Name</label>
-                                        <input type="text" id="building_name" name="building_name" class="form-input" placeholder="Optional">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="house_number">House / Lot / Block / Unit No.*</label>
-                                        <input type="text" id="house_number" name="house_number" class="form-input" placeholder="e.g., Blk 4 Lot 8" required>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="zip_code">ZIP Code</label>
-                                        <input type="text" id="zip_code" name="zip_code" class="form-input" placeholder="Optional">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="inpatient_contact">Contact Number*</label>
-                                        <input type="text" id="inpatient_contact" name="contact_number" class="form-input" required>
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="inpatient_civil_status">Civil Status*</label>
-                                        <select id="inpatient_civil_status" name="civil_status" class="form-select" required>
+                                        <label class="form-label" for="civil_status">Civil Status*</label>
+                                        <select id="civil_status" name="civil_status" class="form-select" required>
                                             <option value="">Select...</option>
                                             <option value="Single">Single</option>
                                             <option value="Married">Married</option>
                                             <option value="Widowed">Widowed</option>
                                         </select>
+                                        <small id="err_civil_status" class="form-error"></small>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="phone">Contact Number*</label>
+                                        <input type="text" id="phone" name="phone" class="form-input" required>
+                                        <small id="err_phone" class="form-error"></small>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="email">Email Address</label>
+                                        <input type="email" id="email" name="email" class="form-input">
+                                        <small id="err_email" class="form-error"></small>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_province">Province*</label>
+                                        <select id="outpatient_province" name="province" class="form-select" required disabled>
+                                            <option value="">Select a province...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_city">City / Municipality*</label>
+                                        <select id="outpatient_city" name="city" class="form-select" required disabled>
+                                            <option value="">Select a city or municipality...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_barangay">Barangay*</label>
+                                        <select id="outpatient_barangay" name="barangay" class="form-select" required disabled>
+                                            <option value="">Select a barangay...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_subdivision">Subdivision / Village</label>
+                                        <input type="text" id="outpatient_subdivision" name="subdivision" class="form-input" placeholder="Optional">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_house_number">House / Lot / Block / Unit No.*</label>
+                                        <input type="text" id="outpatient_house_number" name="house_number" class="form-input" placeholder="Optional" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_zip_code">ZIP Code</label>
+                                        <input type="text" id="outpatient_zip_code" name="zip_code" class="form-input" placeholder="Optional">
                                     </div>
                                 </div>
                             </div>
@@ -515,7 +519,7 @@
                                             <option value="">Select...</option>
                                             <option value="ER">ER Admission</option>
                                             <option value="Scheduled">Scheduled Admission</option>
-                                            <option value="Transfer">Transfer from Other Facility</option>
+                                            <option value="Transfer">Transfer from other facility/hospital</option>
                                         </select>
                                     </div>
                                     <div class="full">
@@ -586,25 +590,7 @@
                             <div class="form-section">
                                 <div class="section-header">
                                     <div>
-                                        <h4>5. Patient Classification Based on Illness</h4>
-                                    </div>
-                                </div>
-                                <div class="pill-select">
-                                    <?php
-                                    $classifications = ['Medical', 'Surgical', 'Maternity', 'Pediatric', 'Geriatric', 'Infectious', 'Psychiatric', 'Rehabilitation'];
-                                    foreach ($classifications as $classification): ?>
-                                        <label class="pill-option">
-                                            <input type="radio" name="patient_classification" value="<?= esc($classification) ?>">
-                                            <span><?= esc($classification) ?></span>
-                                        </label>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-
-                            <div class="form-section">
-                                <div class="section-header">
-                                    <div>
-                                        <h4>6. Medical History</h4>
+                                        <h4>5. Medical History</h4>
                                     </div>
                                 </div>
                                 <div class="form-grid">
@@ -634,7 +620,7 @@
                             <div class="form-section">
                                 <div class="section-header">
                                     <div>
-                                        <h4>7. Initial Assessment (Nurse)</h4>
+                                        <h4>6. Initial Assessment</h4>
                                     </div>
                                 </div>
                                 <div class="vitals-grid">
@@ -658,6 +644,14 @@
                                         <label class="form-label" for="assessment_spo2">SpO2</label>
                                         <input type="text" id="assessment_spo2" name="assessment_spo2" class="form-input">
                                     </div>
+                                    <div>
+                                        <label class="form-label" for="assessment_height_cm">Height (cm) <span class="form-hint">(optional)</span></label>
+                                        <input type="number" step="0.1" min="0" id="assessment_height_cm" name="assessment_height_cm" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="assessment_weight_kg">Weight (kg) <span class="form-hint">(optional)</span></label>
+                                        <input type="number" step="0.1" min="0" id="assessment_weight_kg" name="assessment_weight_kg" class="form-input">
+                                    </div>
                                 </div>
                                 <div class="form-grid">
                                     <div>
@@ -673,6 +667,21 @@
                                         <label class="form-label" for="pain_level">Pain Level (0-10)</label>
                                         <input type="number" min="0" max="10" id="pain_level" name="pain_level" class="form-input">
                                     </div>
+                                    <div>
+                                        <label class="form-label" for="mode_of_arrival">Mode of Arrival <span class="form-hint">(optional)</span></label>
+                                        <select id="mode_of_arrival" name="mode_of_arrival" class="form-select">
+                                            <option value="">Select...</option>
+                                            <option value="Walk-in">Walk-in</option>
+                                            <option value="Wheelchair">Wheelchair</option>
+                                            <option value="Stretcher">Stretcher</option>
+                                            <option value="Ambulance">Ambulance</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="skin_condition">Skin Condition <span class="form-hint">(optional)</span></label>
+                                        <input type="text" id="skin_condition" name="skin_condition" class="form-input">
+                                    </div>
                                     <div class="full">
                                         <label class="form-label" for="initial_findings">Initial Findings</label>
                                         <textarea id="initial_findings" name="initial_findings" class="form-input" rows="2"></textarea>
@@ -687,7 +696,7 @@
                             <div class="form-section">
                                 <div class="section-header">
                                     <div>
-                                        <h4>8. HMO / Insurance (Optional)</h4>
+                                        <h4>7. HMO / Insurance (Optional)</h4>
                                         <p class="section-subtitle">Complete these only if the patient is covered.</p>
                                     </div>
                                 </div>

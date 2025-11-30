@@ -54,10 +54,6 @@
                             </select>
                         </div>
                         <div>
-                            <label class="form-label" for="department_contact">Contact Number</label>
-                            <input type="text" id="department_contact" name="contact_number" class="form-input" placeholder="Optional">
-                        </div>
-                        <div>
                             <label class="form-label" for="department_status">Status</label>
                             <select id="department_status" name="status" class="form-select">
                                 <option value="Active">Active</option>

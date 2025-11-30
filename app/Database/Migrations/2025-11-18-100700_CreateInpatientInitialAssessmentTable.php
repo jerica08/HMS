@@ -69,13 +69,19 @@ class CreateInpatientInitialAssessmentTable extends Migration
         ]);
 
         $this->forge->addKey('assessment_id', true);
-        $this->forge->addForeignKey('admission_id', 'inpatient_admissions', 'admission_id', 'CASCADE', 'CASCADE', 'fk_inpatient_initial_assessment_admission');
-
         $this->forge->createTable('inpatient_initial_assessment');
 
         $db = \Config\Database::connect();
         $db->query('ALTER TABLE inpatient_initial_assessment ENGINE=InnoDB');
         $db->query('ALTER TABLE inpatient_initial_assessment MODIFY created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP');
+
+        if ($db->tableExists('inpatient_admissions') && $db->fieldExists('admission_id', 'inpatient_admissions')) {
+            try {
+                $db->query('ALTER TABLE inpatient_initial_assessment ADD CONSTRAINT fk_inpatient_initial_assessment_admission FOREIGN KEY (admission_id) REFERENCES inpatient_admissions(admission_id) ON DELETE CASCADE ON UPDATE CASCADE');
+            } catch (\Throwable $e) {
+                // ignore malformed constraints
+            }
+        }
     }
 
     public function down()

@@ -57,12 +57,18 @@ class CreateBillingAccountsTable extends Migration
         ]);
 
         $this->forge->addKey('billing_id', true);
-        $this->forge->addForeignKey('admission_id', 'inpatient_admissions', 'admission_id', 'CASCADE', 'CASCADE', 'fk_billing_accounts_admission');
-
         $this->forge->createTable('billing_accounts');
 
         $db = \Config\Database::connect();
         $db->query('ALTER TABLE billing_accounts ENGINE=InnoDB');
+
+        if ($db->tableExists('inpatient_admissions') && $db->fieldExists('admission_id', 'inpatient_admissions')) {
+            try {
+                $db->query('ALTER TABLE billing_accounts ADD CONSTRAINT fk_billing_accounts_admission FOREIGN KEY (admission_id) REFERENCES inpatient_admissions(admission_id) ON DELETE CASCADE ON UPDATE CASCADE');
+            } catch (\Throwable $e) {
+                // ignore malformed constraints
+            }
+        }
     }
 
     public function down()

@@ -14,6 +14,20 @@
             <div class="hms-modal-body">
                 <div class="form-grid">
                     <div>
+<<<<<<< HEAD
+=======
+                        <label class="form-label" for="modal_department">Department</label>
+                        <select id="modal_department" name="department_id" class="form-input">
+                            <option value="">Select department</option>
+                            <?php foreach ($departments as $dept): ?>
+                                <option value="<?= esc($dept['department_id']) ?>"><?= esc($dept['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div>
+>>>>>>> 3b7d5d2 (Commit)
                         <label class="form-label" for="modal_room_type">Room Type</label>
                         <select id="modal_room_type" name="room_type_id" class="form-input" required>
                             <option value="">Select room type</option>
@@ -64,6 +78,7 @@
                 </div>
                 <div class="form-grid">
                     <div>
+<<<<<<< HEAD
                         <label class="form-label" for="modal_department">Department</label>
                         <select id="modal_department" name="department_id" class="form-input">
                             <option value="">Select department</option>
@@ -73,6 +88,8 @@
                         </select>
                     </div>
                     <div>
+=======
+>>>>>>> 3b7d5d2 (Commit)
                         <label class="form-label" for="modal_status">Room Status</label>
                         <select id="modal_status" name="status" class="form-input">
                             <option value="available">Available</option>

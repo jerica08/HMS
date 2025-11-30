@@ -939,6 +939,10 @@ const AddPatientModal = {
                 room_number: { required: true, label: 'Room Number' },
                 bed_number: { required: true, label: 'Bed Number' },
                 patient_classification: { required: true, label: 'Patient Classification' },
+<<<<<<< HEAD
+=======
+                case_severity: { required: true, label: 'Case Severity' },
+>>>>>>> 3b7d5d2 (Commit)
                 level_of_consciousness: { required: true, label: 'Level of Consciousness' }
             };
         }

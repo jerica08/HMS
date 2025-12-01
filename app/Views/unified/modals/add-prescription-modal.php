@@ -31,52 +31,71 @@
                         <input type="date" id="prescriptionDate" name="date_issued" class="form-input" required value="<?= date('Y-m-d') ?>">
                     </div>
                     
-                    <div class="form-group">
-                        <label for="medicationSelect" class="form-label">Medication *</label>
-                        <select id="medicationSelect" name="medication_resource_id" class="form-select" required>
-                            <option value="">Select medication</option>
-                            <!-- Medications will be loaded dynamically via JavaScript from Resource Management -->
-                        </select>
-                        <!-- Hidden field to store medication name for prescriptions table -->
-                        <input type="hidden" id="medication" name="medication">
-                        <small id="err_medication" class="error-text" style="color:#dc2626"></small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="dosage" class="form-label">Dosage *</label>
-                        <input type="text" id="dosage" name="dosage" class="form-input" required placeholder="e.g., 500mg">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="frequency" class="form-label">Frequency *</label>
-                        <select id="frequency" name="frequency" class="form-select" required>
-                            <option value="">Select Frequency</option>
-                            <option value="Once daily">Once daily</option>
-                            <option value="Twice daily">Twice daily</option>
-                            <option value="Three times daily">Three times daily</option>
-                            <option value="Every 4 hours">Every 4 hours</option>
-                            <option value="Every 6 hours">Every 6 hours</option>
-                            <option value="Every 8 hours">Every 8 hours</option>
-                            <option value="As needed">As needed</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="duration" class="form-label">Duration</label>
-                        <select id="duration" name="duration" class="form-select">
-                            <option value="">Select Duration</option>
-                            <option value="3 days">3 days</option>
-                            <option value="5 days">5 days</option>
-                            <option value="7 days">7 days</option>
-                            <option value="10 days">10 days</option>
-                            <option value="14 days">14 days</option>
-                            <option value="30 days">30 days</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="quantity" class="form-label">Quantity *</label>
-                        <input type="number" id="quantity" name="quantity" class="form-input" required min="1" placeholder="e.g., 30">
+                    <div class="form-group full-width">
+                        <label class="form-label">Medicines *</label>
+                        <div class="medicines-table-wrapper">
+                            <table class="medicines-table">
+                                <thead>
+                                    <tr>
+                                        <th>Medication</th>
+                                        <th>Dosage</th>
+                                        <th>Frequency</th>
+                                        <th>Duration</th>
+                                        <th>Quantity</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="medicinesTableBody">
+                                    <tr class="medicine-row">
+                                        <td>
+                                            <select name="medication_resource_id[]" class="form-select medicine-medication-select">
+                                                <option value="">Select medication</option>
+                                                <!-- Options will be loaded dynamically via JavaScript from Resource Management -->
+                                            </select>
+                                            <input type="hidden" name="medication_name[]" class="medicine-name-hidden">
+                                            <small class="error-text" style="color:#dc2626"></small>
+                                        </td>
+                                        <td>
+                                            <input type="text" name="dosage[]" class="form-input" placeholder="e.g., 500mg">
+                                        </td>
+                                        <td>
+                                            <select name="frequency[]" class="form-select">
+                                                <option value="">Select Frequency</option>
+                                                <option value="Once daily">Once daily</option>
+                                                <option value="Twice daily">Twice daily</option>
+                                                <option value="Three times daily">Three times daily</option>
+                                                <option value="Every 4 hours">Every 4 hours</option>
+                                                <option value="Every 6 hours">Every 6 hours</option>
+                                                <option value="Every 8 hours">Every 8 hours</option>
+                                                <option value="As needed">As needed</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select name="duration[]" class="form-select">
+                                                <option value="">Select Duration</option>
+                                                <option value="3 days">3 days</option>
+                                                <option value="5 days">5 days</option>
+                                                <option value="7 days">7 days</option>
+                                                <option value="10 days">10 days</option>
+                                                <option value="14 days">14 days</option>
+                                                <option value="30 days">30 days</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="quantity[]" class="form-input" min="1" placeholder="e.g., 30">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-danger remove-medicine-row" title="Remove medicine">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-secondary" id="addMedicineRowBtn" type="button">
+                                <i class="fas fa-plus"></i> Add Medicine
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="form-group">

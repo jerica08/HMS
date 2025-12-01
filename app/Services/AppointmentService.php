@@ -166,7 +166,7 @@ class AppointmentService
     }
 
     /**
-     * Get single appointment by ID
+     * Get single appointment by ID (DB primary key `id`, aliased as appointment_id)
      */
     public function getAppointment($id)
     {
@@ -212,7 +212,7 @@ class AppointmentService
     }
 
     /**
-     * Update appointment status
+     * Update appointment status (DB primary key `id`)
      */
     public function updateAppointmentStatus($id, $status, $userRole = null, $staffId = null)
     {
@@ -252,6 +252,42 @@ class AppointmentService
             ];
         } catch (\Throwable $e) {
             log_message('error', 'Failed to update appointment status: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Delete appointment (DB primary key `id`)
+     */
+    public function deleteAppointment($id, $userRole = null, $staffId = null)
+    {
+        try {
+            $builder = $this->db->table('appointments')
+                ->where('id', $id);
+
+            // Extra safety: if a non-admin role ever calls this, ensure ownership
+            if ($userRole === 'doctor' && $staffId) {
+                $builder->where('doctor_id', $staffId);
+            }
+
+            $deleted = $builder->delete();
+
+            if ($deleted && $this->db->affectedRows() > 0) {
+                return [
+                    'success' => true,
+                    'message' => 'Appointment deleted successfully',
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => 'Appointment not found or no permission to delete',
+            ];
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to delete appointment: ' . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'Database error: ' . $e->getMessage(),

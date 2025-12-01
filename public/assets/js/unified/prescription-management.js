@@ -8,6 +8,7 @@ class PrescriptionManager {
         this.config = this.getConfig();
         this.filters = {};
         this.prescriptions = [];
+        this.medicationOptionsCache = null; // cache medications for all rows
         
         this.init();
     }
@@ -232,6 +233,26 @@ class PrescriptionManager {
         
         if (prescriptionForm) {
             prescriptionForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+        }
+
+        // Add medicine row button
+        const addBtn = document.getElementById('addMedicineRowBtn');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => this.addMedicineRow());
+        }
+
+        // Remove medicine row (event delegation)
+        const medicinesBody = document.getElementById('medicinesTableBody');
+        if (medicinesBody) {
+            medicinesBody.addEventListener('click', (e) => {
+                const removeBtn = e.target.closest('.remove-medicine-row');
+                if (removeBtn) {
+                    const row = removeBtn.closest('.medicine-row');
+                    if (row && medicinesBody.children.length > 1) {
+                        row.remove();
+                    }
+                }
+            });
         }
 
         const billingForm = document.getElementById('prescriptionBillingForm');
@@ -662,7 +683,57 @@ class PrescriptionManager {
         const form = e.target;
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-        
+
+        // Build items[] from medicines table
+        const rows = Array.from(document.querySelectorAll('#medicinesTableBody .medicine-row'));
+        const items = [];
+
+        rows.forEach(row => {
+            const medSelect = row.querySelector('select[name="medication_resource_id[]"]');
+            const nameInput = row.querySelector('input[name="medication_name[]"]');
+            const dosage    = row.querySelector('input[name="dosage[]"]');
+            const freq      = row.querySelector('select[name="frequency[]"]');
+            const duration  = row.querySelector('select[name="duration[]"]');
+            const qtyInput  = row.querySelector('input[name="quantity[]"]');
+
+            const medicationName = (nameInput?.value || '').trim();
+            const quantity       = parseInt(qtyInput?.value || '0', 10);
+
+            // Skip completely empty rows
+            if (!medicationName && !quantity) {
+                return;
+            }
+
+            if (!medicationName || quantity <= 0) {
+                // Basic client-side validation; backend will also validate
+                return;
+            }
+
+            items.push({
+                medication_resource_id: medSelect?.value || null,
+                medication_name: medicationName,
+                dosage: dosage?.value || '',
+                frequency: freq?.value || '',
+                duration: duration?.value || '',
+                quantity: quantity
+            });
+        });
+
+        if (!items.length) {
+            this.showError('Please add at least one medicine with a name and quantity.');
+            return;
+        }
+
+        data.items = items;
+
+        // Remove legacy single-medication fields if present
+        delete data.medication_resource_id;
+        delete data.medication;
+        delete data.dosage;
+        delete data.frequency;
+        delete data.duration;
+        delete data.quantity;
+
         // Add CSRF token
         data[this.config.csrfToken] = this.config.csrfHash;
 
@@ -736,24 +807,37 @@ class PrescriptionManager {
         
         setFieldValue('prescriptionDate', prescription.created_at ? prescription.created_at.split(' ')[0] : '');
 
-        // Medication: set hidden field and try to select matching resource option
-        setFieldValue('medication', prescription.medication);
-        const medicationSelect = document.getElementById('medicationSelect');
-        if (medicationSelect && prescription.medication) {
-            const targetName = (prescription.medication || '').toLowerCase();
-            for (let i = 0; i < medicationSelect.options.length; i++) {
-                const opt = medicationSelect.options[i];
-                const optName = (opt.dataset && opt.dataset.name ? opt.dataset.name : opt.textContent || '').toLowerCase();
-                if (optName.startsWith(targetName)) {
-                    medicationSelect.selectedIndex = i;
-                    break;
+        // Clear existing medicine rows except the first template
+        const medicinesBody = document.getElementById('medicinesTableBody');
+        if (medicinesBody) {
+            const rows = Array.from(medicinesBody.querySelectorAll('.medicine-row'));
+            rows.slice(1).forEach(r => r.remove());
+        }
+
+        // Ensure medications are loaded
+        this.loadAvailableMedications().then(() => {
+            const items = Array.isArray(prescription.items) && prescription.items.length
+                ? prescription.items
+                : [{
+                    medication_name: prescription.medication,
+                    dosage: prescription.dosage,
+                    frequency: prescription.frequency,
+                    duration: prescription.duration,
+                    quantity: prescription.quantity
+                }];
+
+            // Fill first row, then add extra rows as needed
+            if (medicinesBody) {
+                const firstRow = medicinesBody.querySelector('.medicine-row');
+                if (firstRow) {
+                    this.fillMedicineRow(firstRow, items[0]);
+                }
+
+                for (let i = 1; i < items.length; i++) {
+                    this.addMedicineRow(items[i]);
                 }
             }
-        }
-        setFieldValue('dosage', prescription.dosage);
-        setFieldValue('frequency', prescription.frequency);
-        setFieldValue('duration', prescription.duration);
-        setFieldValue('quantity', prescription.quantity);
+        });
         setFieldValue('prescriptionStatus', prescription.status || 'queued');
         setFieldValue('prescriptionNotes', prescription.notes);
         
@@ -782,11 +866,29 @@ class PrescriptionManager {
         setElementText('viewDoctorName', prescription.prescriber || 'Unknown');
         setElementText('viewPatientName', prescription.patient_name || 'Unknown');
         setElementText('viewPatientId', prescription.pat_id);
-        setElementText('viewMedication', prescription.medication);
-        setElementText('viewDosage', prescription.dosage);
-        setElementText('viewFrequency', prescription.frequency);
-        setElementText('viewDuration', prescription.duration);
-        setElementText('viewQuantity', prescription.quantity);
+        // Render medicines table
+        const body = document.getElementById('viewMedicinesBody');
+        if (body) {
+            const items = Array.isArray(prescription.items) && prescription.items.length
+                ? prescription.items
+                : [{
+                    medication_name: prescription.medication,
+                    dosage: prescription.dosage,
+                    frequency: prescription.frequency,
+                    duration: prescription.duration,
+                    quantity: prescription.quantity
+                }];
+
+            body.innerHTML = items.map(item => `
+                <tr>
+                    <td>${this.escapeHtml(item.medication_name || prescription.medication || 'N/A')}</td>
+                    <td>${this.escapeHtml(item.dosage || '')}</td>
+                    <td>${this.escapeHtml(item.frequency || '')}</td>
+                    <td>${this.escapeHtml(item.duration || '')}</td>
+                    <td>${this.escapeHtml(String(item.quantity || ''))}</td>
+                </tr>
+            `).join('');
+        }
         setElementText('viewPrescriptionNotes', prescription.notes || 'No notes available');
         
         // Handle status badge specially
@@ -805,54 +907,145 @@ class PrescriptionManager {
         if (form) {
             form.reset();
             // Set default date to today
-            document.getElementById('prescriptionDate').value = new Date().toISOString().split('T')[0];
+            const dateField = document.getElementById('prescriptionDate');
+            if (dateField) {
+                dateField.value = new Date().toISOString().split('T')[0];
+            }
         }
+
+        // Reset medicines table to a single empty row
+        const medicinesBody = document.getElementById('medicinesTableBody');
+        if (medicinesBody) {
+            const rows = Array.from(medicinesBody.querySelectorAll('.medicine-row'));
+            rows.slice(1).forEach(r => r.remove());
+            const firstRow = medicinesBody.querySelector('.medicine-row');
+            if (firstRow) {
+                firstRow.querySelectorAll('input, select').forEach(input => {
+                    input.value = '';
+                });
+            }
+        }
+
         this.clearValidationErrors();
     }
 
     /**
-     * Load medications from Resource Management into the medication selector.
+     * Load medications from Resource Management into all medication selectors.
      */
     async loadAvailableMedications() {
-        const select = document.getElementById('medicationSelect');
-        const hiddenName = document.getElementById('medication');
-        if (!select || !hiddenName) {
+        // If already loaded, just populate all selects
+        if (this.medicationOptionsCache !== null) {
+            this.populateAllMedicationSelects();
             return;
         }
-
-        // Show loading state
-        select.innerHTML = '<option value="">Loading medications...</option>';
-        select.disabled = true;
 
         try {
             const response = await fetch(this.config.endpoints.availableMedications);
             const data = await response.json();
 
             if (data.status === 'success' && Array.isArray(data.data)) {
-                select.innerHTML = '<option value="">Select medication</option>';
-
-                data.data.forEach(med => {
-                    const opt = document.createElement('option');
-                    opt.value = med.id;
-                    opt.textContent = `${med.equipment_name} (Stock: ${med.quantity})`;
-                    opt.dataset.name = med.equipment_name;
-                    select.appendChild(opt);
-                });
+                this.medicationOptionsCache = data.data;
             } else {
-                select.innerHTML = '<option value="">No medications available</option>';
+                this.medicationOptionsCache = [];
             }
         } catch (error) {
             console.error('Error loading medications:', error);
-            select.innerHTML = '<option value="">Error loading medications</option>';
-        } finally {
-            select.disabled = false;
+            this.medicationOptionsCache = [];
         }
+
+        this.populateAllMedicationSelects();
+    }
+
+    populateAllMedicationSelects() {
+        const selects = document.querySelectorAll('.medicine-medication-select');
+        selects.forEach(select => this.populateMedicationSelect(select));
+    }
+
+    populateMedicationSelect(select) {
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Select medication</option>';
+
+        if (!Array.isArray(this.medicationOptionsCache) || !this.medicationOptionsCache.length) {
+            select.innerHTML = '<option value="">No medications available</option>';
+            return;
+        }
+
+        this.medicationOptionsCache.forEach(med => {
+            const opt = document.createElement('option');
+            opt.value = med.id;
+            opt.textContent = `${med.equipment_name} (Stock: ${med.quantity})`;
+            opt.dataset.name = med.equipment_name;
+            select.appendChild(opt);
+        });
 
         // Keep hidden medication name in sync with selected resource
         select.addEventListener('change', () => {
             const selected = select.options[select.selectedIndex];
-            hiddenName.value = selected && selected.dataset ? (selected.dataset.name || '') : '';
+            const hidden = select.closest('td')?.querySelector('.medicine-name-hidden');
+            if (hidden) {
+                hidden.value = selected && selected.dataset ? (selected.dataset.name || selected.textContent || '') : '';
+            }
         });
+    }
+
+    addMedicineRow(item = null) {
+        const body = document.getElementById('medicinesTableBody');
+        if (!body) return;
+
+        const template = body.querySelector('.medicine-row');
+        if (!template) return;
+
+        const row = template.cloneNode(true);
+        row.querySelectorAll('input, select').forEach(input => {
+            input.value = '';
+        });
+
+        body.appendChild(row);
+
+        const select = row.querySelector('.medicine-medication-select');
+        this.populateMedicationSelect(select);
+
+        if (item) {
+            this.fillMedicineRow(row, item);
+        }
+    }
+
+    fillMedicineRow(row, item) {
+        if (!row || !item) return;
+
+        const select   = row.querySelector('.medicine-medication-select');
+        const nameHide = row.querySelector('.medicine-name-hidden');
+        const dosage   = row.querySelector('input[name="dosage[]"]');
+        const freq     = row.querySelector('select[name="frequency[]"]');
+        const duration = row.querySelector('select[name="duration[]"]');
+        const quantity = row.querySelector('input[name="quantity[]"]');
+
+        if (nameHide) {
+            nameHide.value = item.medication_name || '';
+        }
+        if (dosage) dosage.value = item.dosage || '';
+        if (freq) freq.value = item.frequency || '';
+        if (duration) duration.value = item.duration || '';
+        if (quantity) quantity.value = item.quantity || '';
+
+        if (select && Array.isArray(this.medicationOptionsCache)) {
+            // try by resource id first
+            if (item.medication_resource_id) {
+                select.value = item.medication_resource_id;
+            } else if (item.medication_name) {
+                // fallback match by name
+                const target = item.medication_name.toLowerCase();
+                for (let i = 0; i < select.options.length; i++) {
+                    const opt = select.options[i];
+                    const name = (opt.dataset?.name || opt.textContent || '').toLowerCase();
+                    if (name.startsWith(target)) {
+                        select.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     closePrescriptionModal() {

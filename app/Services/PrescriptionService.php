@@ -204,7 +204,7 @@ class PrescriptionService
     }
 
     /**
-     * Create a new prescription
+     * Create a new prescription (supporting one prescription with many medicines)
      */
     public function createPrescription($data, $userRole, $staffId = null)
     {
@@ -214,22 +214,61 @@ class PrescriptionService
                 return ['success' => false, 'message' => 'Permission denied'];
             }
 
-            // Validate required fields based on actual database schema
+            // Basic header validation
             $validation = \Config\Services::validation();
             $validation->setRules([
                 'patient_id' => 'required|integer',
-                'medication' => 'required|max_length[255]',
-                'dosage' => 'permit_empty|max_length[100]',
-                'frequency' => 'permit_empty|max_length[100]',
-                'quantity' => 'required|integer',
-                'notes' => 'permit_empty'
+                // items array will be validated manually
+                'items'      => 'required'
             ]);
 
             if (!$validation->run($data)) {
                 return [
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validation->getErrors()
+                    'errors'  => $validation->getErrors()
+                ];
+            }
+
+            // Validate items array for multi-medicine support
+            if (empty($data['items']) || !is_array($data['items'])) {
+                return [
+                    'success' => false,
+                    'message' => 'At least one medication item is required',
+                    'errors'  => ['items' => 'At least one medication item is required']
+                ];
+            }
+
+            $items = [];
+            foreach ($data['items'] as $index => $item) {
+                $medName = trim($item['medication_name'] ?? $item['medication'] ?? '');
+                $qty     = (int)($item['quantity'] ?? 0);
+
+                if ($medName === '' || $qty <= 0) {
+                    return [
+                        'success' => false,
+                        'message' => 'Each medication must have a name and positive quantity',
+                        'errors'  => [
+                            "items[$index]" => 'Medication name and quantity are required'
+                        ]
+                    ];
+                }
+
+                $durationStr = $item['duration'] ?? '';
+                $daysSupply  = null;
+                if ($durationStr !== '') {
+                    $daysSupply = (int) filter_var($durationStr, FILTER_SANITIZE_NUMBER_INT) ?: null;
+                }
+
+                $items[] = [
+                    'medication_resource_id' => !empty($item['medication_resource_id']) ? (int) $item['medication_resource_id'] : null,
+                    'medication_name'        => $medName,
+                    'dosage'                 => $item['dosage'] ?? null,
+                    'frequency'              => $item['frequency'] ?? null,
+                    'duration'               => $durationStr ?: null,
+                    'days_supply'            => $daysSupply,
+                    'quantity'               => $qty,
+                    'notes'                  => $item['notes'] ?? null,
                 ];
             }
 
@@ -264,22 +303,10 @@ class PrescriptionService
             
             $createdBy = $user['user_id'] ?? null;
 
-            // If medication is linked to a resource, reserve stock in Resource Management
-            $resourceId = isset($data['medication_resource_id']) ? (int) $data['medication_resource_id'] : 0;
-            $quantity = (int) $data['quantity'];
-
-            if ($resourceId && $quantity > 0) {
-                $resourceService = new \App\Services\ResourceService();
-                $reserveResult = $resourceService->reserveMedication($resourceId, $quantity);
-
-                if (!$reserveResult['success']) {
-                    return [
-                        'success' => false,
-                        'message' => $reserveResult['message'],
-                        'errors'  => ['quantity' => $reserveResult['message']],
-                    ];
-                }
-            }
+            // NOTE: Resource stock reservation is currently defined for a single
+            // medication/quantity. For multi-medicine prescriptions we keep the
+            // logic disabled here to avoid incorrect reservations. It can be
+            // reworked later on a per-item basis if needed.
 
             // Map status values
             $statusMap = [
@@ -292,44 +319,75 @@ class PrescriptionService
             
             $status = $statusMap[$data['status'] ?? 'active'] ?? 'queued';
 
+            // Use first item to build a legacy summary for list views
+            $firstItem          = $items[0];
+            $firstMedication    = $firstItem['medication_name'];
+            $medicationSummary  = $firstMedication . (count($items) > 1 ? ' +' . (count($items) - 1) . ' more' : '');
+
             $prescriptionData = [
-                'rx_number' => $rxNumber,
-                'patient_id' => (int)$data['patient_id'],
+                'rx_number'    => $rxNumber,
+                'patient_id'   => (int) $data['patient_id'],
                 'patient_name' => $patientName,
-                'medication' => $data['medication'],
-                'dosage' => $data['dosage'] ?? null,
-                'frequency' => $data['frequency'] ?? null,
-                'days_supply' => !empty($data['duration']) ? (int)filter_var($data['duration'], FILTER_SANITIZE_NUMBER_INT) : null,
-                'quantity' => (int)$data['quantity'],
-                'prescriber' => $prescriberName,
-                'priority' => $data['priority'] ?? 'routine',
-                'notes' => $data['notes'] ?? null,
-                'status' => $status,
-                'created_by' => $createdBy,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                // legacy single-medication columns now store a summary so existing
+                // list views continue to work without change
+                'medication'   => $medicationSummary,
+                'dosage'       => $firstItem['dosage'],
+                'frequency'    => $firstItem['frequency'],
+                'days_supply'  => $firstItem['days_supply'],
+                'quantity'     => $firstItem['quantity'],
+                'prescriber'   => $prescriberName,
+                'priority'     => $data['priority'] ?? 'routine',
+                'notes'        => $data['notes'] ?? null,
+                'status'       => $status,
+                'created_by'   => $createdBy,
+                'created_at'   => date('Y-m-d H:i:s'),
+                'updated_at'   => date('Y-m-d H:i:s')
             ];
-            
+
+            // Insert header + items in a transaction
+            $this->db->transBegin();
+
             $insertResult = $this->db->table('prescriptions')->insert($prescriptionData);
-            
-            if ($insertResult) {
-                $insertId = $this->db->insertID();
+
+            if (!$insertResult) {
+                $dbError = $this->db->error();
+                $this->db->transRollback();
+                log_message('error', 'PrescriptionService::createPrescription - Header insert failed: ' . json_encode($dbError));
+
                 return [
-                    'success' => true,
-                    'message' => 'Prescription created successfully',
-                    'prescription_id' => $rxNumber,
-                    'id' => $insertId
+                    'success' => false,
+                    'message' => 'Failed to create prescription header: ' . ($dbError['message'] ?? 'Unknown database error')
                 ];
             }
-            
-            // Get database error
-            $dbError = $this->db->error();
-            log_message('error', 'PrescriptionService::createPrescription - Database insert failed: ' . json_encode($dbError));
-            log_message('error', 'PrescriptionService::createPrescription - Last query: ' . $this->db->getLastQuery());
+
+            $prescriptionId = (int) $this->db->insertID();
+
+            $itemTable = $this->db->table('prescription_items');
+            foreach ($items as $itemRow) {
+                $row = $itemRow;
+                $row['prescription_id'] = $prescriptionId;
+                $row['created_at']      = date('Y-m-d H:i:s');
+                $row['updated_at']      = date('Y-m-d H:i:s');
+
+                if (!$itemTable->insert($row)) {
+                    $dbError = $this->db->error();
+                    $this->db->transRollback();
+                    log_message('error', 'PrescriptionService::createPrescription - Item insert failed: ' . json_encode($dbError));
+
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to create prescription items: ' . ($dbError['message'] ?? 'Unknown database error')
+                    ];
+                }
+            }
+
+            $this->db->transCommit();
 
             return [
-                'success' => false, 
-                'message' => 'Failed to create prescription: ' . ($dbError['message'] ?? 'Unknown database error')
+                'success'         => true,
+                'message'         => 'Prescription created successfully',
+                'prescription_id' => $rxNumber,
+                'id'              => $prescriptionId
             ];
 
         } catch (\Throwable $e) {
@@ -499,6 +557,21 @@ class PrescriptionService
                 if (empty($prescription['patient_name']) && !empty($prescription['patient_first_name'])) {
                     $prescription['patient_name'] = trim(($prescription['patient_first_name'] ?? '') . ' ' . ($prescription['patient_last_name'] ?? ''));
                 }
+
+                // Load associated medication items (one prescription, many medicines)
+                try {
+                    $items = $this->db->table('prescription_items')
+                        ->where('prescription_id', $prescription['id'])
+                        ->orderBy('id', 'ASC')
+                        ->get()
+                        ->getResultArray();
+                } catch (\Throwable $e) {
+                    log_message('error', 'PrescriptionService::getPrescription - Failed to load items: ' . $e->getMessage());
+                    $items = [];
+                }
+
+                $prescription['items'] = $items;
+
                 log_message('info', 'PrescriptionService::getPrescription - Prescription data: ' . json_encode($prescription));
             }
             

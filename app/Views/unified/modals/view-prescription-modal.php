@@ -51,27 +51,23 @@
                 
                 <div class="detail-section">
                     <h4>Medication Details</h4>
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <label>Medication:</label>
-                            <span id="viewMedication">-</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Dosage:</label>
-                            <span id="viewDosage">-</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Frequency:</label>
-                            <span id="viewFrequency">-</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Duration:</label>
-                            <span id="viewDuration">-</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Quantity:</label>
-                            <span id="viewQuantity">-</span>
-                        </div>
+                    <div class="medicines-view-wrapper">
+                        <table class="medicines-view-table">
+                            <thead>
+                                <tr>
+                                    <th>Medication</th>
+                                    <th>Dosage</th>
+                                    <th>Frequency</th>
+                                    <th>Duration</th>
+                                    <th>Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody id="viewMedicinesBody">
+                                <tr>
+                                    <td colspan="5">No medicines found</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
                 

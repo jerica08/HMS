@@ -22,7 +22,7 @@ class BedManagement extends BaseController
     {
         // Simple listing of beds with room info (if available)
         $builder = $this->db->table('bed b')
-            ->select('b.*, r.room_number, r.room_name')
+            ->select('b.*, r.room_number, r.room_type')
             ->join('room r', 'r.room_id = b.room_id', 'left')
             ->orderBy('r.room_number', 'ASC')
             ->orderBy('b.bed_number', 'ASC');
@@ -31,7 +31,7 @@ class BedManagement extends BaseController
 
         // Rooms for dropdown when adding a bed
         $rooms = $this->db->table('room')
-            ->select('room_id, room_number, room_name')
+            ->select('room_id, room_number, room_type')
             ->orderBy('room_number', 'ASC')
             ->get()->getResultArray();
 

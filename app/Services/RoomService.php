@@ -43,7 +43,7 @@ class RoomService
             ->select([
                 'r.room_id',
                 'r.room_number',
-                'r.room_name',
+                'r.room_type',
                 'r.room_type_id',
                 'r.floor_number',
                 'r.department_id',
@@ -398,7 +398,7 @@ class RoomService
 
         return [
             'room_number' => trim($input['room_number'] ?? ''),
-            'room_name' => trim($input['room_name'] ?? ''),
+            'room_type' => trim($input['room_name'] ?? ''),
             'room_type_id' => $roomTypeId,
             'floor_number' => trim($input['floor_number'] ?? ''),
             'department_id' => !empty($input['department_id']) ? (int) $input['department_id'] : null,

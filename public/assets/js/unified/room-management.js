@@ -219,7 +219,7 @@
             <tr>
                 <td>
                     ${escapeHtml(room.room_number)}
-                    ${room.room_name ? `<small style="display:block; color:#6b7280;">${escapeHtml(room.room_name)}</small>` : ''}
+                    ${room.room_type ? `<small style="display:block; color:#6b7280;">${escapeHtml(room.room_type)}</small>` : ''}
                 </td>
                 <td>${escapeHtml(room.type_name || '—')}</td>
                 <td>${escapeHtml(room.department_name || '—')}</td>
@@ -416,7 +416,7 @@
         roomNumberInput.value = room.room_number || '';
         const roomNameInput = document.getElementById('modal_room_name');
         if (roomNameInput) {
-            roomNameInput.value = room.room_name || '';
+            roomNameInput.value = room.room_type || '';
         }
         if (floorInput) {
             floorInput.value = room.floor_number || '';

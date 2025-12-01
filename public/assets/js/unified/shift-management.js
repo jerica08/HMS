@@ -80,25 +80,7 @@ class ShiftManager {
             cancelShiftBtn.addEventListener('click', () => this.closeShiftModal());
         }
 
-        // View shift modal
-        const viewShiftModal = document.getElementById('viewShiftModal');
-        const closeViewShiftModal = document.getElementById('closeViewShiftModal');
-        const closeViewShiftBtn = document.getElementById('closeViewShiftBtn');
-        const editFromViewBtn = document.getElementById('editFromViewBtn');
-
-        if (closeViewShiftModal) {
-            closeViewShiftModal.addEventListener('click', () => this.closeViewShiftModal());
-        }
-
-        if (closeViewShiftBtn) {
-            closeViewShiftBtn.addEventListener('click', () => this.closeViewShiftModal());
-        }
-
-        if (editFromViewBtn) {
-            editFromViewBtn.addEventListener('click', () => this.editFromView());
-        }
-
-        // Click outside to close
+        // Click outside to close create/edit modal
         if (shiftModal) {
             shiftModal.addEventListener('click', (e) => {
                 if (e.target === shiftModal) {
@@ -107,19 +89,10 @@ class ShiftManager {
             });
         }
 
-        if (viewShiftModal) {
-            viewShiftModal.addEventListener('click', (e) => {
-                if (e.target === viewShiftModal) {
-                    this.closeViewShiftModal();
-                }
-            });
-        }
-
         // Escape key to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeShiftModal();
-                this.closeViewShiftModal();
             }
         });
     }
@@ -269,13 +242,56 @@ class ShiftManager {
             return;
         }
 
-        tbody.innerHTML = this.shifts.map(shift => this.renderShiftRow(shift)).join('');
+        // Group shifts by doctor + time range + status so multiple weekdays
+        // with the same time range appear as a single row in the UI.
+        const groupsMap = new Map();
+
+        this.shifts.forEach(shift => {
+            const staffId   = shift.staff_id || shift.doctor_id || '';
+            const startVal  = shift.start_time || shift.start || '';
+            const endVal    = shift.end_time || shift.end || '';
+            const rawStatus = (shift.status || 'active').toString().toLowerCase();
+
+            const key = `${staffId}|${startVal}|${endVal}|${rawStatus}`;
+
+            if (!groupsMap.has(key)) {
+                const base = { ...shift };
+                base.weekdays = [];
+                base.ids = [];
+                base.primaryId = shift.id;
+                groupsMap.set(key, base);
+            }
+
+            const group = groupsMap.get(key);
+            if (typeof shift.weekday !== 'undefined' && shift.weekday !== null) {
+                group.weekdays.push(shift.weekday);
+            }
+            group.ids.push(shift.id);
+        });
+
+        const groupedShifts = Array.from(groupsMap.values());
+
+        tbody.innerHTML = groupedShifts.map(shift => this.renderShiftRow(shift)).join('');
     }
 
     renderShiftRow(shift) {
-        // Map schedule data (weekday/slot/status) to the table row
-        const weekdayLabel = shift.weekday ? this.formatWeekday(shift.weekday) : '-';
-        const slotLabel = shift.slot ? this.formatSlot(shift.slot) : '-';
+        // Map schedule data (weekday/time/status) to the table row
+
+        // If this is a grouped shift, we may have multiple weekdays.
+        let weekdayLabel = '-';
+        if (Array.isArray(shift.weekdays) && shift.weekdays.length) {
+            const uniqueWeekdays = Array.from(new Set(shift.weekdays))
+                .filter(wd => typeof wd !== 'undefined' && wd !== null)
+                .sort();
+            weekdayLabel = uniqueWeekdays
+                .map(wd => this.formatWeekday(wd))
+                .join(', ');
+        } else if (shift.weekday) {
+            weekdayLabel = this.formatWeekday(shift.weekday);
+        }
+        const timeLabel = (shift.start_time || shift.start || '') && (shift.end_time || shift.end || '')
+            ? `${(shift.start_time || shift.start || '').slice(0,5)} - ${(shift.end_time || shift.end || '').slice(0,5)}`
+            : '-';
 
         const rawStatus = (shift.status || 'active').toString().toLowerCase();
         let displayStatus = 'Scheduled';
@@ -298,6 +314,11 @@ class ShiftManager {
         const canEdit = this.canEditShift(shift);
         const canDelete = this.canDeleteShift(shift);
 
+        // For grouped rows use a primary id for actions. This id represents
+        // one underlying schedule entry; edit/delete will operate on that
+        // specific entry while the UI shows the combined weekdays.
+        const primaryId = shift.primaryId || shift.id;
+
         return `
             <tr class="fade-in">
                 <td>
@@ -306,7 +327,7 @@ class ShiftManager {
                     </div>
                 </td>
                 <td>${this.escapeHtml(weekdayLabel)}</td>
-                <td>${this.escapeHtml(slotLabel)}</td>
+                <td>${this.escapeHtml(timeLabel)}</td>
                 <td>
                     <span class="status-badge ${statusClass}">
                         ${this.escapeHtml(displayStatus)}
@@ -314,16 +335,16 @@ class ShiftManager {
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button type="button" class="btn btn-sm btn-view" data-shift-id="${shift.id}" title="View Details">
+                        <button type="button" class="btn btn-sm btn-view" data-shift-id="${primaryId}" title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
                         ${canEdit ? `
-                            <button type="button" class="btn btn-sm btn-edit" data-shift-id="${shift.id}" title="Edit Shift">
+                            <button type="button" class="btn btn-sm btn-edit" data-shift-id="${primaryId}" title="Edit Shift">
                                 <i class="fas fa-edit"></i>
                             </button>
                         ` : ''}
                         ${canDelete ? `
-                            <button type="button" class="btn btn-sm btn-delete" data-shift-id="${shift.id}" title="Delete Shift">
+                            <button type="button" class="btn btn-sm btn-delete" data-shift-id="${primaryId}" title="Delete Shift">
                                 <i class="fas fa-trash"></i>
                             </button>
                         ` : ''}
@@ -488,24 +509,17 @@ class ShiftManager {
             return;
         }
 
-        // Prefer using a dedicated view modal if it exists; otherwise show a simple popup.
-        const modal = document.getElementById('viewShiftModal');
-        if (modal) {
-            this.populateViewModal(shift);
-            modal.classList.add('active');
-            modal.style.display = 'flex';
-            modal.setAttribute('aria-hidden', 'false');
-            document.body.style.overflow = 'hidden';
-            return;
-        }
-
-        // Fallback: simple read-only alert using available fields (supports old shift or new schedule data).
+        // Simple read-only alert using available fields (supports old shift or new schedule data).
         const parts = [];
         if (shift.doctor_name) parts.push(`Doctor: ${shift.doctor_name}`);
         if (shift.weekday) parts.push(`Weekday: ${shift.weekday}`);
         if (shift.slot) parts.push(`Slot: ${shift.slot}`);
         if (shift.date) parts.push(`Date: ${shift.date}`);
-        if (shift.start || shift.end) parts.push(`Time: ${shift.start || ''}${shift.end ? ' - ' + shift.end : ''}`);
+        const startVal = shift.start_time || shift.start || '';
+        const endVal   = shift.end_time || shift.end || '';
+        if (startVal || endVal) {
+            parts.push(`Time: ${startVal}${endVal ? ' - ' + endVal : ''}`);
+        }
         if (shift.department) parts.push(`Department: ${shift.department}`);
         if (shift.status) parts.push(`Status: ${shift.status}`);
 
@@ -587,8 +601,21 @@ class ShiftManager {
         
         const form = e.target;
         const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
-        
+
+        // Build data object manually so that multiple weekday checkboxes
+        // (weekdays[]) are captured as an array instead of a single value.
+        const data = {};
+        formData.forEach((value, key) => {
+            if (key === 'weekdays[]') {
+                if (!data.weekdays) {
+                    data.weekdays = [];
+                }
+                data.weekdays.push(value);
+            } else {
+                data[key] = value;
+            }
+        });
+
         // Add CSRF token
         data[this.config.csrfToken] = this.config.csrfHash;
 
@@ -635,10 +662,10 @@ class ShiftManager {
     }
 
     populateForm(shift) {
-        // Updated to match the new schedule form (doctor, weekday, slot, status, notes)
+        // Updated to match the new schedule form (doctor, weekdays[], start_time/end_time, status, notes)
         const doctorSelect   = document.getElementById('doctorSelect');
-        const weekdaySelect  = document.getElementById('weekday');
-        const slotSelect     = document.getElementById('slot');
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput   = document.getElementById('endTime');
         const statusSelect   = document.getElementById('shiftStatus');
         const notesTextarea  = document.getElementById('shiftNotes');
 
@@ -647,12 +674,23 @@ class ShiftManager {
             doctorSelect.value = value;
         }
 
-        if (weekdaySelect && typeof shift.weekday !== 'undefined') {
-            weekdaySelect.value = String(shift.weekday || '');
+        // Clear all weekday checkboxes, then check the one matching this shift
+        const weekdayCheckboxes = document.querySelectorAll('input[name="weekdays[]"]');
+        if (weekdayCheckboxes && typeof shift.weekday !== 'undefined') {
+            const weekdayValue = String(shift.weekday || '');
+            weekdayCheckboxes.forEach(cb => {
+                cb.checked = cb.value === weekdayValue;
+            });
         }
 
-        if (slotSelect && shift.slot) {
-            slotSelect.value = shift.slot;
+        if (startTimeInput) {
+            const startVal = shift.start_time || shift.start || '';
+            startTimeInput.value = startVal ? startVal.slice(0,5) : '';
+        }
+
+        if (endTimeInput) {
+            const endVal = shift.end_time || shift.end || '';
+            endTimeInput.value = endVal ? endVal.slice(0,5) : '';
         }
 
         if (statusSelect) {
@@ -701,8 +739,12 @@ class ShiftManager {
         }
 
         if (slotInput) {
-            const slotLabel = shift.slot ? this.formatSlot(shift.slot) : (shift.shift_type || 'N/A');
-            slotInput.value = slotLabel;
+            const startVal = shift.start_time || shift.start || '';
+            const endVal   = shift.end_time || shift.end || '';
+            const timeLabel = startVal && endVal
+                ? `${startVal.slice(0,5)} - ${endVal.slice(0,5)}`
+                : (shift.shift_type || 'N/A');
+            slotInput.value = timeLabel;
         }
 
         if (statusInput) {

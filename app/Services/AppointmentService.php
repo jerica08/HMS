@@ -173,6 +173,7 @@ class AppointmentService
         try {
             $appointment = $this->db->table('appointments a')
                 ->select('a.*,
+                         a.id as appointment_id,
                          p.patient_id,
                          p.first_name as patient_first_name,
                          p.last_name as patient_last_name,
@@ -186,7 +187,7 @@ class AppointmentService
                          CONCAT(s.first_name, " ", s.last_name) as doctor_name')
                 ->join('patients p', 'p.patient_id = a.patient_id', 'left')
                 ->join('staff s', 's.staff_id = a.doctor_id', 'left')
-                ->where('a.appointment_id', $id)
+                ->where('a.id', $id)
                 ->get()
                 ->getRowArray();
 
@@ -217,72 +218,40 @@ class AppointmentService
     {
         $validStatuses = ['scheduled', 'in-progress', 'completed', 'cancelled', 'no-show'];
         
-        if (!in_array($status, $validStatuses)) {
+        if (!in_array($status, $validStatuses, true)) {
             return [
                 'success' => false,
-                'message' => 'Invalid status',
+                'message' => 'Invalid status value',
             ];
         }
 
         try {
-            $builder = $this->db->table('appointments');
-            
-            // For doctors, ensure they can only update their own appointments
+            $builder = $this->db->table('appointments')
+                ->where('id', $id);
+
+            // If caller is a doctor, ensure they only update their own appointments
             if ($userRole === 'doctor' && $staffId) {
                 $builder->where('doctor_id', $staffId);
             }
-            
-            $result = $builder->where('appointment_id', $id)
-                ->update(['status' => $status, 'updated_at' => date('Y-m-d H:i:s')]);
 
-            if ($result) {
+            $updated = $builder->update([
+                'status' => $status,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            if ($updated && $this->db->affectedRows() > 0) {
                 return [
                     'success' => true,
                     'message' => 'Appointment status updated successfully',
                 ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Appointment not found or no permission to update',
-                ];
             }
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to update appointment status: ' . $e->getMessage());
+
             return [
                 'success' => false,
-                'message' => 'Database error: ' . $e->getMessage(),
+                'message' => 'Appointment not found or no permission to update',
             ];
-        }
-    }
-
-    /**
-     * Delete appointment
-     */
-    public function deleteAppointment($id, $userRole = null, $staffId = null)
-    {
-        try {
-            $builder = $this->db->table('appointments');
-            
-            // For doctors, ensure they can only delete their own appointments
-            if ($userRole === 'doctor' && $staffId) {
-                $builder->where('doctor_id', $staffId);
-            }
-            
-            $result = $builder->where('appointment_id', $id)->delete();
-
-            if ($result) {
-                return [
-                    'success' => true,
-                    'message' => 'Appointment deleted successfully',
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Appointment not found or no permission to delete',
-                ];
-            }
         } catch (\Throwable $e) {
-            log_message('error', 'Failed to delete appointment: ' . $e->getMessage());
+            log_message('error', 'Failed to update appointment status: ' . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'Database error: ' . $e->getMessage(),

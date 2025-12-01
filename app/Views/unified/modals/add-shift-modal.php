@@ -45,28 +45,40 @@
                     </div>
 
                     <div>
-                        <label class="form-label" for="weekday">Day *</label>
-                        <select id="weekday" name="weekday" class="form-select" required>
-                            <option value="">Select Day</option>
-                            <option value="1">Monday</option>
-                            <option value="2">Tuesday</option>
-                            <option value="3">Wednesday</option>
-                            <option value="4">Thursday</option>
-                            <option value="5">Friday</option>
-                            <option value="6">Saturday</option>
-                            <option value="7">Sunday</option>
-                        </select>
+                        <label class="form-label" for="weekdays-group">Day(s) *</label>
+                        <div id="weekdays-group" class="weekday-checkbox-group">
+                            <label class="checkbox-inline">
+                                <input type="checkbox" name="weekdays[]" value="1"> Monday
+                            </label>
+                            <label class="checkbox-inline">
+                                <input type="checkbox" name="weekdays[]" value="2"> Tuesday
+                            </label>
+                            <label class="checkbox-inline">
+                                <input type="checkbox" name="weekdays[]" value="3"> Wednesday
+                            </label>
+                            <label class="checkbox-inline">
+                                <input type="checkbox" name="weekdays[]" value="4"> Thursday
+                            </label>
+                            <label class="checkbox-inline">
+                                <input type="checkbox" name="weekdays[]" value="5"> Friday
+                            </label>
+                            <label class="checkbox-inline">
+                                <input type="checkbox" name="weekdays[]" value="6"> Saturday
+                            </label>
+                            <label class="checkbox-inline">
+                                <input type="checkbox" name="weekdays[]" value="7"> Sunday
+                            </label>
+                        </div>
                     </div>
 
                     <div>
-                        <label class="form-label" for="slot">Slot *</label>
-                        <select id="slot" name="slot" class="form-select" required>
-                            <option value="">Select Slot</option>
-                            <option value="morning">Morning</option>
-                            <option value="afternoon">Afternoon</option>
-                            <option value="night">Night</option>
-                            <option value="all_day">All Day</option>
-                        </select>
+                        <label class="form-label" for="startTime">Start Time *</label>
+                        <input type="time" id="startTime" name="start_time" class="form-input" required>
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="endTime">End Time *</label>
+                        <input type="time" id="endTime" name="end_time" class="form-input" required>
                     </div>
 
                     <div>

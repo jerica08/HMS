@@ -63,7 +63,7 @@
                     <input type="text" id="viewScheduleWeekday" class="form-input" readonly disabled>
                 </div>
                 <div>
-                    <label class="form-label">Slot</label>
+                    <label class="form-label">Time</label>
                     <input type="text" id="viewScheduleSlot" class="form-input" readonly disabled>
                 </div>
                 <div>
@@ -263,7 +263,7 @@
                             <tr>
                                 <th scope="col">Doctor</th>
                                 <th scope="col">Day</th>
-                                <th scope="col">Slot</th>
+                                <th scope="col">Time</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Actions</th>
                             </tr>

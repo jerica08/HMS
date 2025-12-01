@@ -261,7 +261,7 @@ class ShiftManagement extends BaseController
 
             // Base query: schedules for doctors only
             $builder = $db->table('staff_schedule ss')
-                ->select('ss.id, ss.staff_id, ss.weekday, ss.slot, ss.status, '
+                ->select('ss.id, ss.staff_id, ss.weekday, ss.start_time, ss.end_time, ss.status, '
                     . "CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS doctor_name, "
                     . 'd.specialization')
                 ->join('doctor d', 'd.staff_id = ss.staff_id', 'inner')
@@ -298,8 +298,16 @@ class ShiftManagement extends BaseController
         try {
             $input = $this->request->getJSON(true) ?? $this->request->getPost();
 
-           
             $staffId = $input['staff_id'] ?? $input['doctor_id'] ?? null;
+
+            // Normalize weekdays: accept either weekdays[] array (preferred)
+            // or a single weekday value from older forms.
+            $weekdays = [];
+            if (isset($input['weekdays']) && is_array($input['weekdays'])) {
+                $weekdays = $input['weekdays'];
+            } elseif (isset($input['weekday']) && $input['weekday'] !== '') {
+                $weekdays = [$input['weekday']];
+            }
 
             // Validate required fields
             if (empty($staffId)) {
@@ -310,10 +318,10 @@ class ShiftManagement extends BaseController
                 ]);
             }
 
-            if (empty($input['weekday']) || empty($input['slot'])) {
+            if (empty($weekdays) || empty($input['start_time']) || empty($input['end_time'])) {
                 return $this->response->setStatusCode(422)->setJSON([
                     'status'  => 'error',
-                    'message' => 'Fields weekday and slot are required',
+                    'message' => 'At least one weekday and both start and end time are required',
                     'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
                 ]);
             }
@@ -334,27 +342,9 @@ class ShiftManagement extends BaseController
                 ]);
             }
 
-           
-            $existing = $db->table('staff_schedule')
-                ->where('staff_id', (int) $staffId)
-                ->where('weekday', (int) $input['weekday'])
-                ->where('slot', $input['slot'])
-                ->where('status', 'active')
-                ->countAllResults();
-
-            if ($existing > 0) {
-                return $this->response->setStatusCode(422)->setJSON([
-                    'status'  => 'error',
-                    'message' => 'This doctor already has an active schedule for the selected day and slot.',
-                    'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
-                ]);
-            }
-
-            // Prepare schedule data (weekday-based doctor schedule)
-            $scheduleData = [
+            // Prepare common schedule data (without weekday)
+            $baseData = [
                 'staff_id'       => (int) $staffId,
-                'weekday'        => (int) $input['weekday'],      // 1–7
-                'slot'           => $input['slot'],               // morning/afternoon/night/all_day
                 'start_time'     => $input['start_time'] ?? null,
                 'end_time'       => $input['end_time'] ?? null,
                 'status'         => 'active',
@@ -364,21 +354,48 @@ class ShiftManagement extends BaseController
                 'updated_at'     => date('Y-m-d H:i:s'),
             ];
 
-            $result = $db->table('staff_schedule')->insert($scheduleData);
+            $createdIds = [];
 
-            if ($result) {
-                $scheduleId = $db->insertID();
+            foreach ($weekdays as $weekday) {
+                $weekdayInt = (int) $weekday;
+                if ($weekdayInt < 1 || $weekdayInt > 7) {
+                    continue;
+                }
+
+                // Skip if a schedule already exists for this doctor/day/time range
+                $existing = $db->table('staff_schedule')
+                    ->where('staff_id', (int) $staffId)
+                    ->where('weekday', $weekdayInt)
+                    ->where('start_time', $input['start_time'] ?? null)
+                    ->where('end_time', $input['end_time'] ?? null)
+                    ->where('status', 'active')
+                    ->countAllResults();
+
+                if ($existing > 0) {
+                    continue;
+                }
+
+                $scheduleData = $baseData;
+                $scheduleData['weekday'] = $weekdayInt;
+
+                $result = $db->table('staff_schedule')->insert($scheduleData);
+                if ($result) {
+                    $createdIds[] = $db->insertID();
+                }
+            }
+
+            if (!empty($createdIds)) {
                 return $this->response->setJSON([
                     'status'  => 'success',
-                    'message' => 'Schedule entry created successfully',
-                    'id'      => $scheduleId,
+                    'message' => 'Schedule entry created successfully for selected day(s)',
+                    'ids'     => $createdIds,
                     'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
                 ]);
             }
 
-            return $this->response->setStatusCode(500)->setJSON([
+            return $this->response->setStatusCode(422)->setJSON([
                 'status'  => 'error',
-                'message' => 'Failed to create schedule entry',
+                'message' => 'No new schedule entries were created. There may already be active schedules for the selected day(s) and slot.',
                 'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
             ]);
 
@@ -439,8 +456,12 @@ class ShiftManagement extends BaseController
                 $data['weekday'] = (int) $input['weekday'];
             }
 
-            if (isset($input['slot']) && $input['slot'] !== '') {
-                $data['slot'] = $input['slot'];
+            if (isset($input['start_time']) && $input['start_time'] !== '') {
+                $data['start_time'] = $input['start_time'];
+            }
+
+            if (isset($input['end_time']) && $input['end_time'] !== '') {
+                $data['end_time'] = $input['end_time'];
             }
 
             if (!empty($input['status'])) {

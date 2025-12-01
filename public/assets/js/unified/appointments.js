@@ -24,7 +24,8 @@
         html += 'th { background-color: #667eea; color: white; font-weight: bold; }';
         html += 'tr:nth-child(even) { background-color: #f2f2f2; }';
         html += '</style></head><body>';
-        html += '<h2>Appointment Schedule - <?= date("F j, Y") ?></h2>';
+        const todayLabel = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+        html += '<h2>Appointment Schedule - ' + todayLabel + '</h2>';
         html += '<table>' + table.innerHTML + '</table>';
         html += '</body></html>';
         
@@ -536,6 +537,8 @@
         }
 
         appointments.forEach(appt => {
+            // Support both unified API (appointment_id) and any legacy id field
+            const apptId = appt.appointment_id || appt.id;
             const tr = document.createElement('tr');
 
             const patientTd = document.createElement('td');
@@ -558,12 +561,17 @@
                 const docDiv = document.createElement('div');
                 const docStrong = document.createElement('strong');
                 docStrong.textContent = `Dr. ${(appt.doctor_first_name || '') + ' ' + (appt.doctor_last_name || '')}`.trim();
-                const br3 = document.createElement('br');
-                const docSmall = document.createElement('small');
-                docSmall.textContent = appt.doctor_department || 'N/A';
                 docDiv.appendChild(docStrong);
-                docDiv.appendChild(br3);
-                docDiv.appendChild(docSmall);
+
+                const dept = (appt.doctor_department || '').trim();
+                if (dept) {
+                    const br3 = document.createElement('br');
+                    const docSmall = document.createElement('small');
+                    docSmall.textContent = dept;
+                    docDiv.appendChild(br3);
+                    docDiv.appendChild(docSmall);
+                }
+
                 doctorTd.appendChild(docDiv);
                 tr.appendChild(doctorTd);
             }
@@ -586,53 +594,58 @@
             actionsDiv.style.gap = '0.25rem';
             actionsDiv.style.flexWrap = 'wrap';
 
+            // View Details
             const viewBtn = document.createElement('button');
             viewBtn.className = 'btn btn-primary';
             viewBtn.style.padding = '0.3rem 0.6rem';
             viewBtn.style.fontSize = '0.75rem';
             viewBtn.innerHTML = '<i class="fas fa-eye"></i> View';
-            viewBtn.onclick = function() { viewAppointment(appt.appointment_id); };
+            viewBtn.onclick = function() { viewAppointment(apptId); };
             actionsDiv.appendChild(viewBtn);
 
             const statusLower = (appt.status || 'scheduled').toLowerCase();
 
+            // Complete (status) for admin/doctor when not already completed
             if ((userRole === 'admin' || userRole === 'doctor') && statusLower !== 'completed') {
                 const completeBtn = document.createElement('button');
                 completeBtn.className = 'btn btn-success';
                 completeBtn.style.padding = '0.3rem 0.6rem';
                 completeBtn.style.fontSize = '0.75rem';
                 completeBtn.innerHTML = '<i class="fas fa-check"></i> Complete';
-                completeBtn.onclick = function() { markCompleted(appt.appointment_id); };
+                completeBtn.onclick = function() { markCompleted(apptId); };
                 actionsDiv.appendChild(completeBtn);
             }
 
+            // Edit Details
             if (['admin', 'doctor', 'receptionist'].includes(userRole)) {
                 const editBtn = document.createElement('button');
                 editBtn.className = 'btn btn-warning';
                 editBtn.style.padding = '0.3rem 0.6rem';
                 editBtn.style.fontSize = '0.75rem';
                 editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
-                editBtn.onclick = function() { editAppointment(appt.appointment_id); };
+                editBtn.onclick = function() { editAppointment(apptId); };
                 actionsDiv.appendChild(editBtn);
             }
 
+            // Delete (admin only)
             if (userRole === 'admin') {
                 const delBtn = document.createElement('button');
                 delBtn.className = 'btn btn-danger';
                 delBtn.style.padding = '0.3rem 0.6rem';
                 delBtn.style.fontSize = '0.75rem';
                 delBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
-                delBtn.onclick = function() { deleteAppointment(appt.appointment_id); };
+                delBtn.onclick = function() { deleteAppointment(apptId); };
                 actionsDiv.appendChild(delBtn);
             }
 
+            // Add to Bill (admin/accountant)
             if (userRole === 'admin' || userRole === 'accountant') {
                 const billBtn = document.createElement('button');
                 billBtn.className = 'btn btn-secondary';
                 billBtn.style.padding = '0.3rem 0.6rem';
                 billBtn.style.fontSize = '0.75rem';
                 billBtn.innerHTML = '<i class="fas fa-file-invoice-dollar"></i> Add to Bill';
-                billBtn.onclick = function() { openBillingModal(appt.appointment_id); };
+                billBtn.onclick = function() { openBillingModal(apptId); };
                 actionsDiv.appendChild(billBtn);
             }
 
@@ -668,7 +681,16 @@
     }
 
     function viewAppointment(appointmentId) {
-        if (!appointmentId) return;
+        if (!appointmentId) {
+            alert('Missing appointment ID – cannot load details.');
+            return;
+        }
+
+        // Basic feedback so users see the button is working
+        // (modal will open once data is loaded).
+        // You can remove this alert later if not needed.
+        // eslint-disable-next-line no-alert
+        alert('Loading appointment details...');
 
         const baseUrlMeta = document.querySelector('meta[name="base-url"]');
         const baseUrl = baseUrlMeta ? baseUrlMeta.content : '';
@@ -758,7 +780,10 @@
 
     // Complete appointment (status update)
     function markCompleted(appointmentId) {
-        if (!appointmentId) return;
+        if (!appointmentId) {
+            alert('Missing appointment ID – cannot complete.');
+            return;
+        }
 
         if (!confirm('Mark this appointment as completed?')) {
             return;
@@ -800,7 +825,10 @@
 
     // Edit appointment - reuse new appointment modal
     function editAppointment(appointmentId) {
-        if (!appointmentId) return;
+        if (!appointmentId) {
+            alert('Missing appointment ID – cannot edit.');
+            return;
+        }
 
         const baseUrlMeta = document.querySelector('meta[name="base-url"]');
         const baseUrl = baseUrlMeta ? baseUrlMeta.content : '';
@@ -914,7 +942,10 @@
 
     // Delete appointment
     function deleteAppointment(appointmentId) {
-        if (!appointmentId) return;
+        if (!appointmentId) {
+            alert('Missing appointment ID – cannot delete.');
+            return;
+        }
 
         if (!confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
             return;
@@ -950,3 +981,10 @@
         });
     }
 
+    // Make sure inline onclick handlers can find these functions
+    // (e.g. onclick="viewAppointment(…)" in the PHP view).
+    window.viewAppointment   = viewAppointment;
+    window.markCompleted     = markCompleted;
+    window.editAppointment   = editAppointment;
+    window.deleteAppointment = deleteAppointment;
+    window.openBillingModal  = openBillingModal;

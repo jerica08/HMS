@@ -120,8 +120,11 @@
                                     <?php if ($userRole === 'admin'): ?>
                                     <td>
                                         <div>
-                                            <strong>Dr. <?= esc(($appointment['doctor_first_name'] ?? '') . ' ' . ($appointment['doctor_last_name'] ?? '')) ?></strong><br>
-                                            <small><?= esc($appointment['doctor_department'] ?? 'N/A') ?></small>
+                                            <strong>Dr. <?= esc(($appointment['doctor_first_name'] ?? '') . ' ' . ($appointment['doctor_last_name'] ?? '')) ?></strong>
+                                            <?php $dept = trim($appointment['doctor_department'] ?? ''); if ($dept !== ''): ?>
+                                                <br>
+                                                <small><?= esc($dept) ?></small>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                     <?php endif; ?>
@@ -142,24 +145,33 @@
                                     </td>
                                     <td>
                                         <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                                            <!-- View Details -->
                                             <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="viewAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
                                                 <i class="fas fa-eye"></i> View
                                             </button>
+
+                                            <!-- Complete (status) -->
                                             <?php if (in_array($userRole, ['admin', 'doctor']) && strtolower($status) !== 'completed'): ?>
                                                 <button class="btn btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="markCompleted(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
                                                     <i class="fas fa-check"></i> Complete
                                                 </button>
                                             <?php endif; ?>
+
+                                            <!-- Edit Details -->
                                             <?php if (in_array($userRole, ['admin', 'doctor', 'receptionist'])): ?>
                                                 <button class="btn btn-warning" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="editAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
                                                     <i class="fas fa-edit"></i> Edit
                                                 </button>
                                             <?php endif; ?>
+
+                                            <!-- Delete Appointment (admin only) -->
                                             <?php if ($userRole === 'admin'): ?>
                                                 <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="deleteAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
                                                     <i class="fas fa-trash"></i> Delete
                                                 </button>
                                             <?php endif; ?>
+
+                                            <!-- Add to Bill (admin / accountant) -->
                                             <?php if (in_array($userRole, ['admin', 'accountant'])): ?>
                                                 <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="openBillingModal(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
                                                     <i class="fas fa-file-invoice-dollar"></i> Add to Bill

@@ -212,7 +212,7 @@ class Departments extends BaseController
 
     private function normalizeDepartmentType(?string $value): ?string
     {
-        $allowed = ['Clinical', 'Administrative', 'Emergency', 'Diagnostic'];
+        $allowed = ['Clinical', 'Administrative', 'Emergency', 'Diagnostic', 'Support'];
         if ($value === null) {
             return null;
         }

@@ -39,6 +39,7 @@
                                 <option value="Administrative">Administrative</option>
                                 <option value="Emergency">Emergency</option>
                                 <option value="Diagnostic">Diagnostic</option>
+                                <option value="Support">Support</option>
                             </select>
                         </div>
                         <div>

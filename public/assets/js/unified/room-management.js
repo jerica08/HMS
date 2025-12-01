@@ -16,6 +16,8 @@
     const roomNumberInput = document.getElementById('modal_room_number');
     const rateRangeInput = document.getElementById('modal_rate_range');
     const roomNotesInput = document.getElementById('modal_notes');
+    const bedCapacityInput = document.getElementById('modal_bed_capacity');
+    const bedNamesContainer = document.getElementById('modal_bed_names_container');
     const roomTypeMetadata = window.roomTypeMetadata || {};
 
     const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
@@ -148,6 +150,39 @@
 
     const capitalize = (value) => value ? value.charAt(0).toUpperCase() + value.slice(1) : '—';
 
+    const syncBedNameInputsFromCapacity = (existingNames = []) => {
+        if (!bedCapacityInput || !bedNamesContainer) {
+            return;
+        }
+
+        const capacityRaw = bedCapacityInput.value;
+        const capacity = parseInt(capacityRaw, 10);
+
+        bedNamesContainer.innerHTML = '';
+
+        if (!Number.isFinite(capacity) || capacity <= 0) {
+            return;
+        }
+
+        for (let i = 0; i < capacity; i += 1) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'mb-1';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = 'bed_names[]';
+            input.className = 'form-input';
+            input.placeholder = `e.g. 101-${String.fromCharCode(65 + i)}`;
+
+            if (Array.isArray(existingNames) && typeof existingNames[i] === 'string') {
+                input.value = existingNames[i];
+            }
+
+            wrapper.appendChild(input);
+            bedNamesContainer.appendChild(wrapper);
+        }
+    };
+
     const openModal = ({ skipAutofill = false } = {}) => {
         addRoomModal.style.display = 'block';
         addRoomModal.setAttribute('aria-hidden', 'false');
@@ -166,6 +201,9 @@
         form.reset();
         form.removeAttribute('data-room-id');
         applySelectedRoomTypeMetadata();
+        if (bedNamesContainer) {
+            bedNamesContainer.innerHTML = '';
+        }
         editingRoomId = null;
         if (modalTitle) {
             modalTitle.innerHTML = '<i class="fas fa-hotel" style="color:#0ea5e9"></i> Add New Room';
@@ -275,6 +313,7 @@
         document.getElementById('modal_overtime_charge').value = room.overtime_charge_per_hour || '';
         document.getElementById('modal_extra_charge').value = room.extra_person_charge || '';
         document.getElementById('modal_bed_capacity').value = room.bed_capacity || '';
+        syncBedNameInputsFromCapacity();
         document.getElementById('modal_department').value = room.department_id || '';
         document.getElementById('modal_status').value = room.status || 'available';
     };
@@ -506,6 +545,15 @@
 
     if (saveRoomBtn) {
         saveRoomBtn.addEventListener('click', submitRoom);
+    }
+
+    if (bedCapacityInput && bedNamesContainer) {
+        const handleCapacityChange = () => {
+            syncBedNameInputsFromCapacity();
+        };
+
+        bedCapacityInput.addEventListener('input', handleCapacityChange);
+        bedCapacityInput.addEventListener('change', handleCapacityChange);
     }
 
     if (addRoomModal) {

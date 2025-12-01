@@ -26,23 +26,8 @@
                 <div class="form-grid">
                     <div>
                         <label class="form-label" for="modal_room_type">Room Type</label>
-                        <select id="modal_room_type" name="room_type_id" class="form-input" required>
-                            <option value="">Select room type</option>
-                            <?php foreach ($roomTypes as $type): ?>
-                                <option value="<?= esc($type['room_type_id']) ?>"><?= esc($type['type_name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <small class="form-hint">Choose a room type. Known types will auto-fill related details.</small>
-                    </div>
-                    <div>
-                        <label class="form-label" for="modal_room_number">Room Number*</label>
-                        <input type="text" id="modal_room_number" name="room_number" class="form-input" required />
-                    </div>
-                </div>
-                <div class="form-grid">
-                    <div>
-                        <label class="form-label" for="modal_room_name">Room Name (optional)</label>
-                        <input type="text" id="modal_room_name" name="room_name" class="form-input" />
+                        <input type="text" id="modal_room_type" name="room_type_id" class="form-input" placeholder="Enter room type" required />
+                        <small class="form-hint">Enter the room type.</small>
                     </div>
                     <div>
                         <label class="form-label" for="modal_floor">Floor</label>
@@ -51,38 +36,24 @@
                 </div>
                 <div class="form-grid">
                     <div>
-                        <label class="form-label" for="modal_rate_range">Daily Rate Range</label>
-                        <input type="text" id="modal_rate_range" name="rate_range" class="form-input" placeholder="e.g. 1,000–2,000" />
+                        <label class="form-label" for="modal_room_name">Room Name (optional)</label>
+                        <input type="text" id="modal_room_name" name="room_name" class="form-input" />
                     </div>
                     <div>
-                        <label class="form-label" for="modal_hourly_rate">Hourly Rate (optional)</label>
-                        <input type="number" step="0.01" id="modal_hourly_rate" name="hourly_rate" class="form-input" />
-                    </div>
-                    <div>
-                        <label class="form-label" for="modal_overtime_charge">Overtime Charge</label>
-                        <input type="number" step="0.01" id="modal_overtime_charge" name="overtime_charge_per_hour" class="form-input" />
+                        <label class="form-label" for="modal_room_number">Room Number*</label>
+                        <input type="text" id="modal_room_number" name="room_number" class="form-input" required />
                     </div>
                 </div>
                 <div class="form-grid">
-                    <div>
-                        <label class="form-label" for="modal_extra_charge">Extra Person Charge (PHP)</label>
-                        <input type="number" step="0.01" id="modal_extra_charge" name="extra_person_charge" class="form-input" />
-                    </div>
+
                     <div>
                         <label class="form-label" for="modal_bed_capacity">Bed Capacity</label>
                         <input type="number" id="modal_bed_capacity" name="bed_capacity" class="form-input" min="1" />
+                        <label class="form-label" style="margin-top:0.5rem;">Bed Names</label>
+                        <div id="modal_bed_names_container"></div>
                     </div>
                 </div>
                 <div class="form-grid">
-                    <div>
-                        <label class="form-label" for="modal_department">Department</label>
-                        <select id="modal_department" name="department_id" class="form-input">
-                            <option value="">Select department</option>
-                            <?php foreach ($departments as $dept): ?>
-                                <option value="<?= esc($dept['department_id']) ?>"><?= esc($dept['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
                     <div>
                         <label class="form-label" for="modal_status">Room Status</label>
                         <select id="modal_status" name="status" class="form-input">

@@ -49,10 +49,7 @@ class RoomService
                 'r.department_id',
                 'r.status',
                 'r.bed_capacity',
-                'r.rate_range',
-                'r.hourly_rate',
-                'r.extra_person_charge',
-                'r.overtime_charge_per_hour',
+                'r.bed_names',
             ])
             ->orderBy('r.room_number', 'ASC');
 
@@ -262,7 +259,7 @@ class RoomService
             'date_out'        => null,
             'total_days'      => 0,
             'total_hours'     => 0,
-            'room_rate_at_time' => $room['rate_range'] ?? null,
+            'room_rate_at_time' => null,
             'bed_rate_at_time'  => null,
             'status'          => 'active',
         ];
@@ -381,6 +378,23 @@ class RoomService
 
     private function mapRoomPayload(array $input, ?int $roomTypeId = null): array
     {
+        $rawBedNames = $input['bed_names'] ?? [];
+        $normalizedBedNames = [];
+
+        if (is_array($rawBedNames)) {
+            foreach ($rawBedNames as $name) {
+                $name = trim((string) $name);
+                if ($name !== '') {
+                    $normalizedBedNames[] = $name;
+                }
+            }
+        } elseif (is_string($rawBedNames) && $rawBedNames !== '') {
+            // Fallback if a single string was submitted instead of an array
+            $normalizedBedNames[] = trim($rawBedNames);
+        }
+
+        $bedNamesValue = $normalizedBedNames ? json_encode($normalizedBedNames) : null;
+
         return [
             'room_number' => trim($input['room_number'] ?? ''),
             'room_name' => trim($input['room_name'] ?? ''),
@@ -388,11 +402,8 @@ class RoomService
             'floor_number' => trim($input['floor_number'] ?? ''),
             'department_id' => !empty($input['department_id']) ? (int) $input['department_id'] : null,
             'bed_capacity' => !empty($input['bed_capacity']) ? (int) $input['bed_capacity'] : 1,
+            'bed_names' => $bedNamesValue,
             'status' => $input['status'] ?? 'available',
-            'rate_range' => trim($input['rate_range'] ?? ''),
-            'hourly_rate' => $this->sanitizeDecimal($input['hourly_rate'] ?? null),
-            'extra_person_charge' => $this->sanitizeDecimal($input['extra_person_charge'] ?? 0),
-            'overtime_charge_per_hour' => $this->sanitizeDecimal($input['overtime_charge_per_hour'] ?? null),
         ];
     }
 
@@ -439,16 +450,11 @@ class RoomService
 
     private function buildRoomTypePayload(string $typeName, array $input): array
     {
-        $dailyRate = $this->sanitizeDecimal($input['rate_range'] ?? null);
-        $hourlyRate = $this->sanitizeDecimal($input['hourly_rate'] ?? null);
         $notes = trim($input['notes'] ?? '');
 
         return [
             'type_name' => $typeName,
             'description' => $notes ?: null,
-            'base_daily_rate' => $dailyRate ?? 0,
-            'base_hourly_rate' => $hourlyRate,
-            'additional_facility_charge' => null,
         ];
     }
 

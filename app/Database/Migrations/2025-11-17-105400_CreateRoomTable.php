@@ -48,6 +48,10 @@ class CreateRoomTable extends Migration
                     'null'       => false,
                     'default'    => 1,
                 ],
+                'bed_names' => [
+                    'type' => 'TEXT',
+                    'null' => true,
+                ],
                 'status' => [
                     'type'       => 'VARCHAR',
                     'constraint' => 20,
@@ -55,27 +59,6 @@ class CreateRoomTable extends Migration
                     'default'    => 'available',
                     'comment'    => 'available / occupied / maintenance',
                 ],
-                'rate_range' => [
-                    'type'       => 'VARCHAR',
-                    'constraint' => 50,
-                    'null'       => true,
-                ],
-                'hourly_rate' => [
-                    'type'       => 'DECIMAL',
-                    'constraint' => '10,2',
-                    'null'       => true,
-                ],
-                'extra_person_charge' => [
-                    'type'       => 'DECIMAL',
-                    'constraint' => '10,2',
-                    'null'       => true,
-                ],
-                'overtime_charge_per_hour' => [
-                    'type'       => 'DECIMAL',
-                    'constraint' => '10,2',
-                    'null'       => true,
-                ],
-                // Timestamps created as NULLable first; defaults set via raw SQL after create
                 'created_at' => [
                     'type'    => 'TIMESTAMP',
                     'null'    => true,

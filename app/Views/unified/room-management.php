@@ -127,14 +127,13 @@
                             <th scope="col">Department</th>
                             <th scope="col">Capacity</th>
                             <th scope="col">Status</th>
-                            <th scope="col">Rate / Day</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="roomsTableBody">
-                        <!-- Placeholder row while you haven’t wired backend/JS yet -->
+                        <!-- Placeholder row while data is loading -->
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 2rem;">
+                            <td colspan="6" style="text-align: center; padding: 2rem;">
                                 <i class="fas fa-spinner fa-spin"
                                    style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;"
                                    aria-hidden="true"></i>

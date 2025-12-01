@@ -77,7 +77,7 @@
             console.error('Failed to load rooms', error);
             roomsTableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align:center; color:#b91c1c;">
+                    <td colspan="6" style="text-align:center; color:#b91c1c;">
                         <i class="fas fa-exclamation-triangle"></i> Could not load rooms.
                     </td>
                 </tr>
@@ -96,7 +96,7 @@
         if (!rooms.length) {
             roomsTableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align:center;">
+                    <td colspan="6" style="text-align:center;">
                         <i class="fas fa-bed" aria-hidden="true"></i> No rooms yet.
                     </td>
                 </tr>
@@ -116,7 +116,6 @@
                 <td>${escapeHtml(room.department_name || '—')}</td>
                 <td>${room.bed_capacity ?? '—'}</td>
                 <td>${capitalize(room.status || 'unknown')}</td>
-                <td>${escapeHtml(room.rate_range || '—')}</td>
                 <td>
                     <div class="table-actions">
                         <button class="btn btn-sm btn-outline" data-action="edit" data-room-id="${room.room_id}" aria-label="Edit room ${escapeHtml(room.room_number)}">
@@ -306,13 +305,32 @@
         }
         applySelectedRoomTypeMetadata();
         roomNumberInput.value = room.room_number || '';
-        document.getElementById('modal_room_name').value = room.room_name || '';
-        floorInput.value = room.floor_number || '';
-        rateRangeInput.value = room.rate_range || '';
-        document.getElementById('modal_hourly_rate').value = room.hourly_rate || '';
-        document.getElementById('modal_overtime_charge').value = room.overtime_charge_per_hour || '';
-        document.getElementById('modal_extra_charge').value = room.extra_person_charge || '';
-        document.getElementById('modal_bed_capacity').value = room.bed_capacity || '';
+        const roomNameInput = document.getElementById('modal_room_name');
+        if (roomNameInput) {
+            roomNameInput.value = room.room_name || '';
+        }
+        if (floorInput) {
+            floorInput.value = room.floor_number || '';
+        }
+        if (rateRangeInput) {
+            rateRangeInput.value = room.rate_range || '';
+        }
+        const hourlyRateInput = document.getElementById('modal_hourly_rate');
+        if (hourlyRateInput) {
+            hourlyRateInput.value = room.hourly_rate || '';
+        }
+        const overtimeChargeInput = document.getElementById('modal_overtime_charge');
+        if (overtimeChargeInput) {
+            overtimeChargeInput.value = room.overtime_charge_per_hour || '';
+        }
+        const extraChargeInput = document.getElementById('modal_extra_charge');
+        if (extraChargeInput) {
+            extraChargeInput.value = room.extra_person_charge || '';
+        }
+        const bedCapacityInputEl = document.getElementById('modal_bed_capacity');
+        if (bedCapacityInputEl) {
+            bedCapacityInputEl.value = room.bed_capacity || '';
+        }
         syncBedNameInputsFromCapacity();
         document.getElementById('modal_department').value = room.department_id || '';
         document.getElementById('modal_status').value = room.status || 'available';

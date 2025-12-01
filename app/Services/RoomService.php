@@ -47,6 +47,7 @@ class RoomService
                 'r.room_type_id',
                 'r.floor_number',
                 'r.department_id',
+                'r.accommodation_type',
                 'r.status',
                 'r.bed_capacity',
                 'r.bed_names',
@@ -401,6 +402,7 @@ class RoomService
             'room_type_id' => $roomTypeId,
             'floor_number' => trim($input['floor_number'] ?? ''),
             'department_id' => !empty($input['department_id']) ? (int) $input['department_id'] : null,
+            'accommodation_type' => $this->sanitizeString($input['accommodation_type'] ?? null),
             'bed_capacity' => !empty($input['bed_capacity']) ? (int) $input['bed_capacity'] : 1,
             'bed_names' => $bedNamesValue,
             'status' => $input['status'] ?? 'available',
@@ -451,10 +453,12 @@ class RoomService
     private function buildRoomTypePayload(string $typeName, array $input): array
     {
         $notes = trim($input['notes'] ?? '');
+        $accommodationType = $this->sanitizeString($input['accommodation_type'] ?? null, 100);
 
         return [
             'type_name' => $typeName,
             'description' => $notes ?: null,
+            'accommodation_type' => $accommodationType,
         ];
     }
 
@@ -465,5 +469,23 @@ class RoomService
         }
 
         return number_format((float) $value, 2, '.', '');
+    }
+
+    private function sanitizeString(?string $value, ?int $maxLength = null): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $clean = trim(strip_tags($value));
+        if ($clean === '') {
+            return null;
+        }
+
+        if ($maxLength !== null) {
+            $clean = mb_substr($clean, 0, $maxLength);
+        }
+
+        return $clean;
     }
 }

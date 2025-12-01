@@ -35,7 +35,7 @@ class RoomManagement extends BaseController
         $departments = [];
         if ($this->db->tableExists('department')) {
             $departments = $this->db->table('department')
-                ->select('department_id, name')
+                ->select('department_id, name, floor')
                 ->orderBy('name', 'ASC')
                 ->get()
                 ->getResultArray();

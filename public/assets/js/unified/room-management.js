@@ -18,6 +18,8 @@
     const roomNotesInput = document.getElementById('modal_notes');
     const bedCapacityInput = document.getElementById('modal_bed_capacity');
     const bedNamesContainer = document.getElementById('modal_bed_names_container');
+    const departmentSelect = document.getElementById('modal_department');
+    const accommodationSelect = document.getElementById('modal_accommodation_type');
     const roomTypeMetadata = window.roomTypeMetadata || {};
 
     const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
@@ -33,6 +35,7 @@
         if (!newHash) {
             return;
         }
+
         csrfHash = newHash;
         if (csrfHashMeta) {
             csrfHashMeta.setAttribute('content', newHash);
@@ -41,6 +44,112 @@
             csrfField.value = newHash;
         }
     };
+
+    if (departmentSelect && floorInput) {
+        departmentSelect.addEventListener('change', () => {
+            const selectedOption = departmentSelect.options[departmentSelect.selectedIndex];
+            if (!selectedOption) {
+                return;
+            }
+            const deptFloor = selectedOption.getAttribute('data-floor') || '';
+            floorInput.value = deptFloor;
+        });
+    }
+
+    const roomTypeOptionsByAccommodation = {
+        'General Ward / General Accommodation': [
+            'Ward',
+            'Semi-Private Room',
+            'Private Room',
+            'Deluxe Room',
+            'Executive Room',
+            'Suite / VIP Suite',
+        ],
+        'Intensive / Critical Care Units': [
+            'ICU Bed (Intensive Care Unit)',
+            'CCU Bed (Coronary Care Unit)',
+            'NICU Incubator (Neonatal ICU)',
+            'PICU Bed (Pediatric ICU)',
+            'SICU Bed (Surgical ICU)',
+            'MICU Bed (Medical ICU)',
+            'HDU Bed (High Dependency Unit)',
+        ],
+        'Maternity / Obstetrics Accommodation': [
+            'Labor Room',
+            'Delivery Room',
+            'Birthing Room (LDR – Labor, Delivery, Recovery)',
+            'Postpartum Room',
+            'Maternity Ward',
+            'Nursery Room',
+        ],
+        'Pediatric Accommodation': [
+            'Pediatric Ward',
+            'Pediatric Private Room',
+            'Pediatric Isolation Room',
+            'PICU Bed',
+            'Neonatal Room',
+        ],
+        'Isolation Accommodation': [
+            'Negative Pressure Isolation Room',
+            'Positive Pressure Isolation Room',
+            'Isolation Private Room',
+            'Isolation Ward',
+        ],
+        'Surgical / Post-Operative Accommodation': [
+            'Recovery Room',
+            'PACU Bed (Post-Anesthesia Care Unit)',
+            'Post-Op Ward',
+            'Post-Op Private Room',
+        ],
+        'Specialty Units': [
+            'Dialysis Station',
+            'Oncology Room',
+            'Rehabilitation / Physical Therapy Room',
+            'Psychiatric Room',
+            'TB-DOTS Isolation Room',
+        ],
+    };
+
+    const populateRoomTypeOptions = (accommodationValue, currentValue = '') => {
+        if (!roomTypeInput) {
+            return;
+        }
+
+        const options = roomTypeOptionsByAccommodation[accommodationValue] || [];
+        roomTypeInput.innerHTML = '<option value="">Select room type</option>';
+
+        if (options.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = 'N/A';
+            opt.textContent = 'Not applicable / No predefined room types';
+            roomTypeInput.appendChild(opt);
+        } else {
+            options.forEach((label) => {
+                const opt = document.createElement('option');
+                opt.value = label;
+                opt.textContent = label;
+                roomTypeInput.appendChild(opt);
+            });
+        }
+
+        if (currentValue) {
+            roomTypeInput.value = currentValue;
+            if (!roomTypeInput.value) {
+                const opt = document.createElement('option');
+                opt.value = currentValue;
+                opt.textContent = currentValue;
+                roomTypeInput.appendChild(opt);
+                roomTypeInput.value = currentValue;
+            }
+        }
+    };
+
+    if (accommodationSelect) {
+        accommodationSelect.addEventListener('change', () => {
+            const value = accommodationSelect.value || '';
+            populateRoomTypeOptions(value, '');
+        });
+    }
 
     const showNotification = (message, type = 'success') => {
         const iconMap = {

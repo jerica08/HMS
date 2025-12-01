@@ -18,16 +18,31 @@
                         <select id="modal_department" name="department_id" class="form-input">
                             <option value="">Select department</option>
                             <?php foreach ($departments as $dept): ?>
-                                <option value="<?= esc($dept['department_id']) ?>"><?= esc($dept['name']) ?></option>
+                                <option value="<?= esc($dept['department_id']) ?>" data-floor="<?= esc($dept['floor'] ?? '') ?>"><?= esc($dept['name']) ?></option>
                             <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="modal_accommodation_type">Accommodation Type</label>
+                        <select id="modal_accommodation_type" name="accommodation_type" class="form-input">
+                            <option value="">Select accommodation type</option>
+                            <option value="General Ward / General Accommodation">General Ward / General Accommodation</option>
+                            <option value="Intensive / Critical Care Units">Intensive / Critical Care Units</option>
+                            <option value="Maternity / Obstetrics Accommodation">Maternity / Obstetrics Accommodation</option>
+                            <option value="Pediatric Accommodation">Pediatric Accommodation</option>
+                            <option value="Isolation Accommodation">Isolation Accommodation</option>
+                            <option value="Surgical / Post-Operative Accommodation">Surgical / Post-Operative Accommodation</option>
+                            <option value="Specialty Units">Specialty Units</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-grid">
                     <div>
                         <label class="form-label" for="modal_room_type">Room Type</label>
-                        <input type="text" id="modal_room_type" name="room_type_id" class="form-input" placeholder="Enter room type" required />
-                        <small class="form-hint">Enter the room type.</small>
+                        <select id="modal_room_type" name="room_type_id" class="form-input" required>
+                            <option value="">Select room type</option>
+                        </select>
+                        <small class="form-hint">Select the room type.</small>
                     </div>
                     <div>
                         <label class="form-label" for="modal_floor">Floor</label>

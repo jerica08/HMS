@@ -41,6 +41,16 @@
                         <label class="form-label" for="modal_room_type">Room Type</label>
                         <select id="modal_room_type" name="room_type_id" class="form-input" required>
                             <option value="">Select room type</option>
+                            <?php if (! empty($roomTypes)): ?>
+                                <?php foreach ($roomTypes as $type): ?>
+                                    <option
+                                        value="<?= esc($type['room_type_id']) ?>"
+                                        data-accommodation="<?= esc($type['accommodation_type'] ?? '') ?>"
+                                    >
+                                        <?= esc($type['type_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
                         <small class="form-hint">Select the room type.</small>
                     </div>

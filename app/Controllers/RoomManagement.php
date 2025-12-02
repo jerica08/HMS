@@ -26,7 +26,7 @@ class RoomManagement extends BaseController
         $roomTypes = [];
         if ($this->db->tableExists('room_type')) {
             $roomTypes = $this->db->table('room_type')
-                ->select('room_type_id, type_name')
+                ->select('room_type_id, type_name, accommodation_type')
                 ->orderBy('type_name', 'ASC')
                 ->get()
                 ->getResultArray();

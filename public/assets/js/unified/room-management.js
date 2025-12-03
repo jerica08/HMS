@@ -115,32 +115,19 @@
             return;
         }
 
-        const options = roomTypeOptionsByAccommodation[accommodationValue] || [];
         roomTypeInput.innerHTML = '<option value="">Select room type</option>';
 
-        if (options.length === 0) {
+        const labels = roomTypeOptionsByAccommodation[accommodationValue] || [];
+
+        labels.forEach((label) => {
             const opt = document.createElement('option');
-            opt.value = 'N/A';
-            opt.textContent = 'Not applicable / No predefined room types';
+            opt.value = label;
+            opt.textContent = label;
             roomTypeInput.appendChild(opt);
-        } else {
-            options.forEach((label) => {
-                const opt = document.createElement('option');
-                opt.value = label;
-                opt.textContent = label;
-                roomTypeInput.appendChild(opt);
-            });
-        }
+        });
 
         if (currentValue) {
             roomTypeInput.value = currentValue;
-            if (!roomTypeInput.value) {
-                const opt = document.createElement('option');
-                opt.value = currentValue;
-                opt.textContent = currentValue;
-                roomTypeInput.appendChild(opt);
-                roomTypeInput.value = currentValue;
-            }
         }
     };
 
@@ -410,7 +397,7 @@
         editingRoomId = room.room_id;
 
         if (roomTypeInput) {
-            roomTypeInput.value = room.room_type_id || '';
+            roomTypeInput.value = room.room_type || '';
         }
         applySelectedRoomTypeMetadata();
         roomNumberInput.value = room.room_number || '';
@@ -590,16 +577,17 @@
     const submitRoom = async () => {
         const form = document.getElementById('addRoomForm');
         const formData = new FormData(form);
-        const selectedRoomTypeId = (roomTypeInput?.value || '').trim();
+        const selectedRoomTypeLabel = (roomTypeInput?.value || '').trim();
 
-        if (!selectedRoomTypeId) {
+        if (!selectedRoomTypeLabel) {
             showNotification('Please select a room type.', 'error');
             roomTypeInput?.focus();
             return;
         }
 
-        formData.set('room_type_id', selectedRoomTypeId);
-        formData.set('custom_room_type', '');
+        // Let backend resolve/create the room_type based on label
+        formData.set('room_type_id', '');
+        formData.set('custom_room_type', selectedRoomTypeLabel);
 
         let endpoint = `${baseUrl}/rooms/create`;
         if (editingRoomId) {

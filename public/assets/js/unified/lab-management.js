@@ -209,13 +209,16 @@
             const orderedAt = order.ordered_at || order.created_at || '';
             const orderedDate = orderedAt ? orderedAt.substring(0, 10) : '';
             if (orderedDate === todayStr) totalToday++;
-            if (order.status === 'in_progress') inProgress++;
+            // Treat both 'ordered' and 'in_progress' as in-progress in the dashboard stats
+            if (order.status === 'in_progress' || order.status === 'ordered') inProgress++;
             if (order.status === 'completed') completed++;
 
             const patientName = order.patient_name || ((order.first_name || '') + ' ' + (order.last_name || '')).trim() || 'Unknown';
             const testLabel = (order.test_name || order.test_code || 'N/A');
             const priority = order.priority || 'routine';
-            const status = order.status || 'ordered';
+            // For display, show 'ordered' as 'in_progress' so UI reflects that work has started
+            const rawStatus = order.status || 'ordered';
+            const status = (rawStatus === 'ordered') ? 'in_progress' : rawStatus;
 
             let badgeClass = 'badge-info';
             switch (status) {
@@ -228,12 +231,8 @@
             const canAct = ['admin', 'doctor', 'laboratorist', 'it_staff'].includes(userRole);
             const actions = [];
             if (canAct && status !== 'completed' && status !== 'cancelled') {
-                if (status === 'ordered') {
-                    actions.push(`<button class="btn btn-warning" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${order.lab_order_id}, 'in_progress')"><i class="fas fa-play"></i> Start</button>`);
-                }
-                if (status === 'in_progress' || status === 'ordered') {
-                    actions.push(`<button class="btn btn-success" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${order.lab_order_id}, 'completed')"><i class="fas fa-check"></i> Complete</button>`);
-                }
+                // No separate Start button; allow direct completion or cancellation
+                actions.push(`<button class="btn btn-success" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${order.lab_order_id}, 'completed')"><i class="fas fa-check"></i> Complete</button>`);
                 actions.push(`<button class="btn btn-danger" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${order.lab_order_id}, 'cancelled')"><i class="fas fa-times"></i> Cancel</button>`);
             }
 

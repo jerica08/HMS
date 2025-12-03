@@ -500,6 +500,13 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
+/* New Lab Order modal: use centered, compact dialog instead of wide full-screen modal */
+#labOrderModal .modal-content {
+    margin: 0;              /* let flexbox centering from overlay control vertical position */
+    width: 90%;
+    max-width: 640px;       /* match inline style on modal-dialog */
+}
+
 /* Explicitly widen unified prescription modals to override any generic modal styles */
 #prescriptionModal .modal-content {
     width: 90vw !important;

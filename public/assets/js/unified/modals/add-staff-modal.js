@@ -16,9 +16,6 @@ window.AddStaffModal = {
             if (employeeIdInput) {
                 employeeIdInput.readOnly = true;
             }
-            // Persist draft data on any input/change so Back button restores it
-            this.form.addEventListener('input', () => this.saveDraft());
-            this.form.addEventListener('change', () => this.saveDraft());
             // Toggle role-specific fields
             const designationEl = document.getElementById('designation');
             designationEl?.addEventListener('change', () => {
@@ -59,9 +56,6 @@ window.AddStaffModal = {
             }
         }
         
-        // Attempt to restore any saved draft on load (helps with Back button)
-        this.restoreDraft();
-
         // Close modal on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.modal && !this.modal.getAttribute('aria-hidden')) {
@@ -84,8 +78,6 @@ window.AddStaffModal = {
             this.modal.classList.add('active');
             this.modal.setAttribute('aria-hidden', 'false');
             this.resetForm();
-            // After reset, re-apply any saved draft data (if user navigated back)
-            this.restoreDraft();
             
             // Set default date joined to today
             const dateJoinedField = document.getElementById('date_joined');

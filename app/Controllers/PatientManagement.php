@@ -37,11 +37,21 @@ class PatientManagement extends BaseController
         $patients = $this->patientService->getPatientsByRole($this->userRole, $this->staffId);
         $stats = $this->patientService->getPatientStats($this->userRole, $this->staffId);
         $availableDoctors = $this->patientService->getAvailableDoctors();
-        $roomTypes = $this->db->table('room_type')
-            ->select('room_type_id, type_name, base_daily_rate')
-            ->orderBy('type_name', 'ASC')
-            ->get()
-            ->getResultArray();
+
+        $roomTypes = [];
+        if ($this->db->tableExists('room_type')) {
+            $builder = $this->db->table('room_type')
+                ->select('room_type_id, type_name');
+
+            if ($this->db->fieldExists('base_daily_rate', 'room_type')) {
+                $builder->select('base_daily_rate');
+            }
+
+            $roomTypes = $builder
+                ->orderBy('type_name', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
         $rooms = [];
         $roomInventory = [];
         if ($this->db->tableExists('room')) {

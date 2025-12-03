@@ -30,11 +30,6 @@ class CreateDoctorTable extends Migration
                 'unique'     => true,
                 'null'       => true,
             ],
-            'consultation_fee' => [
-                'type'       => 'DECIMAL',
-                'constraint' => '10,2',
-                'null'       => true,
-            ],
             'status' => [
                 'type'       => 'ENUM',
                 'constraint' => ['Active', 'Inactive'],

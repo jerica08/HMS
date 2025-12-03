@@ -117,11 +117,6 @@
                                 <input type="text" id="doctor_license_no" name="doctor_license_no" class="form-input" placeholder="e.g., PRC-1234567">
                                 <small id="err_doctor_license_no" style="color:#dc2626"></small>
                             </div>
-                            <div>
-                                <label class="form-label" for="doctor_consultation_fee">Consultation Fee</label>
-                                <input type="number" step="0.01" id="doctor_consultation_fee" name="doctor_consultation_fee" class="form-input" placeholder="e.g., 500.00">
-                                <small id="err_doctor_consultation_fee" style="color:#dc2626"></small>
-                            </div>
                         </div>
                     </div>
                     <!-- Accountant-specific fields -->

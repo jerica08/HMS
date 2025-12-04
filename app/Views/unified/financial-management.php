@@ -32,12 +32,12 @@
                 <i class="fas fa-dollar-sign"></i>
                 <?php
                 $pageTitles = [
-                    'admin'       => 'Financial Management',
+                    'admin'       => 'Billing Management',
                     'doctor'      => 'My Financial Records',
                     'accountant'  => 'Financial Overview',
                     'receptionist'=> 'Billing & Payments'
                 ];
-                echo esc($pageTitles[$userRole] ?? 'Financial Management');
+                echo esc($pageTitles[$userRole] ?? 'Billing Management');
                 ?>
             </h1>
 

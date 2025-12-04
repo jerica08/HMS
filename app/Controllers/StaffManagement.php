@@ -40,7 +40,6 @@ class StaffManagement extends BaseController
                          dpt.name as department,
                          d.specialization as doctor_specialization,
                          d.license_no as doctor_license_no,
-                         d.consultation_fee as doctor_consultation_fee,
                          n.license_no as nurse_license_no,
                          n.specialization as nurse_specialization,
                          p.license_no as pharmacist_license_no,
@@ -158,7 +157,6 @@ class StaffManagement extends BaseController
                         'staff_id' => $staffId,
                         'specialization' => $this->request->getPost('doctor_specialization'),
                         'license_no' => $this->request->getPost('doctor_license_no') ?: null,
-                        'consultation_fee' => $this->request->getPost('doctor_consultation_fee') ?: null,
                         'status' => 'Active',
                     ]);
                     break;

@@ -29,7 +29,6 @@ class StaffService
                          DATE_FORMAT(s.date_joined, "%M %d, %Y") as formatted_date_joined,
                          d.specialization as doctor_specialization,
                          d.license_no as doctor_license_no,
-                         d.consultation_fee as doctor_consultation_fee,
                          n.license_no as nurse_license_no,
                          p.license_no as pharmacist_license_no,
                          l.license_no as laboratorist_license_no,
@@ -201,7 +200,6 @@ class StaffService
                          dpt.name as department,
                          d.specialization as doctor_specialization,
                          d.license_no as doctor_license_no,
-                         d.consultation_fee as doctor_consultation_fee,
                          n.license_no as nurse_license_no,
                          p.license_no as pharmacist_license_no,
                          l.license_no as laboratorist_license_no,
@@ -821,8 +819,7 @@ class StaffService
                         // Doctor table requires specialization NOT NULL; default to 'General' when missing
                         'specialization' => ($input['doctor_specialization'] ?? $input['specialization'] ?? 'General'),
                         'license_no' => $input['doctor_license_no'] ?? null,
-                        'consultation_fee' => $input['doctor_consultation_fee'] ?? null,
-                        // 'status' column may not exist depending on schema; omit
+                        // 'status' column exists with default Active in schema; rely on DB default
                     ]);
                     break;
                 case 'admin':

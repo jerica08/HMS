@@ -189,7 +189,34 @@ const AddPatientModal = {
         if (heightInput) {
             heightInput.addEventListener('input', () => this.updateBmi());
         }
-        
+
+        // Emergency / guardian relationship "Other" handlers
+        const outpatientRelSelect = document.getElementById('emergency_contact_relationship');
+        const outpatientRelOther = document.getElementById('emergency_contact_relationship_other');
+        if (outpatientRelSelect && outpatientRelOther) {
+            outpatientRelSelect.addEventListener('change', () => {
+                const isOther = outpatientRelSelect.value === 'Other';
+                outpatientRelOther.hidden = !isOther;
+                outpatientRelOther.required = isOther;
+                if (!isOther) {
+                    outpatientRelOther.value = '';
+                }
+            });
+        }
+
+        const guardianRelSelect = document.getElementById('guardian_relationship');
+        const guardianRelOther = document.getElementById('guardian_relationship_other');
+        if (guardianRelSelect && guardianRelOther) {
+            guardianRelSelect.addEventListener('change', () => {
+                const isOther = guardianRelSelect.value === 'Other';
+                guardianRelOther.hidden = !isOther;
+                guardianRelOther.required = isOther;
+                if (!isOther) {
+                    guardianRelOther.value = '';
+                }
+            });
+        }
+
         // Close modal when clicking outside
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {

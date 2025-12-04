@@ -143,7 +143,24 @@
                                     </div>
                                     <div>
                                         <label class="form-label" for="emergency_contact_relationship">Relationship*</label>
-                                        <input type="text" id="emergency_contact_relationship" name="emergency_contact_relationship" class="form-input" required>
+                                        <select id="emergency_contact_relationship" name="emergency_contact_relationship" class="form-select" required>
+                                            <option value="">Select relationship...</option>
+                                            <option value="Parent">Parent</option>
+                                            <option value="Child">Child</option>
+                                            <option value="Sibling">Sibling</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Grandparent">Grandparent</option>
+                                            <option value="Guardian">Guardian</option>
+                                            <option value="Relative">Relative</option>
+                                            <option value="Friend">Friend</option>
+                                            <option value="Partner">Partner</option>
+                                            <option value="Employer">Employer</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="emergency_contact_relationship_other">If Other, please specify</label>
+                                        <input type="text" id="emergency_contact_relationship_other" name="emergency_contact_relationship_other" class="form-input" placeholder="Specify relationship" hidden>
                                     </div>
                                     <div>
                                         <label class="form-label" for="emergency_contact_phone">Contact Number*</label>
@@ -484,7 +501,24 @@
                                     </div>
                                     <div>
                                         <label class="form-label" for="guardian_relationship">Relationship*</label>
-                                        <input type="text" id="guardian_relationship" name="guardian_relationship" class="form-input" required>
+                                        <select id="guardian_relationship" name="guardian_relationship" class="form-select" required>
+                                            <option value="">Select relationship...</option>
+                                            <option value="Parent">Parent</option>
+                                            <option value="Child">Child</option>
+                                            <option value="Sibling">Sibling</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Grandparent">Grandparent</option>
+                                            <option value="Guardian">Guardian</option>
+                                            <option value="Relative">Relative</option>
+                                            <option value="Friend">Friend</option>
+                                            <option value="Partner">Partner</option>
+                                            <option value="Employer">Employer</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="guardian_relationship_other">If Other, please specify</label>
+                                        <input type="text" id="guardian_relationship_other" name="guardian_relationship_other" class="form-input" placeholder="Specify relationship" hidden>
                                     </div>
                                     <div>
                                         <label class="form-label" for="guardian_contact">Contact Number*</label>

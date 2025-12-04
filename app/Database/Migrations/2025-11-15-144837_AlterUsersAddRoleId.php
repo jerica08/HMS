@@ -13,18 +13,22 @@ class AlterUsersAddRoleId extends Migration
         // Check if column already exists
         $fields = $db->getFieldNames('users');
 
-        if (!in_array('role_id', $fields)) {
-            // 1) Add role_id column only if it does NOT exist
-            $this->forge->addColumn('users', [
-                'role_id' => [
-                    'type'       => 'INT',
-                    'constraint' => 11,
-                    'unsigned'   => true,
-                    'null'       => true, // allow null during migration
-                    'after'      => 'role', // put it after your existing ENUM
-                ],
-            ]);
+        // If role_id is already present, skip this migration body entirely to avoid
+        // duplicate column errors when rerunning migrations against an existing DB.
+        if (in_array('role_id', $fields)) {
+            return;
         }
+
+        // 1) Add role_id column only if it does NOT exist
+        $this->forge->addColumn('users', [
+            'role_id' => [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'unsigned'   => true,
+                'null'       => true, // allow null during migration
+                'after'      => 'role', // put it after your existing ENUM
+            ],
+        ]);
 
         // 2) Backfill role_id based on existing ENUM field `role` and roles.slug
         // This assumes your roles table slugs: admin, doctor, nurse, receptionist, pharmacist,

@@ -8,32 +8,24 @@ class AlterStaffDropRole extends Migration
 {
     public function up()
     {
-        // Make sure role_id exists before dropping role
+        // This migration's responsibility is now ONLY to drop the legacy ENUM `role` column
+        // after the new integer `role_id` column has been created by
+        // 2025-11-15-145826_AlterStaffAddRoleId.
+
         $db     = \Config\Database::connect();
         $fields = $db->getFieldNames('staff');
 
-        if (!in_array('role_id', $fields)) {
-            $this->forge->addColumn('staff', [
-                'role_id' => [
-                    'type'       => 'INT',
-                    'constraint' => 11,
-                    'unsigned'   => true,
-                    'null'       => true,
-                    'after'      => 'role',
-                ],
-            ]);
-
-            if ($db->tableExists('roles')) {
-                $db->query('
-                    UPDATE staff s
-                    JOIN roles r ON r.slug = s.role
-                    SET s.role_id = r.role_id
-                ');
-            }
+        // If there is no legacy `role` column, there is nothing to do.
+        if (!in_array('role', $fields)) {
+            return;
         }
 
-        // Drop the old ENUM role column from staff
-        $this->forge->dropColumn('staff', 'role');
+        // Only drop `role` when `role_id` already exists. We deliberately do NOT
+        // add `role_id` here to avoid duplicate-column errors; that is handled
+        // by the AlterStaffAddRoleId migration.
+        if (in_array('role_id', $fields)) {
+            $this->forge->dropColumn('staff', 'role');
+        }
     }
 
     public function down()

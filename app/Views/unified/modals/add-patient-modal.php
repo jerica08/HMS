@@ -143,7 +143,24 @@
                                     </div>
                                     <div>
                                         <label class="form-label" for="emergency_contact_relationship">Relationship*</label>
-                                        <input type="text" id="emergency_contact_relationship" name="emergency_contact_relationship" class="form-input" required>
+                                        <select id="emergency_contact_relationship" name="emergency_contact_relationship" class="form-select" required>
+                                            <option value="">Select relationship...</option>
+                                            <option value="Parent">Parent</option>
+                                            <option value="Child">Child</option>
+                                            <option value="Sibling">Sibling</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Grandparent">Grandparent</option>
+                                            <option value="Guardian">Guardian</option>
+                                            <option value="Relative">Relative</option>
+                                            <option value="Friend">Friend</option>
+                                            <option value="Partner">Partner</option>
+                                            <option value="Employer">Employer</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="emergency_contact_relationship_other">If Other, please specify</label>
+                                        <input type="text" id="emergency_contact_relationship_other" name="emergency_contact_relationship_other" class="form-input" placeholder="Specify relationship" hidden>
                                     </div>
                                     <div>
                                         <label class="form-label" for="emergency_contact_phone">Contact Number*</label>
@@ -438,34 +455,34 @@
                                         <small id="err_email" class="form-error"></small>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_province">Province*</label>
-                                        <select id="outpatient_province" name="province" class="form-select" required disabled>
+                                        <label class="form-label" for="inpatient_province">Province*</label>
+                                        <select id="inpatient_province" name="province" class="form-select" required>
                                             <option value="">Select a province...</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_city">City / Municipality*</label>
-                                        <select id="outpatient_city" name="city" class="form-select" required disabled>
+                                        <label class="form-label" for="inpatient_city">City / Municipality*</label>
+                                        <select id="inpatient_city" name="city" class="form-select" required>
                                             <option value="">Select a city or municipality...</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_barangay">Barangay*</label>
-                                        <select id="outpatient_barangay" name="barangay" class="form-select" required disabled>
+                                        <label class="form-label" for="inpatient_barangay">Barangay*</label>
+                                        <select id="inpatient_barangay" name="barangay" class="form-select" required>
                                             <option value="">Select a barangay...</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_subdivision">Subdivision / Village</label>
-                                        <input type="text" id="outpatient_subdivision" name="subdivision" class="form-input" placeholder="Optional">
+                                        <label class="form-label" for="inpatient_subdivision">Subdivision / Village</label>
+                                        <input type="text" id="inpatient_subdivision" name="subdivision" class="form-input" placeholder="Optional">
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_house_number">House / Lot / Block / Unit No.*</label>
-                                        <input type="text" id="outpatient_house_number" name="house_number" class="form-input" placeholder="Optional" required>
+                                        <label class="form-label" for="inpatient_house_number">House / Lot / Block / Unit No.*</label>
+                                        <input type="text" id="inpatient_house_number" name="house_number" class="form-input" placeholder="Optional" required>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_zip_code">ZIP Code</label>
-                                        <input type="text" id="outpatient_zip_code" name="zip_code" class="form-input" placeholder="Optional">
+                                        <label class="form-label" for="inpatient_zip_code">ZIP Code</label>
+                                        <input type="text" id="inpatient_zip_code" name="zip_code" class="form-input" placeholder="Optional">
                                     </div>
                                 </div>
                             </div>
@@ -484,7 +501,24 @@
                                     </div>
                                     <div>
                                         <label class="form-label" for="guardian_relationship">Relationship*</label>
-                                        <input type="text" id="guardian_relationship" name="guardian_relationship" class="form-input" required>
+                                        <select id="guardian_relationship" name="guardian_relationship" class="form-select" required>
+                                            <option value="">Select relationship...</option>
+                                            <option value="Parent">Parent</option>
+                                            <option value="Child">Child</option>
+                                            <option value="Sibling">Sibling</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Grandparent">Grandparent</option>
+                                            <option value="Guardian">Guardian</option>
+                                            <option value="Relative">Relative</option>
+                                            <option value="Friend">Friend</option>
+                                            <option value="Partner">Partner</option>
+                                            <option value="Employer">Employer</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="guardian_relationship_other">If Other, please specify</label>
+                                        <input type="text" id="guardian_relationship_other" name="guardian_relationship_other" class="form-input" placeholder="Specify relationship" hidden>
                                     </div>
                                     <div>
                                         <label class="form-label" for="guardian_contact">Contact Number*</label>

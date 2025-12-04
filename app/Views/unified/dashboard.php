@@ -52,7 +52,7 @@
                             <div class="card-icon-modern blue"><i class="fas fa-users"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Patients</h3>
-                                <p class="card-subtitle">System-wide</p>
+                                <p class="card-subtitle">System-wide (trends)</p>
                             </div>
                         </div>
                         <div class="card-metrics">
@@ -72,16 +72,89 @@
 
                     <div class="overview-card">
                         <div class="card-header-modern">
-                            <div class="card-icon-modern green"><i class="fas fa-user-md"></i></div>
+                            <div class="card-icon-modern orange"><i class="fas fa-calendar-alt"></i></div>
                             <div class="card-info">
-                                <h3 class="card-title-modern">Medical Staff</h3>
-                                <p class="card-subtitle">Healthcare providers</p>
+                                <h3 class="card-title-modern">Today's Appointments</h3>
+                                <p class="card-subtitle">Schedule breakdown</p>
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value green"><?= $dashboardStats['total_doctors'] ?? 0 ?></div>
-                                <div class="metric-label">Doctors</div>
+                                <div class="metric-value blue"><?= $dashboardStats['today_scheduled_appointments'] ?? 0 ?></div>
+                                <div class="metric-label">Scheduled</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green"><?= $dashboardStats['today_completed_appointments'] ?? 0 ?></div>
+                                <div class="metric-label">Completed</div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="<?= base_url('admin/appointments') ?>" class="action-btn">View Schedule</a>
+                        </div>
+                    </div>
+
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern green"><i class="fas fa-procedures"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Patient Types</h3>
+                                <p class="card-subtitle">Inpatients vs Outpatients</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value green"><?= $dashboardStats['inpatients'] ?? 0 ?></div>
+                                <div class="metric-label">Inpatients</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $dashboardStats['outpatients'] ?? 0 ?></div>
+                                <div class="metric-label">Outpatients</div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="<?= base_url('admin/patient-management') ?>" class="action-btn">View Patients</a>
+                        </div>
+                    </div>
+
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern purple"><i class="fas fa-bed"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Beds & Capacity</h3>
+                                <p class="card-subtitle">Occupied vs Available</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value purple"><?= $dashboardStats['occupied_beds'] ?? 0 ?></div>
+                                <div class="metric-label">Occupied Beds</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green"><?= $dashboardStats['bed_capacity_total'] ?? 0 ?></div>
+                                <div class="metric-label">Total Capacity</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $dashboardStats['available_beds'] ?? 0 ?></div>
+                                <div class="metric-label">Available Beds</div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <a href="<?= base_url('admin/room-management') ?>" class="action-btn">Manage Beds</a>
+                        </div>
+                    </div>
+
+                    <div class="overview-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern green"><i class="fas fa-user-md"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Staff On Duty</h3>
+                                <p class="card-subtitle">Today</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value blue"><?= $dashboardStats['total_doctors'] ?? 0 ?></div>
+                                <div class="metric-label">Total Doctors</div>
                             </div>
                             <div class="metric">
                                 <div class="metric-value purple"><?= $dashboardStats['total_staff'] ?? 0 ?></div>
@@ -89,53 +162,7 @@
                             </div>
                         </div>
                         <div class="card-actions">
-                            <a href="<?= base_url('admin/staff-management') ?>" class="action-btn">Manage</a>
-                        </div>
-                    </div>
-
-                    <div class="overview-card">
-                        <div class="card-header-modern">
-                            <div class="card-icon-modern orange"><i class="fas fa-calendar-alt"></i></div>
-                            <div class="card-info">
-                                <h3 class="card-title-modern">Appointments</h3>
-                                <p class="card-subtitle">Today's schedule</p>
-                            </div>
-                        </div>
-                        <div class="card-metrics">
-                            <div class="metric">
-                                <div class="metric-value orange"><?= $dashboardStats['today_appointments'] ?? 0 ?></div>
-                                <div class="metric-label">Today</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value blue"><?= $dashboardStats['pending_appointments'] ?? 0 ?></div>
-                                <div class="metric-label">Pending</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <a href="<?= base_url('admin/appointments') ?>" class="action-btn">View</a>
-                        </div>
-                    </div>
-
-                    <div class="overview-card">
-                        <div class="card-header-modern">
-                            <div class="card-icon-modern red"><i class="fas fa-chart-line"></i></div>
-                            <div class="card-info">
-                                <h3 class="card-title-modern">System Health</h3>
-                                <p class="card-subtitle">Performance metrics</p>
-                            </div>
-                        </div>
-                        <div class="card-metrics">
-                            <div class="metric">
-                                <div class="metric-value red"><?= $dashboardStats['total_users'] ?? 0 ?></div>
-                                <div class="metric-label">Users</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value green"><?= $dashboardStats['completed_appointments'] ?? 0 ?></div>
-                                <div class="metric-label">Completed</div>
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <a href="<?= base_url('admin/analytics') ?>" class="action-btn">Analytics</a>
+                            <a href="<?= base_url('admin/staff-management') ?>" class="action-btn">Manage Staff</a>
                         </div>
                     </div>
 

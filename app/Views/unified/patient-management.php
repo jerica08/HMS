@@ -66,27 +66,7 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Patient Type Card -->
-                <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple"><i class="fas fa-calendar-week"></i></div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Patient Types</h3>
-                            <p class="card-subtitle">Active vs Emergency</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $patientStats['active_patients'] ?? 0 ?></div>
-                            <div class="metric-label">Active</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value green"><?= $patientStats['emergency_patients'] ?? 0 ?></div>
-                            <div class="metric-label">Emergency</div>
-                        </div>
-                    </div>
-                </div>
+                
             <?php elseif ($userRole === 'doctor'): ?>
                 <!-- My Patients Card -->
                 <div class="overview-card" tabindex="0">

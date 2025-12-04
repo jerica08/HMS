@@ -41,7 +41,7 @@ class DashboardService
             }
         } catch (\Exception $e) {
             log_message('error', 'Dashboard stats error: ' . $e->getMessage());
-            return [];
+            return ['_error' => $e->getMessage()];
         }
     }
 
@@ -52,45 +52,113 @@ class DashboardService
     {
         $stats = [];
 
-        // Total patients
+        // Total patients + trends and types
         if ($this->db->tableExists('patient')) {
-            $stats['total_patients'] = $this->db->table('patient')->countAllResults();
+            $patientTable = $this->db->table('patient');
+
+            // Overall counts
+            $stats['total_patients'] = $patientTable->countAllResults();
+
             $stats['active_patients'] = $this->db->table('patient')
                 ->where('status', 'Active')
+                ->countAllResults();
+
+            // Patient type breakdown
+            $stats['inpatients'] = $this->db->table('patient')
+                ->where('patient_type', 'Inpatient')
+                ->countAllResults();
+
+            $stats['outpatients'] = $this->db->table('patient')
+                ->where('patient_type', 'Outpatient')
+                ->countAllResults();
+
+            $stats['emergency_patients'] = $this->db->table('patient')
+                ->where('patient_type', 'Emergency')
+                ->countAllResults();
+
+            // Trends: new patients this week and this month
+            $today = date('Y-m-d');
+            $weekAgo = date('Y-m-d', strtotime('-7 days'));
+            $monthAgo = date('Y-m-d', strtotime('-30 days'));
+
+            $stats['weekly_new_patients'] = $this->db->table('patient')
+                ->where('date_registered >=', $weekAgo)
+                ->where('date_registered <=', $today)
+                ->countAllResults();
+
+            $stats['monthly_patients'] = $this->db->table('patient')
+                ->where('date_registered >=', $monthAgo)
+                ->where('date_registered <=', $today)
                 ->countAllResults();
         } else {
             $stats['total_patients'] = 0;
             $stats['active_patients'] = 0;
+            $stats['inpatients'] = 0;
+            $stats['outpatients'] = 0;
+            $stats['emergency_patients'] = 0;
+            $stats['weekly_new_patients'] = 0;
+            $stats['monthly_patients'] = 0;
         }
 
-        // Staff statistics
+        // Staff statistics (defensive in case "role" column does not exist)
         if ($this->db->tableExists('staff')) {
-            $stats['total_staff'] = $this->db->table('staff')->countAllResults();
-            $stats['total_doctors'] = $this->db->table('staff')
-                ->where('role', 'doctor')
-                ->countAllResults();
+            try {
+                $staffTable = $this->db->table('staff');
+                $stats['total_staff'] = $staffTable->countAllResults();
+
+                // Only attempt role-based count if column exists
+                if ($this->db->fieldExists('role', 'staff')) {
+                    $stats['total_doctors'] = $this->db->table('staff')
+                        ->where('role', 'doctor')
+                        ->countAllResults();
+                } else {
+                    $stats['total_doctors'] = 0;
+                }
+            } catch (\Throwable $e) {
+                log_message('error', 'DashboardService::getAdminStats staff stats error: ' . $e->getMessage());
+                $stats['total_staff'] = $stats['total_staff'] ?? 0;
+                $stats['total_doctors'] = 0;
+            }
         } else {
             $stats['total_staff'] = 0;
             $stats['total_doctors'] = 0;
         }
 
-        // Appointments
+        // Appointments (today breakdown)
         $today = date('Y-m-d');
         if ($this->db->tableExists('appointments')) {
+            // All appointments today (any status)
             $stats['today_appointments'] = $this->db->table('appointments')
                 ->where('appointment_date', $today)
                 ->countAllResults();
-            
+
+            // Today by status
+            $stats['today_scheduled_appointments'] = $this->db->table('appointments')
+                ->where('appointment_date', $today)
+                ->where('status', 'scheduled')
+                ->countAllResults();
+
+            $stats['today_completed_appointments'] = $this->db->table('appointments')
+                ->where('appointment_date', $today)
+                ->where('status', 'completed')
+                ->countAllResults();
+
+            $stats['today_cancelled_appointments'] = $this->db->table('appointments')
+                ->where('appointment_date', $today)
+                ->where('status', 'cancelled')
+                ->countAllResults();
+
+            // Legacy keys for backward compatibility
             $stats['pending_appointments'] = $this->db->table('appointments')
                 ->where('status', 'scheduled')
                 ->countAllResults();
-            
-            $stats['completed_appointments'] = $this->db->table('appointments')
-                ->where('status', 'completed')
-                ->where('appointment_date', $today)
-                ->countAllResults();
+
+            $stats['completed_appointments'] = $stats['today_completed_appointments'];
         } else {
             $stats['today_appointments'] = 0;
+            $stats['today_scheduled_appointments'] = 0;
+            $stats['today_completed_appointments'] = 0;
+            $stats['today_cancelled_appointments'] = 0;
             $stats['pending_appointments'] = 0;
             $stats['completed_appointments'] = 0;
         }
@@ -102,7 +170,7 @@ class DashboardService
             $stats['total_users'] = 0;
         }
 
-        // Weekly and monthly stats
+        // Weekly appointments stats
         if ($this->db->tableExists('appointments')) {
             $stats['weekly_appointments'] = $this->db->table('appointments')
                 ->where('appointment_date >=', date('Y-m-d', strtotime('-7 days')))
@@ -111,12 +179,61 @@ class DashboardService
             $stats['weekly_appointments'] = 0;
         }
 
-        if ($this->db->tableExists('patient')) {
-            $stats['monthly_patients'] = $this->db->table('patient')
-                ->where('date_registered >=', date('Y-m-d', strtotime('-30 days')))
-                ->countAllResults();
+        // Bed / capacity statistics (room table)
+        if ($this->db->tableExists('room')) {
+            $roomBuilder = $this->db->table('room');
+
+            // Total bed capacity across all rooms
+            $capacityRow = $roomBuilder
+                ->selectSum('bed_capacity', 'total_capacity')
+                ->get()
+                ->getRow();
+
+            $totalCapacity = $capacityRow && isset($capacityRow->total_capacity)
+                ? (int) $capacityRow->total_capacity
+                : 0;
+
+            // Occupied beds: sum bed_capacity where room status is occupied
+            $occupiedRow = $this->db->table('room')
+                ->selectSum('bed_capacity', 'occupied_capacity')
+                ->where('status', 'occupied')
+                ->get()
+                ->getRow();
+
+            $occupiedBeds = $occupiedRow && isset($occupiedRow->occupied_capacity)
+                ? (int) $occupiedRow->occupied_capacity
+                : 0;
+
+            $stats['bed_capacity_total'] = $totalCapacity;
+            $stats['occupied_beds'] = $occupiedBeds;
+            $stats['available_beds'] = max($totalCapacity - $occupiedBeds, 0);
         } else {
-            $stats['monthly_patients'] = 0;
+            $stats['bed_capacity_total'] = 0;
+            $stats['occupied_beds'] = 0;
+            $stats['available_beds'] = 0;
+        }
+
+        // Staff on duty today (based on doctor_shift)
+        if ($this->db->tableExists('doctor_shift') && $this->db->tableExists('doctor') && $this->db->tableExists('staff')) {
+            try {
+                $onDutyRow = $this->db->table('doctor_shift ds')
+                    ->join('doctor d', 'd.doctor_id = ds.doctor_id', 'inner')
+                    ->join('staff s', 's.staff_id = d.staff_id', 'inner')
+                    ->select('COUNT(DISTINCT s.staff_id) as count')
+                    ->where('ds.shift_date', $today)
+                    ->whereIn('ds.status', ['Scheduled', 'Completed'])
+                    ->get()
+                    ->getRow();
+
+                $stats['staff_on_duty_today'] = $onDutyRow && isset($onDutyRow->count)
+                    ? (int) $onDutyRow->count
+                    : 0;
+            } catch (\Throwable $e) {
+                log_message('error', 'DashboardService::getAdminStats staff_on_duty_today error: ' . $e->getMessage());
+                $stats['staff_on_duty_today'] = 0;
+            }
+        } else {
+            $stats['staff_on_duty_today'] = 0;
         }
 
         return $stats;

@@ -15,23 +15,12 @@ class ShiftManagement extends BaseController
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
-        
         try {
-            // Get user session data with fallbacks
             $session = session();
-            $this->userRole = $session->get('role') ?? $session->get('user_role') ?? 'admin';
+            $this->userRole = $session->get('role') ?? $session->get('user_role') ?: 'admin';
             $this->staffId = $session->get('staff_id') ?? $session->get('id') ?? 1;
-            
-            // Ensure we have a valid role
-            if (empty($this->userRole)) {
-                $this->userRole = 'admin';
-            }
-            
-            log_message('debug', 'ShiftManagement::initController completed for user role: ' . $this->userRole);
-            
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::initController error: ' . $e->getMessage());
-            // Set default values if session fails
             $this->userRole = 'admin';
             $this->staffId = 1;
         }
@@ -43,61 +32,24 @@ class ShiftManagement extends BaseController
     public function index()
     {
         try {
-            log_message('debug', 'ShiftManagement::index method called');
-
-            // Ensure we have valid user role
-            if (empty($this->userRole)) {
-                $this->userRole = 'admin';
-                log_message('debug', 'ShiftManagement::index - fallback to admin role');
-            }
-
-            // Get mock data based on role
-            $shifts = $this->getMockShifts();
-            $stats = $this->getMockStats();
-            $availableStaff = $this->getMockAvailableStaff();
-            
-            // Get doctors from database
-            $availableDoctors = $this->getAvailableDoctors();
-            
-            // Debug: Log the data
-            log_message('debug', 'ShiftManagement::index - shifts count: ' . count($shifts));
-            log_message('debug', 'ShiftManagement::index - user role: ' . ($this->userRole ?? 'none'));
-            log_message('debug', 'ShiftManagement::index - availableDoctors count: ' . count($availableDoctors));
-            
-            // Get permissions for this role
-            $permissions = $this->getUserPermissions();
-
-            // Role-specific page configuration
             $pageConfig = $this->getPageConfig();
-
             $data = [
                 'title' => $pageConfig['title'],
-                'shifts' => $shifts,
-                'stats' => $stats,
-                'availableStaff' => $availableStaff,
+                'shifts' => $this->getMockShifts(),
+                'stats' => $this->getMockStats(),
+                'availableStaff' => $this->getMockAvailableStaff(),
                 'userRole' => $this->userRole,
-                'permissions' => $permissions,
+                'permissions' => $this->getUserPermissions(),
                 'pageConfig' => $pageConfig,
                 'departments' => $this->getDepartments(),
                 'shiftTypes' => $this->getShiftTypes(),
                 'roomsWards' => $this->getRoomsWards(),
                 'availableDoctors' => $this->getAvailableDoctors()
             ];
-
-            log_message('debug', 'ShiftManagement::index - data prepared, rendering view');
             return view('unified/shift-management', $data);
-
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::index error: ' . $e->getMessage());
-            
-            // Return error page with details
-            return $this->response->setBody('
-                <h1>Shift Management Error</h1>
-                <p><strong>Error:</strong> ' . esc($e->getMessage()) . '</p>
-                <p><strong>File:</strong> ' . esc($e->getFile()) . '</p>
-                <p><strong>Line:</strong> ' . esc($e->getLine()) . '</p>
-                <p><a href="' . base_url('dashboard') . '">Back to Dashboard</a></p>
-            ')->setStatusCode(500);
+            return $this->response->setBody('<h1>Shift Management Error</h1><p>' . esc($e->getMessage()) . '</p><p><a href="' . base_url('dashboard') . '">Back to Dashboard</a></p>')->setStatusCode(500);
         }
     }
 
@@ -658,25 +610,10 @@ class ShiftManagement extends BaseController
 
     // Permission methods
 
-    private function canViewShifts()
-    {
-        return true; // Simplified for now
-    }
-
-    private function canCreateShift()
-    {
-        return in_array($this->userRole, ['admin', 'it_staff']);
-    }
-
-    private function canEditShift()
-    {
-        return in_array($this->userRole, ['admin', 'it_staff', 'doctor']);
-    }
-
-    private function canDeleteShift()
-    {
-        return $this->userRole === 'admin';
-    }
+    private function canViewShifts() { return true; }
+    private function canCreateShift() { return in_array($this->userRole, ['admin', 'it_staff']); }
+    private function canEditShift() { return in_array($this->userRole, ['admin', 'it_staff', 'doctor']); }
+    private function canDeleteShift() { return $this->userRole === 'admin'; }
 
     // Helper methods
 
@@ -695,82 +632,28 @@ class ShiftManagement extends BaseController
 
     private function getPageConfig()
     {
-        $configs = [
-            'admin' => [
-                'title' => 'Schedule Management',
-                'subtitle' => 'Manage all staff schedules and shifts',
-                'redirectUrl' => 'admin/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'admin'
-            ],
-            'doctor' => [
-                'title' => 'My Schedule',
-                'subtitle' => 'View and manage your work schedule',
-                'redirectUrl' => 'doctor/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'doctor'
-            ],
-            'nurse' => [
-                'title' => 'Department Schedule',
-                'subtitle' => 'View department work schedules',
-                'redirectUrl' => 'nurse/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'nurse'
-            ],
-            'receptionist' => [
-                'title' => 'Schedule Overview',
-                'subtitle' => 'View staff schedules for coordination',
-                'redirectUrl' => 'receptionist/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'receptionist'
-            ],
-            'it_staff' => [
-                'title' => 'Schedule Management',
-                'subtitle' => 'System administration of staff schedules',
-                'redirectUrl' => 'it-staff/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'admin'
-            ]
-        ];
-
-        return $configs[$this->userRole] ?? $configs['admin'];
+        return match($this->userRole) {
+            'admin' => ['title' => 'Schedule Management', 'subtitle' => 'Manage all staff schedules and shifts', 'redirectUrl' => 'admin/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin'],
+            'doctor' => ['title' => 'My Schedule', 'subtitle' => 'View and manage your work schedule', 'redirectUrl' => 'doctor/dashboard', 'showSidebar' => true, 'sidebarType' => 'doctor'],
+            'nurse' => ['title' => 'Department Schedule', 'subtitle' => 'View department work schedules', 'redirectUrl' => 'nurse/dashboard', 'showSidebar' => true, 'sidebarType' => 'nurse'],
+            'receptionist' => ['title' => 'Schedule Overview', 'subtitle' => 'View staff schedules for coordination', 'redirectUrl' => 'receptionist/dashboard', 'showSidebar' => true, 'sidebarType' => 'receptionist'],
+            'it_staff' => ['title' => 'Schedule Management', 'subtitle' => 'System administration of staff schedules', 'redirectUrl' => 'it-staff/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin'],
+            default => ['title' => 'Schedule Management', 'subtitle' => 'Manage all staff schedules and shifts', 'redirectUrl' => 'admin/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin']
+        };
     }
 
     private function getDepartments()
     {
         try {
-            log_message('debug', 'ShiftManagement::getDepartments called');
-            
-            // Initialize database connection
-            $db = \Config\Database::connect();
-            
-            // Get departments from database
-            $departments = $db->table('department')
+            $departments = \Config\Database::connect()->table('department')
                 ->select('department_id, name')
                 ->orderBy('name', 'ASC')
                 ->get()
                 ->getResultArray();
-
-            log_message('debug', 'ShiftManagement::getDepartments found ' . count($departments) . ' departments');
-            
-            // Format departments to match existing structure
-            return array_map(function($dept) {
-                return [
-                    'department' => $dept['name']
-                ];
-            }, $departments);
-            
+            return array_map(fn($dept) => ['department' => $dept['name']], $departments);
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::getDepartments error: ' . $e->getMessage());
-            // Return fallback departments if database fails
-            return [
-                ['department' => 'Emergency'],
-                ['department' => 'ICU'],
-                ['department' => 'General'],
-                ['department' => 'Pediatrics'],
-                ['department' => 'Cardiology'],
-                ['department' => 'Orthopedics']
-            ];
+            return [['department' => 'Emergency'], ['department' => 'ICU'], ['department' => 'General'], ['department' => 'Pediatrics'], ['department' => 'Cardiology'], ['department' => 'Orthopedics']];
         }
     }
 
@@ -824,31 +707,13 @@ class ShiftManagement extends BaseController
     private function getAvailableDoctors()
     {
         try {
-            log_message('debug', 'ShiftManagement::getAvailableDoctors called');
-            
-            // Initialize database connection
-            $db = \Config\Database::connect();
-            
-            // Get doctors ONLY from the doctor table joined with staff table
-            $fromDoctorTable = $db->table('doctor d')
+            return \Config\Database::connect()->table('doctor d')
                 ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
-                ->join('staff s', 's.staff_id = d.staff_id', 'inner') // Inner join to ensure we only get doctors with staff records
+                ->join('staff s', 's.staff_id = d.staff_id', 'inner')
                 ->where('d.status', 'Active')
                 ->orderBy('s.first_name', 'ASC')
                 ->get()
                 ->getResultArray();
-
-            log_message('debug', 'ShiftManagement::getAvailableDoctors found ' . count($fromDoctorTable) . ' doctors from doctor table');
-            
-            // Log the actual results for debugging
-            if (!empty($fromDoctorTable)) {
-                foreach ($fromDoctorTable as $doctor) {
-                    log_message('debug', 'ShiftManagement - Doctor found: ID=' . $doctor['staff_id'] . ', Name=' . $doctor['first_name'] . ' ' . $doctor['last_name'] . ', Spec=' . ($doctor['specialization'] ?? 'None'));
-                }
-            }
-            
-            return $fromDoctorTable;
-            
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::getAvailableDoctors error: ' . $e->getMessage());
             return [];

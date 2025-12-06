@@ -44,37 +44,17 @@ class ShiftService
                 ->join('staff s', 's.staff_id = d.staff_id', 'left');
 
             // Apply role-based filtering
-            switch ($userRole) {
-                case 'admin':
-                case 'it_staff':
-                    // Admin and IT staff see all shifts
-                    break;
-                    
-                case 'doctor':
-                    // Doctors see only their own shifts
-                    if ($staffId) {
-                        $builder->where('s.staff_id', $staffId);
-                    }
-                    break;
-                    
-                case 'nurse':
-                    // Nurses see shifts in their department
-                    if ($staffId) {
-                        $userDept = $this->getUserDepartment($staffId);
-                        if ($userDept) {
-                            $builder->where('ds.department', $userDept);
-                        }
-                    }
-                    break;
-                    
-                case 'receptionist':
-                    // Receptionists see all shifts for scheduling coordination
-                    break;
-                    
-                default:
-                    // Other roles see no shifts
-                    $builder->where('1', '0');
-                    break;
+            if (in_array($userRole, ['admin', 'it_staff', 'receptionist'])) {
+                // See all shifts
+            } elseif ($userRole === 'doctor' && $staffId) {
+                $builder->where('s.staff_id', $staffId);
+            } elseif ($userRole === 'nurse' && $staffId) {
+                $userDept = $this->getUserDepartment($staffId);
+                if ($userDept) {
+                    $builder->where('ds.department', $userDept);
+                }
+            } else {
+                $builder->where('1', '0');
             }
 
             // Apply additional filters
@@ -133,56 +113,45 @@ class ShiftService
                 'end' => date('Y-m-d', strtotime('sunday this week'))
             ];
 
-            switch ($userRole) {
-                case 'admin':
-                case 'it_staff':
-                    $stats = [
-                        'total_shifts' => $this->getTotalShifts(),
-                        'today_shifts' => $this->getShiftsCount(['date' => $today]),
-                        'week_shifts' => $this->getShiftsCount(['date_range' => $thisWeek]),
-                        'scheduled_shifts' => $this->getShiftsCount(['status' => 'Scheduled']),
-                        'completed_shifts' => $this->getShiftsCount(['status' => 'Completed']),
-                        'cancelled_shifts' => $this->getShiftsCount(['status' => 'Cancelled']),
-                        'departments' => $this->getDepartmentStats(),
-                        'active_doctors' => $this->getActiveDoctorsCount()
-                    ];
-                    break;
-                    
-                case 'doctor':
-                    $doctorShifts = $this->getShiftsByRole('doctor', $staffId);
-                    $stats = [
-                        'my_shifts' => count($doctorShifts),
-                        'today_shifts' => $this->getShiftsCount(['date' => $today], 'doctor', $staffId),
-                        'week_shifts' => $this->getShiftsCount(['date_range' => $thisWeek], 'doctor', $staffId),
-                        'scheduled_shifts' => $this->getShiftsCount(['status' => 'Scheduled'], 'doctor', $staffId),
-                        'completed_shifts' => $this->getShiftsCount(['status' => 'Completed'], 'doctor', $staffId),
-                        'upcoming_shifts' => $this->getUpcomingShifts($staffId)
-                    ];
-                    break;
-                    
-                case 'nurse':
-                    $userDept = $this->getUserDepartment($staffId);
-                    $stats = [
-                        'department_shifts' => $this->getShiftsCount(['department' => $userDept]),
-                        'today_shifts' => $this->getShiftsCount(['date' => $today, 'department' => $userDept]),
-                        'week_shifts' => $this->getShiftsCount(['date_range' => $thisWeek, 'department' => $userDept]),
-                        'scheduled_shifts' => $this->getShiftsCount(['status' => 'Scheduled', 'department' => $userDept]),
-                        'department' => $userDept
-                    ];
-                    break;
-                    
-                case 'receptionist':
-                    $stats = [
-                        'total_shifts' => $this->getTotalShifts(),
-                        'today_shifts' => $this->getShiftsCount(['date' => $today]),
-                        'scheduled_shifts' => $this->getShiftsCount(['status' => 'Scheduled']),
-                        'departments' => $this->getDepartmentStats()
-                    ];
-                    break;
-                    
-                default:
-                    $stats = ['message' => 'No shift access for this role'];
-                    break;
+            if (in_array($userRole, ['admin', 'it_staff'])) {
+                $stats = [
+                    'total_shifts' => $this->getTotalShifts(),
+                    'today_shifts' => $this->getShiftsCount(['date' => $today]),
+                    'week_shifts' => $this->getShiftsCount(['date_range' => $thisWeek]),
+                    'scheduled_shifts' => $this->getShiftsCount(['status' => 'Scheduled']),
+                    'completed_shifts' => $this->getShiftsCount(['status' => 'Completed']),
+                    'cancelled_shifts' => $this->getShiftsCount(['status' => 'Cancelled']),
+                    'departments' => $this->getDepartmentStats(),
+                    'active_doctors' => $this->getActiveDoctorsCount()
+                ];
+            } elseif ($userRole === 'doctor') {
+                $doctorShifts = $this->getShiftsByRole('doctor', $staffId);
+                $stats = [
+                    'my_shifts' => count($doctorShifts),
+                    'today_shifts' => $this->getShiftsCount(['date' => $today], 'doctor', $staffId),
+                    'week_shifts' => $this->getShiftsCount(['date_range' => $thisWeek], 'doctor', $staffId),
+                    'scheduled_shifts' => $this->getShiftsCount(['status' => 'Scheduled'], 'doctor', $staffId),
+                    'completed_shifts' => $this->getShiftsCount(['status' => 'Completed'], 'doctor', $staffId),
+                    'upcoming_shifts' => $this->getUpcomingShifts($staffId)
+                ];
+            } elseif ($userRole === 'nurse') {
+                $userDept = $this->getUserDepartment($staffId);
+                $stats = [
+                    'department_shifts' => $this->getShiftsCount(['department' => $userDept]),
+                    'today_shifts' => $this->getShiftsCount(['date' => $today, 'department' => $userDept]),
+                    'week_shifts' => $this->getShiftsCount(['date_range' => $thisWeek, 'department' => $userDept]),
+                    'scheduled_shifts' => $this->getShiftsCount(['status' => 'Scheduled', 'department' => $userDept]),
+                    'department' => $userDept
+                ];
+            } elseif ($userRole === 'receptionist') {
+                $stats = [
+                    'total_shifts' => $this->getTotalShifts(),
+                    'today_shifts' => $this->getShiftsCount(['date' => $today]),
+                    'scheduled_shifts' => $this->getShiftsCount(['status' => 'Scheduled']),
+                    'departments' => $this->getDepartmentStats()
+                ];
+            } else {
+                $stats = ['message' => 'No shift access for this role'];
             }
 
             return $stats;
@@ -400,25 +369,12 @@ class ShiftService
     public function getAvailableStaff($date = null, $startTime = null, $endTime = null)
     {
         try {
-            log_message('debug', 'ShiftService::getAvailableStaff called');
-            
-            // Pull doctors ONLY from the doctor table; join staff for names
             $builder = $this->db->table('doctor d')
-                ->select([
-                    'd.doctor_id',
-                    's.staff_id',
-                    's.first_name',
-                    's.last_name',
-                    'd.specialization'
-                ])
-                ->join('staff s', 's.staff_id = d.staff_id', 'inner') // Inner join to ensure we only get doctors with staff records
+                ->select('d.doctor_id, s.staff_id, s.first_name, s.last_name, d.specialization')
+                ->join('staff s', 's.staff_id = d.staff_id', 'inner')
                 ->orderBy('s.first_name', 'ASC');
 
-            log_message('debug', 'ShiftService query built, executing...');
-
-            // Check availability if date and time provided
             if ($date && $startTime && $endTime) {
-                log_message('debug', 'Checking availability for date: ' . $date);
                 $conflictingDoctors = $this->db->table('doctor_shift')
                     ->select('doctor_id')
                     ->where('shift_date', $date)
@@ -434,23 +390,11 @@ class ShiftService
                     $conflictingIds = array_column($conflictingDoctors, 'doctor_id');
                     if (!empty($conflictingIds)) {
                         $builder->whereNotIn('d.doctor_id', $conflictingIds);
-                        log_message('debug', 'Excluding ' . count($conflictingIds) . ' conflicting doctors');
                     }
                 }
             }
 
-            $result = $builder->get()->getResultArray();
-            log_message('debug', 'ShiftService::getAvailableStaff found ' . count($result) . ' doctors from doctor table');
-            
-            // Log the actual results for debugging
-            if (!empty($result)) {
-                foreach ($result as $doctor) {
-                    log_message('debug', 'Doctor found: ID=' . $doctor['doctor_id'] . ', Name=' . $doctor['first_name'] . ' ' . $doctor['last_name'] . ', Spec=' . ($doctor['specialization'] ?? 'None'));
-                }
-            }
-            
-            return $result;
-
+            return $builder->get()->getResultArray();
         } catch (\Throwable $e) {
             log_message('error', 'ShiftService::getAvailableStaff error: ' . $e->getMessage());
             return [];
@@ -667,22 +611,12 @@ class ShiftService
 
     private function canEditShift($shift, $userRole, $staffId = null)
     {
-        // Admin and IT staff can edit all shifts
-        if (in_array($userRole, ['admin', 'it_staff'])) {
-            return true;
-        }
-
-        // Doctors can edit their own shifts
-        if ($userRole === 'doctor' && $staffId && $shift['staff_id'] == $staffId) {
-            return true;
-        }
-
-        return false;
+        return in_array($userRole, ['admin', 'it_staff']) || ($userRole === 'doctor' && $staffId && $shift['staff_id'] == $staffId);
     }
 
     private function canDeleteShift($shift, $userRole, $staffId = null)
     {
-        // Only admin can delete shifts
         return $userRole === 'admin';
     }
 }
+

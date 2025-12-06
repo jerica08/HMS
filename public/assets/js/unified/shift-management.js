@@ -62,39 +62,15 @@ class ShiftManager {
     }
 
     bindModalEvents() {
-        // Create shift modal
         const createBtn = document.getElementById('createShiftBtn');
-        const shiftModal = document.getElementById('shiftModal');
-        const closeShiftModal = document.getElementById('closeShiftModal');
-        const cancelShiftBtn = document.getElementById('cancelShiftBtn');
-
         if (createBtn) {
             createBtn.addEventListener('click', () => this.openCreateModal());
         }
-
-        if (closeShiftModal) {
-            closeShiftModal.addEventListener('click', () => this.closeShiftModal());
-        }
-
-        if (cancelShiftBtn) {
-            cancelShiftBtn.addEventListener('click', () => this.closeShiftModal());
-        }
-
-        // Click outside to close create/edit modal
-        if (shiftModal) {
-            shiftModal.addEventListener('click', (e) => {
-                if (e.target === shiftModal) {
-                    this.closeShiftModal();
-                }
-            });
-        }
-
-        // Escape key to close
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.closeShiftModal();
-            }
-        });
+        
+        // Initialize modals
+        if (window.AddShiftModal) window.AddShiftModal.init();
+        if (window.EditShiftModal) window.EditShiftModal.init();
+        if (window.ViewShiftModal) window.ViewShiftModal.init();
     }
 
     bindFilterEvents() {
@@ -143,52 +119,23 @@ class ShiftManager {
     }
 
     bindFormEvents() {
-        const shiftForm = document.getElementById('shiftForm');
-        
-        if (shiftForm) {
-            shiftForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
-        }
-
-        // Doctor selection change
-        const doctorSelect = document.getElementById('doctorSelect');
-        if (doctorSelect) {
-            doctorSelect.addEventListener('change', () => this.onDoctorChange());
-        }
+        // Form events are now handled by individual modal files
     }
 
     bindActionEvents() {
-        // Delegate event handling for dynamically created buttons
         document.addEventListener('click', (e) => {
-            if (e.target.matches('.btn-view') || e.target.closest('.btn-view')) {
-                const btn = e.target.matches('.btn-view') ? e.target : e.target.closest('.btn-view');
-                const shiftId = btn.dataset.shiftId;
-                if (shiftId) {
-                    this.viewShift(shiftId);
-                }
-            }
-
-            if (e.target.matches('.btn-edit') || e.target.closest('.btn-edit')) {
-                const btn = e.target.matches('.btn-edit') ? e.target : e.target.closest('.btn-edit');
-                const shiftId = btn.dataset.shiftId;
-                if (shiftId) {
-                    this.editShift(shiftId);
-                }
-            }
-
-            if (e.target.matches('.btn-delete') || e.target.closest('.btn-delete')) {
-                const btn = e.target.matches('.btn-delete') ? e.target : e.target.closest('.btn-delete');
-                const shiftId = btn.dataset.shiftId;
-                if (shiftId) {
-                    this.deleteShift(shiftId);
-                }
-            }
-
-            if (e.target.matches('.btn-status') || e.target.closest('.btn-status')) {
-                const btn = e.target.matches('.btn-status') ? e.target : e.target.closest('.btn-status');
-                const shiftId = btn.dataset.shiftId;
-                const status = btn.dataset.status;
-                if (shiftId && status) {
-                    this.updateShiftStatus(shiftId, status);
+            const actions = {
+                '.btn-view': (btn) => this.viewShift(btn.dataset.shiftId),
+                '.btn-edit': (btn) => this.editShift(btn.dataset.shiftId),
+                '.btn-delete': (btn) => this.deleteShift(btn.dataset.shiftId),
+                '.btn-status': (btn) => this.updateShiftStatus(btn.dataset.shiftId, btn.dataset.status)
+            };
+            
+            for (const [selector, handler] of Object.entries(actions)) {
+                const btn = e.target.matches(selector) ? e.target : e.target.closest(selector);
+                if (btn && btn.dataset.shiftId) {
+                    handler(btn);
+                    break;
                 }
             }
         });
@@ -464,66 +411,30 @@ class ShiftManager {
     }
 
     openCreateModal() {
-        this.resetForm();
-        document.getElementById('modalTitle').textContent = 'Create Shift';
-        document.getElementById('shiftId').value = '';
-        document.getElementById('shiftModal').classList.add('active');
+        if (window.AddShiftModal) {
+            window.AddShiftModal.open();
+        }
     }
 
     async editShift(shiftId) {
-        // Use the already-loaded schedule list (this.shifts) to populate the edit modal
         const shift = this.shifts.find(s => String(s.id) === String(shiftId));
-
         if (!shift) {
             this.showError('Failed to load shift details');
             return;
         }
-
-        this.populateForm(shift);
-
-        const modalTitleEl = document.getElementById('modalTitle');
-        if (modalTitleEl) {
-            modalTitleEl.textContent = 'Edit Shift';
-        }
-
-        const idInput = document.getElementById('shiftId');
-        if (idInput) {
-            idInput.value = shiftId;
-        }
-
-        const modal = document.getElementById('shiftModal');
-        if (modal) {
-            modal.classList.add('active');
-            modal.style.display = 'flex';
-            modal.setAttribute('aria-hidden', 'false');
-            document.body.style.overflow = 'hidden';
+        
+        if (window.EditShiftModal) {
+            window.EditShiftModal.open(shiftId);
+        } else if (window.AddShiftModal) {
+            // Fallback: use add modal for editing
+            window.AddShiftModal.open(shift);
         }
     }
 
     async viewShift(shiftId) {
-        // Use already-loaded shifts list instead of calling backend again.
-        const shift = this.shifts.find(s => String(s.id) === String(shiftId));
-
-        if (!shift) {
-            this.showError('Failed to load shift details');
-            return;
+        if (window.ViewShiftModal) {
+            window.ViewShiftModal.open(shiftId);
         }
-
-        // Simple read-only alert using available fields (supports old shift or new schedule data).
-        const parts = [];
-        if (shift.doctor_name) parts.push(`Doctor: ${shift.doctor_name}`);
-        if (shift.weekday) parts.push(`Weekday: ${shift.weekday}`);
-        if (shift.slot) parts.push(`Slot: ${shift.slot}`);
-        if (shift.date) parts.push(`Date: ${shift.date}`);
-        const startVal = shift.start_time || shift.start || '';
-        const endVal   = shift.end_time || shift.end || '';
-        if (startVal || endVal) {
-            parts.push(`Time: ${startVal}${endVal ? ' - ' + endVal : ''}`);
-        }
-        if (shift.department) parts.push(`Department: ${shift.department}`);
-        if (shift.status) parts.push(`Status: ${shift.status}`);
-
-        alert(parts.join('\n') || 'No details available for this schedule.');
     }
 
     async deleteShift(shiftId) {
@@ -596,224 +507,6 @@ class ShiftManager {
         }
     }
 
-    async handleFormSubmit(e) {
-        e.preventDefault();
-        
-        const form = e.target;
-        const formData = new FormData(form);
-
-        // Build data object manually so that multiple weekday checkboxes
-        // (weekdays[]) are captured as an array instead of a single value.
-        const data = {};
-        formData.forEach((value, key) => {
-            if (key === 'weekdays[]') {
-                if (!data.weekdays) {
-                    data.weekdays = [];
-                }
-                data.weekdays.push(value);
-            } else {
-                data[key] = value;
-            }
-        });
-
-        // Add CSRF token
-        data[this.config.csrfToken] = this.config.csrfHash;
-
-        const isEdit = !!data.id;
-        const endpoint = isEdit ? this.config.endpoints.update : this.config.endpoints.create;
-
-        try {
-            this.showLoading(true, form);
-
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                this.showSuccess(isEdit ? 'Shift updated successfully' : 'Shift created successfully');
-                this.closeShiftModal();
-                this.loadShifts();
-            } else {
-                this.showError(result.message || 'Failed to save shift');
-                
-                // Show validation errors
-                if (result.errors) {
-                    this.showValidationErrors(result.errors);
-                }
-            }
-
-            // Update CSRF hash
-            if (result.csrf) {
-                this.config.csrfHash = result.csrf.value;
-            }
-        } catch (error) {
-            console.error('Error saving shift:', error);
-            this.showError('Failed to save shift');
-        } finally {
-            this.showLoading(false, form);
-        }
-    }
-
-    populateForm(shift) {
-        // Updated to match the new schedule form (doctor, weekdays[], start_time/end_time, status, notes)
-        const doctorSelect   = document.getElementById('doctorSelect');
-        const startTimeInput = document.getElementById('startTime');
-        const endTimeInput   = document.getElementById('endTime');
-        const statusSelect   = document.getElementById('shiftStatus');
-        const notesTextarea  = document.getElementById('shiftNotes');
-
-        if (doctorSelect) {
-            const value = shift.staff_id || shift.doctor_id || '';
-            doctorSelect.value = value;
-        }
-
-        // Clear all weekday checkboxes, then check the one matching this shift
-        const weekdayCheckboxes = document.querySelectorAll('input[name="weekdays[]"]');
-        if (weekdayCheckboxes && typeof shift.weekday !== 'undefined') {
-            const weekdayValue = String(shift.weekday || '');
-            weekdayCheckboxes.forEach(cb => {
-                cb.checked = cb.value === weekdayValue;
-            });
-        }
-
-        if (startTimeInput) {
-            const startVal = shift.start_time || shift.start || '';
-            startTimeInput.value = startVal ? startVal.slice(0,5) : '';
-        }
-
-        if (endTimeInput) {
-            const endVal = shift.end_time || shift.end || '';
-            endTimeInput.value = endVal ? endVal.slice(0,5) : '';
-        }
-
-        if (statusSelect) {
-            const raw = (shift.status || 'Scheduled').toString().toLowerCase();
-            let mapped = 'Scheduled';
-
-            if (raw === 'active' || raw === 'scheduled') {
-                mapped = 'Scheduled';
-            } else if (raw === 'completed' || raw === 'done' || raw === 'finished') {
-                mapped = 'Completed';
-            } else if (raw === 'cancelled' || raw === 'canceled' || raw === 'inactive') {
-                mapped = 'Cancelled';
-            }
-
-            statusSelect.value = mapped;
-        }
-
-        if (notesTextarea) {
-            notesTextarea.value = shift.notes || '';
-        }
-    }
-
-    populateViewModal(shift) {
-        // If the view modal is not present on this page, do nothing safely
-        const modal = document.getElementById('viewShiftModal');
-        if (!modal) {
-            console.warn('View shift modal not found; skipping populateViewModal');
-            return;
-        }
-
-        const doctorInput = document.getElementById('viewDoctorName');
-        const weekdayInput = document.getElementById('viewScheduleWeekday');
-        const slotInput = document.getElementById('viewScheduleSlot');
-        const statusInput = document.getElementById('viewShiftStatus');
-
-        if (doctorInput) {
-            const name = (shift.doctor_name || 'N/A') + (shift.specialization ? ' - ' + shift.specialization : '');
-            doctorInput.value = name;
-        }
-
-        if (weekdayInput) {
-            const weekdayLabel = shift.weekday
-                ? this.formatWeekday(shift.weekday)
-                : (shift.date ? this.formatDate(shift.date) : 'N/A');
-            weekdayInput.value = weekdayLabel;
-        }
-
-        if (slotInput) {
-            const startVal = shift.start_time || shift.start || '';
-            const endVal   = shift.end_time || shift.end || '';
-            const timeLabel = startVal && endVal
-                ? `${startVal.slice(0,5)} - ${endVal.slice(0,5)}`
-                : (shift.shift_type || 'N/A');
-            slotInput.value = timeLabel;
-        }
-
-        if (statusInput) {
-            const rawStatus = (shift.status || 'scheduled').toString().toLowerCase();
-            let label = 'Scheduled';
-
-            if (rawStatus === 'active' || rawStatus === 'scheduled') {
-                label = 'Scheduled';
-            } else if (rawStatus === 'completed' || rawStatus === 'done' || rawStatus === 'finished') {
-                label = 'Completed';
-            } else if (rawStatus === 'cancelled' || rawStatus === 'canceled' || rawStatus === 'inactive') {
-                label = 'Cancelled';
-            } else {
-                label = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
-            }
-
-            statusInput.value = label;
-        }
-
-        // Store shift data for edit functionality
-        this.currentViewShift = shift;
-    }
-
-    resetForm() {
-        const form = document.getElementById('shiftForm');
-        if (form) {
-            form.reset();
-        }
-        this.clearValidationErrors();
-    }
-
-    closeShiftModal() {
-        document.getElementById('shiftModal').classList.remove('active');
-        this.resetForm();
-    }
-
-    closeViewShiftModal() {
-        const modal = document.getElementById('viewShiftModal');
-        if (modal) {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
-        }
-        document.body.style.overflow = '';
-        this.currentViewShift = null;
-    }
-
-    editFromView() {
-        if (this.currentViewShift) {
-            this.closeViewShiftModal();
-            this.populateForm(this.currentViewShift);
-            document.getElementById('modalTitle').textContent = 'Edit Shift';
-            document.getElementById('shiftId').value = this.currentViewShift.id;
-            document.getElementById('shiftModal').classList.add('active');
-        }
-    }
-
-    onDoctorChange() {
-        // Auto-populate department based on doctor selection
-        const doctorSelect = document.getElementById('doctorSelect');
-        const departmentSelect = document.getElementById('shiftDepartment');
-        
-        if (doctorSelect && departmentSelect) {
-            const selectedOption = doctorSelect.options[doctorSelect.selectedIndex];
-            if (selectedOption && selectedOption.textContent.includes(' - ')) {
-                const department = selectedOption.textContent.split(' - ')[1];
-                departmentSelect.value = department;
-            }
-        }
-    }
 
     setupAutoRefresh() {
         // Refresh shifts every 5 minutes
@@ -824,34 +517,15 @@ class ShiftManager {
 
     // Permission methods
     canEditShift(shift) {
-        if (this.config.userRole === 'admin' || this.config.userRole === 'it_staff') {
-            return true;
-        }
-        
-        if (this.config.userRole === 'doctor') {
-            // Doctors can edit their own shifts
-            return shift.staff_id === this.getCurrentStaffId();
-        }
-        
-        return false;
+        return ['admin', 'it_staff'].includes(this.config.userRole) || (this.config.userRole === 'doctor' && shift.staff_id === this.getCurrentStaffId());
     }
 
     canDeleteShift(shift) {
-        // Only admin can delete shifts
         return this.config.userRole === 'admin';
     }
 
     canUpdateStatus(shift) {
-        if (this.config.userRole === 'admin' || this.config.userRole === 'it_staff') {
-            return true;
-        }
-        
-        if (this.config.userRole === 'doctor') {
-            // Doctors can update status of their own shifts
-            return shift.staff_id === this.getCurrentStaffId() && shift.status === 'Scheduled';
-        }
-        
-        return false;
+        return ['admin', 'it_staff'].includes(this.config.userRole) || (this.config.userRole === 'doctor' && shift.staff_id === this.getCurrentStaffId() && shift.status === 'Scheduled');
     }
 
     getCurrentStaffId() {
@@ -887,45 +561,34 @@ class ShiftManager {
     }
 
     showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type} fade-in`;
-        notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-            ${this.escapeHtml(message)}
-        `;
-
-        // Add to page
-        const content = document.querySelector('.content');
-        if (content) {
-            content.insertBefore(notification, content.firstChild);
+        const container = document.getElementById('scheduleNotification');
+        const iconEl = document.getElementById('scheduleNotificationIcon');
+        const textEl = document.getElementById('scheduleNotificationText');
+        
+        if (container && iconEl && textEl) {
+            const isError = type === 'error';
+            const isSuccess = type === 'success';
+            container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
+            container.style.background = isError ? '#fee2e2' : '#ecfdf5';
+            container.style.color = isError ? '#991b1b' : '#166534';
+            iconEl.className = 'fas ' + (isError ? 'fa-exclamation-triangle' : (isSuccess ? 'fa-check-circle' : 'fa-info-circle'));
+            textEl.textContent = this.escapeHtml(message || '');
+            container.style.display = 'flex';
+            setTimeout(() => { if (container.style.display !== 'none') container.style.display = 'none'; }, 4000);
+            return;
         }
-
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            notification.remove();
-        }, 5000);
+        
+        // Fallback: create floating notification
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 8px; color: white; font-weight: 500; z-index: 10000; max-width: 400px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transform: translateX(100%); transition: transform 0.3s ease;';
+        notification.style.backgroundColor = {success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6'}[type] || '#3b82f6';
+        notification.innerHTML = `<div style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i><span>${this.escapeHtml(message)}</span><button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; margin-left: auto; cursor: pointer;"><i class="fas fa-times"></i></button></div>`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.style.transform = 'translateX(0)', 100);
+        setTimeout(() => { notification.style.transform = 'translateX(100%)'; setTimeout(() => notification.remove(), 300); }, 5000);
     }
 
-    showValidationErrors(errors) {
-        Object.keys(errors).forEach(field => {
-            const input = document.querySelector(`[name="${field}"]`);
-            if (input) {
-                input.classList.add('error');
-                
-                // Add error message
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.textContent = errors[field];
-                input.parentNode.appendChild(errorDiv);
-            }
-        });
-    }
-
-    clearValidationErrors() {
-        document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
-        document.querySelectorAll('.error-message').forEach(el => el.remove());
-    }
 
     formatDate(dateString) {
         if (!dateString) return '-';
@@ -958,27 +621,12 @@ class ShiftManager {
     }
 
     formatWeekday(weekday) {
-        const labels = {
-            1: 'Monday',
-            2: 'Tuesday',
-            3: 'Wednesday',
-            4: 'Thursday',
-            5: 'Friday',
-            6: 'Saturday',
-            7: 'Sunday'
-        };
-        const w = parseInt(weekday, 10);
-        return labels[w] || 'N/A';
+        return ShiftModalUtils.formatWeekday(weekday);
     }
 
     formatSlot(slot) {
         if (!slot) return 'N/A';
-        const map = {
-            'morning': 'Morning',
-            'afternoon': 'Afternoon',
-            'night': 'Night',
-            'all_day': 'All Day'
-        };
+        const map = {'morning': 'Morning', 'afternoon': 'Afternoon', 'night': 'Night', 'all_day': 'All Day'};
         return map[slot] || slot;
     }
 
@@ -1000,3 +648,6 @@ window.viewShift = (id) => window.shiftManager?.viewShift(id);
 window.editShift = (id) => window.shiftManager?.editShift(id);
 window.deleteShift = (id) => window.shiftManager?.deleteShift(id);
 window.updateShiftStatus = (id, status) => window.shiftManager?.updateShiftStatus(id, status);
+window.closeAddShiftModal = () => window.AddShiftModal?.close();
+window.closeViewShiftModal = () => window.ViewShiftModal?.close();
+window.closeEditShiftModal = () => window.EditShiftModal?.close();

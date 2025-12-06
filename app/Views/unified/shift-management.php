@@ -13,16 +13,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 </head>
 
-<?php include APPPATH . 'Views/template/header.php'; ?> 
+<?= $this->include('template/header') ?>
 
-<?= $this->include('unified/components/notification', [
-    'id' => 'scheduleNotification',
-    'dismissFn' => 'dismissScheduleNotification()'
-]) ?>
+<?= $this->include('unified/components/notification', ['id' => 'scheduleNotification', 'dismissFn' => 'dismissScheduleNotification()']) ?>
 
 <div class="main-container">
-    <!-- Unified Sidebar -->
-     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+    <?= $this->include('unified/components/sidebar') ?>
 
     <main class="content" role="main">
         <h1 class="page-title">
@@ -30,13 +26,9 @@
             <?= esc($title ?? 'Schedule Management') ?>
         </h1>
         <div class="page-actions">
-            <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift" onclick="handleAddShiftClick()">
-                <i class="fas fa-plus" aria-hidden="true"></i> Add Schedule
-            </button>
+            <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift"><i class="fas fa-plus"></i> Add Schedule</button>
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
-                <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
-                    <i class="fas fa-download" aria-hidden="true"></i> Export
-                </button>
+                <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download"></i> Export</button>
             <?php endif; ?>
         </div>
 
@@ -277,355 +269,19 @@
     </main>
 </div>
 
-<!-- Add Shift Modal -->
-<!-- Debug: Doctors data check -->
-<?php if (isset($availableDoctors)): ?>
-    <!-- DEBUG: Found <?php echo count($availableDoctors); ?> doctors -->
-    <!-- DEBUG: First doctor: <?php echo !empty($availableDoctors) ? print_r($availableDoctors[0], true) : 'No doctors'; ?> -->
-<?php else: ?>
-    <!-- DEBUG: No doctors variable set -->
-<?php endif; ?>
+        <!-- Modals -->
+        <?= $this->include('unified/modals/add-shift-modal') ?>
+        <?= $this->include('unified/modals/view-shift-modal') ?>
+        <?= $this->include('unified/modals/edit-shift-modal') ?>
 
-<!-- Test: Direct include with debug -->
-<?php 
-echo "<!-- INCLUDE TEST: About to include modal -->";
-
-// Force set the doctors variable directly
-$doctors_for_modal = $availableDoctors ?? [];
-
-echo "<!-- INCLUDE TEST: doctors_for_modal has " . count($doctors_for_modal) . " doctors -->";
-
-include(APPPATH . 'Views/unified/modals/add-shift-modal.php');
-
-echo "<!-- INCLUDE TEST: Modal included -->";
-?>
-
-<!-- Simple Test Modal -->
-<div id="testModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 9999;">
-    <div style="background: white; padding: 2rem; border-radius: 8px; margin: auto;">
-        <h3>Test Modal Works!</h3>
-        <p>This is a simple test to verify modal functionality.</p>
-        <button onclick="closeTestModal()" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Close</button>
-    </div>
-</div>
-
-<!-- Shift Management Scripts -->
-<script>
-// Pass initial data to JavaScript
-window.initialShifts = []; // Clear example data
-window.userRole = <?= json_encode($userRole ?? 'admin') ?>;
-
-function dismissFlash() {
-    const flashNotice = document.getElementById('flashNotice');
-    if (flashNotice) {
-        flashNotice.style.display = 'none';
-    }
-}
-
-// Direct onclick handler for Add Shift button
-window.handleAddShiftClick = function() {
-    console.log('handleAddShiftClick called directly');
-    const modal = document.getElementById('shiftModal');
-    console.log('Modal element found:', !!modal);
-    
-    if (modal) {
-        // Show modal using the same approach that works
-        modal.classList.add('active');
-        modal.style.display = 'flex';
-        modal.style.position = 'fixed';
-        modal.style.top = '0';
-        modal.style.left = '0';
-        modal.style.width = '100vw';
-        modal.style.height = '100vh';
-        modal.style.zIndex = '9999';
-        modal.style.alignItems = 'center';
-        modal.style.justifyContent = 'center';
-        modal.style.background = 'rgba(15, 23, 42, 0.55)';
-        
-        document.body.style.overflow = 'hidden';
-        
-        console.log('Modal should be visible now via direct click');
-    } else {
-        console.error('Modal not found!');
-    }
-};
-
-// Load doctors from database
-window.loadDoctors = function() {
-    console.log('Loading doctors from database...');
-    const doctorSelect = document.getElementById('doctorSelect');
-    if (!doctorSelect) {
-        console.error('Doctor select not found');
-        return;
-    }
-    
-    // Show loading state
-    doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
-    
-    // Try the main endpoint first (the one that gave 500 error)
-    const mainEndpoint = `${getBaseUrl()}doctors/api`;
-    
-    fetch(mainEndpoint, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => {
-        console.log(`Response from ${mainEndpoint}:`, response.status);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        console.log(`Success from ${mainEndpoint}:`, result);
-        
-        if (result && (result.data || result.doctors || result.length > 0)) {
-            const doctors = result.data || result.doctors || result;
-            
-            // Clear and populate doctor dropdown
-            doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
-            
-            doctors.forEach(doctor => {
-                const option = document.createElement('option');
-                option.value = doctor.id || doctor.doctor_id || doctor.user_id;
-                option.textContent = `${doctor.first_name || doctor.fname} ${doctor.last_name || doctor.lname}${doctor.specialization ? ' - ' + doctor.specialization : ''}`;
-                doctorSelect.appendChild(option);
-            });
-            
-            console.log('Doctors loaded successfully:', doctors.length);
-        } else {
-            // No data in response, try fallback
-            loadFallbackDoctors();
-        }
-    })
-    .catch(error => {
-        console.log(`Failed ${mainEndpoint}:`, error);
-        // Try fallback method
-        loadFallbackDoctors();
-    });
-};
-
-// Fallback method to load doctors
-window.loadFallbackDoctors = function() {
-    console.log('Trying fallback doctor loading...');
-    const doctorSelect = document.getElementById('doctorSelect');
-    
-    // Try to load from a simple PHP endpoint or use hardcoded sample data
-    const fallbackData = [
-        {id: 1, first_name: 'John', last_name: 'Smith', specialization: 'Cardiology'},
-        {id: 2, first_name: 'Sarah', last_name: 'Johnson', specialization: 'Pediatrics'},
-        {id: 3, first_name: 'Michael', last_name: 'Brown', specialization: 'Surgery'}
-    ];
-    
-    // Populate with fallback data
-    doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
-    
-    fallbackData.forEach(doctor => {
-        const option = document.createElement('option');
-        option.value = doctor.id;
-        option.textContent = `${doctor.first_name} ${doctor.last_name} - ${doctor.specialization}`;
-        doctorSelect.appendChild(option);
-    });
-    
-    console.log('Loaded fallback doctors:', fallbackData.length);
-};
-
-// Load departments from database
-window.loadDepartments = function() {
-    console.log('Loading departments from database...');
-    const departmentSelect = document.getElementById('shiftDepartment');
-    if (!departmentSelect) {
-        console.error('Department select not found');
-        return;
-    }
-    
-    // Show loading state
-    departmentSelect.innerHTML = '<option value="">Loading departments...</option>';
-    
-    // Try more possible endpoints and also check if there's a working shifts API we can use
-    const possibleEndpoints = [
-        `${getBaseUrl()}departments/api`,
-        `${getBaseUrl()}api/departments`, 
-        `${getBaseUrl()}department/api`,
-        `${getBaseUrl()}departments`,
-        `${getBaseUrl()}unified/departments/api`,
-        `${getBaseUrl()}admin/departments/api`,
-        `${getBaseUrl()}admin/api/departments`,
-        `${getBaseUrl()}shifts/departments/api`, // Try getting departments from shifts controller
-        `${getBaseUrl()}unified/api/departments`
-    ];
-    
-    // Try each endpoint until one works
-    let endpointIndex = 0;
-    
-    function tryNextEndpoint() {
-        if (endpointIndex >= possibleEndpoints.length) {
-            // All endpoints failed, show error instead of fallback
-            departmentSelect.innerHTML = '<option value="">No departments available - API error</option>';
-            console.error('All department endpoints failed. Please check your API endpoints.');
-            return;
-        }
-        
-        const endpoint = possibleEndpoints[endpointIndex];
-        console.log(`Trying department endpoint: ${endpoint}`);
-        
-        fetch(endpoint, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            console.log(`Department response from ${endpoint}:`, response.status, response.statusText);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(result => {
-            console.log(`Department success from ${endpoint}:`, result);
-            
-            if (result && (result.data || result.departments || result.length > 0)) {
-                const departments = result.data || result.departments || result;
-                
-                // Clear and populate department dropdown
-                departmentSelect.innerHTML = '<option value="">Select Department</option>';
-                
-                departments.forEach(dept => {
-                    const option = document.createElement('option');
-                    option.value = dept.department || dept.name || dept.id || dept.department_name;
-                    option.textContent = dept.department || dept.name || dept.department_name || `Department ${dept.id}`;
-                    departmentSelect.appendChild(option);
-                });
-                
-                console.log('Departments loaded successfully:', departments.length);
-                console.log('Department list:', departments.map(d => d.department || d.name || d.department_name));
-            } else {
-                console.log(`No department data from ${endpoint}, trying next...`);
-                // Try next endpoint
-                endpointIndex++;
-                tryNextEndpoint();
-            }
-        })
-        .catch(error => {
-            console.log(`Department failed ${endpoint}:`, error.message);
-            // Try next endpoint
-            endpointIndex++;
-            tryNextEndpoint();
-        });
-    }
-    
-    tryNextEndpoint();
-};
-
-// Fallback method to load departments
-window.loadFallbackDepartments = function() {
-    console.log('Loading fallback departments...');
-    const departmentSelect = document.getElementById('shiftDepartment');
-    
-    // Common hospital departments as fallback
-    const fallbackDepartments = [
-        'Cardiology',
-        'Pediatrics', 
-        'Surgery',
-        'Emergency',
-        'Radiology',
-        'Laboratory',
-        'Pharmacy',
-        'Administration'
-    ];
-    
-    // Populate with fallback data
-    departmentSelect.innerHTML = '<option value="">Select Department</option>';
-    
-    fallbackDepartments.forEach(dept => {
-        const option = document.createElement('option');
-        option.value = dept;
-        option.textContent = dept;
-        departmentSelect.appendChild(option);
-    });
-    
-    console.log('Loaded fallback departments:', fallbackDepartments.length);
-};
-
-// Helper function to get base URL
-window.getBaseUrl = function() {
-    const basePath = window.location.pathname.substring(0, window.location.pathname.indexOf('/', 1));
-    return window.location.origin + basePath + '/';
-};
-
-// Direct close function for Add Shift modal
-window.closeAddShiftModal = function() {
-    console.log('closeAddShiftModal called directly');
-    const modal = document.getElementById('shiftModal');
-    if (modal) {
-        modal.classList.remove('active');
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
-        console.log('Modal closed via direct function');
-    } else {
-        console.error('Modal not found for closing!');
-    }
-};
-
-// Test function to check if modal works
-window.testModalDirect = function() {
-    console.log('Direct test called');
-    const modal = document.getElementById('shiftModal');
-    if (modal) {
-        modal.classList.add('active');
-        modal.style.setProperty('display', 'flex', 'important');
-        modal.style.setProperty('position', 'fixed', 'important');
-        modal.style.setProperty('top', '0', 'important');
-        modal.style.setProperty('left', '0', 'important');
-        modal.style.setProperty('width', '100vw', 'important');
-        modal.style.setProperty('height', '100vh', 'important');
-        modal.style.setProperty('z-index', '9999', 'important');
-        document.body.style.overflow = 'hidden';
-        console.log('Modal should be visible now');
-    } else {
-        console.error('Modal not found!');
-    }
-};
-
-// Simple test modal function
-window.showSimpleTest = function() {
-    console.log('Simple test called');
-    const testModal = document.getElementById('testModal');
-    if (testModal) {
-        testModal.style.display = 'flex';
-        testModal.style.alignItems = 'center';
-        testModal.style.justifyContent = 'center';
-        document.body.style.overflow = 'hidden';
-        console.log('Simple test modal should be visible');
-    } else {
-        console.error('Test modal not found!');
-    }
-};
-
-window.closeTestModal = function() {
-    const testModal = document.getElementById('testModal');
-    if (testModal) {
-        testModal.style.display = 'none';
-        document.body.style.overflow = '';
-    }
-};
-
-// Check if button exists on page load
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-        const createBtn = document.getElementById('createShiftBtn');
-        console.log('Button check after delay - Create shift button found:', !!createBtn);
-        if (!createBtn) {
-            console.warn('Add Shift button not found - permissions issue?');
-        }
-    }, 1000);
-});
-</script>
-<script src="<?= base_url('assets/js/unified/shift-management.js') ?>"></script>
+        <!-- Scripts -->
+        <script>
+        window.userRole = <?= json_encode($userRole ?? 'admin') ?>;
+        </script>
+        <script src="<?= base_url('assets/js/unified/modals/shared/shift-modal-utils.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/modals/add-shift-modal.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/modals/edit-shift-modal.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/modals/view-shift-modal.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/shift-management.js') ?>"></script>
 </body>
 </html>

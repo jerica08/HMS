@@ -41,6 +41,28 @@
   document.addEventListener('click', function(e){ var m=document.getElementById('editResourceModal'); if(m && e.target===m) closeEditResourceModal(); });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeAddResourceModal(); closeEditResourceModal(); }});
 
+  // Export functionality
+  (function(){
+    var exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function(){
+        var searchInput = document.getElementById('searchResource');
+        var categoryFilter = document.getElementById('filterCategory');
+        var statusFilter = document.getElementById('filterStatus');
+        
+        var params = new URLSearchParams();
+        if (searchInput && searchInput.value) params.append('search', searchInput.value);
+        if (categoryFilter && categoryFilter.value) params.append('category', categoryFilter.value);
+        if (statusFilter && statusFilter.value) params.append('status', statusFilter.value);
+        
+        var url = baseUrl + 'admin/resource-management/export';
+        if (params.toString()) url += '?' + params.toString();
+        
+        window.location.href = url;
+      });
+    }
+  })();
+
   // Helpers
   function toParams(form){
     var fd = new FormData(form);
@@ -65,81 +87,19 @@
   }
 
   // Add Resource submit -> POST admin/resource-management/create
+  // NOTE: This handler is disabled to prevent conflicts with inline script in modal
+  // The modal has its own submission handler to prevent duplicate submissions
   (function(){
     var form = document.getElementById('addResourceForm');
     if(!form) return;
 
-    // Add form validation
-    form.addEventListener('submit', function(e){
-      e.preventDefault();
-
-      // Clear previous errors
-      var errorFields = ['err_res_name', 'err_res_category', 'err_res_quantity', 'err_res_status', 'err_res_location'];
-      errorFields.forEach(function(fieldId) {
-        var field = document.getElementById(fieldId);
-        if (field) field.textContent = '';
-      });
-
-      // Get form values
-      var name = document.getElementById('res_name')?.value?.trim();
-      var category = document.getElementById('res_category')?.value;
-      var quantity = document.getElementById('res_quantity')?.value;
-      var status = document.getElementById('res_status')?.value;
-      var location = document.getElementById('res_location')?.value?.trim();
-
-      // Validate required fields
-      var hasErrors = false;
-
-      if (!name) {
-        document.getElementById('err_res_name').textContent = 'Resource name is required.';
-        hasErrors = true;
-      }
-
-      if (!category) {
-        document.getElementById('err_res_category').textContent = 'Please select a category.';
-        hasErrors = true;
-      }
-
-      if (!quantity || quantity < 1) {
-        document.getElementById('err_res_quantity').textContent = 'Quantity must be at least 1.';
-        hasErrors = true;
-      }
-
-      if (!status) {
-        document.getElementById('err_res_status').textContent = 'Please select a status.';
-        hasErrors = true;
-      }
-
-      if (!location) {
-        document.getElementById('err_res_location').textContent = 'Location is required.';
-        hasErrors = true;
-      }
-
-      if (hasErrors) {
-        return;
-      }
-
-      // Submit form if validation passes
-      postForm(baseUrl + 'admin/resource-management/create', form)
-        .then(function(res){
-          if(res && res.status==='success'){
-            alert('Resource added successfully.');
-            closeAddResourceModal();
-            form.reset();
-            return;
-          }
-          var msg = 'Failed to save resource';
-          try {
-            if (res) {
-              if (res.message) { msg = res.message; }
-              if (res.db && res.db.message) { msg = res.db.message; }
-              if (res.errors) { msg += '\n' + JSON.stringify(res.errors); }
-            }
-          } catch(e){}
-          alert(msg);
-        })
-        .catch(function(){ alert('Failed to save resource'); });
-    });
+    // Remove any existing submit listeners to prevent duplicates
+    var newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+    
+    // Only add listener if not already handled by inline script
+    // The inline script in the modal handles submission via button click
+    // This prevents double submission
   })();
 
   // Edit button and submit (UI stub)
@@ -151,8 +111,18 @@
     set('er_name', r.equipment_name || '');
     set('er_category', r.category || '');
     set('er_quantity', r.quantity || '');
-    set('er_status', r.status || 'Available');
+    // Status removed from form - default to 'Stock In' in backend
     set('er_location', r.location || '');
+    set('er_serial_number', r.serial_number || '');
+    set('er_batch_number', r.batch_number || '');
+    set('er_expiry_date', r.expiry_date || '');
+    set('er_remarks', r.remarks || '');
+    
+    // Show/hide medication fields based on category
+    var isMedication = r.category === 'Medications';
+    var medFields = document.getElementById('editMedicationFields');
+    if(medFields) medFields.style.display = isMedication ? 'flex' : 'none';
+    
     openEditResourceModal();
   };
 
@@ -183,7 +153,7 @@
       e.preventDefault();
 
       // Clear previous errors
-      var errorFields = ['err_er_name', 'err_er_category', 'err_er_quantity', 'err_er_status', 'err_er_location'];
+      var errorFields = ['err_er_name', 'err_er_category', 'err_er_quantity', 'err_er_location'];
       errorFields.forEach(function(fieldId) {
         var field = document.getElementById(fieldId);
         if (field) field.textContent = '';
@@ -193,7 +163,7 @@
       var name = document.getElementById('er_name')?.value?.trim();
       var category = document.getElementById('er_category')?.value;
       var quantity = document.getElementById('er_quantity')?.value;
-      var status = document.getElementById('er_status')?.value;
+      // Status removed from form - default to 'Stock In' in backend
       var location = document.getElementById('er_location')?.value?.trim();
 
       // Validate required fields
@@ -214,10 +184,7 @@
         hasErrors = true;
       }
 
-      if (!status) {
-        document.getElementById('err_er_status').textContent = 'Please select a status.';
-        hasErrors = true;
-      }
+      // Status validation removed - default to 'Stock In' in backend
 
       if (!location) {
         document.getElementById('err_er_location').textContent = 'Location is required.';
@@ -286,5 +253,84 @@
     var container = document.getElementById('resourcesNotification');
     if (container) container.style.display = 'none';
   };
+
+  // Search and Filter Functionality
+  (function(){
+    var searchInput = document.getElementById('searchResource');
+    var categoryFilter = document.getElementById('filterCategory');
+    var statusFilter = document.getElementById('filterStatus');
+    var clearFiltersBtn = document.getElementById('clearFilters');
+    var tableBody = document.getElementById('resourcesTableBody');
+
+    if (!tableBody) return;
+
+    var allResources = [];
+    // Get all resources from table rows
+    (function(){
+      var rows = tableBody.querySelectorAll('tr');
+      rows.forEach(function(row){
+        var cells = row.querySelectorAll('td');
+        if (cells.length > 0) {
+          var name = cells[0].textContent.trim();
+          var category = cells[1].textContent.trim();
+          var quantity = cells[2].textContent.trim();
+          var statusEl = cells[3].querySelector('.badge');
+          var status = statusEl ? statusEl.textContent.trim() : '';
+          var location = cells[4].textContent.trim();
+          
+          allResources.push({
+            row: row,
+            name: name.toLowerCase(),
+            category: category,
+            status: status,
+            location: location.toLowerCase(),
+            searchText: (name + ' ' + location).toLowerCase()
+          });
+        }
+      });
+    })();
+
+    function filterResources(){
+      var searchTerm = (searchInput?.value || '').toLowerCase().trim();
+      var selectedCategory = categoryFilter?.value || '';
+      var selectedStatus = statusFilter?.value || '';
+
+      allResources.forEach(function(resource){
+        var matchesSearch = !searchTerm || resource.searchText.includes(searchTerm);
+        var matchesCategory = !selectedCategory || resource.category === selectedCategory;
+        var matchesStatus = !selectedStatus || resource.status === selectedStatus;
+
+        if (matchesSearch && matchesCategory && matchesStatus) {
+          resource.row.style.display = '';
+        } else {
+          resource.row.style.display = 'none';
+        }
+      });
+    }
+
+    function clearFilters(){
+      if (searchInput) searchInput.value = '';
+      if (categoryFilter) categoryFilter.value = '';
+      if (statusFilter) statusFilter.value = '';
+      filterResources();
+    }
+
+    // Event listeners
+    if (searchInput) {
+      searchInput.addEventListener('input', function(){
+        clearTimeout(window.searchTimeout);
+        window.searchTimeout = setTimeout(filterResources, 300);
+      });
+    }
+    if (categoryFilter) {
+      categoryFilter.addEventListener('change', filterResources);
+    }
+    if (statusFilter) {
+      statusFilter.addEventListener('change', filterResources);
+    }
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener('click', clearFilters);
+    }
+  })();
 
 })();

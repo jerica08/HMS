@@ -71,39 +71,17 @@
                         <small id="err_quantity" style="color:#dc2626"></small>
                     </div>
                     <div>
-                        <label class="form-label" for="status">Status*</label>
-                        <select id="status" name="status" class="form-select" required>
-                            <option value="">Select Status...</option>
-                            <option value="Available">Available</option>
-                            <option value="In Use">In Use</option>
-                            <option value="Maintenance">Maintenance</option>
-                            <option value="Out of Order">Out of Order</option>
-                        </select>
-                        <small id="err_status" style="color:#dc2626"></small>
-                    </div>
-                    <div>
                         <label class="form-label" for="location">Location*</label>
                         <input type="text" id="location" name="location" class="form-input" required placeholder="Enter location...">
                         <small id="err_location" style="color:#dc2626"></small>
                     </div>
                     <div>
-                        <label class="form-label" for="date_acquired">Date Acquired*</label>
-                        <input type="date" id="date_acquired" name="date_acquired" class="form-input" required max="<?= date('Y-m-d') ?>">
-                        <small id="err_date_acquired" style="color:#dc2626"></small>
-                    </div>
-                </div>
-                
-                <!-- Second row for additional fields -->   
-                <div class="form-grid" style="margin-top: 1rem;">
-                    <div>
-                        <label class="form-label" for="supplier">Supplier</label>
-                        <input type="text" id="supplier" name="supplier" class="form-input" placeholder="Enter supplier name...">
-                        <small id="err_supplier" style="color:#dc2626"></small>
-                    </div>
-                    <div>
-                        <label class="form-label" for="maintenance_schedule">Next Maintenance Date</label>
-                        <input type="date" id="maintenance_schedule" name="maintenance_schedule" class="form-input" min="<?= date('Y-m-d') ?>">
-                        <small id="err_maintenance_schedule" style="color:#dc2626"></small>
+                        <label class="form-label" for="serial_number">
+                            <i class="fas fa-hashtag"></i> Serial Number
+                            <small style="color: #666;">(Optional)</small>
+                        </label>
+                        <input type="text" id="serial_number" name="serial_number" class="form-input" placeholder="Enter serial number...">
+                        <small id="err_serial_number" style="color:#dc2626"></small>
                     </div>
                 </div>
                 
@@ -172,21 +150,43 @@ function resetSubmitButton() {
 }
 
 // Form submission
-function handleFormSubmit() {
-    if (isSubmitting) return;
+function handleFormSubmit(e) {
+    // Prevent default form submission
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    // Prevent double submission
+    if (isSubmitting) {
+        console.log('Form submission already in progress');
+        return false;
+    }
     
     const form = document.getElementById('addResourceForm');
-    if (!form) return;
+    if (!form) return false;
     
     const formData = new FormData(form);
     const equipmentName = formData.get('equipment_name');
     const category = formData.get('category');
+    const quantity = formData.get('quantity');
     const status = formData.get('status');
     const location = formData.get('location');
     
-    if (!equipmentName || !category || !status || !location) {
+    // Validate required fields
+    if (!equipmentName || !category || !quantity || !status || !location) {
         showNotification('Please fill in all required fields', 'error');
-        return;
+        return false;
+    }
+    
+    // Validate medications require batch number and expiry date
+    if (category === 'Medications') {
+        const batchNumber = formData.get('batch_number');
+        const expiryDate = formData.get('expiry_date');
+        if (!batchNumber || !expiryDate) {
+            showNotification('Batch number and expiry date are required for medications', 'error');
+            return false;
+        }
     }
     
     isSubmitting = true;
@@ -197,40 +197,91 @@ function handleFormSubmit() {
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
     }
     
-    fetch('<?= base_url('admin/resources/add') ?>', {
+    fetch('<?= base_url('admin/resource-management/create') ?>', {
         method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        },
         body: formData
     })
-    .then(response => response.json())
+    .then(async response => {
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Network response was not ok');
+        }
+        
+        return response.json();
+    })
     .then(data => {
-        if (data.status === 'success') {
-            showNotification('Resource added successfully!', 'success');
+        console.log('Full response data:', JSON.stringify(data, null, 2));
+        
+        // Check for success - the response should have 'success' property set to true
+        if (data && data.success === true) {
+            console.log('Success detected - showing success notification');
+            showNotification(data.message || 'Resource added successfully!', 'success');
             closeResourceModalUnique();
-            if (typeof loadResources === 'function') {
-                loadResources();
-            }
+            // Reload the page to refresh the resource list
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
         } else {
-            if (data.errors) {
+            // Show error message
+            console.log('Failure detected - success is:', data?.success);
+            let errorMsg = 'Failed to add resource';
+            if (data && data.message) {
+                errorMsg = data.message;
+            } else if (data && data.errors) {
+                errorMsg = 'Validation errors occurred';
                 displayResourceFormErrors(data.errors);
             } else {
-                showNotification(data.message || 'Failed to add resource', 'error');
+                console.error('Unexpected response format:', data);
+                errorMsg = 'Unexpected response from server. Resource may have been created. Please refresh the page.';
             }
+            showNotification(errorMsg, 'error');
             resetSubmitButton();
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showNotification('An error occurred while adding the resource', 'error');
+        showNotification('An error occurred while adding the resource: ' + error.message, 'error');
         resetSubmitButton();
+    })
+    .finally(() => {
+        isSubmitting = false;
     });
+    
+    return false;
 }
 
 // Initialize with delay to override external JS
 setTimeout(function() {
+    const form = document.getElementById('addResourceForm');
+    if (form) {
+        // Remove any existing submit listeners to prevent duplicates
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return handleFormSubmit(e);
+        };
+    }
+    
     // Set up click handlers
     const submitBtn = document.getElementById('saveResourceBtn');
     if (submitBtn) {
-        submitBtn.onclick = handleFormSubmit;
+        // Remove existing listeners
+        submitBtn.onclick = null;
+        submitBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            handleFormSubmit(e);
+        }, { once: false });
     }
     
     const closeBtn = document.getElementById('closeModalBtn');
@@ -252,7 +303,7 @@ setTimeout(function() {
         closeResourceModalUnique();
     };
     
-    console.log('Resource modal functions overridden successfully');
+    console.log('Resource modal functions initialized successfully');
 }, 100);
 
 // Helper functions

@@ -33,6 +33,10 @@ class ResourceManagement extends BaseController
         $categories = $this->resourceService->getCategories($userRole);
         $staff = $this->resourceService->getStaffForAssignment();
         $resources = $this->resourceService->getResources($userRole, $staffId);
+        
+        // Get expiring and expired medications for notifications
+        $expiringMedications = $this->resourceService->getExpiringMedications(30); // 30 days ahead
+        $expiredMedications = $this->resourceService->getExpiredMedications();
 
         $data = [
             'title' => $this->getPageTitle($userRole),
@@ -42,6 +46,8 @@ class ResourceManagement extends BaseController
             'categories' => $categories,
             'staff' => $staff,
             'resources' => $resources,
+            'expiringMedications' => $expiringMedications,
+            'expiredMedications' => $expiredMedications,
             'redirectUrl' => $this->getRedirectUrl($userRole)
         ];
 
@@ -170,77 +176,72 @@ class ResourceManagement extends BaseController
         };
     }
 
-    public function add()
+    public function export()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Unauthorized']);
+            return redirect()->to('/login');
         }
 
         $userRole = session()->get('role');
-        
-        if (!$this->permissionManager->hasPermission($userRole, 'resources', 'add')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Access denied']);
+        $staffId = session()->get('staff_id');
+
+        if (!$this->permissionManager->hasPermission($userRole, 'resources', 'view')) {
+            return redirect()->to($this->getRedirectUrl($userRole))->with('error', 'Access denied');
         }
 
-        $validation = \Config\Services::validation();
-        
-        $rules = [
-            'equipment_name' => 'required|min_length[2]|max_length[255]',
-            'category' => 'required|in_list[Medical Equipment,Medical Supplies,Diagnostic Equipment,Lab Equipment,Pharmacy Equipment,Medications,Office Equipment,IT Equipment,Furniture,Vehicles,Other]',
-            'quantity' => 'required|integer|greater_than[0]',
-            'status' => 'required|in_list[Available,In Use,Maintenance,Out of Order]',
-            'location' => 'required|min_length[2]|max_length[255]',
-            'date_acquired' => 'required|valid_date[Y-m-d]',
-            'supplier' => 'permit_empty|max_length[255]',
-            'maintenance_schedule' => 'permit_empty|valid_date[Y-m-d]',
-            'remarks' => 'permit_empty|max_length[1000]'
+        $filters = [
+            'category' => $this->request->getGet('category'),
+            'status' => $this->request->getGet('status'),
+            'location' => $this->request->getGet('location'),
+            'search' => $this->request->getGet('search')
         ];
 
-        if (!$this->validate($rules)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'errors' => $this->validator->getErrors()
+        $resources = $this->resourceService->getResources($userRole, $staffId, $filters);
+
+        // Set headers for CSV download
+        $this->response->setHeader('Content-Type', 'text/csv; charset=utf-8');
+        $this->response->setHeader('Content-Disposition', 'attachment; filename="resources_export_' . date('Y-m-d') . '.csv"');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
+        // Create CSV output
+        $output = fopen('php://output', 'w');
+
+        // Add BOM for UTF-8 Excel compatibility
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        // CSV Headers
+        fputcsv($output, [
+            'ID',
+            'Resource Name',
+            'Category',
+            'Quantity',
+            'Status',
+            'Location',
+            'Serial Number',
+            'Batch Number',
+            'Expiry Date',
+            'Remarks'
+        ]);
+
+        // CSV Data rows
+        foreach ($resources as $resource) {
+            fputcsv($output, [
+                $resource['id'] ?? '',
+                $resource['equipment_name'] ?? '',
+                $resource['category'] ?? '',
+                $resource['quantity'] ?? '',
+                $resource['status'] ?? '',
+                $resource['location'] ?? '',
+                $resource['serial_number'] ?? '',
+                $resource['batch_number'] ?? '',
+                $resource['expiry_date'] ?? '',
+                $resource['remarks'] ?? ''
             ]);
         }
 
-        try {
-            $db = \Config\Database::connect();
-            
-            $data = [
-                'equipment_name' => $this->request->getPost('equipment_name'),
-                'category' => $this->request->getPost('category'),
-                'quantity' => $this->request->getPost('quantity'),
-                'status' => $this->request->getPost('status'),
-                'location' => $this->request->getPost('location'),
-                'date_acquired' => $this->request->getPost('date_acquired'),
-                'supplier' => $this->request->getPost('supplier'),
-                'maintenance_schedule' => $this->request->getPost('maintenance_schedule'),
-                'remarks' => $this->request->getPost('remarks')
-            ];
-
-            $result = $db->table('resources')->insert($data);
-            
-            if ($result) {
-                log_message('info', 'Resource added: ' . $data['equipment_name'] . ' by ' . session()->get('username'));
-                
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'message' => 'Resource added successfully'
-                ]);
-            } else {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Failed to add resource'
-                ]);
-            }
-            
-        } catch (\Exception $e) {
-            log_message('error', 'Add resource error: ' . $e->getMessage());
-            
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Database error occurred'
-            ]);
-        }
+        fclose($output);
+        exit;
     }
+
 }

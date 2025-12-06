@@ -4,66 +4,25 @@ namespace App\Services;
 
 use CodeIgniter\Database\ConnectionInterface;
 use App\Libraries\PermissionManager;
+use App\Models\ResourceModel;
 
 class ResourceService
 {
     protected $db;
     protected $permissionManager;
+    protected $resourceModel;
 
     public function __construct(ConnectionInterface $db = null)
     {
         $this->db = $db ?? \Config\Database::connect();
         $this->permissionManager = new PermissionManager();
+        $this->resourceModel = new ResourceModel();
     }
 
     public function getResources($role, $staffId = null, $filters = [])
     {
         try {
-            $builder = $this->db->table('resources r');
-            
-            switch ($role) {
-                case 'admin':
-                case 'it_staff':
-                    break;
-                case 'doctor':
-                case 'nurse':
-                    $builder->whereIn('r.category', ['Medical Equipment', 'Medical Supplies', 'Diagnostic Equipment']);
-                    break;
-                case 'pharmacist':
-                    $builder->whereIn('r.category', ['Medical Supplies', 'Pharmacy Equipment', 'Medications']);
-                    break;
-                case 'laboratorist':
-                    $builder->whereIn('r.category', ['Lab Equipment', 'Diagnostic Equipment', 'Medical Supplies']);
-                    break;
-                case 'receptionist':
-                    $builder->whereIn('r.category', ['Office Equipment', 'IT Equipment']);
-                    break;
-                default:
-                    $builder->where('1', '0');
-                    break;
-            }
-
-            if (!empty($filters['category'])) {
-                $builder->where('r.category', $filters['category']);
-            }
-            if (!empty($filters['status'])) {
-                $builder->where('r.status', $filters['status']);
-            }
-            if (!empty($filters['location'])) {
-                $builder->like('r.location', $filters['location']);
-            }
-            if (!empty($filters['search'])) {
-                $builder->groupStart()
-                    ->like('r.equipment_name', $filters['search'])
-                    ->orLike('r.remarks', $filters['search'])
-                    ->groupEnd();
-            }
-
-            $builder->select('r.*')
-                ->orderBy('r.id', 'DESC');
-
-            return $builder->get()->getResultArray();
-
+            return $this->resourceModel->getResources($filters, $role, $staffId);
         } catch (\Exception $e) {
             log_message('error', 'ResourceService::getResources - ' . $e->getMessage());
             return [];
@@ -73,69 +32,16 @@ class ResourceService
     public function getResourceStats($role, $staffId = null)
     {
         try {
-            $stats = [
-                'total_resources' => 0,
-                'available' => 0,
-                'in_use' => 0,
-                'maintenance' => 0,
-                'out_of_order' => 0,
-                'categories' => 0
-            ];
-
-            $builder = $this->db->table('resources');
-
-            switch ($role) {
-                case 'admin':
-                case 'it_staff':
-                    break;
-                case 'doctor':
-                case 'nurse':
-                    $builder->whereIn('category', ['Medical Equipment', 'Medical Supplies', 'Diagnostic Equipment']);
-                    break;
-                case 'pharmacist':
-                    $builder->whereIn('category', ['Medical Supplies', 'Pharmacy Equipment', 'Medications']);
-                    break;
-                case 'laboratorist':
-                    $builder->whereIn('category', ['Lab Equipment', 'Diagnostic Equipment', 'Medical Supplies']);
-                    break;
-                case 'receptionist':
-                    $builder->whereIn('category', ['Office Equipment', 'IT Equipment']);
-                    break;
-                default:
-                    return $stats;
-            }
-
-            $stats['total_resources'] = $builder->countAllResults(false);
-            $stats['available'] = $builder->where('status', 'Available')->countAllResults(false);
-            $stats['in_use'] = $builder->where('status', 'In Use')->countAllResults(false);
-            $stats['maintenance'] = $builder->where('status', 'Maintenance')->countAllResults(false);
-            $stats['out_of_order'] = $builder->where('status', 'Out of Order')->countAllResults(false);
-
-            $categoryBuilder = $this->db->table('resources');
-            switch ($role) {
-                case 'doctor':
-                case 'nurse':
-                    $categoryBuilder->whereIn('category', ['Medical Equipment', 'Medical Supplies', 'Diagnostic Equipment']);
-                    break;
-                case 'pharmacist':
-                    $categoryBuilder->whereIn('category', ['Medical Supplies', 'Pharmacy Equipment', 'Medications']);
-                    break;
-                case 'laboratorist':
-                    $categoryBuilder->whereIn('category', ['Lab Equipment', 'Diagnostic Equipment', 'Medical Supplies']);
-                    break;
-                case 'receptionist':
-                    $categoryBuilder->whereIn('category', ['Office Equipment', 'IT Equipment']);
-                    break;
-            }
-            
-            $categories = $categoryBuilder->select('category')->distinct()->get()->getResultArray();
-            $stats['categories'] = count($categories);
-
-            return $stats;
-
+            return $this->resourceModel->getStats($role, $staffId);
         } catch (\Exception $e) {
             log_message('error', 'ResourceService::getResourceStats - ' . $e->getMessage());
-            return $stats;
+            return [
+                'total_resources' => 0,
+                'stock_in' => 0,
+                'stock_out' => 0,
+                'categories' => 0,
+                'low_quantity' => 0
+            ];
         }
     }
 
@@ -146,40 +52,53 @@ class ResourceService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
-            $requiredFields = ['equipment_name', 'category', 'status', 'location'];
-            foreach ($requiredFields as $field) {
-                if (empty($data[$field])) {
-                    return ['success' => false, 'message' => "Field '{$field}' is required"];
+            // Prepare resource data
+            $resourceData = [
+                'equipment_name' => trim($data['equipment_name'] ?? ''),
+                'category' => $data['category'] ?? '',
+                'quantity' => (int)($data['quantity'] ?? 1),
+                'status' => $data['status'] ?? 'Stock In',
+                'location' => trim($data['location'] ?? ''),
+                'batch_number' => trim($data['batch_number'] ?? ''),
+                'expiry_date' => !empty($data['expiry_date']) ? $data['expiry_date'] : null,
+                'serial_number' => trim($data['serial_number'] ?? ''),
+                'remarks' => trim($data['remarks'] ?? '')
+            ];
+
+            // Validate medications require batch number and expiry date
+            if ($resourceData['category'] === 'Medications') {
+                if (empty($resourceData['batch_number'])) {
+                    return ['success' => false, 'message' => 'Batch number is required for medications'];
+                }
+                if (empty($resourceData['expiry_date'])) {
+                    return ['success' => false, 'message' => 'Expiry date is required for medications'];
+                }
+                
+                // Check if expiry date is in the past
+                if ($resourceData['expiry_date'] < date('Y-m-d')) {
+                    return ['success' => false, 'message' => 'Cannot add expired medication. Expiry date is in the past'];
                 }
             }
 
-            $resourceData = [
-                'equipment_name' => trim($data['equipment_name']),
-                'category' => $data['category'],
-                'quantity' => $data['quantity'] ?? 1,
-                'status' => $data['status'] ?? 'Available',
-                'location' => $data['location'] ?? '',
-                'date_acquired' => $data['date_acquired'] ?? null,
-                'supplier' => $data['supplier'] ?? '',
-                'maintenance_schedule' => $data['maintenance_schedule'] ?? null,
-                'remarks' => $data['remarks'] ?? ''
-            ];
-
-            $result = $this->db->table('resources')->insert($resourceData);
-
-            if ($result) {
+            // Validate using model
+            if (!$this->resourceModel->insert($resourceData)) {
+                $errors = $this->resourceModel->errors();
                 return [
-                    'success' => true,
-                    'message' => 'Resource created successfully',
-                    'resource_id' => $this->db->insertID()
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $errors
                 ];
-            } else {
-                return ['success' => false, 'message' => 'Failed to create resource'];
             }
+
+            return [
+                'success' => true,
+                'message' => 'Resource created successfully',
+                'resource_id' => $this->resourceModel->getInsertID()
+            ];
 
         } catch (\Exception $e) {
             log_message('error', 'ResourceService::createResource - ' . $e->getMessage());
-            return ['success' => false, 'message' => 'An error occurred'];
+            return ['success' => false, 'message' => 'An error occurred: ' . $e->getMessage()];
         }
     }
 
@@ -190,30 +109,62 @@ class ResourceService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
-            $resource = $this->db->table('resources')->where('id', $resourceId)->get()->getRow();
+            $resource = $this->resourceModel->find($resourceId);
             if (!$resource) {
                 return ['success' => false, 'message' => 'Resource not found'];
             }
 
+            // Prepare update data
             $updateData = [];
             $allowedFields = ['equipment_name', 'category', 'quantity', 'status', 'location',
-                            'date_acquired', 'supplier', 'maintenance_schedule', 'remarks'];
+                            'batch_number', 'expiry_date', 'serial_number', 'remarks'];
 
             foreach ($allowedFields as $field) {
                 if (isset($data[$field])) {
-                    $updateData[$field] = $data[$field];
+                    if (in_array($field, ['equipment_name', 'location', 'batch_number', 'serial_number', 'remarks'])) {
+                        $updateData[$field] = trim($data[$field]);
+                    } elseif ($field === 'quantity') {
+                        $updateData[$field] = (int)$data[$field];
+                    } elseif ($field === 'expiry_date') {
+                        $updateData[$field] = !empty($data[$field]) ? $data[$field] : null;
+                    } else {
+                        $updateData[$field] = $data[$field];
+                    }
                 }
             }
 
-            $result = $this->db->table('resources')->where('id', $resourceId)->update($updateData);
+            // Validate medications if category is being updated or is already Medications
+            $newCategory = $updateData['category'] ?? $resource['category'] ?? '';
+            if ($newCategory === 'Medications') {
+                $batchNumber = $updateData['batch_number'] ?? $resource['batch_number'] ?? '';
+                $expiryDate = $updateData['expiry_date'] ?? $resource['expiry_date'] ?? '';
+                
+                if (empty($batchNumber)) {
+                    return ['success' => false, 'message' => 'Batch number is required for medications'];
+                }
+                if (empty($expiryDate)) {
+                    return ['success' => false, 'message' => 'Expiry date is required for medications'];
+                }
+            }
 
-            return $result ? 
-                ['success' => true, 'message' => 'Resource updated successfully'] :
-                ['success' => false, 'message' => 'No changes made'];
+            if (empty($updateData)) {
+                return ['success' => false, 'message' => 'No changes provided'];
+            }
+
+            if (!$this->resourceModel->update($resourceId, $updateData)) {
+                $errors = $this->resourceModel->errors();
+                return [
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $errors
+                ];
+            }
+
+            return ['success' => true, 'message' => 'Resource updated successfully'];
 
         } catch (\Exception $e) {
             log_message('error', 'ResourceService::updateResource - ' . $e->getMessage());
-            return ['success' => false, 'message' => 'An error occurred'];
+            return ['success' => false, 'message' => 'An error occurred: ' . $e->getMessage()];
         }
     }
 
@@ -224,57 +175,39 @@ class ResourceService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
-            $resource = $this->db->table('resources')->where('id', $resourceId)->get()->getRow();
+            $resource = $this->resourceModel->find($resourceId);
             if (!$resource) {
                 return ['success' => false, 'message' => 'Resource not found'];
             }
 
-            if ($resource->status === 'In Use') {
-                return ['success' => false, 'message' => 'Cannot delete resource that is currently in use'];
+            if (isset($resource['status']) && $resource['status'] === 'Stock Out') {
+                return ['success' => false, 'message' => 'Cannot delete resource that is currently stock out'];
             }
 
-            $result = $this->db->table('resources')->where('id', $resourceId)->delete();
+            if ($this->resourceModel->delete($resourceId)) {
+                return ['success' => true, 'message' => 'Resource deleted successfully'];
+            }
 
-            return $result ? 
-                ['success' => true, 'message' => 'Resource deleted successfully'] :
-                ['success' => false, 'message' => 'Failed to delete resource'];
+            return ['success' => false, 'message' => 'Failed to delete resource'];
 
         } catch (\Exception $e) {
             log_message('error', 'ResourceService::deleteResource - ' . $e->getMessage());
-            return ['success' => false, 'message' => 'An error occurred'];
+            return ['success' => false, 'message' => 'An error occurred: ' . $e->getMessage()];
         }
     }
 
     public function getResource($resourceId, $role, $staffId)
     {
         try {
-            $builder = $this->db->table('resources r');
+            $resources = $this->resourceModel->getResources([], $role, $staffId);
             
-            switch ($role) {
-                case 'admin':
-                case 'it_staff':
-                    break;
-                case 'doctor':
-                case 'nurse':
-                    $builder->whereIn('r.category', ['Medical Equipment', 'Medical Supplies', 'Diagnostic Equipment']);
-                    break;
-                case 'pharmacist':
-                    $builder->whereIn('r.category', ['Medical Supplies', 'Pharmacy Equipment', 'Medications']);
-                    break;
-                case 'laboratorist':
-                    $builder->whereIn('r.category', ['Lab Equipment', 'Diagnostic Equipment', 'Medical Supplies']);
-                    break;
-                case 'receptionist':
-                    $builder->whereIn('r.category', ['Office Equipment', 'IT Equipment']);
-                    break;
-                default:
-                    return null;
+            foreach ($resources as $resource) {
+                if (isset($resource['id']) && $resource['id'] == $resourceId) {
+                    return $resource;
+                }
             }
-
-            return $builder->select('r.*')
-                ->where('r.id', $resourceId)
-                ->get()->getRow();
-
+            
+            return null;
         } catch (\Exception $e) {
             log_message('error', 'ResourceService::getResource - ' . $e->getMessage());
             return null;
@@ -325,6 +258,32 @@ class ResourceService
                 ->get()->getResultArray();
         } catch (\Exception $e) {
             log_message('error', 'ResourceService::getStaffForAssignment - ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get medications expiring within specified days
+     */
+    public function getExpiringMedications($daysAhead = 30)
+    {
+        try {
+            return $this->resourceModel->getExpiringMedications($daysAhead);
+        } catch (\Exception $e) {
+            log_message('error', 'ResourceService::getExpiringMedications - ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get expired medications
+     */
+    public function getExpiredMedications()
+    {
+        try {
+            return $this->resourceModel->getExpiredMedications();
+        } catch (\Exception $e) {
+            log_message('error', 'ResourceService::getExpiredMedications - ' . $e->getMessage());
             return [];
         }
     }

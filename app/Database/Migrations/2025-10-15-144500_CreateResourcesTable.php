@@ -37,27 +37,35 @@ class CreateResourcesTable extends Migration
                 'location' => [
                     'type'       => 'VARCHAR',
                     'constraint' => 100,
+                    'null'       => true,
                 ],
-                'date_acquired' => [
-                    'type' => 'DATE',
-                    'null' => true,
-                ],
-                'supplier' => [
+                'serial_number' => [
                     'type'       => 'VARCHAR',
                     'constraint' => 100,
-                ],
-                'maintenance_schedule' => [
-                    'type' => 'DATE',
-                    'null' => true,
+                    'null'       => true,
                 ],
                 'remarks' => [
                     'type' => 'TEXT',
                     'null' => true,
                 ],
+                'created_at' => [
+                    'type'    => 'TIMESTAMP',
+                    'null'    => true,
+                    'default' => null,
+                ],
+                'updated_at' => [
+                    'type'    => 'TIMESTAMP',
+                    'null'    => true,
+                    'default' => null,
+                ],
             ]);
 
             $this->forge->addKey('id', true);
             $this->forge->createTable('resources', true);
+
+            // Set timestamp defaults for automatic handling
+            $db->query('ALTER TABLE resources MODIFY created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP');
+            $db->query('ALTER TABLE resources MODIFY updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
         }
     }
 

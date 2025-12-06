@@ -112,6 +112,23 @@
             </div>
         </div>
 
+        <!-- Filters and Search -->
+        <div class="controls-section" style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div class="filters-section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+                <div class="filter-group" style="margin: 0;">
+                    <label for="searchDepartment" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                        <i class="fas fa-search"></i> Search
+                    </label>
+                    <input type="text" id="searchDepartment" class="form-control" placeholder="Search departments..." autocomplete="off">
+                </div>
+                <div class="filter-group" style="margin: 0;">
+                    <button type="button" id="clearFiltersDepartment" class="btn btn-secondary" style="width: 100%;">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Departments table (same visual style as patient table) -->
         <div class="patient-table-container">
             <div class="table-header">

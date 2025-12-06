@@ -59,7 +59,7 @@
             if (!payload?.data) throw new Error('Invalid API response');
 
             roomsData = payload.data;
-            renderRooms(payload.data);
+            applyFilters();
         } catch (error) {
             console.error('Failed to load rooms', error);
             if (roomsTableBody) {
@@ -72,6 +72,49 @@
                 `;
             }
         }
+    }
+
+    function applyFilters() {
+        const searchInput = document.getElementById('searchRoom');
+        const statusFilter = document.getElementById('statusFilterRoom');
+
+        const searchTerm = (searchInput?.value || '').toLowerCase().trim();
+        const statusValue = (statusFilter?.value || '').toLowerCase();
+
+        const filtered = roomsData.filter(room => {
+            // Search filter
+            if (searchTerm) {
+                const searchableText = [
+                    room.room_number || '',
+                    room.type_name || '',
+                    room.department_name || '',
+                    room.room_type || ''
+                ].join(' ').toLowerCase();
+
+                if (!searchableText.includes(searchTerm)) {
+                    return false;
+                }
+            }
+
+            // Status filter
+            if (statusValue && (room.status || '').toLowerCase() !== statusValue) {
+                return false;
+            }
+
+            return true;
+        });
+
+        renderRooms(filtered);
+    }
+
+    function clearFilters() {
+        const searchInput = document.getElementById('searchRoom');
+        const statusFilter = document.getElementById('statusFilterRoom');
+
+        if (searchInput) searchInput.value = '';
+        if (statusFilter) statusFilter.value = '';
+
+        applyFilters();
     }
 
     function renderRooms(rooms) {
@@ -218,10 +261,34 @@
     // Export refresh function for modals
     window.RoomManagement = { refresh: fetchRooms };
 
+    // Initialize search and filters
+    function initializeFilters() {
+        const searchInput = document.getElementById('searchRoom');
+        const statusFilter = document.getElementById('statusFilterRoom');
+        const clearBtn = document.getElementById('clearFiltersRoom');
+
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(applyFilters, 300);
+            });
+        }
+
+        if (statusFilter) {
+            statusFilter.addEventListener('change', applyFilters);
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearFilters);
+        }
+    }
+
     // Initialize
     if (roomsTableBody) {
         fetchRooms();
         roomsTableBody.addEventListener('click', handleTableClick);
+        initializeFilters();
     }
 
     if (addRoomBtn) {

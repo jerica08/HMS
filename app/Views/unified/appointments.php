@@ -60,6 +60,42 @@
                 </div>
             </div>
 
+            <!-- Filters and Search -->
+            <div class="controls-section" style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div class="filters-section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+                    <div class="filter-group" style="margin: 0;">
+                        <label for="searchAppointment" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                            <i class="fas fa-search"></i> Search
+                        </label>
+                        <input type="text" id="searchAppointment" class="form-control" placeholder="Search by patient, doctor..." autocomplete="off">
+                    </div>
+                    <div class="filter-group" style="margin: 0;">
+                        <label for="statusFilterAppointment" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                            <i class="fas fa-filter"></i> Status
+                        </label>
+                        <select id="statusFilterAppointment" class="form-control">
+                            <option value="">All Status</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="completed">Completed</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="no-show">No Show</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="margin: 0;">
+                        <label for="dateSelector" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                            <i class="fas fa-calendar"></i> Date
+                        </label>
+                        <input type="date" id="dateSelector" class="form-control" value="<?= date('Y-m-d') ?>">
+                    </div>
+                    <div class="filter-group" style="margin: 0;">
+                        <button type="button" id="clearFiltersAppointment" class="btn btn-secondary" style="width: 100%;">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Appointments Table -->
             <div class="patient-table">
                 <div class="table-header">

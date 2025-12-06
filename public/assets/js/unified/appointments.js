@@ -137,10 +137,30 @@
         if (window.ViewAppointmentModal) window.ViewAppointmentModal.init();
 
         // Initialize filters
-        ['dateSelector', 'statusFilter', 'doctorFilter'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('change', refreshAppointments);
-        });
+        const dateSelector = document.getElementById('dateSelector');
+        if (dateSelector) {
+            dateSelector.addEventListener('change', refreshAppointments);
+        }
+
+        const statusFilterAppointment = document.getElementById('statusFilterAppointment');
+        if (statusFilterAppointment) {
+            statusFilterAppointment.addEventListener('change', applyFilters);
+        }
+
+        const searchAppointment = document.getElementById('searchAppointment');
+        if (searchAppointment) {
+            let searchTimeout;
+            searchAppointment.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(applyFilters, 300);
+            });
+        }
+
+        const clearFiltersBtn = document.getElementById('clearFiltersAppointment');
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', clearFilters);
+        }
+
         const refreshBtn = document.getElementById('refreshBtn');
         if (refreshBtn) refreshBtn.addEventListener('click', (e) => { e.preventDefault(); refreshAppointments(); });
 
@@ -201,6 +221,8 @@
         }
     }
 
+    let allAppointments = [];
+
     function refreshAppointments() {
         const baseUrl = document.querySelector('meta[name="base-url"]').content;
         const userRole = document.querySelector('meta[name="user-role"]').content || 'guest';
@@ -220,8 +242,10 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    renderAppointmentsTable(data.data || []);
+                    allAppointments = data.data || [];
+                    applyFilters();
                 } else {
+                    allAppointments = [];
                     renderAppointmentsTable([]);
                 }
 
@@ -229,8 +253,59 @@
             })
             .catch(error => {
                 console.error('Error loading appointments:', error);
+                allAppointments = [];
                 renderAppointmentsTable([]);
             });
+    }
+
+    function applyFilters() {
+        const searchInput = document.getElementById('searchAppointment');
+        const statusFilter = document.getElementById('statusFilterAppointment');
+        
+        const searchTerm = (searchInput?.value || '').toLowerCase().trim();
+        const statusValue = (statusFilter?.value || '').toLowerCase();
+
+        const filtered = allAppointments.filter(appt => {
+            // Search filter
+            if (searchTerm) {
+                const searchableText = [
+                    appt.patient_first_name || '',
+                    appt.patient_last_name || '',
+                    appt.doctor_first_name || '',
+                    appt.doctor_last_name || '',
+                    appt.appointment_type || '',
+                    appt.doctor_department || ''
+                ].join(' ').toLowerCase();
+
+                if (!searchableText.includes(searchTerm)) {
+                    return false;
+                }
+            }
+
+            // Status filter
+            if (statusValue && (appt.status || '').toLowerCase() !== statusValue) {
+                return false;
+            }
+
+            return true;
+        });
+
+        renderAppointmentsTable(filtered);
+    }
+
+    function clearFilters() {
+        const searchInput = document.getElementById('searchAppointment');
+        const statusFilter = document.getElementById('statusFilterAppointment');
+        const dateFilter = document.getElementById('dateSelector');
+
+        if (searchInput) searchInput.value = '';
+        if (statusFilter) statusFilter.value = '';
+        if (dateFilter) {
+            const today = new Date();
+            dateFilter.value = today.toISOString().split('T')[0];
+        }
+
+        refreshAppointments();
     }
 
     function renderAppointmentsTable(appointments) {

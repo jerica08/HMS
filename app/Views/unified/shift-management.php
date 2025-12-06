@@ -245,6 +245,52 @@
                 <?php endif; ?>
         </div>
 
+        <!-- Filters and Search -->
+        <div class="controls-section" style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div class="filters-section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+                <div class="filter-group" style="margin: 0;">
+                    <label for="searchFilter" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                        <i class="fas fa-search"></i> Search
+                    </label>
+                    <input type="text" id="searchFilter" class="form-control" placeholder="Search by doctor, day..." autocomplete="off">
+                </div>
+                <div class="filter-group" style="margin: 0;">
+                    <label for="dateFilter" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                        <i class="fas fa-calendar"></i> Date
+                    </label>
+                    <input type="date" id="dateFilter" class="form-control">
+                </div>
+                <div class="filter-group" style="margin: 0;">
+                    <label for="statusFilter" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                        <i class="fas fa-filter"></i> Status
+                    </label>
+                    <select id="statusFilter" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
+                <div class="filter-group" style="margin: 0;">
+                    <label for="departmentFilter" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                        <i class="fas fa-building"></i> Department
+                    </label>
+                    <select id="departmentFilter" class="form-control">
+                        <option value="">All Departments</option>
+                        <!-- Departments will be populated dynamically if needed -->
+                    </select>
+                </div>
+                <?php endif; ?>
+                <div class="filter-group" style="margin: 0;">
+                    <button type="button" id="clearFilters" class="btn btn-secondary" style="width: 100%;">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="shift-table-container">
                 <div class="table-header">
                     <h3>Schedule</h3>

@@ -109,6 +109,56 @@
         </section>
     </main>
 </div>
+<script>
+// Patient Records Search Functionality
+(function() {
+    const searchInput = document.getElementById('patientRecordSearch');
+    const tableBody = document.querySelector('.table-responsive tbody');
+    let allRows = [];
+
+    function initializeSearch() {
+        if (!searchInput || !tableBody) return;
+
+        // Store all rows initially
+        allRows = Array.from(tableBody.querySelectorAll('tr'));
+
+        function filterRecords() {
+            const searchTerm = (searchInput.value || '').toLowerCase().trim();
+
+            allRows.forEach(row => {
+                // Skip empty state rows
+                if (row.querySelector('td.empty-state') || row.querySelector('td[colspan]')) {
+                    return;
+                }
+
+                const cells = row.querySelectorAll('td');
+                if (cells.length === 0) return;
+
+                const searchableText = Array.from(cells)
+                    .map(cell => cell.textContent || '')
+                    .join(' ')
+                    .toLowerCase();
+
+                const matches = !searchTerm || searchableText.includes(searchTerm);
+                row.style.display = matches ? '' : 'none';
+            });
+        }
+
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterRecords, 300);
+        });
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeSearch);
+    } else {
+        initializeSearch();
+    }
+})();
+</script>
 <script src="<?= base_url('assets/js/unified/patient-management.js') ?>"></script>
 </body>
 </html>

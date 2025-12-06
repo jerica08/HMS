@@ -13,40 +13,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 </head>
 
-<?php include APPPATH . 'Views/template/header.php'; ?> 
-
-    <?= $this->include('unified/components/notification', [
-        'id' => 'appointmentsNotification',
-        'dismissFn' => 'dismissAppointmentNotification()'
-    ]) ?>
+<?= $this->include('template/header') ?>
+<?= $this->include('unified/components/notification', ['id' => 'appointmentsNotification', 'dismissFn' => 'dismissAppointmentNotification()']) ?>
 
 <div class="main-container">
-    <!-- Unified Sidebar -->
-     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+    <?= $this->include('unified/components/sidebar') ?>
 
     <main class="content" role="main">
-        <h1 class="page-title">
-            <i class="fas fa-calendar-alt"></i>
-            <?php 
-            $pageTitles = [
-                'admin' => 'System Appointments',
-                'doctor' => 'My Appointments',
-                'nurse' => 'Department Appointments',
-                'receptionist' => 'Appointment Booking'
-            ];
-            echo esc($pageTitles[$userRole] ?? 'Appointments');
-            ?>
-        </h1>
+        <h1 class="page-title"><i class="fas fa-calendar-alt"></i> <?= esc(match($userRole) { 'admin' => 'System Appointments', 'doctor' => 'My Appointments', 'nurse' => 'Department Appointments', 'receptionist' => 'Appointment Booking', default => 'Appointments' }) ?></h1>
         <div class="page-actions">
             <?php if (in_array($userRole, ['admin', 'doctor', 'receptionist'])): ?>
-                <button type="button" class="btn btn-primary" id="scheduleAppointmentBtn" aria-label="Add New Appointment">
-                    <i class="fas fa-plus" aria-hidden="true"></i> Add Appointment
-                </button>
+                <button type="button" class="btn btn-primary" id="scheduleAppointmentBtn" aria-label="Add New Appointment"><i class="fas fa-plus"></i> Add Appointment</button>
             <?php endif; ?>
             <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
-                <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
-                    <i class="fas fa-download" aria-hidden="true"></i> Export
-                </button>
+                <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download"></i> Export</button>
             <?php endif; ?>
         </div>
 
@@ -84,11 +64,7 @@
             <div class="patient-table">
                 <div class="table-header">
                     <h3 id="scheduleTitle">Today's Schedule - <?= date('F j, Y') ?></h3>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-primary btn-small" id="printBtn">
-                            <i class="fas fa-print"></i> Print Schedule
-                        </button>
-                    </div>
+                    <button class="btn btn-primary btn-small" id="printBtn"><i class="fas fa-print"></i> Print Schedule</button>
                 </div>
                 
                 <table class="table">
@@ -130,52 +106,24 @@
                                     <?php endif; ?>
                                     <td><?= esc($appointment['appointment_type'] ?? 'N/A') ?></td>
                                     <td>
-                                        <?php 
-                                            $status = $appointment['status'] ?? 'scheduled';
-                                            $badgeClass = '';
-                                            switch(strtolower($status)) {
-                                                case 'completed': $badgeClass = 'badge-success'; break;
-                                                case 'in-progress': $badgeClass = 'badge-info'; break;
-                                                case 'cancelled': $badgeClass = 'badge-danger'; break;
-                                                case 'no-show': $badgeClass = 'badge-warning'; break;
-                                                default: $badgeClass = 'badge-info';
-                                            }
-                                        ?>
+                                        <?php $status = strtolower($appointment['status'] ?? 'scheduled'); $badgeClass = match($status) { 'completed' => 'badge-success', 'in-progress' => 'badge-info', 'cancelled' => 'badge-danger', 'no-show' => 'badge-warning', default => 'badge-info' }; ?>
                                         <span class="badge <?= $badgeClass ?>"><?= esc(ucfirst($status)) ?></span>
                                     </td>
                                     <td>
+                                        <?php $apptId = esc($appointment['appointment_id'] ?? 0); $statusLower = strtolower($status); ?>
                                         <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                                            <!-- View Details -->
-                                            <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="viewAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
-                                                <i class="fas fa-eye"></i> View
-                                            </button>
-
-                                            <!-- Complete (status) -->
-                                            <?php if (in_array($userRole, ['admin', 'doctor']) && strtolower($status) !== 'completed'): ?>
-                                                <button class="btn btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="markCompleted(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
-                                                    <i class="fas fa-check"></i> Complete
-                                                </button>
+                                            <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="viewAppointment(<?= $apptId ?>)"><i class="fas fa-eye"></i> View</button>
+                                            <?php if (in_array($userRole, ['admin', 'doctor']) && $statusLower !== 'completed'): ?>
+                                                <button class="btn btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="markCompleted(<?= $apptId ?>)"><i class="fas fa-check"></i> Complete</button>
                                             <?php endif; ?>
-
-                                            <!-- Edit Details -->
                                             <?php if (in_array($userRole, ['admin', 'doctor', 'receptionist'])): ?>
-                                                <button class="btn btn-warning" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="editAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
-                                                    <i class="fas fa-edit"></i> Edit
-                                                </button>
+                                                <button class="btn btn-warning" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="editAppointment(<?= $apptId ?>)"><i class="fas fa-edit"></i> Edit</button>
                                             <?php endif; ?>
-
-                                            <!-- Delete Appointment (admin only) -->
                                             <?php if ($userRole === 'admin'): ?>
-                                                <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="deleteAppointment(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
-                                                    <i class="fas fa-trash"></i> Delete
-                                                </button>
+                                                <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="deleteAppointment(<?= $apptId ?>)"><i class="fas fa-trash"></i> Delete</button>
                                             <?php endif; ?>
-
-                                            <!-- Add to Bill (admin / accountant) -->
                                             <?php if (in_array($userRole, ['admin', 'accountant'])): ?>
-                                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="openBillingModal(<?= esc($appointment['appointment_id'] ?? 0) ?>)">
-                                                    <i class="fas fa-file-invoice-dollar"></i> Add to Bill
-                                                </button>
+                                                <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="openBillingModal(<?= $apptId ?>)"><i class="fas fa-file-invoice-dollar"></i> Add to Bill</button>
                                             <?php endif; ?>
                                         </div>
                                     </td>
@@ -200,14 +148,10 @@
         </main>
     </div>
 
-    <!-- Include modal with forced doctors data like shift management -->
-    <?php 
-    // Force set the doctors variable directly like shift management
-    $doctors_for_modal = $doctors ?? [];
-    
-    include(APPPATH . 'Views/unified/modals/new-appointment-modal.php');
-    ?>
-    <?php include APPPATH . 'Views/unified/modals/view-appointment-modal.php'; ?>
+    <?php $doctors_for_modal = $doctors ?? []; ?>
+    <?= $this->include('unified/modals/new-appointment-modal') ?>
+    <?= $this->include('unified/modals/edit-appointment-modal') ?>
+    <?= $this->include('unified/modals/view-appointment-modal') ?>
 
     <!-- Billing modal for adding appointment charges -->
     <div id="billingModal" class="modal" aria-hidden="true" hidden>
@@ -241,6 +185,10 @@
         </div>
     </div>
 
+    <script src="<?= base_url('assets/js/unified/modals/shared/appointment-modal-utils.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/modals/add-appointment-modal.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/modals/edit-appointment-modal.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/modals/view-appointment-modal.js') ?>"></script>
     <script src="<?= base_url('assets/js/unified/appointments.js') ?>"></script>
 </body>
 </html>

@@ -2,13 +2,8 @@
 <div id="viewAppointmentModal" class="hms-modal-overlay" aria-hidden="true">
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="viewAppointmentTitle">
         <div class="hms-modal-header">
-            <div class="hms-modal-title" id="viewAppointmentTitle">
-                <i class="fas fa-calendar-alt" style="color:#4f46e5"></i>
-                Appointment Details
-            </div>
-            <button type="button" class="btn btn-secondary btn-small" onclick="closeViewAppointmentModal()" aria-label="Close">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="hms-modal-title" id="viewAppointmentTitle"><i class="fas fa-calendar-alt" style="color:#4f46e5"></i> Appointment Details</div>
+            <button type="button" class="btn btn-secondary btn-small" id="closeViewAppointmentModal" aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
         <form id="viewAppointmentForm">
             <div class="hms-modal-body">
@@ -49,7 +44,7 @@
                 </div>
             </div>
             <div class="hms-modal-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeViewAppointmentModal()">Close</button>
+                <button type="button" class="btn btn-secondary" id="closeViewAppointmentBtn">Close</button>
             </div>
         </form>
     </div>

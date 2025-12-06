@@ -2,13 +2,8 @@
 <div id="newAppointmentModal" class="hms-modal-overlay" aria-hidden="true">
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="newAppointmentTitle">
         <div class="hms-modal-header">
-            <div class="hms-modal-title" id="newAppointmentTitle">
-                <i class="fas fa-calendar-plus" style="color:#4f46e5"></i>
-                Schedule New Appointment
-            </div>
-            <button type="button" class="btn btn-secondary btn-small" onclick="closeNewAppointmentModal()" aria-label="Close">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="hms-modal-title" id="newAppointmentTitle"><i class="fas fa-calendar-plus" style="color:#4f46e5"></i> Schedule New Appointment</div>
+            <button type="button" class="btn btn-secondary btn-small" id="closeNewAppointmentModal" aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
         <form id="newAppointmentForm">
             <input type="hidden" id="appointment_id" name="appointment_id" value="">
@@ -24,23 +19,13 @@
                     <?php if ($userRole === 'admin'): ?>
                     <div>
                         <label class="form-label" for="appointment_doctor">Doctor*</label>
-                        <!-- Debug: Check doctors_for_modal -->
-                        <?php if (!empty($doctors_for_modal)): ?>
-                            <!-- DEBUG: Found <?php echo count($doctors_for_modal); ?> doctors -->
-                        <?php else: ?>
-                            <!-- DEBUG: doctors_for_modal is empty -->
-                        <?php endif; ?>
-                        
                         <select id="appointment_doctor" name="doctor_id" class="form-select" required>
                             <option value="">Select Doctor...</option>
-                            <?php if (!empty($doctors_for_modal)): ?>
-                                <?php foreach ($doctors_for_modal as $doctor): ?>
-                                    <option value="<?= esc($doctor['staff_id'] ?? $doctor['id']) ?>">
-                                        <?= esc(trim(($doctor['first_name'] ?? '') . ' ' . ($doctor['last_name'] ?? ''))) ?>
-                                        <?= !empty($doctor['specialization']) ? ' - ' . esc($doctor['specialization']) : '' ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php else: ?>
+                            <?php if (!empty($doctors_for_modal)): foreach ($doctors_for_modal as $doctor): ?>
+                                <option value="<?= esc($doctor['staff_id'] ?? $doctor['id']) ?>">
+                                    <?= esc(trim(($doctor['first_name'] ?? '') . ' ' . ($doctor['last_name'] ?? ''))) ?><?= !empty($doctor['specialization']) ? ' - ' . esc($doctor['specialization']) : '' ?>
+                                </option>
+                            <?php endforeach; else: ?>
                                 <option value="">No doctors available</option>
                             <?php endif; ?>
                         </select>
@@ -71,10 +56,8 @@
                 </div>
             </div>
             <div class="hms-modal-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeNewAppointmentModal()">Cancel</button>
-                <button type="submit" id="saveAppointmentBtn" class="btn btn-success">
-                    <i class="fas fa-calendar-check"></i> Schedule Appointment
-                </button>
+                <button type="button" class="btn btn-secondary" id="cancelNewAppointmentBtn">Cancel</button>
+                <button type="submit" id="saveAppointmentBtn" class="btn btn-success"><i class="fas fa-calendar-check"></i> Schedule Appointment</button>
             </div>
         </form>
     </div>

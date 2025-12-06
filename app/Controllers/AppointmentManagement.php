@@ -20,7 +20,6 @@ class AppointmentManagement extends BaseController
         $this->db = \Config\Database::connect();
         $this->appointmentService = new AppointmentService();
         $this->financialService = new FinancialService();
-        
         $session = session();
         $this->userRole = $session->get('role');
         $this->staffId = $session->get('staff_id');
@@ -32,33 +31,19 @@ class AppointmentManagement extends BaseController
     public function index()
     {
         try {
-            $stats = $this->getAppointmentStats();
-            $appointments = $this->getAppointments();
-            $doctors = $this->getDoctorsListData(); // Always fetch doctors like ShiftManagement
-            $availablePatients = $this->getAvailablePatients();
-            
-            // Debug: Log the data
-            log_message('debug', 'AppointmentManagement::index - doctors count: ' . count($doctors));
-            log_message('debug', 'AppointmentManagement::index - user role: ' . ($this->userRole ?? 'none'));
-            
             $data = [
                 'title' => $this->getPageTitle(),
-                'appointmentStats' => $stats,
-                'appointments' => $appointments,
-                'doctors' => $doctors,
-                'availablePatients' => $availablePatients,
+                'appointmentStats' => $this->getAppointmentStats(),
+                'appointments' => $this->getAppointments(),
+                'doctors' => $this->getDoctorsListData(),
+                'availablePatients' => $this->getAvailablePatients(),
                 'userRole' => $this->userRole,
                 'permissions' => $this->getUserPermissions()
             ];
-
-            // Use unified view that adapts to user role
             return view('unified/appointments', $data);
-            
         } catch (\Exception $e) {
             log_message('error', 'AppointmentManagement index error: ' . $e->getMessage());
-            
-            // Fallback data
-            $data = [
+            return view('unified/appointments', [
                 'title' => 'Appointments',
                 'appointmentStats' => [],
                 'appointments' => [],
@@ -66,9 +51,7 @@ class AppointmentManagement extends BaseController
                 'availablePatients' => [],
                 'userRole' => $this->userRole ?? 'guest',
                 'permissions' => []
-            ];
-            
-            return view('unified/appointments', $data);
+            ]);
         }
     }
 
@@ -78,211 +61,91 @@ class AppointmentManagement extends BaseController
     public function createAppointment()
     {
         $input = $this->request->getJSON(true) ?? $this->request->getPost();
-        
-        $result = $this->appointmentService->createAppointment(
-            $input,
-            $this->userRole,
-            $this->staffId
-        );
-        
-        return $this->response->setJSON($result);
+        return $this->response->setJSON($this->appointmentService->createAppointment($input, $this->userRole, $this->staffId));
     }
 
     public function updateAppointment($appointmentId = null)
     {
         $appointmentId = $appointmentId ?? $this->request->getPost('appointment_id');
-        
         if (!$this->canEditAppointment($appointmentId)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Permission denied'
-            ]);
+            return $this->jsonResponse('error', 'Permission denied');
         }
 
         $input = $this->request->getJSON(true) ?? $this->request->getPost();
-        
         try {
-            $updateData = [];
-            
-            if (isset($input['appointment_date'])) {
-                $updateData['appointment_date'] = $input['appointment_date'];
-            }
-            if (isset($input['appointment_time'])) {
-                $updateData['appointment_time'] = $input['appointment_time'];
-            }
-            if (isset($input['reason'])) {
-                // Explicit reason from caller
-                $updateData['reason'] = $input['reason'];
-            }
-            if (isset($input['notes'])) {
-                // Unified modal sends 'notes' which should be stored in the existing 'reason' column
-                $updateData['reason'] = $input['notes'];
-            }
-            
+            $updateData = array_filter([
+                'appointment_date' => $input['appointment_date'] ?? null,
+                'appointment_time' => $input['appointment_time'] ?? null,
+                'reason' => $input['reason'] ?? $input['notes'] ?? null
+            ], fn($v) => $v !== null);
             $updateData['updated_at'] = date('Y-m-d H:i:s');
             
             $builder = $this->db->table('appointments');
-            
-            // Role-based filtering
             if ($this->userRole === 'doctor') {
                 $builder->where('doctor_id', $this->staffId);
             }
-            
             $result = $builder->where('appointment_id', $appointmentId)->update($updateData);
-            
-            if ($result) {
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'message' => 'Appointment updated successfully'
-                ]);
-            } else {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Failed to update appointment'
-                ]);
-            }
+            return $this->jsonResponse($result ? 'success' : 'error', $result ? 'Appointment updated successfully' : 'Failed to update appointment');
         } catch (\Throwable $e) {
             log_message('error', 'Update appointment error: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Database error'
-            ]);
+            return $this->jsonResponse('error', 'Database error');
         }
     }
 
-    /**
-     * Get Single Appointment
-     */
     public function getAppointment($appointmentId)
     {
         if (!$this->canViewAppointment($appointmentId)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Permission denied'
-            ]);
+            return $this->jsonResponse('error', 'Permission denied');
         }
-
         $result = $this->appointmentService->getAppointment($appointmentId);
-        
-        if ($result['success']) {
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => $result['appointment']
-            ]);
-        } else {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => $result['message']
-            ]);
-        }
+        return $this->response->setJSON($result['success'] ? ['status' => 'success', 'data' => $result['appointment']] : ['status' => 'error', 'message' => $result['message']]);
     }
 
-    /**
-     * Delete Appointment - Admin only
-     */
     public function deleteAppointment($appointmentId)
     {
         if (!$this->canDeleteAppointment($appointmentId)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Permission denied'
-            ]);
+            return $this->jsonResponse('error', 'Permission denied');
         }
-
-        $result = $this->appointmentService->deleteAppointment(
-            $appointmentId,
-            $this->userRole,
-            $this->staffId
-        );
-        
-        return $this->response->setJSON($result);
+        return $this->response->setJSON($this->appointmentService->deleteAppointment($appointmentId, $this->userRole, $this->staffId));
     }
 
-    /**
-     * API Endpoint for Appointment List
-     */
     public function getAppointmentsAPI()
     {
         $filters = [];
-        
-        // Role-based filtering
         if ($this->userRole === 'doctor') {
             $filters['doctor_id'] = $this->staffId;
         }
-        
-        // Optional filters from request
-        if ($this->request->getGet('date')) {
-            $filters['date'] = $this->request->getGet('date');
+        foreach (['date', 'status', 'patient_id'] as $key) {
+            if ($value = $this->request->getGet($key)) {
+                $filters[$key] = $value;
+            }
         }
-        if ($this->request->getGet('status')) {
-            $filters['status'] = $this->request->getGet('status');
+        if ($this->userRole === 'admin' && ($doctorId = $this->request->getGet('doctor_id'))) {
+            $filters['doctor_id'] = $doctorId;
         }
-        if ($this->request->getGet('patient_id')) {
-            $filters['patient_id'] = $this->request->getGet('patient_id');
-        }
-        if ($this->request->getGet('doctor_id') && $this->userRole === 'admin') {
-            $filters['doctor_id'] = $this->request->getGet('doctor_id');
-        }
-        
         $result = $this->appointmentService->getAppointments($filters);
-        
-        return $this->response->setJSON([
-            'status' => $result['success'] ? 'success' : 'error',
-            'data' => $result['data'] ?? [],
-            'message' => $result['message'] ?? null
-        ]);
+        return $this->response->setJSON(['status' => $result['success'] ? 'success' : 'error', 'data' => $result['data'] ?? [], 'message' => $result['message'] ?? null]);
     }
 
-    /**
-     * Get appointments for a specific patient
-     */
     public function getPatientAppointments($patientId)
     {
         if (!$this->canViewPatientAppointments($patientId)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Permission denied'
-            ]);
+            return $this->jsonResponse('error', 'Permission denied');
         }
-
         $filters = ['patient_id' => $patientId];
-        
-        // Role-based filtering
         if ($this->userRole === 'doctor') {
             $filters['doctor_id'] = $this->staffId;
         }
-        
         $result = $this->appointmentService->getAppointments($filters);
-        
-        return $this->response->setJSON([
-            'status' => $result['success'] ? 'success' : 'error',
-            'data' => $result['data'] ?? [],
-            'message' => $result['message'] ?? null
-        ]);
+        return $this->response->setJSON(['status' => $result['success'] ? 'success' : 'error', 'data' => $result['data'] ?? [], 'message' => $result['message'] ?? null]);
     }
 
-    /**
-     * Update Appointment Status (Complete, Cancel, etc.)
-     */
     public function updateAppointmentStatus($appointmentId)
     {
         if (!$this->canEditAppointment($appointmentId)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Permission denied'
-            ]);
+            return $this->jsonResponse('error', 'Permission denied');
         }
-
-        $status = $this->request->getPost('status');
-        
-        $result = $this->appointmentService->updateAppointmentStatus(
-            $appointmentId,
-            $status,
-            $this->userRole,
-            $this->staffId
-        );
-        
-        return $this->response->setJSON($result);
+        return $this->response->setJSON($this->appointmentService->updateAppointmentStatus($appointmentId, $this->request->getPost('status'), $this->userRole, $this->staffId));
     }
 
     /**
@@ -459,187 +322,109 @@ class AppointmentManagement extends BaseController
         return $stats;
     }
 
-    /**
-     * Get User Permissions for UI
-     */
     private function getUserPermissions()
     {
+        $role = $this->userRole;
         return [
-            'canCreate' => in_array($this->userRole, ['admin', 'receptionist', 'doctor']),
-            'canEdit' => in_array($this->userRole, ['admin', 'receptionist', 'doctor']),
-            'canDelete' => in_array($this->userRole, ['admin']),
-            'canViewAll' => in_array($this->userRole, ['admin', 'receptionist']),
-            'canUpdateStatus' => in_array($this->userRole, ['admin', 'doctor', 'nurse']),
-            'canSchedule' => in_array($this->userRole, ['admin', 'receptionist', 'doctor']),
-            'canReschedule' => in_array($this->userRole, ['admin', 'receptionist', 'doctor'])
+            'canCreate' => in_array($role, ['admin', 'receptionist', 'doctor']),
+            'canEdit' => in_array($role, ['admin', 'receptionist', 'doctor']),
+            'canDelete' => $role === 'admin',
+            'canViewAll' => in_array($role, ['admin', 'receptionist']),
+            'canUpdateStatus' => in_array($role, ['admin', 'doctor', 'nurse']),
+            'canSchedule' => in_array($role, ['admin', 'receptionist', 'doctor']),
+            'canReschedule' => in_array($role, ['admin', 'receptionist', 'doctor'])
         ];
     }
 
-    /**
-     * Check if user can view appointment
-     */
     private function canViewAppointment($appointmentId)
     {
-        switch ($this->userRole) {
-            case 'admin':
-            case 'receptionist':
-                return true;
-            case 'doctor':
-                $appointment = $this->db->table('appointments')
-                    ->where('appointment_id', $appointmentId)
-                    ->where('doctor_id', $this->staffId)
-                    ->get()->getRow();
-                return !empty($appointment);
-            case 'nurse':
-                return $this->isAppointmentInNurseDepartment($appointmentId);
-            default:
-                return false;
-        }
+        return match($this->userRole) {
+            'admin', 'receptionist' => true,
+            'doctor' => !empty($this->db->table('appointments')->where('appointment_id', $appointmentId)->where('doctor_id', $this->staffId)->get()->getRow()),
+            'nurse' => $this->isAppointmentInNurseDepartment($appointmentId),
+            default => false
+        };
     }
 
-    /**
-     * Check if user can edit appointment
-     */
     private function canEditAppointment($appointmentId)
     {
-        switch ($this->userRole) {
-            case 'admin':
-            case 'receptionist':
-                return true;
-            case 'doctor':
-                return $this->canViewAppointment($appointmentId);
-            case 'nurse':
-                // Nurses can update status but not reschedule
-                return $this->isAppointmentInNurseDepartment($appointmentId);
-            default:
-                return false;
-        }
+        return match($this->userRole) {
+            'admin', 'receptionist' => true,
+            'doctor' => $this->canViewAppointment($appointmentId),
+            'nurse' => $this->isAppointmentInNurseDepartment($appointmentId),
+            default => false
+        };
     }
 
-    /**
-     * Check if user can delete appointment
-     */
     private function canDeleteAppointment($appointmentId)
     {
         return $this->userRole === 'admin';
     }
 
-    /**
-     * Get page title based on user role
-     */
     private function getPageTitle()
     {
-        $titles = [
+        return match($this->userRole) {
             'admin' => 'System Appointments',
             'doctor' => 'My Appointments',
             'nurse' => 'Department Appointments',
-            'receptionist' => 'Appointment Booking'
-        ];
-        
-        return $titles[$this->userRole] ?? 'Appointments';
+            'receptionist' => 'Appointment Booking',
+            default => 'Appointments'
+        };
     }
 
-    /**
-     * Get doctors list for admin filtering
-     */
     private function getDoctorsListData()
     {
         try {
-            log_message('debug', 'AppointmentManagement::getDoctorsListData called');
-            
-            $doctors = $this->db->table('doctor d')
+            return $this->db->table('doctor d')
                 ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
                 ->join('staff s', 's.staff_id = d.staff_id', 'inner')
-                ->where('d.status', 'Active') // Filter by doctor status instead of staff status
+                ->where('d.status', 'Active')
                 ->get()
                 ->getResultArray();
-                
-            log_message('debug', 'AppointmentManagement::getDoctorsListData found ' . count($doctors) . ' doctors');
-            
-            return $doctors;
         } catch (\Exception $e) {
             log_message('error', 'Get doctors list error: ' . $e->getMessage());
             return [];
         }
     }
 
-    /**
-     * Get patients list for prescription modal
-     */
     private function getAvailablePatients()
     {
         try {
-            return $this->db->table('patients p')
-                ->select('p.patient_id, p.first_name, p.last_name, p.date_of_birth')
-                ->orderBy('p.first_name', 'ASC')
-                ->get()
-                ->getResultArray();
+            return $this->db->table('patients p')->select('p.patient_id, p.first_name, p.last_name, p.date_of_birth')->orderBy('p.first_name', 'ASC')->get()->getResultArray();
         } catch (\Exception $e) {
             log_message('error', 'Get available patients error: ' . $e->getMessage());
             return [];
         }
     }
 
-    /**
-     * Get patients list for appointment booking (API)
-     */
     public function getPatientsList()
     {
         try {
-            $patients = $this->getAvailablePatients();
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => $patients
-            ]);
+            return $this->response->setJSON(['status' => 'success', 'data' => $this->getAvailablePatients()]);
         } catch (\Exception $e) {
             log_message('error', 'Get patients list error: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to load patients'
-            ]);
+            return $this->jsonResponse('error', 'Failed to load patients');
         }
     }
 
-    /**
-     * Get doctors list for appointment booking
-     */
     public function getDoctorsList()
     {
         try {
-            $doctors = $this->getDoctorsListData();
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => $doctors
-            ]);
+            return $this->response->setJSON(['status' => 'success', 'data' => $this->getDoctorsListData()]);
         } catch (\Exception $e) {
             log_message('error', 'Get doctors API error: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to load doctors'
-            ]);
+            return $this->jsonResponse('error', 'Failed to load doctors');
         }
     }
 
-    /**
-     * Get doctors who have an active schedule on a specific date
-     * Simple availability: doctor has a schedule entry that weekday
-     */
     public function getAvailableDoctorsByDate()
     {
         try {
             $date = $this->request->getGet('date') ?: date('Y-m-d');
-            $timestamp = strtotime($date);
-
-            if (!$timestamp) {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Invalid date'
-                ]);
+            if (!($timestamp = strtotime($date))) {
+                return $this->jsonResponse('error', 'Invalid date');
             }
-
-            // 1 (Mon) - 7 (Sun)
             $weekday = (int) date('N', $timestamp);
-
             $doctors = $this->db->table('staff_schedule ss')
                 ->select('s.staff_id, s.first_name, s.last_name, d.specialization')
                 ->join('doctor d', 'd.staff_id = ss.staff_id', 'inner')
@@ -651,69 +436,42 @@ class AppointmentManagement extends BaseController
                 ->orderBy('s.first_name', 'ASC')
                 ->get()
                 ->getResultArray();
-
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => $doctors
-            ]);
+            return $this->response->setJSON(['status' => 'success', 'data' => $doctors]);
         } catch (\Throwable $e) {
             log_message('error', 'Get available doctors by date error: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to load available doctors'
-            ]);
+            return $this->jsonResponse('error', 'Failed to load available doctors');
         }
     }
 
-    /**
-     * Check if appointment is in nurse's department
-     */
     private function isAppointmentInNurseDepartment($appointmentId)
     {
         try {
-            $result = $this->db->table('appointments a')
+            return !empty($this->db->table('appointments a')
                 ->join('staff ns', 'ns.staff_id', $this->staffId)
                 ->join('staff ds', 'ds.staff_id = a.doctor_id')
                 ->where('a.appointment_id', $appointmentId)
                 ->where('ns.department = ds.department')
-                ->get()->getRow();
-                
-            return !empty($result);
+                ->get()->getRow());
         } catch (\Throwable $e) {
             log_message('error', 'Check nurse department error: ' . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Check if user can view patient appointments
-     */
     private function canViewPatientAppointments($patientId)
     {
-        switch ($this->userRole) {
-            case 'admin':
-            case 'receptionist':
-                return true;
-            case 'doctor':
-                // Check if patient is assigned to this doctor
-                $patient = $this->db->table('patient')
-                    ->where('patient_id', $patientId)
-                    ->where('primary_doctor_id', $this->staffId)
-                    ->get()
-                    ->getRow();
-                return !empty($patient);
-            case 'nurse':
-                // Check if patient's doctor is in same department
-                $result = $this->db->table('patient p')
-                    ->join('staff ps', 'ps.staff_id = p.primary_doctor_id')
-                    ->join('staff ns', 'ns.staff_id = ' . $this->staffId)
-                    ->where('p.patient_id', $patientId)
-                    ->where('ps.department = ns.department')
-                    ->get()
-                    ->getRow();
-                return !empty($result);
-            default:
-                return false;
-        }
+        return match($this->userRole) {
+            'admin', 'receptionist' => true,
+            'doctor' => !empty($this->db->table('patient')->where('patient_id', $patientId)->where('primary_doctor_id', $this->staffId)->get()->getRow()),
+            'nurse' => !empty($this->db->table('patient p')->join('staff ps', 'ps.staff_id = p.primary_doctor_id')->join('staff ns', 'ns.staff_id = ' . $this->staffId)->where('p.patient_id', $patientId)->where('ps.department = ns.department')->get()->getRow()),
+            default => false
+        };
+    }
+
+    private function jsonResponse($status, $message, $data = null)
+    {
+        $response = ['status' => $status, 'message' => $message];
+        if ($data !== null) $response['data'] = $data;
+        return $this->response->setJSON($response);
     }
 }

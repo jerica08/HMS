@@ -1,13 +1,8 @@
 <div id="addRoomModal" class="hms-modal-overlay" aria-hidden="true">
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addRoomTitle">
         <div class="hms-modal-header">
-            <div class="hms-modal-title" id="addRoomTitle">
-                <i class="fas fa-hotel" style="color:#0ea5e9"></i>
-                Add New Room
-            </div>
-            <button type="button" class="btn btn-secondary btn-small" aria-label="Close" data-dismiss="modal">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="hms-modal-title" id="addRoomTitle"><i class="fas fa-hotel" style="color:#0ea5e9"></i> Add New Room</div>
+            <button type="button" class="btn btn-secondary btn-small" aria-label="Close" data-modal-close="addRoomModal"><i class="fas fa-times"></i></button>
         </div>
         <form id="addRoomForm">
             <?= csrf_field() ?>
@@ -96,7 +91,7 @@
                 </div>
             </div>
             <div class="hms-modal-actions">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-modal-close="addRoomModal">Cancel</button>
                 <button type="button" class="btn btn-success" id="saveRoomBtn"><i class="fas fa-save"></i> Save Room</button>
             </div>
         </form>

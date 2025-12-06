@@ -1,13 +1,8 @@
 <div id="assignRoomModal" class="hms-modal-overlay" aria-hidden="true">
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="assignRoomTitle" style="max-width: 720px;">
         <div class="hms-modal-header">
-            <div class="hms-modal-title" id="assignRoomTitle">
-                <i class="fas fa-user-plus" style="color:#0ea5e9"></i>
-                Assign Room to Patient
-            </div>
-            <button type="button" class="btn btn-secondary btn-small" aria-label="Close" data-dismiss="modal">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="hms-modal-title" id="assignRoomTitle"><i class="fas fa-user-plus" style="color:#0ea5e9"></i> Assign Room to Patient</div>
+            <button type="button" class="btn btn-secondary btn-small" aria-label="Close" data-modal-close="assignRoomModal"><i class="fas fa-times"></i></button>
         </div>
         <form id="assignRoomForm">
             <?= csrf_field() ?>
@@ -23,11 +18,9 @@
                     </div>
                 </div>
             </div>
-            <div class="hms-modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveAssignRoomBtn">
-                    <i class="fas fa-save"></i> Assign Room
-                </button>
+            <div class="hms-modal-actions">
+                <button type="button" class="btn btn-secondary" data-modal-close="assignRoomModal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveAssignRoomBtn"><i class="fas fa-save"></i> Assign Room</button>
             </div>
         </form>
     </div>

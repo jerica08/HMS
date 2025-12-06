@@ -15,21 +15,16 @@ class RoomService
 
     public function getRoomStats(): array
     {
-        if (! $this->db->tableExists('room')) {
-            return [
-                'total_rooms' => 0,
-                'occupied_rooms' => 0,
-                'available_rooms' => 0,
-                'maintenance_rooms' => 0,
-            ];
+        if (!$this->db->tableExists('room')) {
+            return ['total_rooms' => 0, 'occupied_rooms' => 0, 'available_rooms' => 0, 'maintenance_rooms' => 0];
         }
 
         $builder = $this->db->table('room');
         return [
             'total_rooms' => (int) $builder->countAllResults(),
-            'occupied_rooms' => (int) $builder->where('status', 'occupied')->countAllResults(),
-            'available_rooms' => (int) $builder->where('status', 'available')->countAllResults(),
-            'maintenance_rooms' => (int) $builder->where('status', 'maintenance')->countAllResults(),
+            'occupied_rooms' => (int) (clone $builder)->where('status', 'occupied')->countAllResults(),
+            'available_rooms' => (int) (clone $builder)->where('status', 'available')->countAllResults(),
+            'maintenance_rooms' => (int) (clone $builder)->where('status', 'maintenance')->countAllResults(),
         ];
     }
 
@@ -41,27 +36,17 @@ class RoomService
 
         $builder = $this->db->table('room r')
             ->select([
-                'r.room_id',
-                'r.room_number',
-                'r.room_type',
-                'r.room_type_id',
-                'r.floor_number',
-                'r.department_id',
-                'r.accommodation_type',
-                'r.status',
-                'r.bed_capacity',
-                'r.bed_names',
+                'r.room_id', 'r.room_number', 'r.room_type', 'r.room_type_id',
+                'r.floor_number', 'r.department_id', 'r.accommodation_type',
+                'r.status', 'r.bed_capacity', 'r.bed_names',
             ])
             ->orderBy('r.room_number', 'ASC');
 
         if ($this->db->tableExists('room_type')) {
-            $builder->select('rt.type_name')
-                ->join('room_type rt', 'rt.room_type_id = r.room_type_id', 'left');
+            $builder->select('rt.type_name')->join('room_type rt', 'rt.room_type_id = r.room_type_id', 'left');
         }
-
         if ($this->db->tableExists('department')) {
-            $builder->select('d.name as department_name')
-                ->join('department d', 'd.department_id = r.department_id', 'left');
+            $builder->select('d.name as department_name')->join('department d', 'd.department_id = r.department_id', 'left');
         }
 
         return $builder->get()->getResultArray();
@@ -74,47 +59,23 @@ class RoomService
         try {
             $roomTypeId = $this->resolveRoomTypeId($input);
             $data = $this->mapRoomPayload($input, $roomTypeId);
-        } catch (\Throwable $e) {
-            log_message('error', 'RoomService::createRoom resolveRoomTypeId failed: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Could not create room type: ' . $e->getMessage(),
-            ];
-        }
-
-        try {
             $builder->insert($data);
 
-            return [
-                'success' => true,
-                'message' => 'Room added successfully',
-                'id' => $this->db->insertID(),
-            ];
+            return ['success' => true, 'message' => 'Room added successfully', 'id' => $this->db->insertID()];
         } catch (\Throwable $e) {
             log_message('error', 'RoomService::createRoom failed: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Could not create room: ' . $e->getMessage(),
-            ];
+            return ['success' => false, 'message' => 'Could not create room: ' . $e->getMessage()];
         }
     }
 
     public function dischargeRoom(int $roomId, ?int $staffId = null): array
     {
         if ($roomId <= 0) {
-            return [
-                'success' => false,
-                'message' => 'Invalid room ID',
-            ];
+            return ['success' => false, 'message' => 'Invalid room ID'];
         }
 
-        if (! $this->db->tableExists('room') || ! $this->db->tableExists('room_assignment')) {
-            return [
-                'success' => false,
-                'message' => 'Room or room_assignment table is missing',
-            ];
+        if (!$this->db->tableExists('room') || !$this->db->tableExists('room_assignment')) {
+            return ['success' => false, 'message' => 'Room or room_assignment table is missing'];
         }
 
         $assignment = $this->db->table('room_assignment')
@@ -124,11 +85,8 @@ class RoomService
             ->get()
             ->getRowArray();
 
-        if (! $assignment) {
-            return [
-                'success' => false,
-                'message' => 'No active room assignment found for this room',
-            ];
+        if (!$assignment) {
+            return ['success' => false, 'message' => 'No active room assignment found for this room'];
         }
 
         $now = new \DateTime();
@@ -138,15 +96,9 @@ class RoomService
             $dateIn = clone $now;
         }
 
-        $interval   = $dateIn->diff($now);
-        $totalDays  = (int) $interval->days;
+        $interval = $dateIn->diff($now);
+        $totalDays = max(1, (int) $interval->days);
         $totalHours = $totalDays * 24 + (int) $interval->h + (int) floor($interval->i / 60);
-
-        if ($totalDays <= 0 && $totalHours > 0) {
-            $totalDays = 1;
-        } elseif ($totalDays <= 0) {
-            $totalDays = 1;
-        }
 
         $updatePayload = [
             'date_out'    => $now->format('Y-m-d H:i:s'),
@@ -177,44 +129,31 @@ class RoomService
             }
 
             return [
-                'success'        => true,
-                'message'        => 'Room discharged successfully',
-                'assignment_id'  => (int) $assignment['assignment_id'],
-                'patient_id'     => (int) ($assignment['patient_id'] ?? 0),
-                'admission_id'   => isset($assignment['admission_id']) ? (int) $assignment['admission_id'] : null,
+                'success' => true,
+                'message' => 'Room discharged successfully',
+                'assignment_id' => (int) $assignment['assignment_id'],
+                'patient_id' => (int) ($assignment['patient_id'] ?? 0),
+                'admission_id' => isset($assignment['admission_id']) ? (int) $assignment['admission_id'] : null,
             ];
         } catch (\Throwable $e) {
             $this->db->transRollback();
             log_message('error', 'RoomService::dischargeRoom failed: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Could not discharge room: ' . $e->getMessage(),
-            ];
+            return ['success' => false, 'message' => 'Could not discharge room: ' . $e->getMessage()];
         }
     }
 
     public function assignRoomToPatient(int $roomId, int $patientId, ?int $assignedByStaffId = null, ?int $admissionId = null): array
     {
         if ($roomId <= 0 || $patientId <= 0) {
-            return [
-                'success' => false,
-                'message' => 'Invalid room or patient ID',
-            ];
+            return ['success' => false, 'message' => 'Invalid room or patient ID'];
         }
 
-        if (! $this->db->tableExists('room') || ! $this->db->tableExists('patients')) {
-            return [
-                'success' => false,
-                'message' => 'Room or patients table is missing',
-            ];
+        if (!$this->db->tableExists('room') || !$this->db->tableExists('patients')) {
+            return ['success' => false, 'message' => 'Room or patients table is missing'];
         }
 
-        if (! $this->db->tableExists('room_assignment')) {
-            return [
-                'success' => false,
-                'message' => 'Room assignment table is missing',
-            ];
+        if (!$this->db->tableExists('room_assignment')) {
+            return ['success' => false, 'message' => 'Room assignment table is missing'];
         }
 
         $room = $this->db->table('room')
@@ -222,30 +161,18 @@ class RoomService
             ->get()
             ->getRowArray();
 
-        if (! $room) {
-            return [
-                'success' => false,
-                'message' => 'Room not found',
-            ];
+        if (!$room) {
+            return ['success' => false, 'message' => 'Room not found'];
         }
 
-        if (! empty($room['status']) && $room['status'] === 'occupied') {
-            return [
-                'success' => false,
-                'message' => 'Room is already occupied',
-            ];
+        if (($room['status'] ?? '') === 'occupied') {
+            return ['success' => false, 'message' => 'Room is already occupied'];
         }
 
-        $patient = $this->db->table('patients')
-            ->where('patient_id', $patientId)
-            ->get()
-            ->getRowArray();
+        $patient = $this->db->table('patients')->where('patient_id', $patientId)->get()->getRowArray();
 
-        if (! $patient) {
-            return [
-                'success' => false,
-                'message' => 'Patient not found',
-            ];
+        if (!$patient) {
+            return ['success' => false, 'message' => 'Patient not found'];
         }
 
         $builder = $this->db->table('room_assignment');
@@ -280,100 +207,50 @@ class RoomService
                 throw new \RuntimeException('Failed to assign room in transaction');
             }
 
-            return [
-                'success' => true,
-                'message' => 'Room assigned successfully',
-            ];
+            return ['success' => true, 'message' => 'Room assigned successfully'];
         } catch (\Throwable $e) {
             $this->db->transRollback();
             log_message('error', 'RoomService::assignRoomToPatient failed: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Could not assign room: ' . $e->getMessage(),
-            ];
+            return ['success' => false, 'message' => 'Could not assign room: ' . $e->getMessage()];
         }
     }
 
     public function updateRoom(int $roomId, array $input): array
     {
         if ($roomId <= 0) {
-            return [
-                'success' => false,
-                'message' => 'Invalid room ID provided',
-            ];
+            return ['success' => false, 'message' => 'Invalid room ID provided'];
         }
 
         try {
             $roomTypeId = $this->resolveRoomTypeId($input);
             $data = $this->mapRoomPayload($input, $roomTypeId);
-        } catch (\Throwable $e) {
-            log_message('error', 'RoomService::updateRoom resolveRoomTypeId failed: ' . $e->getMessage());
+            $updated = $this->db->table('room')->where('room_id', $roomId)->update($data);
 
-            return [
-                'success' => false,
-                'message' => 'Could not update room type: ' . $e->getMessage(),
-            ];
-        }
-
-        try {
-            $updated = $this->db->table('room')
-                ->where('room_id', $roomId)
-                ->update($data);
-
-            if (! $updated) {
-                return [
-                    'success' => false,
-                    'message' => 'Room was not updated. Please try again.',
-                ];
-            }
-
-            return [
-                'success' => true,
-                'message' => 'Room updated successfully',
-            ];
+            return $updated
+                ? ['success' => true, 'message' => 'Room updated successfully']
+                : ['success' => false, 'message' => 'Room was not updated. Please try again.'];
         } catch (\Throwable $e) {
             log_message('error', 'RoomService::updateRoom failed: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Could not update room: ' . $e->getMessage(),
-            ];
+            return ['success' => false, 'message' => 'Could not update room: ' . $e->getMessage()];
         }
     }
 
     public function deleteRoom(int $roomId): array
     {
         if ($roomId <= 0) {
-            return [
-                'success' => false,
-                'message' => 'Invalid room ID provided',
-            ];
+            return ['success' => false, 'message' => 'Invalid room ID provided'];
         }
 
         try {
-            $deleted = $this->db->table('room')
-                ->where('room_id', $roomId)
-                ->delete();
+            $this->db->table('room')->where('room_id', $roomId)->delete();
+            $deleted = $this->db->affectedRows() > 0;
 
-            if (! $deleted || ! $this->db->affectedRows()) {
-                return [
-                    'success' => false,
-                    'message' => 'Room not found or already deleted',
-                ];
-            }
-
-            return [
-                'success' => true,
-                'message' => 'Room deleted successfully',
-            ];
+            return $deleted
+                ? ['success' => true, 'message' => 'Room deleted successfully']
+                : ['success' => false, 'message' => 'Room not found or already deleted'];
         } catch (\Throwable $e) {
             log_message('error', 'RoomService::deleteRoom failed: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Could not delete room: ' . $e->getMessage(),
-            ];
+            return ['success' => false, 'message' => 'Could not delete room: ' . $e->getMessage()];
         }
     }
 
@@ -435,18 +312,7 @@ class RoomService
             return (int) $existing['room_type_id'];
         }
 
-        $payload = $this->buildRoomTypePayload($customType, $input);
-
-        if ($existing) {
-            $roomTypeTable
-                ->where('room_type_id', $existing['room_type_id'])
-                ->update($payload);
-
-            return (int) $existing['room_type_id'];
-        }
-
-        $roomTypeTable->insert($payload);
-
+        $roomTypeTable->insert($this->buildRoomTypePayload($customType, $input));
         return (int) $this->db->insertID();
     }
 

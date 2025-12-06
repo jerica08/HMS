@@ -21,7 +21,7 @@
 </head>
 <body class="<?= esc($userRole ?? 'admin') ?>">
 
-<?php include APPPATH . 'Views/template/header.php'; ?>
+<?= $this->include('template/header') ?>
 
 <?= $this->include('unified/components/notification', [
     'id' => 'roomsNotification',
@@ -29,8 +29,7 @@
 ]) ?>
 
 <div class="main-container">
-    <!-- Unified Sidebar -->
-    <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+    <?= $this->include('unified/components/sidebar') ?>
 
     <main class="content" role="main">
         <h1 class="page-title">
@@ -39,9 +38,7 @@
         </h1>
 
         <div class="page-actions">
-            <button type="button" class="btn btn-primary" id="addRoomBtn" aria-label="Add New Room">
-                <i class="fas fa-plus" aria-hidden="true"></i> Add New Room
-            </button>
+            <button type="button" class="btn btn-primary" id="addRoomBtn" aria-label="Add New Room"><i class="fas fa-plus" aria-hidden="true"></i> Add New Room</button>
         </div>
 
         <br />
@@ -153,35 +150,12 @@
 
 <script>
 window.roomTypeMetadata = <?= json_encode($roomTypeMetadata ?? [], JSON_HEX_TAG) ?>;
-
-function showRoomsNotification(message, type) {
-    const container = document.getElementById('roomsNotification');
-    const iconEl = document.getElementById('roomsNotificationIcon');
-    const textEl = document.getElementById('roomsNotificationText');
-
-    if (!container || !iconEl || !textEl) return;
-
-    const isError = type === 'error';
-    const isSuccess = type === 'success';
-
-    container.style.border = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
-    container.style.background = isError ? '#fee2e2' : '#ecfdf5';
-    container.style.color = isError ? '#991b1b' : '#166534';
-
-    const iconClass = isError ? 'fa-exclamation-triangle' : (isSuccess ? 'fa-check-circle' : 'fa-info-circle');
-    iconEl.className = 'fas ' + iconClass;
-
-    textEl.textContent = String(message || '');
-    container.style.display = 'flex';
-}
-
-function dismissRoomsNotification() {
-    const container = document.getElementById('roomsNotification');
-    if (container) {
-        container.style.display = 'none';
-    }
-}
 </script>
+
+<script src="<?= base_url('assets/js/unified/modals/shared/room-modal-utils.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/modals/add-room-modal.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/modals/assign-room-modal.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/room-management.js') ?>"></script>
 
 <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
     <script>
@@ -193,12 +167,6 @@ function dismissRoomsNotification() {
         });
     </script>
 <?php endif; ?>
-
-
-<!-- Reuse existing utility styles/behaviour if needed -->
-<script src="<?= base_url('assets/js/unified/patient-utils.js') ?>"></script>
-<!-- Create this file later for JS logic (open modal, AJAX, etc.) -->
-<script src="<?= base_url('assets/js/unified/room-management.js') ?>"></script>
 
 </body>
 </html>

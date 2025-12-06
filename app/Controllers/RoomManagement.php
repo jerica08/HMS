@@ -22,127 +22,88 @@ class RoomManagement extends BaseController
 
     public function index()
     {
-        $roomStats = $this->roomService->getRoomStats();
-        $roomTypes = [];
-        if ($this->db->tableExists('room_type')) {
-            $roomTypes = $this->db->table('room_type')
-                ->select('room_type_id, type_name, accommodation_type')
-                ->orderBy('type_name', 'ASC')
-                ->get()
-                ->getResultArray();
-        }
-
-        $departments = [];
-        if ($this->db->tableExists('department')) {
-            $departments = $this->db->table('department')
-                ->select('department_id, name, floor')
-                ->orderBy('name', 'ASC')
-                ->get()
-                ->getResultArray();
-        }
-
         return view('unified/room-management', [
             'title' => 'Room Management',
-            'roomStats' => $roomStats,
-            'roomTypes' => $roomTypes,
-            'departments' => $departments,
+            'roomStats' => $this->roomService->getRoomStats(),
+            'roomTypes' => $this->getRoomTypes(),
+            'departments' => $this->getDepartments(),
             'roomTypeMetadata' => [],
         ]);
     }
 
+    private function getRoomTypes(): array
+    {
+        if (!$this->db->tableExists('room_type')) {
+            return [];
+        }
+        return $this->db->table('room_type')
+            ->select('room_type_id, type_name, accommodation_type')
+            ->orderBy('type_name', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
+    private function getDepartments(): array
+    {
+        if (!$this->db->tableExists('department')) {
+            return [];
+        }
+        return $this->db->table('department')
+            ->select('department_id, name, floor')
+            ->orderBy('name', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
     public function getRoomsAPI()
     {
-        $rooms = $this->roomService->getRooms();
-        return $this->response->setJSON([
-            'status' => 'success',
-            'data' => $rooms,
-        ]);
+        return $this->jsonResponse(['status' => 'success', 'data' => $this->roomService->getRooms()]);
     }
 
     public function getPatientsAPI()
     {
-        $db = $this->db;
-
-        $tableName = null;
-        if ($db->tableExists('patients')) {
-            $tableName = 'patients';
-        } elseif ($db->tableExists('patient')) {
-            $tableName = 'patient';
+        $tableName = $this->db->tableExists('patients') ? 'patients' : ($this->db->tableExists('patient') ? 'patient' : null);
+        if (!$tableName) {
+            return $this->jsonResponse(['status' => 'success', 'data' => []]);
         }
 
-        if ($tableName === null) {
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data'   => [],
-            ]);
-        }
-
-        $patients = $db->table($tableName)
+        $patients = $this->db->table($tableName)
             ->select('patient_id, first_name, last_name, CONCAT(first_name, " ", last_name) AS full_name')
-            ->orderBy('first_name', 'ASC')
-            ->orderBy('last_name', 'ASC')
+            ->orderBy('first_name', 'ASC')->orderBy('last_name', 'ASC')
             ->limit(200)
             ->get()
             ->getResultArray();
 
-        return $this->response->setJSON([
-            'status' => 'success',
-            'data'   => $patients,
-        ]);
+        return $this->jsonResponse(['status' => 'success', 'data' => $patients]);
     }
 
     public function createRoom()
     {
-        if (! $this->request->is('post')) {
-            return $this->response->setStatusCode(405)->setJSON(['status' => 'error', 'message' => 'Method not allowed']);
+        if (!$this->request->is('post')) {
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Method not allowed'], 405);
         }
 
-        $input = $this->request->getPost();
-        if (empty($input)) {
-            $jsonBody = $this->request->getJSON(true);
-            $input = is_array($jsonBody) ? $jsonBody : [];
-        }
-
-        $result = $this->roomService->createRoom($input);
-
-        $statusCode = $result['success'] ? 200 : 400;
-        return $this->response
-            ->setStatusCode($statusCode)
-            ->setJSON($this->appendCsrfHash($result));
+        $result = $this->roomService->createRoom($this->getRequestData());
+        return $this->jsonResponse($this->appendCsrfHash($result), $result['success'] ? 200 : 400);
     }
 
     public function dischargeRoom()
     {
-        if (! $this->request->is('post')) {
-            return $this->response->setStatusCode(405)->setJSON($this->appendCsrfHash([
-                'success' => false,
-                'message' => 'Method not allowed',
-            ]));
+        if (!$this->request->is('post')) {
+            return $this->jsonResponse($this->appendCsrfHash(['success' => false, 'message' => 'Method not allowed']), 405);
         }
 
-        $input = $this->request->getPost();
-        if (empty($input)) {
-            $jsonBody = $this->request->getJSON(true);
-            $input = is_array($jsonBody) ? $jsonBody : [];
+        $input = $this->getRequestData();
+        if (!$this->validateCsrf($input)) {
+            return $this->jsonResponse($this->appendCsrfHash(['success' => false, 'message' => 'Invalid CSRF token']), 403);
         }
 
-        $tokenName = csrf_token();
-        if (! isset($input[$tokenName]) || $input[$tokenName] !== csrf_hash()) {
-            return $this->response->setStatusCode(403)->setJSON($this->appendCsrfHash([
-                'success' => false,
-                'message' => 'Invalid CSRF token',
-            ]));
-        }
-
-        $roomId  = (int) ($input['room_id'] ?? 0);
+        $roomId = (int) ($input['room_id'] ?? 0);
         $staffId = (int) (session()->get('staff_id') ?? 0);
-
         $dischargeResult = $this->roomService->dischargeRoom($roomId, $staffId);
-        if (! $dischargeResult['success']) {
-            $statusCode = 400;
-            return $this->response
-                ->setStatusCode($statusCode)
-                ->setJSON($this->appendCsrfHash($dischargeResult));
+
+        if (!$dischargeResult['success']) {
+            return $this->jsonResponse($this->appendCsrfHash($dischargeResult), 400);
         }
 
         $assignmentId = (int) ($dischargeResult['assignment_id'] ?? 0);
@@ -172,102 +133,75 @@ class RoomManagement extends BaseController
             $payload['billing_message'] = $billingMessage;
         }
 
-        $statusCode = 200;
-        return $this->response
-            ->setStatusCode($statusCode)
-            ->setJSON($this->appendCsrfHash($payload));
+        return $this->jsonResponse($this->appendCsrfHash($payload));
     }
 
     public function assignRoom()
     {
-        if (! $this->request->is('post')) {
-            return $this->response->setStatusCode(405)->setJSON($this->appendCsrfHash([
-                'success' => false,
-                'message' => 'Method not allowed',
-            ]));
+        if (!$this->request->is('post')) {
+            return $this->jsonResponse($this->appendCsrfHash(['success' => false, 'message' => 'Method not allowed']), 405);
         }
 
-        $input = $this->request->getPost();
-        if (empty($input)) {
-            $jsonBody = $this->request->getJSON(true);
-            $input = is_array($jsonBody) ? $jsonBody : [];
+        $input = $this->getRequestData();
+        if (!$this->validateCsrf($input)) {
+            return $this->jsonResponse($this->appendCsrfHash(['success' => false, 'message' => 'Invalid CSRF token']), 403);
         }
 
-        $tokenName = csrf_token();
-        if (! isset($input[$tokenName]) || $input[$tokenName] !== csrf_hash()) {
-            return $this->response->setStatusCode(403)->setJSON($this->appendCsrfHash([
-                'success' => false,
-                'message' => 'Invalid CSRF token',
-            ]));
-        }
+        $result = $this->roomService->assignRoomToPatient(
+            (int) ($input['room_id'] ?? 0),
+            (int) ($input['patient_id'] ?? 0),
+            (int) (session()->get('staff_id') ?? 0),
+            null
+        );
 
-        $roomId    = (int) ($input['room_id'] ?? 0);
-        $patientId = (int) ($input['patient_id'] ?? 0);
-
-        $staffId = (int) (session()->get('staff_id') ?? 0);
-
-        $result = $this->roomService->assignRoomToPatient($roomId, $patientId, $staffId, null);
-        $statusCode = $result['success'] ? 200 : 400;
-
-        return $this->response
-            ->setStatusCode($statusCode)
-            ->setJSON($this->appendCsrfHash($result));
+        return $this->jsonResponse($this->appendCsrfHash($result), $result['success'] ? 200 : 400);
     }
 
     public function updateRoom(int $roomId)
     {
-        if (! $this->request->is('post')) {
-            return $this->response->setStatusCode(405)->setJSON($this->appendCsrfHash([
-                'success' => false,
-                'message' => 'Method not allowed',
-            ]));
+        if (!$this->request->is('post')) {
+            return $this->jsonResponse($this->appendCsrfHash(['success' => false, 'message' => 'Method not allowed']), 405);
         }
 
-        $input = $this->request->getPost();
-        if (empty($input)) {
-            $jsonBody = $this->request->getJSON(true);
-            $input = is_array($jsonBody) ? $jsonBody : [];
-        }
-
-        $result = $this->roomService->updateRoom($roomId, $input);
-        $statusCode = $result['success'] ? 200 : 400;
-
-        return $this->response
-            ->setStatusCode($statusCode)
-            ->setJSON($this->appendCsrfHash($result));
+        $result = $this->roomService->updateRoom($roomId, $this->getRequestData());
+        return $this->jsonResponse($this->appendCsrfHash($result), $result['success'] ? 200 : 400);
     }
 
     public function deleteRoom(int $roomId)
     {
-        if (! $this->request->is('post')) {
-            return $this->response->setStatusCode(405)->setJSON($this->appendCsrfHash([
-                'success' => false,
-                'message' => 'Method not allowed',
-            ]));
+        if (!$this->request->is('post')) {
+            return $this->jsonResponse($this->appendCsrfHash(['success' => false, 'message' => 'Method not allowed']), 405);
         }
 
+        $input = $this->getRequestData();
+        if (!$this->validateCsrf($input)) {
+            return $this->jsonResponse($this->appendCsrfHash(['success' => false, 'message' => 'Invalid CSRF token']), 403);
+        }
+
+        $result = $this->roomService->deleteRoom($roomId);
+        return $this->jsonResponse($this->appendCsrfHash($result), $result['success'] ? 200 : 400);
+    }
+
+    private function getRequestData(): array
+    {
         $input = $this->request->getPost();
         if (empty($input)) {
             $jsonBody = $this->request->getJSON(true);
             $input = is_array($jsonBody) ? $jsonBody : [];
         }
-
-        $tokenName = csrf_token();
-        if (! isset($input[$tokenName]) || $input[$tokenName] !== csrf_hash()) {
-            return $this->response->setStatusCode(403)->setJSON($this->appendCsrfHash([
-                'success' => false,
-                'message' => 'Invalid CSRF token',
-            ]));
-        }
-
-        $result = $this->roomService->deleteRoom($roomId);
-        $statusCode = $result['success'] ? 200 : 400;
-
-        return $this->response
-            ->setStatusCode($statusCode)
-            ->setJSON($this->appendCsrfHash($result));
+        return $input;
     }
 
+    private function validateCsrf(array $input): bool
+    {
+        $tokenName = csrf_token();
+        return isset($input[$tokenName]) && $input[$tokenName] === csrf_hash();
+    }
+
+    private function jsonResponse(array $data, int $statusCode = 200)
+    {
+        return $this->response->setStatusCode($statusCode)->setJSON($data);
+    }
 
     private function appendCsrfHash(array $payload): array
     {

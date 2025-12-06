@@ -10,10 +10,20 @@ class ResourceManagement extends BaseController
     protected $resourceService;
     protected $permissionManager;
 
+    protected $userRole;
+    protected $staffId;
+
     public function __construct()
     {
         $this->resourceService = new ResourceService();
         $this->permissionManager = new PermissionManager();
+        $this->userRole = session()->get('role');
+        $this->staffId = session()->get('staff_id');
+    }
+
+    private function jsonResponse(array $data, int $statusCode = 200)
+    {
+        return $this->response->setStatusCode($statusCode)->setJSON($data);
     }
 
     public function index()
@@ -22,144 +32,109 @@ class ResourceManagement extends BaseController
             return redirect()->to('/login');
         }
 
-        $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
-
-        if (!$this->permissionManager->hasPermission($userRole, 'resources', 'view')) {
-            return redirect()->to($this->getRedirectUrl($userRole))->with('error', 'Access denied');
+        if (!$this->permissionManager->hasPermission($this->userRole, 'resources', 'view')) {
+            return redirect()->to($this->getRedirectUrl($this->userRole))->with('error', 'Access denied');
         }
 
-        $stats = $this->resourceService->getResourceStats($userRole, $staffId);
-        $categories = $this->resourceService->getCategories($userRole);
-        $staff = $this->resourceService->getStaffForAssignment();
-        $resources = $this->resourceService->getResources($userRole, $staffId);
-        
-        // Get expiring and expired medications for notifications
-        $expiringMedications = $this->resourceService->getExpiringMedications(30); // 30 days ahead
-        $expiredMedications = $this->resourceService->getExpiredMedications();
-
-        $data = [
-            'title' => $this->getPageTitle($userRole),
-            'userRole' => $userRole,
-            'permissions' => $this->permissionManager->getRolePermissions($userRole),
-            'stats' => $stats,
-            'categories' => $categories,
-            'staff' => $staff,
-            'resources' => $resources,
-            'expiringMedications' => $expiringMedications,
-            'expiredMedications' => $expiredMedications,
-            'redirectUrl' => $this->getRedirectUrl($userRole)
-        ];
-
-        return view('unified/resource-management', $data);
+        return view('unified/resource-management', [
+            'title' => $this->getPageTitle($this->userRole),
+            'userRole' => $this->userRole,
+            'permissions' => $this->permissionManager->getRolePermissions($this->userRole),
+            'stats' => $this->resourceService->getResourceStats($this->userRole, $this->staffId),
+            'categories' => $this->resourceService->getCategories($this->userRole),
+            'staff' => $this->resourceService->getStaffForAssignment(),
+            'resources' => $this->resourceService->getResources($this->userRole, $this->staffId),
+            'expiringMedications' => $this->resourceService->getExpiringMedications(30),
+            'expiredMedications' => $this->resourceService->getExpiredMedications(),
+            'redirectUrl' => $this->getRedirectUrl($this->userRole)
+        ]);
     }
 
     public function getResourcesAPI()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
-
-        $filters = [
+        $filters = array_filter([
             'category' => $this->request->getGet('category'),
             'status' => $this->request->getGet('status'),
             'location' => $this->request->getGet('location'),
             'search' => $this->request->getGet('search')
-        ];
+        ]);
 
-        $resources = $this->resourceService->getResources($userRole, $staffId, $filters);
-        
-        return $this->response->setJSON([
+        return $this->jsonResponse([
             'success' => true,
-            'data' => $resources
+            'data' => $this->resourceService->getResources($this->userRole, $this->staffId, $filters)
         ]);
     }
 
     public function create()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
-
-        // Use standard POST data; avoid getJSON(true) to prevent JSON parse errors
-        $data = $this->request->getPost();
-        
-        $result = $this->resourceService->createResource($data, $userRole, $staffId);
-        
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($this->resourceService->createResource(
+            $this->request->getPost(),
+            $this->userRole,
+            $this->staffId
+        ));
     }
 
     public function update()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
-
-        // Use standard POST data; avoid getJSON(true) to prevent JSON parse errors
         $data = $this->request->getPost();
         $resourceId = $data['id'] ?? null;
 
         if (!$resourceId) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Resource ID is required']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Resource ID is required'], 400);
         }
 
-        $result = $this->resourceService->updateResource($resourceId, $data, $userRole, $staffId);
-        
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($this->resourceService->updateResource(
+            $resourceId,
+            $data,
+            $this->userRole,
+            $this->staffId
+        ));
     }
 
     public function delete($resourceId = null)
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
-        }
-
-        $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
-
-        if (!$resourceId) {
-            // Use standard POST data; avoid getJSON(true) to prevent JSON parse errors
-            $data = $this->request->getPost();
-            $resourceId = $data['id'] ?? null;
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
         if (!$resourceId) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Resource ID is required']);
+            $resourceId = $this->request->getPost('id');
         }
 
-        $result = $this->resourceService->deleteResource($resourceId, $userRole, $staffId);
-        
-        return $this->response->setJSON($result);
+        if (!$resourceId) {
+            return $this->jsonResponse(['success' => false, 'message' => 'Resource ID is required'], 400);
+        }
+
+        return $this->jsonResponse($this->resourceService->deleteResource(
+            $resourceId,
+            $this->userRole,
+            $this->staffId
+        ));
     }
 
     private function getPageTitle($role)
     {
-        switch ($role) {
-            case 'admin':
-                return 'Resource Management';
-            case 'doctor':
-            case 'nurse':
-                return 'Medical Resources';
-            case 'pharmacist':
-                return 'Pharmacy Resources';
-            case 'laboratorist':
-                return 'Lab Resources';
-            case 'receptionist':
-                return 'Office Resources';
-            case 'it_staff':
-                return 'IT Resource Management';
-            default:
-                return 'Resources';
-        }
+        return match($role) {
+            'admin' => 'Resource Management',
+            'doctor', 'nurse' => 'Medical Resources',
+            'pharmacist' => 'Pharmacy Resources',
+            'laboratorist' => 'Lab Resources',
+            'receptionist' => 'Office Resources',
+            'it_staff' => 'IT Resource Management',
+            default => 'Resources'
+        };
     }
 
     private function getRedirectUrl($role)
@@ -182,21 +157,18 @@ class ResourceManagement extends BaseController
             return redirect()->to('/login');
         }
 
-        $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
-
-        if (!$this->permissionManager->hasPermission($userRole, 'resources', 'view')) {
-            return redirect()->to($this->getRedirectUrl($userRole))->with('error', 'Access denied');
+        if (!$this->permissionManager->hasPermission($this->userRole, 'resources', 'view')) {
+            return redirect()->to($this->getRedirectUrl($this->userRole))->with('error', 'Access denied');
         }
 
-        $filters = [
+        $filters = array_filter([
             'category' => $this->request->getGet('category'),
             'status' => $this->request->getGet('status'),
             'location' => $this->request->getGet('location'),
             'search' => $this->request->getGet('search')
-        ];
+        ]);
 
-        $resources = $this->resourceService->getResources($userRole, $staffId, $filters);
+        $resources = $this->resourceService->getResources($this->userRole, $this->staffId, $filters);
 
         // Set headers for CSV download
         $this->response->setHeader('Content-Type', 'text/csv; charset=utf-8');

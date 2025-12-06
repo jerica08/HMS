@@ -52,7 +52,6 @@ class ResourceService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
-            // Prepare resource data
             $resourceData = [
                 'equipment_name' => trim($data['equipment_name'] ?? ''),
                 'category' => $data['category'] ?? '',
@@ -73,20 +72,16 @@ class ResourceService
                 if (empty($resourceData['expiry_date'])) {
                     return ['success' => false, 'message' => 'Expiry date is required for medications'];
                 }
-                
-                // Check if expiry date is in the past
                 if ($resourceData['expiry_date'] < date('Y-m-d')) {
                     return ['success' => false, 'message' => 'Cannot add expired medication. Expiry date is in the past'];
                 }
             }
 
-            // Validate using model
             if (!$this->resourceModel->insert($resourceData)) {
-                $errors = $this->resourceModel->errors();
                 return [
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $errors
+                    'errors' => $this->resourceModel->errors()
                 ];
             }
 
@@ -114,22 +109,21 @@ class ResourceService
                 return ['success' => false, 'message' => 'Resource not found'];
             }
 
-            // Prepare update data
-            $updateData = [];
             $allowedFields = ['equipment_name', 'category', 'quantity', 'status', 'location',
                             'batch_number', 'expiry_date', 'serial_number', 'remarks'];
-
+            $updateData = [];
+            
             foreach ($allowedFields as $field) {
-                if (isset($data[$field])) {
-                    if (in_array($field, ['equipment_name', 'location', 'batch_number', 'serial_number', 'remarks'])) {
-                        $updateData[$field] = trim($data[$field]);
-                    } elseif ($field === 'quantity') {
-                        $updateData[$field] = (int)$data[$field];
-                    } elseif ($field === 'expiry_date') {
-                        $updateData[$field] = !empty($data[$field]) ? $data[$field] : null;
-                    } else {
-                        $updateData[$field] = $data[$field];
-                    }
+                if (!isset($data[$field])) continue;
+                
+                if (in_array($field, ['equipment_name', 'location', 'batch_number', 'serial_number', 'remarks'], true)) {
+                    $updateData[$field] = trim($data[$field]);
+                } elseif ($field === 'quantity') {
+                    $updateData[$field] = (int)$data[$field];
+                } elseif ($field === 'expiry_date') {
+                    $updateData[$field] = !empty($data[$field]) ? $data[$field] : null;
+                } else {
+                    $updateData[$field] = $data[$field];
                 }
             }
 
@@ -152,11 +146,10 @@ class ResourceService
             }
 
             if (!$this->resourceModel->update($resourceId, $updateData)) {
-                $errors = $this->resourceModel->errors();
                 return [
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $errors
+                    'errors' => $this->resourceModel->errors()
                 ];
             }
 
@@ -180,15 +173,13 @@ class ResourceService
                 return ['success' => false, 'message' => 'Resource not found'];
             }
 
-            if (isset($resource['status']) && $resource['status'] === 'Stock Out') {
+            if (($resource['status'] ?? '') === 'Stock Out') {
                 return ['success' => false, 'message' => 'Cannot delete resource that is currently stock out'];
             }
 
-            if ($this->resourceModel->delete($resourceId)) {
-                return ['success' => true, 'message' => 'Resource deleted successfully'];
-            }
-
-            return ['success' => false, 'message' => 'Failed to delete resource'];
+            return $this->resourceModel->delete($resourceId)
+                ? ['success' => true, 'message' => 'Resource deleted successfully']
+                : ['success' => false, 'message' => 'Failed to delete resource'];
 
         } catch (\Exception $e) {
             log_message('error', 'ResourceService::deleteResource - ' . $e->getMessage());
@@ -202,7 +193,7 @@ class ResourceService
             $resources = $this->resourceModel->getResources([], $role, $staffId);
             
             foreach ($resources as $resource) {
-                if (isset($resource['id']) && $resource['id'] == $resourceId) {
+                if (($resource['id'] ?? null) == $resourceId) {
                     return $resource;
                 }
             }
@@ -217,35 +208,19 @@ class ResourceService
     public function getCategories($role)
     {
         $allCategories = [
-            'Medical Equipment',
-            'Medical Supplies', 
-            'Diagnostic Equipment',
-            'Lab Equipment',
-            'Pharmacy Equipment',
-            'Medications',
-            'Office Equipment',
-            'IT Equipment',
-            'Furniture',
-            'Vehicles',
-            'Other'
+            'Medical Equipment', 'Medical Supplies', 'Diagnostic Equipment', 'Lab Equipment',
+            'Pharmacy Equipment', 'Medications', 'Office Equipment', 'IT Equipment',
+            'Furniture', 'Vehicles', 'Other'
         ];
 
-        switch ($role) {
-            case 'admin':
-            case 'it_staff':
-                return $allCategories;
-            case 'doctor':
-            case 'nurse':
-                return ['Medical Equipment', 'Medical Supplies', 'Diagnostic Equipment'];
-            case 'pharmacist':
-                return ['Medical Supplies', 'Pharmacy Equipment', 'Medications'];
-            case 'laboratorist':
-                return ['Lab Equipment', 'Diagnostic Equipment', 'Medical Supplies'];
-            case 'receptionist':
-                return ['Office Equipment', 'IT Equipment'];
-            default:
-                return [];
-        }
+        return match($role) {
+            'admin', 'it_staff' => $allCategories,
+            'doctor', 'nurse' => ['Medical Equipment', 'Medical Supplies', 'Diagnostic Equipment'],
+            'pharmacist' => ['Medical Supplies', 'Pharmacy Equipment', 'Medications'],
+            'laboratorist' => ['Lab Equipment', 'Diagnostic Equipment', 'Medical Supplies'],
+            'receptionist' => ['Office Equipment', 'IT Equipment'],
+            default => []
+        };
     }
 
     public function getStaffForAssignment()

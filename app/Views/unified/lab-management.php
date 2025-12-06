@@ -14,31 +14,27 @@
 </head>
 <body>
 
-<?php include APPPATH . 'Views/template/header.php'; ?>
+<?= $this->include('template/header') ?>
 
 <div class="main-container">
-    <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+    <?= $this->include('unified/components/sidebar') ?>
 
     <main class="content" role="main">
         <h1 class="page-title">
             <i class="fas fa-flask"></i>
-            <?php
-            $pageTitles = [
+            <?= esc(match($userRole ?? '') {
                 'admin' => 'Laboratory Management',
                 'doctor' => 'Lab Orders',
                 'laboratorist' => 'Lab Worklist',
                 'receptionist' => 'Lab Orders Overview',
                 'accountant' => 'Billable Lab Orders',
-            ];
-            echo esc($pageTitles[$userRole] ?? 'Lab Orders');
-            ?>
+                default => 'Lab Orders'
+            }) ?>
         </h1>
 
         <div class="page-actions">
             <?php if (in_array($userRole ?? '', ['admin', 'doctor', 'it_staff'])): ?>
-                <button type="button" class="btn btn-primary" id="createLabOrderBtn">
-                    <i class="fas fa-plus"></i> New Lab Order
-                </button>
+                <button type="button" class="btn btn-primary" id="createLabOrderBtn"><i class="fas fa-plus"></i> New Lab Order</button>
             <?php endif; ?>
         </div>
 
@@ -164,53 +160,14 @@
     </main>
 </div>
 
-<!-- New Lab Order Modal -->
-<div id="labOrderModal" class="modal" aria-hidden="true" hidden>
-    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="labOrderModalTitle" style="max-width: 640px; width: 90%;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="labOrderModalTitle">
-                    <i class="fas fa-flask"></i> New Lab Order
-                </h5>
-                <button type="button" class="close" aria-label="Close" id="labOrderModalCloseBtn">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="labOrderForm">
-                    <div class="form-group">
-                        <label for="labPatientSelect">Patient</label>
-                        <select class="form-control" id="labPatientSelect" name="patient_id" required>
-                            <option value="">Loading patients...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="labTestSelect">Lab Test</label>
-                        <select id="labTestSelect" name="test_code" class="form-control" required>
-                            <option value="">Loading tests...</option>
-                        </select>
-                        <small class="form-text text-muted">Tests are loaded from the lab tests master list.</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="labPriority">Priority</label>
-                        <select id="labPriority" name="priority" class="form-control">
-                            <option value="routine">Routine</option>
-                            <option value="urgent">Urgent</option>
-                            <option value="stat">STAT</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="labOrderModalCancelBtn">Cancel</button>
-                <button type="button" class="btn btn-primary" id="labOrderModalSubmitBtn">
-                    <i class="fas fa-check"></i> Create Order
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<?= $this->include('unified/modals/add-lab-order-modal') ?>
+<?= $this->include('unified/modals/view-lab-order-modal') ?>
+<?= $this->include('unified/modals/edit-lab-order-modal') ?>
 
+<script src="<?= base_url('assets/js/unified/modals/shared/lab-modal-utils.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/modals/add-lab-order-modal.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/modals/view-lab-order-modal.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/modals/edit-lab-order-modal.js') ?>"></script>
 <script src="<?= base_url('assets/js/unified/lab-management.js') ?>"></script>
 </body>
 </html>

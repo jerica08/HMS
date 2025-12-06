@@ -11,10 +11,25 @@ class LabManagement extends BaseController
     protected $labService;
     protected $financialService;
 
+    protected $userRole;
+    protected $staffId;
+
     public function __construct()
     {
         $this->labService = new LabService();
         $this->financialService = new FinancialService();
+        $this->userRole = session()->get('role');
+        $this->staffId = session()->get('staff_id');
+    }
+
+    private function isAjaxRequest(): bool
+    {
+        return $this->request->isAJAX() || strpos($this->request->getHeaderLine('Accept'), 'application/json') !== false;
+    }
+
+    private function jsonResponse(array $data, int $statusCode = 200)
+    {
+        return $this->response->setStatusCode($statusCode)->setJSON($data);
     }
 
     public function index()
@@ -23,51 +38,39 @@ class LabManagement extends BaseController
             return redirect()->to('/login');
         }
 
-        $userRole = session()->get('role');
-        $staffId  = session()->get('staff_id');
-
-        $stats = $this->labService->getLabStats($userRole, $staffId);
-
-        $data = [
-            'title'       => 'Lab Management',
-            'userRole'    => $userRole,
-            'stats'       => $stats,
-        ];
-
-        return view('unified/lab-management', $data);
+        return view('unified/lab-management', [
+            'title'    => 'Lab Management',
+            'userRole' => $this->userRole,
+            'stats'    => $this->labService->getLabStats($this->userRole, $this->staffId),
+        ]);
     }
 
     public function getLabOrdersAPI()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON([]);
+            return $this->jsonResponse([]);
         }
 
-        $userRole = session()->get('role');
-        $staffId  = session()->get('staff_id');
-
-        $filters = [
+        $filters = array_filter([
             'status'     => $this->request->getGet('status'),
             'priority'   => $this->request->getGet('priority'),
             'date'       => $this->request->getGet('date'),
             'patient_id' => $this->request->getGet('patient_id'),
             'search'     => $this->request->getGet('search'),
-        ];
+        ]);
 
-        $orders = $this->labService->getLabOrdersByRole($userRole, $staffId, $filters);
-
-        return $this->response->setJSON($orders);
+        return $this->jsonResponse($this->labService->getLabOrdersByRole($this->userRole, $this->staffId, $filters));
     }
 
     public function getLabPatientsAPI()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Not authenticated'], 401);
         }
 
         $db = \Config\Database::connect();
         if (!$db->tableExists('patients')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Patients table not found', 'data' => []]);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Patients table not found', 'data' => []]);
         }
 
         $patients = $db->table('patients p')
@@ -77,18 +80,18 @@ class LabManagement extends BaseController
             ->get()
             ->getResultArray();
 
-        return $this->response->setJSON(['status' => 'success', 'data' => $patients]);
+        return $this->jsonResponse(['status' => 'success', 'data' => $patients]);
     }
 
     public function getLabTestsAPI()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Not authenticated'], 401);
         }
 
         $db = \Config\Database::connect();
         if (!$db->tableExists('lab_tests')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Lab tests table not found', 'data' => []]);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Lab tests table not found', 'data' => []]);
         }
 
         $tests = $db->table('lab_tests')
@@ -98,18 +101,17 @@ class LabManagement extends BaseController
             ->get()
             ->getResultArray();
 
-        return $this->response->setJSON(['status' => 'success', 'data' => $tests]);
+        return $this->jsonResponse(['status' => 'success', 'data' => $tests]);
     }
 
     public function createLabTest()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        if (!in_array($userRole, ['admin', 'it_staff'], true)) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Permission denied']);
+        if (!in_array($this->userRole, ['admin', 'it_staff'], true)) {
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Permission denied'], 403);
         }
 
         $db = \Config\Database::connect();
@@ -144,29 +146,21 @@ class LabManagement extends BaseController
                 'updated_at'     => date('Y-m-d H:i:s'),
             ]);
 
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Lab test created',
-                'id' => $db->insertID(),
-            ]);
+            return $this->jsonResponse(['status' => 'success', 'message' => 'Lab test created', 'id' => $db->insertID()]);
         } catch (\Throwable $e) {
             log_message('error', 'LabManagement::createLabTest error: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to create lab test',
-            ]);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Failed to create lab test'], 500);
         }
     }
 
     public function updateLabTest($id)
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        if (!in_array($userRole, ['admin', 'it_staff'], true)) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Permission denied']);
+        if (!in_array($this->userRole, ['admin', 'it_staff'], true)) {
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Permission denied'], 403);
         }
 
         $db = \Config\Database::connect();
@@ -194,137 +188,106 @@ class LabManagement extends BaseController
         }
 
         if (empty($update)) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Nothing to update']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Nothing to update'], 400);
         }
 
         $update['updated_at'] = date('Y-m-d H:i:s');
 
         try {
-            $db->table('lab_tests')
-                ->where('lab_test_id', (int)$id)
-                ->update($update);
-
-            return $this->response->setJSON(['status' => 'success', 'message' => 'Lab test updated']);
+            $db->table('lab_tests')->where('lab_test_id', (int)$id)->update($update);
+            return $this->jsonResponse(['status' => 'success', 'message' => 'Lab test updated']);
         } catch (\Throwable $e) {
             log_message('error', 'LabManagement::updateLabTest error: ' . $e->getMessage());
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Failed to update lab test']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Failed to update lab test'], 500);
         }
     }
 
     public function deleteLabTest($id)
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        if (!in_array($userRole, ['admin', 'it_staff'], true)) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Permission denied']);
+        if (!in_array($this->userRole, ['admin', 'it_staff'], true)) {
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Permission denied'], 403);
         }
 
         $db = \Config\Database::connect();
         if (!$db->tableExists('lab_tests')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Lab tests table not found']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Lab tests table not found'], 404);
         }
 
         try {
-            $db->table('lab_tests')
-                ->where('lab_test_id', (int)$id)
-                ->delete();
-
-            return $this->response->setJSON(['status' => 'success', 'message' => 'Lab test deleted']);
+            $db->table('lab_tests')->where('lab_test_id', (int)$id)->delete();
+            return $this->jsonResponse(['status' => 'success', 'message' => 'Lab test deleted']);
         } catch (\Throwable $e) {
             log_message('error', 'LabManagement::deleteLabTest error: ' . $e->getMessage());
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Failed to delete lab test']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Failed to delete lab test'], 500);
         }
     }
 
     public function getLabOrder($id)
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
         $order = $this->labService->getLabOrder((int) $id);
-
-        if (!$order) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Lab order not found']);
-        }
-
-        return $this->response->setJSON(['success' => true, 'data' => $order]);
+        return $this->jsonResponse($order 
+            ? ['success' => true, 'data' => $order]
+            : ['success' => false, 'message' => 'Lab order not found'], $order ? 200 : 404);
     }
 
     public function createLabOrder()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        $staffId  = session()->get('staff_id');
-
         $input = $this->request->getJSON(true) ?? $this->request->getPost();
-
-        $result = $this->labService->createLabOrder($input, $userRole, $staffId);
-
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($this->labService->createLabOrder($input, $this->userRole, $this->staffId));
     }
 
     public function updateLabOrder()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
-
-        $userRole = session()->get('role');
-        $staffId  = session()->get('staff_id');
 
         $input = $this->request->getJSON(true) ?? $this->request->getPost();
         $labOrderId = (int) ($input['lab_order_id'] ?? 0);
 
         if ($labOrderId <= 0) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Invalid lab order ID']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Invalid lab order ID'], 400);
         }
 
-        $result = $this->labService->updateLabOrder($labOrderId, $input, $userRole, $staffId);
-
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($this->labService->updateLabOrder($labOrderId, $input, $this->userRole, $this->staffId));
     }
 
     public function updateStatus($id)
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
-
-        $userRole = session()->get('role');
-        $staffId  = session()->get('staff_id');
 
         $input = $this->request->getJSON(true) ?? $this->request->getPost();
         $status = $input['status'] ?? '';
+        $result = $this->labService->updateStatus((int) $id, $status, $this->userRole, $this->staffId);
 
-        $result = $this->labService->updateStatus((int) $id, $status, $userRole, $staffId);
-
-        // Auto-billing when completed
-        if ($result['success'] ?? false && $status === 'completed') {
-            $this->handleAutoBilling((int) $id, $userRole, $staffId);
+        if (($result['success'] ?? false) && $status === 'completed') {
+            $this->handleAutoBilling((int) $id, $this->userRole, $this->staffId);
         }
 
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($result);
     }
 
     public function deleteLabOrder($id)
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        $staffId  = session()->get('staff_id');
-
-        $result = $this->labService->deleteLabOrder((int) $id, $userRole, $staffId);
-
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($this->labService->deleteLabOrder((int) $id, $this->userRole, $this->staffId));
     }
 
     public function addToBilling($id)

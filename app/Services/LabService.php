@@ -14,6 +14,26 @@ class LabService
     }
 
     /**
+     * Build base query for lab orders with role-based filtering
+     */
+    private function buildLabOrderQuery(string $userRole, ?int $staffId = null)
+    {
+        $builder = $this->db->table('lab_orders lo')
+            ->select('lo.*, p.first_name, p.last_name')
+            ->join('patients p', 'p.patient_id = lo.patient_id', 'left');
+
+        if (in_array($userRole, ['admin', 'it_staff', 'accountant', 'laboratorist', 'nurse', 'receptionist'], true)) {
+            // Full visibility for these roles
+        } elseif ($userRole === 'doctor' && $staffId) {
+            $builder->where('lo.doctor_id', $staffId);
+        } else {
+            $builder->where('1', '0');
+        }
+
+        return $builder;
+    }
+
+    /**
      * List lab orders based on role and optional filters.
      */
     public function getLabOrdersByRole(string $userRole, ?int $staffId = null, array $filters = []): array
@@ -23,54 +43,20 @@ class LabService
                 return [];
             }
 
-            $builder = $this->db->table('lab_orders lo')
-                ->select('lo.*, p.first_name, p.last_name')
-                ->join('patients p', 'p.patient_id = lo.patient_id', 'left');
-
-            switch ($userRole) {
-                case 'admin':
-                case 'it_staff':
-                case 'accountant':
-                    // Full visibility
-                    break;
-
-                case 'doctor':
-                    if ($staffId) {
-                        $builder->where('lo.doctor_id', $staffId);
-                    } else {
-                        $builder->where('1', '0');
-                    }
-                    break;
-
-                case 'laboratorist':
-                    // For now, all lab orders
-                    break;
-
-                case 'nurse':
-                case 'receptionist':
-                    // Read-only for all orders
-                    break;
-
-                default:
-                    $builder->where('1', '0');
-            }
+            $builder = $this->buildLabOrderQuery($userRole, $staffId);
 
             if (!empty($filters['status'])) {
                 $builder->where('lo.status', $filters['status']);
             }
-
             if (!empty($filters['priority'])) {
                 $builder->where('lo.priority', $filters['priority']);
             }
-
             if (!empty($filters['date'])) {
                 $builder->where('DATE(lo.ordered_at)', $filters['date']);
             }
-
             if (!empty($filters['patient_id'])) {
                 $builder->where('lo.patient_id', (int) $filters['patient_id']);
             }
-
             if (!empty($filters['search'])) {
                 $search = $filters['search'];
                 $builder->groupStart()
@@ -81,14 +67,10 @@ class LabService
                     ->groupEnd();
             }
 
-            $builder->orderBy('lo.ordered_at', 'DESC');
-
-            $orders = $builder->get()->getResultArray();
+            $orders = $builder->orderBy('lo.ordered_at', 'DESC')->get()->getResultArray();
 
             foreach ($orders as &$o) {
-                $first = $o['first_name'] ?? '';
-                $last  = $o['last_name'] ?? '';
-                $o['patient_name'] = trim($first . ' ' . $last);
+                $o['patient_name'] = trim(($o['first_name'] ?? '') . ' ' . ($o['last_name'] ?? ''));
             }
 
             return $orders;
@@ -116,9 +98,7 @@ class LabService
                 ->getRowArray();
 
             if ($order) {
-                $first = $order['first_name'] ?? '';
-                $last  = $order['last_name'] ?? '';
-                $order['patient_name'] = trim($first . ' ' . $last);
+                $order['patient_name'] = trim(($order['first_name'] ?? '') . ' ' . ($order['last_name'] ?? ''));
             }
 
             return $order ?: null;
@@ -146,16 +126,11 @@ class LabService
                 $base->where('doctor_id', $staffId);
             }
 
-            $total = (clone $base)->countAllResults();
-            $todayCount = (clone $base)->where('DATE(ordered_at)', $today)->countAllResults();
-            $inProgress = (clone $base)->where('status', 'in_progress')->countAllResults();
-            $completed = (clone $base)->where('status', 'completed')->countAllResults();
-
             return [
-                'total_orders'   => $total,
-                'today_orders'   => $todayCount,
-                'in_progress'    => $inProgress,
-                'completed'      => $completed,
+                'total_orders'   => (clone $base)->countAllResults(),
+                'today_orders'   => (clone $base)->where('DATE(ordered_at)', $today)->countAllResults(),
+                'in_progress'    => (clone $base)->where('status', 'in_progress')->countAllResults(),
+                'completed'      => (clone $base)->where('status', 'completed')->countAllResults(),
             ];
         } catch (\Throwable $e) {
             log_message('error', 'LabService::getLabStats error: ' . $e->getMessage());
@@ -178,19 +153,13 @@ class LabService
             }
 
             $validation = \Config\Services::validation();
-            $validation->setRules([
+            if (!$validation->setRules([
                 'patient_id' => 'required|integer',
                 'test_code'  => 'required|max_length[100]',
                 'test_name'  => 'permit_empty|max_length[191]',
                 'priority'   => 'permit_empty|in_list[routine,urgent,stat]',
-            ]);
-
-            if (!$validation->run($data)) {
-                return [
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors'  => $validation->getErrors(),
-                ];
+            ])->run($data)) {
+                return ['success' => false, 'message' => 'Validation failed', 'errors' => $validation->getErrors()];
             }
 
             $doctorId = $data['doctor_id'] ?? $staffId;
@@ -211,15 +180,9 @@ class LabService
             $this->db->table('lab_orders')->insert($insert);
             $id = (int) $this->db->insertID();
 
-            if ($id <= 0) {
-                return ['success' => false, 'message' => 'Failed to create lab order'];
-            }
-
-            return [
-                'success'      => true,
-                'message'      => 'Lab order created successfully',
-                'lab_order_id' => $id,
-            ];
+            return $id > 0
+                ? ['success' => true, 'message' => 'Lab order created successfully', 'lab_order_id' => $id]
+                : ['success' => false, 'message' => 'Failed to create lab order'];
         } catch (\Throwable $e) {
             log_message('error', 'LabService::createLabOrder error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Failed to create lab order'];
@@ -249,16 +212,8 @@ class LabService
                 return ['success' => false, 'message' => 'You can only edit your own lab orders'];
             }
 
-            $update = [];
-            if (isset($data['test_code'])) {
-                $update['test_code'] = $data['test_code'];
-            }
-            if (isset($data['test_name'])) {
-                $update['test_name'] = $data['test_name'];
-            }
-            if (isset($data['priority'])) {
-                $update['priority'] = $data['priority'];
-            }
+            $allowedFields = ['test_code', 'test_name', 'priority'];
+            $update = array_intersect_key($data, array_flip($allowedFields));
 
             if (empty($update)) {
                 return ['success' => false, 'message' => 'Nothing to update'];
@@ -297,15 +252,11 @@ class LabService
                 return ['success' => false, 'message' => 'Lab order not found'];
             }
 
-            // Permission rules:
-            // - admin / it_staff: full
-            // - laboratorist: full
-            // - doctor: can change statuses on own orders
-            if (in_array($userRole, ['doctor'], true)) {
-                if (!$staffId || (int) $order['doctor_id'] !== (int) $staffId) {
-                    return ['success' => false, 'message' => 'You can only update your own lab orders'];
-                }
-            } elseif (!in_array($userRole, ['admin', 'it_staff', 'laboratorist'], true)) {
+            // Permission: doctor can only update own orders; admin/it_staff/laboratorist have full access
+            if ($userRole === 'doctor' && (!$staffId || (int) $order['doctor_id'] !== (int) $staffId)) {
+                return ['success' => false, 'message' => 'You can only update your own lab orders'];
+            }
+            if (!in_array($userRole, ['admin', 'it_staff', 'laboratorist', 'doctor'], true)) {
                 return ['success' => false, 'message' => 'Permission denied'];
             }
 

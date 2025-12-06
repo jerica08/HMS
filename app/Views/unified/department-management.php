@@ -22,7 +22,7 @@
 
 <body class="<?= esc($userRole ?? 'admin') ?>">
 
-<?php include APPPATH . 'Views/template/header.php'; ?>
+<?= $this->include('template/header') ?>
 
 <?= $this->include('unified/components/notification', [
     'id' => 'departmentsNotification',
@@ -30,17 +30,9 @@
 ]) ?>
 
 <div class="main-container">
-    <!-- Unified Sidebar -->
-    <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+    <?= $this->include('unified/components/sidebar') ?>
 
     <main class="content" role="main">
-        <!-- Notification Container -->
-        <div id="departmentsNotification" class="notification" style="display: none;">
-            <div class="notification-content">
-                <span id="departmentsNotificationMessage"></span>
-                <button onclick="dismissDepartmentsNotification()" class="notification-close">&times;</button>
-            </div>
-        </div>
 
         <h1 class="page-title">
             <i class="fas fa-building"></i>
@@ -48,9 +40,7 @@
         </h1>
 
         <div class="page-actions">
-            <button type="button" class="btn btn-primary" id="addDepartmentBtn" aria-label="Add New Department">
-                <i class="fas fa-plus" aria-hidden="true"></i> Add Department
-            </button>
+            <button type="button" class="btn btn-primary" id="addDepartmentBtn" aria-label="Add New Department"><i class="fas fa-plus" aria-hidden="true"></i> Add Department</button>
         </div>
 
         <br />
@@ -162,36 +152,13 @@
 ]) ?>
 
 
-<script>
-function showDepartmentsNotification(message, type = 'success') {
-    const container = document.getElementById('departmentsNotification');
-    const messageEl = document.getElementById('departmentsNotificationMessage');
-    if (!container || !messageEl) {
-        return;
-    }
-
-    if (window.departmentsNotificationTimeout) {
-        clearTimeout(window.departmentsNotificationTimeout);
-    }
-
-    container.className = `notification ${type}`;
-    messageEl.textContent = String(message || '');
-    container.style.display = 'flex';
-
-    window.departmentsNotificationTimeout = setTimeout(dismissDepartmentsNotification, 5000);
-}
-
-function dismissDepartmentsNotification() {
-    const container = document.getElementById('departmentsNotification');
-    if (container) {
-        container.style.display = 'none';
-    }
-}
-</script>
+<script src="<?= base_url('assets/js/unified/modals/shared/department-modal-utils.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/modals/add-department-modal.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/department-management.js') ?>"></script>
 
 <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             showDepartmentsNotification(
                 '<?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error'), 'js') ?>',
                 '<?= session()->getFlashdata('success') ? 'success' : 'error' ?>'
@@ -199,12 +166,6 @@ function dismissDepartmentsNotification() {
         });
     </script>
 <?php endif; ?>
-
-
-<!-- Reuse existing utility styles/behaviour if needed -->
-<script src="<?= base_url('assets/js/unified/patient-utils.js') ?>"></script>
-<!-- Placeholder for department management JS (to be implemented) -->
-<script src="<?= base_url('assets/js/unified/department-management.js') ?>"></script>
 
 </body>
 </html>

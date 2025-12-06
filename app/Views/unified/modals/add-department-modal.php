@@ -1,13 +1,8 @@
 <div id="addDepartmentModal" class="hms-modal-overlay" hidden>
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addDepartmentTitle">
         <div class="hms-modal-header">
-            <div class="hms-modal-title" id="addDepartmentTitle">
-                <i class="fas fa-building" style="color:#2563eb"></i>
-                Add Department
-            </div>
-            <button type="button" class="btn btn-secondary btn-small" data-close="add-department" aria-label="Close">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="hms-modal-title" id="addDepartmentTitle"><i class="fas fa-building" style="color:#2563eb"></i> Add Department</div>
+            <button type="button" class="btn btn-secondary btn-small" data-modal-close="addDepartmentModal" aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
 
         <div class="hms-modal-body">
@@ -71,10 +66,8 @@
         </div>
 
         <div class="hms-modal-actions">
-            <button type="button" class="btn btn-secondary" data-close="add-department">Cancel</button>
-            <button type="submit" class="btn btn-success" form="addDepartmentForm" id="saveDepartmentBtn">
-                <i class="fas fa-save"></i> Save Department
-            </button>
+            <button type="button" class="btn btn-secondary" data-modal-close="addDepartmentModal">Cancel</button>
+            <button type="submit" class="btn btn-success" form="addDepartmentForm" id="saveDepartmentBtn"><i class="fas fa-save"></i> Save Department</button>
         </div>
     </div>
 </div>

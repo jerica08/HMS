@@ -392,16 +392,4 @@ $routes->post('labs/(:num)/bill', 'LabManagement::addToBilling/$1', ['filter' =>
 
 // Legacy admin routes for backward compatibility
 
-$routes->get('create_resources_table.php', function() {
-    require APPPATH . '../create_resources_table.php';
-});
 $routes->get('test-doctors', 'TestController::doctors');
-$routes->get('create_department_table.php', function() {
-    require APPPATH . '../create_department_table.php';
-});
-$routes->get('create_sample_data.php', function() {
-    require APPPATH . '../create_sample_data.php';
-});
-$routes->get('setup_financial_tables.php', function() {
-    require APPPATH . '../setup_financial_tables.php';
-});

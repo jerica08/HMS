@@ -118,6 +118,7 @@
 
 <!-- Staff Management Scripts -->
 <script src="<?= base_url('assets/js/unified/staff-utils.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/modals/shared/staff-modal-utils.js') ?>"></script>
 <script src="<?= base_url('assets/js/unified/modals/add-staff-modal.js') ?>"></script>
 <script src="<?= base_url('assets/js/unified/modals/view-staff-modal.js') ?>"></script>
 <script src="<?= base_url('assets/js/unified/modals/edit-staff-modal.js') ?>"></script>

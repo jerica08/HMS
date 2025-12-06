@@ -174,118 +174,53 @@ class StaffManager {
      */
     createStaffRow(staff) {
         const fullName = StaffUtils.formatFullName(staff.first_name, staff.last_name);
-        
-        // Format date joined
-        const dateJoined = staff.date_joined ? 
-            new Date(staff.date_joined).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            }) : 'N/A';
-
-        // Determine role slug/class and display name
+        const dateJoined = staff.date_joined ? new Date(staff.date_joined).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
         const roleSlug = staff.role || staff.role_slug || '';
         const roleClass = roleSlug ? roleSlug.toLowerCase().replace('_', '-') : 'staff';
-        const roleLabel = staff.role_name
-            ? staff.role_name
-            : (roleSlug
-                ? roleSlug.charAt(0).toUpperCase() + roleSlug.slice(1).replace('_', ' ')
-                : 'Staff');
+        const roleLabel = staff.role_name || (roleSlug ? roleSlug.charAt(0).toUpperCase() + roleSlug.slice(1).replace('_', ' ') : 'Staff');
+        const esc = StaffUtils.escapeHtml;
 
-        return `
-            <tr class="staff-row">
-                <td>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <div>
-                            <div style="font-weight: 600;">
-                                ${StaffUtils.escapeHtml(fullName)}
-                            </div>
-                            <div style="font-size: 0.8rem; color: #6b7280;">
-                                ${StaffUtils.escapeHtml(staff.email || 'No email')}
-                            </div>
-                            <div style="font-size: 0.8rem; color: #6b7280;">
-                                ID: ${StaffUtils.escapeHtml(staff.employee_id || staff.staff_id || 'N/A')}
-                            </div>
-                        </div>
-                    </div>
-                </td>
-                <td>
-                    <span class="role-badge role-${roleClass}">
-                        ${StaffUtils.escapeHtml(roleLabel)}
-                    </span>
-                </td>
-                <td>${StaffUtils.escapeHtml(staff.department || 'N/A')}</td>
-                <td>${dateJoined}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn btn-warning btn-small action-btn" 
-                                data-action="edit" 
-                                data-staff-id="${staff.staff_id}"
-                                aria-label="Edit Staff ${StaffUtils.escapeHtml(fullName)}">
-                            <i class="fas fa-edit" aria-hidden="true"></i> Edit
-                        </button>
-                        <button class="btn btn-primary btn-small action-btn" 
-                                data-action="view" 
-                                data-staff-id="${staff.staff_id}"
-                                aria-label="View Staff ${StaffUtils.escapeHtml(fullName)}">
-                            <i class="fas fa-eye" aria-hidden="true"></i> View
-                        </button>
-                        ${this.canDelete() ? `
-                            <button class="btn btn-danger btn-small action-btn" 
-                                    data-action="delete" 
-                                    data-staff-id="${staff.staff_id}"
-                                    aria-label="Delete Staff ${StaffUtils.escapeHtml(fullName)}">
-                                <i class="fas fa-trash" aria-hidden="true"></i> Delete
-                            </button>
-                        ` : ''}
-                    </div>
-                </td>
-            </tr>
-        `;
+        return `<tr class="staff-row">
+            <td><div style="display: flex; align-items: center; gap: 0.5rem;"><div>
+                <div style="font-weight: 600;">${esc(fullName)}</div>
+                <div style="font-size: 0.8rem; color: #6b7280;">${esc(staff.email || 'No email')}</div>
+                <div style="font-size: 0.8rem; color: #6b7280;">ID: ${esc(staff.employee_id || staff.staff_id || 'N/A')}</div>
+            </div></div></td>
+            <td><span class="role-badge role-${roleClass}">${esc(roleLabel)}</span></td>
+            <td>${esc(staff.department || 'N/A')}</td>
+            <td>${dateJoined}</td>
+            <td><div class="action-buttons">
+                <button class="btn btn-warning btn-small action-btn" data-action="edit" data-staff-id="${staff.staff_id}" aria-label="Edit Staff ${esc(fullName)}">
+                    <i class="fas fa-edit" aria-hidden="true"></i> Edit
+                </button>
+                <button class="btn btn-primary btn-small action-btn" data-action="view" data-staff-id="${staff.staff_id}" aria-label="View Staff ${esc(fullName)}">
+                    <i class="fas fa-eye" aria-hidden="true"></i> View
+                </button>
+                ${this.canDelete() ? `<button class="btn btn-danger btn-small action-btn" data-action="delete" data-staff-id="${staff.staff_id}" aria-label="Delete Staff ${esc(fullName)}">
+                    <i class="fas fa-trash" aria-hidden="true"></i> Delete
+                </button>` : ''}
+            </div></td>
+        </tr>`;
     }
 
     /**
      * Handle action button clicks
      */
     handleAction(action, staffId) {
-        switch (action) {
-            case 'view':
-                this.viewStaff(staffId);
-                break;
-            case 'edit':
-                this.editStaff(staffId);
-                break;
-            case 'delete':
-                this.deleteStaff(staffId);
-                break;
-        }
+        const actions = { view: () => this.viewStaff(staffId), edit: () => this.editStaff(staffId), delete: () => this.deleteStaff(staffId) };
+        if (actions[action]) actions[action]();
     }
 
-    /**
-     * Open add staff modal
-     */
     openAddStaffModal() {
-        if (window.AddStaffModal) {
-            window.AddStaffModal.open();
-        }
+        window.AddStaffModal?.open();
     }
 
-    /**
-     * View staff details
-     */
     viewStaff(staffId) {
-        if (window.ViewStaffModal) {
-            window.ViewStaffModal.open(staffId);
-        }
+        window.ViewStaffModal?.open(staffId);
     }
 
-    /**
-     * Edit staff
-     */
     editStaff(staffId) {
-        if (window.EditStaffModal) {
-            window.EditStaffModal.open(staffId);
-        }
+        window.EditStaffModal?.open(staffId);
     }
 
     /**
@@ -394,57 +329,31 @@ class StaffManager {
         this.loadStaff();
     }
 
-    /**
-     * Permission checks
-     */
     canEdit() {
         return ['admin', 'it_staff'].includes(StaffConfig.userRole);
     }
 
     canDelete() {
-        return ['admin', 'it_staff'].includes(StaffConfig.userRole);
+        return StaffConfig.userRole === 'admin';
     }
 }
 
 // Global functions for backward compatibility
-window.clearFilters = function() {
+window.clearFilters = () => {
     if (window.staffManager) {
         window.staffManager.currentFilters = { role: '', search: '' };
-        
-        // Reset filter controls
         const roleFilter = document.getElementById('roleFilter');
         const searchFilter = document.getElementById('searchFilter');
-        
         if (roleFilter) roleFilter.value = '';
         if (searchFilter) searchFilter.value = '';
-        
         window.staffManager.applyFilters();
     }
 };
 
-window.viewStaff = function(staffId) {
-    if (window.staffManager) {
-        window.staffManager.viewStaff(staffId);
-    }
-};
-
-window.editStaff = function(staffId) {
-    if (window.staffManager) {
-        window.staffManager.editStaff(staffId);
-    }
-};
-
-window.deleteStaff = function(staffId) {
-    if (window.staffManager) {
-        window.staffManager.deleteStaff(staffId);
-    }
-};
-
-window.refreshStaff = function() {
-    if (window.staffManager) {
-        window.staffManager.refresh();
-    }
-};
+window.viewStaff = (staffId) => window.staffManager?.viewStaff(staffId);
+window.editStaff = (staffId) => window.staffManager?.editStaff(staffId);
+window.deleteStaff = (staffId) => window.staffManager?.deleteStaff(staffId);
+window.refreshStaff = () => window.staffManager?.refresh();
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {

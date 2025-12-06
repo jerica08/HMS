@@ -2,13 +2,8 @@
 <div id="addUserModal" class="hms-modal-overlay" aria-hidden="true">
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
         <div class="hms-modal-header">
-            <div class="hms-modal-title" id="addUserTitle">
-                <i class="fas fa-user-plus" style="color:#4f46e5"></i>
-                Add New User
-            </div>
-            <button type="button" class="btn btn-secondary btn-small" onclick="closeAddUserModal()" aria-label="Close">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="hms-modal-title" id="addUserTitle"><i class="fas fa-user-plus" style="color:#4f46e5"></i> Add New User</div>
+            <button type="button" class="btn btn-secondary btn-small" onclick="closeAddUserModal()" aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
         <form id="addUserForm">
             <div class="hms-modal-body">
@@ -18,21 +13,11 @@
                         <select id="staff_id" name="staff_id" class="form-select" required>
                             <?php if (!empty($availableStaff) && is_array($availableStaff)): ?>
                                 <option value="">Select staff member...</option>
-                                <?php foreach ($availableStaff as $staff): ?>
-                                    <?php
-                                        $fullName = trim(($staff['first_name'] ?? '') . ' ' . ($staff['last_name'] ?? ''));
-                                        $department = $staff['department'] ?? 'No Department';
-                                        $emp = $staff['employee_id'] ?? ($staff['staff_id'] ?? '');
-                                        $email = $staff['email'] ?? '';
-                                        $role = $staff['role'] ?? ($staff['designation'] ?? '');
-                                        $label = trim($fullName) !== '' ? $fullName : 'Unnamed';
-                                        $display = sprintf('%s - %s (%s)', $label, $department, $emp);
-                                    ?>
-                                    <option value="<?= esc($staff['staff_id']) ?>"
-                                            data-email="<?= esc($email) ?>"
-                                            data-role="<?= esc($role) ?>">
-                                        <?= esc($display) ?>
-                                    </option>
+                                <?php foreach ($availableStaff as $staff): 
+                                    $fullName = trim(($staff['first_name'] ?? '') . ' ' . ($staff['last_name'] ?? '')) ?: 'Unnamed';
+                                    $display = sprintf('%s - %s (%s)', $fullName, $staff['department'] ?? 'No Department', $staff['employee_id'] ?? $staff['staff_id'] ?? '');
+                                ?>
+                                    <option value="<?= esc($staff['staff_id']) ?>" data-email="<?= esc($staff['email'] ?? '') ?>" data-role="<?= esc($staff['role'] ?? $staff['designation'] ?? '') ?>"><?= esc($display) ?></option>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <option value="">No available staff members</option>

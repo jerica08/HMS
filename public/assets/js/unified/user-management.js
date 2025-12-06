@@ -338,48 +338,18 @@ class UserManager {
      * Handle action button clicks
      */
     handleAction(action, userId) {
-        switch (action) {
-            case 'view':
-                this.viewUser(userId);
-                break;
-            case 'edit':
-                this.editUser(userId);
-                break;
-            case 'reset':
-                this.resetPassword(userId);
-                break;
-            case 'restore':
-                this.restoreUser(userId);
-                break;
-        }
+        const actions = {
+            'view': () => this.viewUser(userId),
+            'edit': () => this.editUser(userId),
+            'reset': () => this.resetPassword(userId),
+            'restore': () => this.restoreUser(userId)
+        };
+        actions[action]?.();
     }
 
-    /**
-     * Open add user modal
-     */
-    openAddUserModal() {
-        if (window.AddUserModal) {
-            window.AddUserModal.open();
-        }
-    }
-
-    /**
-     * View user details
-     */
-    viewUser(userId) {
-        if (window.ViewUserModal) {
-            window.ViewUserModal.open(userId);
-        }
-    }
-
-    /**
-     * Edit user
-     */
-    editUser(userId) {
-        if (window.EditUserModal) {
-            window.EditUserModal.open(userId);
-        }
-    }
+    openAddUserModal() { window.AddUserModal?.open(); }
+    viewUser(userId) { window.ViewUserModal?.open(userId); }
+    editUser(userId) { window.EditUserModal?.open(userId); }
 
     /**
      * Reset user password
@@ -489,22 +459,10 @@ class UserManager {
     /**
      * Permission checks
      */
-    canEdit() {
-        return ['admin', 'it_staff'].includes(UserConfig.userRole);
-    }
-
-    canDelete() {
-        return ['admin', 'it_staff'].includes(UserConfig.userRole);
-    }
-
-    canResetPassword() {
-        return ['admin', 'it_staff'].includes(UserConfig.userRole);
-    }
-
-    canRestore() {
-        // Allow restore for IT staff and admin
-        return ['admin', 'it_staff'].includes(UserConfig.userRole);
-    }
+    canEdit() { return ['admin', 'it_staff'].includes(UserConfig.userRole); }
+    canDelete() { return ['admin', 'it_staff'].includes(UserConfig.userRole); }
+    canResetPassword() { return ['admin', 'it_staff'].includes(UserConfig.userRole); }
+    canRestore() { return ['admin', 'it_staff'].includes(UserConfig.userRole); }
 }
 
 // Global functions for backward compatibility

@@ -10,29 +10,13 @@
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="<?= base_url('assets/css/unified/user-management.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <?php
-      // Initialize optional filter vars to avoid notices
-      $search = $search ?? null;
-      $roleFilter = $roleFilter ?? null;
-      $statusFilter = $statusFilter ?? null;
-      
-      // Debug: Log what data we received
-      log_message('debug', 'UserManagement View: Users array = ' . (empty($users) ? 'EMPTY' : 'HAS ' . count($users) . ' users'));
-      if (!empty($users)) {
-          log_message('debug', 'UserManagement View: First user = ' . json_encode($users[0]));
-      }
-    ?>
 </head>
-<?php include APPPATH . 'Views/template/header.php'; ?> 
+<?= $this->include('template/header') ?>
 
-<?= $this->include('unified/components/notification', [
-    'id' => 'usersNotification',
-    'dismissFn' => 'dismissUserNotification()'
-]) ?>
+<?= $this->include('unified/components/notification', ['id' => 'usersNotification', 'dismissFn' => 'dismissUserNotification()']) ?>
 
 <div class="main-container">
-    <!-- Unified Sidebar -->
-     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+    <?= $this->include('unified/components/sidebar') ?>
 
     <main class="content" role="main">
         <h1 class="page-title">
@@ -41,17 +25,12 @@
         </h1>
         <div class="page-actions">
             <?php if (($permissions['canCreate'] ?? false)): ?>
-                <button type="button" class="btn btn-primary" id="addUserBtn" aria-label="Add New User">
-                    <i class="fas fa-plus" aria-hidden="true"></i> Add New User
-                </button>
+                <button type="button" class="btn btn-primary" id="addUserBtn" aria-label="Add New User"><i class="fas fa-plus"></i> Add New User</button>
             <?php endif; ?>
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
-                <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
-                    <i class="fas fa-download" aria-hidden="true"></i> Export
-                </button>
+                <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download"></i> Export</button>
             <?php endif; ?>
         </div>
-        
         <br />
 
         <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
@@ -186,20 +165,10 @@
                                 <td>
                                     <div class="action-buttons">
                                         <?php if ($permissions['canEdit'] ?? false): ?>
-                                            <button class="btn btn-warning btn-small action-btn" 
-                                                    data-action="edit" 
-                                                    data-user-id="<?= esc($user['user_id']) ?>"
-                                                    aria-label="Edit User <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?>">
-                                                <i class="fas fa-edit" aria-hidden="true"></i> Edit
-                                            </button>
+                                            <button class="btn btn-warning btn-small action-btn" data-action="edit" data-user-id="<?= esc($user['user_id']) ?>" aria-label="Edit User"><i class="fas fa-edit"></i> Edit</button>
                                         <?php endif; ?>
                                         <?php if ($permissions['canResetPassword'] ?? false): ?>
-                                            <button class="btn btn-primary btn-small action-btn" 
-                                                    data-action="reset" 
-                                                    data-user-id="<?= esc($user['user_id']) ?>"
-                                                    aria-label="Reset Password for <?= esc(trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''))) ?>">
-                                                <i class="fas fa-key" aria-hidden="true"></i> Reset
-                                            </button>
+                                            <button class="btn btn-primary btn-small action-btn" data-action="reset" data-user-id="<?= esc($user['user_id']) ?>" aria-label="Reset Password"><i class="fas fa-key"></i> Reset</button>
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -229,17 +198,10 @@
         <?= $this->include('unified/modals/view-user-modal') ?>
         <?= $this->include('unified/modals/edit-user-modal') ?>
 
-        <!-- User Management Scripts -->
-        <script>
-        function dismissFlash() {
-            const flashNotice = document.getElementById('flashNotice');
-            if (flashNotice) {
-                flashNotice.style.display = 'none';
-            }
-        }
-        </script>
-    <script src="<?= base_url('assets/js/unified/user-utils.js') ?>"></script>
-    <script src="<?= base_url('assets/js/unified/modals/add-user-modal.js') ?>"></script>
-    <script src="<?= base_url('assets/js/unified/modals/view-user-modal.js') ?>"></script>
-    <script src="<?= base_url('assets/js/unified/modals/edit-user-modal.js') ?>"></script>
-    <script src="<?= base_url('assets/js/unified/user-management.js') ?>"></script>
+        <!-- Scripts -->
+        <script src="<?= base_url('assets/js/unified/user-utils.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/modals/shared/user-modal-utils.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/modals/add-user-modal.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/modals/view-user-modal.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/modals/edit-user-modal.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/user-management.js') ?>"></script>

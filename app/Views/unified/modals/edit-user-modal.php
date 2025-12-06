@@ -2,13 +2,8 @@
 <div id="editUserModal" class="hms-modal-overlay" aria-hidden="true">
     <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
         <div class="hms-modal-header">
-            <div class="hms-modal-title" id="editUserTitle">
-                <i class="fas fa-user-edit" style="color:#4f46e5"></i>
-                Edit User
-            </div>
-            <button type="button" class="btn btn-secondary btn-small" onclick="closeEditUserModal()" aria-label="Close">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="hms-modal-title" id="editUserTitle"><i class="fas fa-user-edit" style="color:#4f46e5"></i> Edit User</div>
+            <button type="button" class="btn btn-secondary btn-small" onclick="closeEditUserModal()" aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
         <form id="editUserForm">
             <input type="hidden" id="e_user_id" name="user_id">
@@ -36,15 +31,9 @@
                         <label class="form-label">Staff Information</label>
                         <div style="padding: 1rem; background: #f8fafc; border-radius: 4px; border: 1px solid #e5e7eb;">
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                                <div>
-                                    <strong>Name:</strong> <span id="e_staff_name">-</span>
-                                </div>
-                                <div>
-                                    <strong>Employee ID:</strong> <span id="e_employee_id">-</span>
-                                </div>
-                                <div>
-                                    <strong>Department:</strong> <span id="e_department">-</span>
-                                </div>
+                                <?php foreach (['Name' => 'e_staff_name', 'Employee ID' => 'e_employee_id', 'Department' => 'e_department'] as $label => $id): ?>
+                                <div><strong><?= esc($label) ?>:</strong> <span id="<?= esc($id) ?>">-</span></div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
                     </div>

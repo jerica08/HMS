@@ -12,42 +12,25 @@
         </div>
         <div class="hms-modal-body">
             <div class="form-grid">
+                <?php
+                $fields = [
+                    'Username' => 'v_username',
+                    'Full Name' => 'v_full_name',
+                    'Email' => 'v_email',
+                    'Role' => 'v_role',
+                    'Department' => 'v_department',
+                    'Status' => 'v_status',
+                    'Employee ID' => 'v_employee_id',
+                    'Created At' => 'v_created_at',
+                    'Last Login' => 'v_last_login'
+                ];
+                foreach ($fields as $label => $id):
+                ?>
                 <div>
-                    <label class="form-label">Username</label>
-                    <input type="text" id="v_username" class="form-input" readonly disabled>
+                    <label class="form-label"><?= esc($label) ?></label>
+                    <input type="text" id="<?= esc($id) ?>" class="form-input" readonly disabled>
                 </div>
-                <div>
-                    <label class="form-label">Full Name</label>
-                    <input type="text" id="v_full_name" class="form-input" readonly disabled>
-                </div>
-                <div>
-                    <label class="form-label">Email</label>
-                    <input type="email" id="v_email" class="form-input" readonly disabled>
-                </div>
-                <div>
-                    <label class="form-label">Role</label>
-                    <input type="text" id="v_role" class="form-input" readonly disabled>
-                </div>
-                <div>
-                    <label class="form-label">Department</label>
-                    <input type="text" id="v_department" class="form-input" readonly disabled>
-                </div>
-                <div>
-                    <label class="form-label">Status</label>
-                    <input type="text" id="v_status" class="form-input" readonly disabled>
-                </div>
-                <div>
-                    <label class="form-label">Employee ID</label>
-                    <input type="text" id="v_employee_id" class="form-input" readonly disabled>
-                </div>
-                <div>
-                    <label class="form-label">Created At</label>
-                    <input type="text" id="v_created_at" class="form-input" readonly disabled>
-                </div>
-                <div>
-                    <label class="form-label">Last Login</label>
-                    <input type="text" id="v_last_login" class="form-input" readonly disabled>
-                </div>
+                <?php endforeach; ?>
             </div>
         </div>
         <div class="hms-modal-actions">

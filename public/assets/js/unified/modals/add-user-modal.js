@@ -15,75 +15,42 @@ window.AddUserModal = {
             this.form.addEventListener('submit', (e) => this.handleSubmit(e));
         }
         
-        // Staff selection change handler
         const staffSelect = document.getElementById('staff_id');
         if (staffSelect) {
             staffSelect.addEventListener('change', (e) => this.handleStaffSelection(e));
         }
         
-        // Password confirmation validation
         const confirmPassword = document.getElementById('confirm_password');
         if (confirmPassword) {
             confirmPassword.addEventListener('input', () => this.validatePasswordMatch());
         }
         
-        // Close modal on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal && !this.modal.getAttribute('aria-hidden')) {
-                this.close();
-            }
-        });
-        
-        // Close modal on background click
-        if (this.modal) {
-            this.modal.addEventListener('click', (e) => {
-                if (e.target === this.modal) {
-                    this.close();
-                }
-            });
-        }
+        UserModalUtils.setupModal('addUserModal');
     },
     
     async open() {
-        if (this.modal) {
-            this.modal.classList.add('active');
-            this.modal.setAttribute('aria-hidden', 'false');
-            this.resetForm();
-            
-            try {
-                await this.loadAvailableStaff();
-            } catch (error) {
-                console.error('Error loading staff:', error);
-                UserUtils.showNotification('Failed to load available staff', 'error');
-            }
+        UserModalUtils.openModal('addUserModal');
+        this.resetForm();
+        try {
+            await this.loadAvailableStaff();
+        } catch (error) {
+            console.error('Error loading staff:', error);
+            UserUtils.showNotification('Failed to load available staff', 'error');
         }
     },
     
     close() {
-        if (this.modal) {
-            this.modal.classList.remove('active');
-            this.modal.setAttribute('aria-hidden', 'true');
-            this.resetForm();
-        }
+        UserModalUtils.closeModal('addUserModal');
+        this.resetForm();
     },
     
     resetForm() {
         if (this.form) {
             this.form.reset();
-            this.clearErrors();
-            
-            // Reset staff dropdown
+            UserModalUtils.clearErrors(this.form);
             const staffSelect = document.getElementById('staff_id');
-            if (staffSelect) {
-                // Keep server-rendered options; just reset selection
-                staffSelect.value = '';
-            }
+            if (staffSelect) staffSelect.value = '';
         }
-    },
-    
-    clearErrors() {
-        const errorElements = this.form?.querySelectorAll('[id^="err_"]');
-        errorElements?.forEach(el => el.textContent = '');
     },
     
     async loadAvailableStaff() {
@@ -164,17 +131,7 @@ window.AddUserModal = {
     },
     
     validatePasswordMatch() {
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm_password').value;
-        const errorElement = document.getElementById('err_confirm_password');
-        
-        if (confirmPassword && password !== confirmPassword) {
-            errorElement.textContent = 'Passwords do not match';
-            return false;
-        } else {
-            errorElement.textContent = '';
-            return true;
-        }
+        return UserModalUtils.validatePasswordMatch('password', 'confirm_password', 'err_confirm_password');
     },
     
     async handleSubmit(e) {
@@ -189,14 +146,13 @@ window.AddUserModal = {
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
             }
             
-            this.clearErrors();
+            UserModalUtils.clearErrors(this.form);
             
-            // Validate password match
             if (!this.validatePasswordMatch()) {
                 return;
             }
             
-            const formData = this.collectFormData();
+            const formData = UserModalUtils.collectFormData(this.form);
             
             const response = await UserUtils.makeRequest(
                 UserConfig.getUrl(UserConfig.endpoints.userCreate),
@@ -216,7 +172,7 @@ window.AddUserModal = {
                 }
             } else {
                 if (response.errors) {
-                    this.displayErrors(response.errors);
+                    UserModalUtils.displayErrors(response.errors);
                     UserUtils.showNotification(response.message || 'Please fix the highlighted errors.', 'warning');
                     return;
                 }
@@ -233,25 +189,6 @@ window.AddUserModal = {
         }
     },
     
-    collectFormData() {
-        const formData = new FormData(this.form);
-        const data = {};
-        
-        for (let [key, value] of formData.entries()) {
-            data[key] = value;
-        }
-        
-        return data;
-    },
-    
-    displayErrors(errors) {
-        for (const [field, message] of Object.entries(errors)) {
-            const errorElement = document.getElementById(`err_${field}`);
-            if (errorElement) {
-                errorElement.textContent = Array.isArray(message) ? message[0] : message;
-            }
-        }
-    }
 };
 
 // Global functions for backward compatibility

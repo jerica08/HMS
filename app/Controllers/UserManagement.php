@@ -9,11 +9,15 @@ use App\Libraries\PermissionManager;
 class UserManagement extends BaseController
 {
     protected $userService;
+    protected $userRole;
+    protected $staffId;
 
     public function __construct()
     {
         $this->userService = new UserService();
-        // Authentication is now handled by the roleauth filter in routes
+        $session = session();
+        $this->userRole = $session->get('role') ?: 'admin';
+        $this->staffId = $session->get('staff_id');
     }
 
     /**
@@ -21,238 +25,116 @@ class UserManagement extends BaseController
      */
     public function index()
     {
-        $session = session();
-        $userRole = $session->get('role');
-        $staffId = $session->get('staff_id');
-        
-        // Temporary: Set default role if not logged in
-        if (!$userRole) {
-            $userRole = 'admin';
-            $staffId = null;
-            log_message('debug', 'UserManagement: No session role found, using admin for testing');
-        }
-        
-        log_message('debug', 'UserManagement: User role = ' . $userRole . ', Staff ID = ' . $staffId);
-        
-        // Get user data based on role permissions
-        $users = $this->userService->getUsersByRole($userRole, $staffId);
-        $stats = $this->userService->getUserStats($userRole, $staffId);
-        $availableStaff = $this->userService->getAvailableStaff($userRole);
-        
-        log_message('debug', 'UserManagement: Found ' . count($users) . ' users to display');
-        
-        // Debug: Log first user if available
-        if (!empty($users)) {
-            log_message('debug', 'UserManagement: First user data = ' . json_encode($users[0]));
-        }
-        
         $data = [
-            'title' => $this->getPageTitle($userRole),
-            'userRole' => $userRole,
-            'users' => $users,
-            'userStats' => $stats,
-            'availableStaff' => $availableStaff,
-            'permissions' => $this->getUserPermissions($userRole),
+            'title' => $this->getPageTitle($this->userRole),
+            'userRole' => $this->userRole,
+            'users' => $this->userService->getUsersByRole($this->userRole, $this->staffId),
+            'userStats' => $this->userService->getUserStats($this->userRole, $this->staffId),
+            'availableStaff' => $this->userService->getAvailableStaff($this->userRole),
+            'permissions' => $this->getUserPermissions($this->userRole),
         ];
-
-        // Use unified view that adapts to user role
         return view('unified/user-management', $data);
     }
 
     public function create()
     {
-        $session = session();
-        $userRole = $session->get('role');
-        
-        $isAjax = $this->request->isAJAX() || 
-                  $this->request->getHeaderLine('Accept') == 'application/json' ||
-                  $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
-
         try {
-            $data = $this->request->getPost() ?: $this->request->getJSON(true) ?? [];
-            
-            $result = $this->userService->createUser($data, $userRole);
-            
-            if ($isAjax) {
-                return $this->response->setJSON($result);
-            }
-            
-            session()->setFlashdata('success', $result['message']);
-            return redirect()->to($this->getRedirectUrl($userRole));
-            
+            $result = $this->userService->createUser($this->request->getPost() ?: $this->request->getJSON(true) ?? [], $this->userRole);
+            return $this->handleResponse($result, 'create');
         } catch (\Exception $e) {
-            if ($isAjax) {
-                return $this->response->setStatusCode(400)->setJSON([
-                    'status' => 'error',
-                    'message' => $e->getMessage()
-                ]);
-            }
-            
-            session()->setFlashdata('error', $e->getMessage());
-            return redirect()->back()->withInput();
+            return $this->handleError($e, 'create');
         }
     }
 
     public function update($userId = null)
     {
-        $session = session();
-        $userRole = $session->get('role');
-        
-        $userId = $userId ?? $this->request->getPost('user_id');
-        
-        $isAjax = $this->request->isAJAX() || 
-                  $this->request->getHeaderLine('Accept') == 'application/json' ||
-                  $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
-
         try {
-            $data = $this->request->getPost() ?: $this->request->getJSON(true) ?? [];
-            
-            $result = $this->userService->updateUser($userId, $data, $userRole);
-            
-            if ($isAjax) {
-                return $this->response->setJSON($result);
-            }
-            
-            session()->setFlashdata('success', $result['message']);
-            return redirect()->to($this->getRedirectUrl($userRole));
-            
+            $userId = $userId ?? $this->request->getPost('user_id');
+            $result = $this->userService->updateUser($userId, $this->request->getPost() ?: $this->request->getJSON(true) ?? [], $this->userRole);
+            return $this->handleResponse($result, 'update');
         } catch (\Exception $e) {
-            if ($isAjax) {
-                return $this->response->setStatusCode(400)->setJSON([
-                    'status' => 'error',
-                    'message' => $e->getMessage()
-                ]);
-            }
-            
-            session()->setFlashdata('error', $e->getMessage());
-            return redirect()->back()->withInput();
+            return $this->handleError($e, 'update');
         }
     }
 
     public function delete($userId = null)
     {
-        $session = session();
-        $userRole = $session->get('role');
-        
-        $isAjax = $this->request->isAJAX() || 
-                  $this->request->getHeaderLine('Accept') == 'application/json' ||
-                  $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
-        
         try {
-            $result = $this->userService->deleteUser($userId, $userRole);
-            
-            if ($isAjax) {
-                return $this->response->setJSON($result);
-            }
-            
-            session()->setFlashdata('success', $result['message']);
-            return redirect()->to($this->getRedirectUrl($userRole));
-            
+            $result = $this->userService->deleteUser($userId, $this->userRole);
+            return $this->handleResponse($result, 'delete');
         } catch (\Exception $e) {
-            if ($isAjax) {
-                return $this->response->setStatusCode(400)->setJSON([
-                    'status' => 'error',
-                    'message' => $e->getMessage()
-                ]);
-            }
-            
-            session()->setFlashdata('error', $e->getMessage());
-            return redirect()->to($this->getRedirectUrl($userRole));
+            return $this->handleError($e, 'delete');
         }
     }
 
     public function resetPassword($userId = null)
     {
-        $session = session();
-        $userRole = $session->get('role');
-        
         try {
-            // Generate temporary password
             $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^*';
             $tempPassword = '';
             for ($i = 0; $i < 12; $i++) {
                 $tempPassword .= $alphabet[random_int(0, strlen($alphabet) - 1)];
             }
             
-            $result = $this->userService->resetPassword($userId, $tempPassword, $userRole);
-            
+            $result = $this->userService->resetPassword($userId, $tempPassword, $this->userRole);
             session()->setFlashdata('success', $result['message'] . ' Temporary password: ' . $tempPassword);
-            return redirect()->to($this->getRedirectUrl($userRole));
-            
+            return redirect()->to($this->getRedirectUrl($this->userRole));
         } catch (\Exception $e) {
             session()->setFlashdata('error', $e->getMessage());
-            return redirect()->to($this->getRedirectUrl($userRole));
+            return redirect()->to($this->getRedirectUrl($this->userRole));
         }
     }
 
     // API Methods
     public function getUsersAPI()
     {
-        $session = session();
-        $userRole = $session->get('role');
-        $staffId = $session->get('staff_id');
-        
         try {
-            $users = $this->userService->getUsersByRole($userRole, $staffId);
-            return $this->response->setJSON(['status' => 'success', 'data' => $users]);
+            $users = $this->userService->getUsersByRole($this->userRole, $this->staffId);
+            return $this->jsonResponse(['status' => 'success', 'data' => $users]);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+            return $this->jsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
     
     public function getUser($userId = null)
     {
-        $session = session();
-        $userRole = $session->get('role');
-        
         try {
-            $user = $this->userService->getUser($userId, $userRole);
-            return $this->response->setJSON(['status' => 'success', 'data' => $user]);
+            $user = $this->userService->getUser($userId, $this->userRole);
+            return $this->jsonResponse(['status' => 'success', 'data' => $user]);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+            return $this->jsonResponse(['status' => 'error', 'message' => $e->getMessage()], 404);
         }
     }
     
     public function getAvailableStaffAPI()
     {
-        $session = session();
-        $userRole = $session->get('role');
-        
         try {
-            $staff = $this->userService->getAvailableStaff($userRole);
-            return $this->response->setJSON(['status' => 'success', 'data' => $staff]);
+            $staff = $this->userService->getAvailableStaff($this->userRole);
+            return $this->jsonResponse(['status' => 'success', 'data' => $staff]);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+            return $this->jsonResponse(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
     // Helper Methods
     private function getPageTitle($userRole)
     {
-        switch ($userRole) {
-            case 'admin':
-                return 'User Management';
-            case 'it_staff':
-                return 'System User Management';
-            case 'doctor':
-                return 'Department Users';
-            default:
-                return 'User Directory';
-        }
+        return match($userRole) {
+            'admin' => 'User Management',
+            'it_staff' => 'System User Management',
+            'doctor' => 'Department Users',
+            default => 'User Directory',
+        };
     }
     
     private function getRedirectUrl($userRole)
     {
-        switch ($userRole) {
-            case 'admin':
-                return 'admin/user-management';
-            case 'it_staff':
-                return 'it-staff/users';
-            case 'doctor':
-                return 'doctor/users';
-            default:
-                return 'admin/user-management';
-        }
+        return match($userRole) {
+            'admin' => 'admin/user-management',
+            'it_staff' => 'it-staff/users',
+            'doctor' => 'doctor/users',
+            default => 'admin/user-management',
+        };
     }
     
     private function getUserPermissions($userRole)
@@ -265,5 +147,47 @@ class UserManagement extends BaseController
             'canResetPassword' => PermissionManager::hasPermission($userRole, 'users', 'edit'),
             'canViewAll' => in_array($userRole, ['admin', 'it_staff']),
         ];
+    }
+
+    /**
+     * Helper: Check if request is AJAX
+     */
+    private function isAjaxRequest()
+    {
+        return $this->request->isAJAX() || 
+               $this->request->getHeaderLine('Accept') === 'application/json' ||
+               $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
+    }
+
+    /**
+     * Helper: Return JSON response with status code
+     */
+    private function jsonResponse($data, $statusCode = 200)
+    {
+        return $this->response->setStatusCode($statusCode)->setJSON($data);
+    }
+
+    /**
+     * Helper: Handle successful response (AJAX or redirect)
+     */
+    private function handleResponse($result, $action = '')
+    {
+        if ($this->isAjaxRequest()) {
+            return $this->jsonResponse($result);
+        }
+        session()->setFlashdata('success', $result['message']);
+        return redirect()->to($this->getRedirectUrl($this->userRole));
+    }
+
+    /**
+     * Helper: Handle error response (AJAX or redirect)
+     */
+    private function handleError(\Exception $e, $action = '')
+    {
+        if ($this->isAjaxRequest()) {
+            return $this->jsonResponse(['status' => 'error', 'message' => $e->getMessage()], 400);
+        }
+        session()->setFlashdata('error', $e->getMessage());
+        return $action === 'create' ? redirect()->back()->withInput() : redirect()->to($this->getRedirectUrl($this->userRole));
     }
 }

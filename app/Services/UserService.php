@@ -18,116 +18,55 @@ class UserService
     }
 
     /**
+     * Build base user query with all joins
+     */
+    private function buildUserQuery()
+    {
+        return $this->db->table('users u')
+            ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id, rl.slug as role_slug, rl.name as role_name')
+            ->join('staff s', 's.staff_id = u.staff_id', 'left')
+            ->join('department d', 'd.department_id = s.department_id', 'left')
+            ->join('roles rl', 'rl.role_id = u.role_id', 'left');
+    }
+
+    /**
      * Get users based on role and permissions
      */
     public function getUsersByRole($userRole, $staffId = null)
     {
         try {
-            // First try to get all users without complex joins to debug
-            $builder = $this->db->table('users');
-            $allUsers = $builder->get()->getResultArray();
-            
-            log_message('debug', 'UserService: Found ' . count($allUsers) . ' total users in database');
-            
-            if (empty($allUsers)) {
-                log_message('error', 'UserService: No users found in users table');
-                return [];
-            }
-            
-            // Now try the join query with proper department and role join
-            $builder = $this->db->table('users u')
-                ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id,
-                          rl.slug as role_slug, rl.name as role_name')
-                ->join('staff s', 's.staff_id = u.staff_id', 'left')
-                ->join('department d', 'd.department_id = s.department_id', 'left')
-                ->join('roles rl', 'rl.role_id = u.role_id', 'left');
+            $builder = $this->buildUserQuery();
 
-            switch ($userRole) {
-                case 'admin':
-                    // Admin: focus on active users by default
-                    $users = $builder
-                        ->where('u.status', 'active')
-                        ->orderBy('u.created_at', 'DESC')
-                        ->get()
-                        ->getResultArray();
-                    log_message('debug', 'UserService: Admin query (active users only) returned ' . count($users) . ' users');
-                    break;
-
-                case 'it_staff':
-                    // IT staff: view only inactive (soft-deleted) users
-                    $users = $builder
-                        ->where('u.status', 'inactive')
-                        ->orderBy('u.created_at', 'DESC')
-                        ->get()
-                        ->getResultArray();
-                    log_message('debug', 'UserService: IT staff query (inactive users only) returned ' . count($users) . ' users');
-                    break;
-                    
-                case 'doctor':
-                    // Doctors can see users in their department
-                    $doctorInfo = $this->staffBuilder->where('staff_id', $staffId)->get()->getRowArray();
-                    $departmentId = $doctorInfo['department_id'] ?? null;
-                    
-                    if ($departmentId) {
-                        $users = $builder->where('s.department_id', $departmentId)
-                                        ->orderBy('u.created_at', 'DESC')
-                                        ->get()->getResultArray();
-                        log_message('debug', 'UserService: Doctor query for department ID ' . $departmentId . ' returned ' . count($users) . ' users');
-                    } else {
-                        $users = [];
-                        log_message('warning', 'UserService: Doctor has no department assigned');
+            if (in_array($userRole, ['admin', 'it_staff'])) {
+                $users = $builder->where('u.status', $userRole === 'admin' ? 'active' : 'inactive')
+                    ->orderBy('u.created_at', 'DESC')->get()->getResultArray();
+            } elseif (in_array($userRole, ['doctor', 'nurse'])) {
+                $info = $this->staffBuilder->where('staff_id', $staffId)->get()->getRowArray();
+                $deptId = $info['department_id'] ?? null;
+                if ($deptId) {
+                    $builder->where('s.department_id', $deptId);
+                    if ($userRole === 'nurse') {
+                        $builder->whereIn('rl.slug', ['doctor', 'nurse']);
                     }
-                    break;
-                    
-                case 'nurse':
-                    // Nurses can see limited user info in their department
-                    $nurseInfo = $this->staffBuilder->where('staff_id', $staffId)->get()->getRowArray();
-                    $departmentId = $nurseInfo['department_id'] ?? null;
-                    
-                    if ($departmentId) {
-                        $users = $builder->where('s.department_id', $departmentId)
-                                        ->whereIn('rl.slug', ['doctor', 'nurse'])
-                                        ->orderBy('u.created_at', 'DESC')
-                                        ->get()->getResultArray();
-                        log_message('debug', 'UserService: Nurse query for department ID ' . $departmentId . ' returned ' . count($users) . ' users');
-                    } else {
-                        $users = [];
-                        log_message('warning', 'UserService: Nurse has no department assigned');
-                    }
-                    break;
-                    
-                default:
-                    // Other roles see basic user directory
-                    $users = $builder->whereIn('rl.slug', ['doctor', 'receptionist'])
-                                    ->select('u.user_id, u.username, u.role_id, u.status,
-                                             rl.slug as role_slug, rl.name as role_name,
-                                             s.first_name, s.last_name, d.name as department')
-                                    ->orderBy('s.first_name', 'ASC')
-                                    ->get()->getResultArray();
-                    log_message('debug', 'UserService: Default role query returned ' . count($users) . ' users');
+                    $users = $builder->orderBy('u.created_at', 'DESC')->get()->getResultArray();
+                } else {
+                    $users = [];
+                }
+            } else {
+                $users = $builder->whereIn('rl.slug', ['doctor', 'receptionist'])
+                    ->select('u.user_id, u.username, u.role_id, u.status, rl.slug as role_slug, rl.name as role_name, s.first_name, s.last_name, d.name as department')
+                    ->orderBy('s.first_name', 'ASC')->get()->getResultArray();
             }
 
-            // Format user data
-            $formattedUsers = array_map(function($user) {
-                // Normalize role for frontend (use slug when available)
-                if (!isset($user['role']) || empty($user['role'])) {
-                    $user['role'] = $user['role_slug'] ?? ($user['role_name'] ?? null);
-                }
-
-                $user['full_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
-                if (empty($user['full_name'])) {
-                    $user['full_name'] = $user['username'] ?? 'Unknown User';
-                }
+            return array_map(function($user) {
+                $user['role'] = $user['role'] ?? ($user['role_slug'] ?? ($user['role_name'] ?? null));
+                $user['full_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')) ?: ($user['username'] ?? 'Unknown User');
                 $user['id'] = $user['user_id'] ?? null;
                 return $user;
             }, $users);
 
-            log_message('debug', 'UserService: Returning ' . count($formattedUsers) . ' formatted users');
-            return $formattedUsers;
-
         } catch (\Throwable $e) {
             log_message('error', 'UserService getUsersByRole error: ' . $e->getMessage());
-            log_message('error', 'UserService Stack trace: ' . $e->getTraceAsString());
             return [];
         }
     }
@@ -137,45 +76,25 @@ class UserService
      */
     public function restoreUser($userId, $userRole)
     {
-        // Require edit permission to restore
         if (!PermissionManager::hasPermission($userRole, 'users', 'edit')) {
             throw new \Exception('Insufficient permissions to restore users');
         }
 
-        try {
-            // Get existing user
-            $existingUser = $this->userBuilder->where('user_id', $userId)->get()->getRowArray();
-
-            if (!$existingUser) {
-                throw new \Exception('User not found');
-            }
-
-            if (($existingUser['status'] ?? 'active') === 'active') {
-                return [
-                    'status' => 'success',
-                    'message' => 'User is already active'
-                ];
-            }
-
-            $result = $this->userBuilder
-                ->where('user_id', $userId)
-                ->update([
-                    'status' => 'active',
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-
-            if (!$result) {
-                throw new \Exception('Failed to restore user');
-            }
-
-            return [
-                'status' => 'success',
-                'message' => 'User restored successfully'
-            ];
-
-        } catch (\Exception $e) {
-            throw $e;
+        $existingUser = $this->userBuilder->where('user_id', $userId)->get()->getRowArray();
+        if (!$existingUser) {
+            throw new \Exception('User not found');
         }
+
+        if (($existingUser['status'] ?? 'active') === 'active') {
+            return ['status' => 'success', 'message' => 'User is already active'];
+        }
+
+        $result = $this->userBuilder->where('user_id', $userId)->update(['status' => 'active', 'updated_at' => date('Y-m-d H:i:s')]);
+        if (!$result) {
+            throw new \Exception('Failed to restore user');
+        }
+
+        return ['status' => 'success', 'message' => 'User restored successfully'];
     }
 
     /**
@@ -184,49 +103,32 @@ class UserService
     public function getUserStats($userRole, $staffId = null)
     {
         try {
-            $stats = [];
-            
-            switch ($userRole) {
-                case 'admin':
-                case 'it_staff':
-                    $stats = [
-                        'total_users' => $this->userBuilder->countAllResults(),
-                        'active_users' => $this->userBuilder->where('status', 'active')->countAllResults(),
-                        'admin_users' => $this->userBuilder->where('role', 'admin')->countAllResults(),
-                        'doctor_users' => $this->userBuilder->where('role', 'doctor')->countAllResults(),
-                        'nurse_users' => $this->userBuilder->where('role', 'nurse')->countAllResults(),
-                        'new_users_month' => $this->userBuilder->where('created_at >=', date('Y-m-01'))->countAllResults(),
+            if (in_array($userRole, ['admin', 'it_staff'])) {
+                return [
+                    'total_users' => $this->userBuilder->countAllResults(),
+                    'active_users' => $this->userBuilder->where('status', 'active')->countAllResults(),
+                    'admin_users' => $this->userBuilder->where('role', 'admin')->countAllResults(),
+                    'doctor_users' => $this->userBuilder->where('role', 'doctor')->countAllResults(),
+                    'nurse_users' => $this->userBuilder->where('role', 'nurse')->countAllResults(),
+                    'new_users_month' => $this->userBuilder->where('created_at >=', date('Y-m-01'))->countAllResults(),
+                ];
+            } elseif ($userRole === 'doctor' && $staffId) {
+                $doctorInfo = $this->staffBuilder->where('staff_id', $staffId)->get()->getRowArray();
+                $department = $doctorInfo['department'] ?? null;
+                if ($department) {
+                    $deptUsers = $this->db->table('users u')->join('staff s', 's.staff_id = u.staff_id', 'left')->where('s.department', $department);
+                    return [
+                        'department_users' => $deptUsers->countAllResults(false),
+                        'department_active' => $deptUsers->where('u.status', 'active')->countAllResults(),
                     ];
-                    break;
-                    
-                case 'doctor':
-                    // Get department-based stats
-                    $doctorInfo = $this->staffBuilder->where('staff_id', $staffId)->get()->getRowArray();
-                    $department = $doctorInfo['department'] ?? null;
-                    
-                    if ($department) {
-                        $departmentUsers = $this->db->table('users u')
-                            ->join('staff s', 's.staff_id = u.staff_id', 'left')
-                            ->where('s.department', $department);
-                            
-                        $stats = [
-                            'department_users' => $departmentUsers->countAllResults(false),
-                            'department_active' => $departmentUsers->where('u.status', 'active')->countAllResults(),
-                        ];
-                    } else {
-                        $stats = ['department_users' => 0, 'department_active' => 0];
-                    }
-                    break;
-                    
-                default:
-                    $stats = [
-                        'total_users' => $this->userBuilder->countAllResults(),
-                        'active_users' => $this->userBuilder->where('status', 'active')->countAllResults(),
-                    ];
+                }
+                return ['department_users' => 0, 'department_active' => 0];
             }
             
-            return $stats;
-            
+            return [
+                'total_users' => $this->userBuilder->countAllResults(),
+                'active_users' => $this->userBuilder->where('status', 'active')->countAllResults(),
+            ];
         } catch (\Throwable $e) {
             log_message('error', 'UserService getUserStats error: ' . $e->getMessage());
             return [];
@@ -238,41 +140,32 @@ class UserService
      */
     public function createUser($data, $userRole)
     {
-        // Check permissions
         if (!PermissionManager::hasPermission($userRole, 'users', 'create')) {
             throw new \Exception('Insufficient permissions to create users');
         }
 
+        if (empty($data['staff_id']) || empty($data['username']) || empty($data['password'])) {
+            throw new \Exception('Staff ID, username, and password are required');
+        }
+
         $this->db->transStart();
-
         try {
-            // Validate required fields
-            if (empty($data['staff_id']) || empty($data['username']) || empty($data['password'])) {
-                throw new \Exception('Staff ID, username, and password are required');
-            }
-
-            // Derive role from the selected staff member instead of requiring it from the form
             $staffId = (int) $data['staff_id'];
             $staffRow = $this->db->table('staff s')
                 ->select('s.*, rl.role_id as resolved_role_id')
                 ->join('roles rl', 'rl.role_id = s.role_id', 'left')
                 ->where('s.staff_id', $staffId)
-                ->get()
-                ->getRowArray();
+                ->get()->getRowArray();
 
             if (!$staffRow) {
                 throw new \Exception('Selected staff member not found');
             }
 
-            // Prefer staff.role_id if available; otherwise try to resolve from staff.role slug
             $roleId = null;
             if (!empty($staffRow['role_id'])) {
                 $roleId = (int) $staffRow['role_id'];
             } elseif (!empty($staffRow['role'])) {
-                $roleRow = $this->db->table('roles')
-                    ->where('slug', $staffRow['role'])
-                    ->get()
-                    ->getRowArray();
+                $roleRow = $this->db->table('roles')->where('slug', $staffRow['role'])->get()->getRowArray();
                 if (!$roleRow) {
                     throw new \Exception('Unable to resolve role for selected staff');
                 }
@@ -283,19 +176,14 @@ class UserService
                 throw new \Exception('Unable to determine role for selected staff');
             }
 
-            // Check if username already exists
-            $existingUser = $this->userBuilder->where('username', $data['username'])->get()->getRowArray();
-            if ($existingUser) {
+            if ($this->userBuilder->where('username', $data['username'])->get()->getRowArray()) {
                 throw new \Exception('Username already exists');
             }
 
-            // Check if staff member already has a user account
-            $existingStaffUser = $this->userBuilder->where('staff_id', $data['staff_id'])->get()->getRowArray();
-            if ($existingStaffUser) {
+            if ($this->userBuilder->where('staff_id', $data['staff_id'])->get()->getRowArray()) {
                 throw new \Exception('This staff member already has a user account');
             }
 
-            // Prepare user data
             $userData = [
                 'staff_id' => $data['staff_id'],
                 'username' => $data['username'],
@@ -307,24 +195,16 @@ class UserService
                 'updated_at' => date('Y-m-d H:i:s')
             ];
 
-            $result = $this->userBuilder->insert($userData);
-            
-            if (!$result) {
+            if (!$this->userBuilder->insert($userData)) {
                 throw new \Exception('Failed to create user');
             }
 
             $this->db->transComplete();
-
             if ($this->db->transStatus() === false) {
                 throw new \Exception('Transaction failed');
             }
 
-            return [
-                'status' => 'success',
-                'message' => 'User created successfully',
-                'user_id' => $this->db->insertID()
-            ];
-
+            return ['status' => 'success', 'message' => 'User created successfully', 'user_id' => $this->db->insertID()];
         } catch (\Exception $e) {
             $this->db->transRollback();
             throw $e;
@@ -336,60 +216,38 @@ class UserService
      */
     public function updateUser($userId, $data, $userRole)
     {
-        // Check permissions
         if (!PermissionManager::hasPermission($userRole, 'users', 'edit')) {
             throw new \Exception('Insufficient permissions to update users');
         }
 
-        try {
-            // Get existing user
-            $existingUser = $this->userBuilder->where('user_id', $userId)->get()->getRowArray();
-            if (!$existingUser) {
-                throw new \Exception('User not found');
-            }
-
-            // Prepare update data
-            $updateData = [];
-
-            // Basic fields that exist directly on users table
-            $basicFields = ['username', 'email', 'status'];
-
-            foreach ($basicFields as $field) {
-                if (isset($data[$field]) && $data[$field] !== '') {
-                    $updateData[$field] = $data[$field];
-                }
-            }
-
-            if (empty($updateData)) {
-                return ['status' => 'success', 'message' => 'No changes to update'];
-            }
-
-            // Check username uniqueness if being updated
-            if (isset($updateData['username']) && $updateData['username'] !== $existingUser['username']) {
-                $usernameExists = $this->userBuilder->where('username', $updateData['username'])
-                                                  ->where('user_id !=', $userId)
-                                                  ->get()->getRowArray();
-                if ($usernameExists) {
-                    throw new \Exception('Username already exists');
-                }
-            }
-
-            $updateData['updated_at'] = date('Y-m-d H:i:s');
-
-            $result = $this->userBuilder->where('user_id', $userId)->update($updateData);
-
-            if (!$result) {
-                throw new \Exception('Failed to update user');
-            }
-
-            return [
-                'status' => 'success',
-                'message' => 'User updated successfully'
-            ];
-
-        } catch (\Exception $e) {
-            throw $e;
+        $existingUser = $this->userBuilder->where('user_id', $userId)->get()->getRowArray();
+        if (!$existingUser) {
+            throw new \Exception('User not found');
         }
+
+        $updateData = [];
+        foreach (['username', 'email', 'status'] as $field) {
+            if (isset($data[$field]) && $data[$field] !== '') {
+                $updateData[$field] = $data[$field];
+            }
+        }
+
+        if (empty($updateData)) {
+            return ['status' => 'success', 'message' => 'No changes to update'];
+        }
+
+        if (isset($updateData['username']) && $updateData['username'] !== $existingUser['username']) {
+            if ($this->userBuilder->where('username', $updateData['username'])->where('user_id !=', $userId)->get()->getRowArray()) {
+                throw new \Exception('Username already exists');
+            }
+        }
+
+        $updateData['updated_at'] = date('Y-m-d H:i:s');
+        if (!$this->userBuilder->where('user_id', $userId)->update($updateData)) {
+            throw new \Exception('Failed to update user');
+        }
+
+        return ['status' => 'success', 'message' => 'User updated successfully'];
     }
 
     /**
@@ -397,59 +255,34 @@ class UserService
      */
     public function deleteUser($userId, $userRole)
     {
-        // Check permissions
         if (!PermissionManager::hasPermission($userRole, 'users', 'delete')) {
             throw new \Exception('Insufficient permissions to delete users');
         }
 
-        try {
-            // Get existing user with joined role information
-            $existingUser = $this->db->table('users u')
-                ->select('u.*, rl.slug as role_slug')
-                ->join('roles rl', 'rl.role_id = u.role_id', 'left')
-                ->where('u.user_id', $userId)
-                ->get()
-                ->getRowArray();
+        $existingUser = $this->db->table('users u')
+            ->select('u.*, rl.slug as role_slug')
+            ->join('roles rl', 'rl.role_id = u.role_id', 'left')
+            ->where('u.user_id', $userId)
+            ->get()->getRowArray();
 
-            if (!$existingUser) {
-                throw new \Exception('User not found');
-            }
-
-            // Determine the user's role from available fields (backwards compatible)
-            $existingUserRole = $existingUser['role'] ?? $existingUser['role_slug'] ?? null;
-
-            // Prevent deletion of admin users by non-admin users
-            if ($existingUserRole === 'admin' && $userRole !== 'admin') {
-                throw new \Exception('Cannot delete admin users');
-            }
-
-            // Soft delete: mark user as inactive instead of removing record
-            if ($existingUser['status'] === 'inactive') {
-                return [
-                    'status' => 'success',
-                    'message' => 'User is already inactive'
-                ];
-            }
-
-            $result = $this->userBuilder
-                ->where('user_id', $userId)
-                ->update([
-                    'status' => 'inactive',
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-
-            if (!$result) {
-                throw new \Exception('Failed to deactivate user');
-            }
-
-            return [
-                'status' => 'success',
-                'message' => 'User set to inactive successfully'
-            ];
-
-        } catch (\Exception $e) {
-            throw $e;
+        if (!$existingUser) {
+            throw new \Exception('User not found');
         }
+
+        $existingUserRole = $existingUser['role'] ?? $existingUser['role_slug'] ?? null;
+        if ($existingUserRole === 'admin' && $userRole !== 'admin') {
+            throw new \Exception('Cannot delete admin users');
+        }
+
+        if ($existingUser['status'] === 'inactive') {
+            return ['status' => 'success', 'message' => 'User is already inactive'];
+        }
+
+        if (!$this->userBuilder->where('user_id', $userId)->update(['status' => 'inactive', 'updated_at' => date('Y-m-d H:i:s')])) {
+            throw new \Exception('Failed to deactivate user');
+        }
+
+        return ['status' => 'success', 'message' => 'User set to inactive successfully'];
     }
 
     /**
@@ -457,35 +290,19 @@ class UserService
      */
     public function getUser($userId, $userRole)
     {
-        try {
-            $user = $this->db->table('users u')
-                ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id, rl.slug as role_slug, rl.name as role_name')
-                ->join('staff s', 's.staff_id = u.staff_id', 'left')
-                ->join('department d', 'd.department_id = s.department_id', 'left')
-                ->join('roles rl', 'rl.role_id = u.role_id', 'left')
-                ->where('u.user_id', $userId)
-                ->get()->getRowArray();
-
-            if (!$user) {
-                throw new \Exception('User not found');
-            }
-
-            // Role-based access control
-            if (!$this->canViewUser($user, $userRole)) {
-                throw new \Exception('Insufficient permissions to view this user');
-            }
-
-            // Normalize role field for frontend (use slug when available)
-            $user['role'] = $user['role_slug'] ?? ($user['role_name'] ?? null);
-
-            $user['full_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
-            $user['id'] = $user['user_id'];
-
-            return $user;
-
-        } catch (\Exception $e) {
-            throw $e;
+        $user = $this->buildUserQuery()->where('u.user_id', $userId)->get()->getRowArray();
+        if (!$user) {
+            throw new \Exception('User not found');
         }
+
+        if (!$this->canViewUser($user, $userRole)) {
+            throw new \Exception('Insufficient permissions to view this user');
+        }
+
+        $user['role'] = $user['role_slug'] ?? ($user['role_name'] ?? null);
+        $user['full_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        $user['id'] = $user['user_id'];
+        return $user;
     }
 
     /**
@@ -493,31 +310,18 @@ class UserService
      */
     public function resetPassword($userId, $newPassword, $userRole)
     {
-        // Check permissions
         if (!PermissionManager::hasPermission($userRole, 'users', 'edit')) {
             throw new \Exception('Insufficient permissions to reset passwords');
         }
 
-        try {
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-            
-            $result = $this->userBuilder->where('user_id', $userId)->update([
-                'password' => $hashedPassword,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
-
-            if (!$result) {
-                throw new \Exception('Failed to reset password');
-            }
-
-            return [
-                'status' => 'success',
-                'message' => 'Password reset successfully'
-            ];
-
-        } catch (\Exception $e) {
-            throw $e;
+        if (!$this->userBuilder->where('user_id', $userId)->update([
+            'password' => password_hash($newPassword, PASSWORD_DEFAULT),
+            'updated_at' => date('Y-m-d H:i:s')
+        ])) {
+            throw new \Exception('Failed to reset password');
         }
+
+        return ['status' => 'success', 'message' => 'Password reset successfully'];
     }
 
     /**
@@ -526,19 +330,8 @@ class UserService
     public function getAvailableStaff($userRole)
     {
         try {
-            // Get staff members who don't have user accounts yet (anti-join)
-            // Include department and role information via joins
             $staff = $this->db->table('staff s')
-                ->select(
-                    's.staff_id,
-                     s.first_name,
-                     s.last_name,
-                     s.employee_id,
-                     s.email,
-                     d.name AS department,
-                     rl.slug AS role_slug,
-                     rl.name AS role_name'
-                )
+                ->select('s.staff_id, s.first_name, s.last_name, s.employee_id, s.email, d.name AS department, rl.slug AS role_slug, rl.name AS role_name')
                 ->join('users u', 'u.staff_id = s.staff_id', 'left')
                 ->join('department d', 'd.department_id = s.department_id', 'left')
                 ->join('roles rl', 'rl.role_id = s.role_id', 'left')
@@ -548,11 +341,9 @@ class UserService
 
             return array_map(function ($s) {
                 $s['full_name'] = trim(($s['first_name'] ?? '') . ' ' . ($s['last_name'] ?? ''));
-                // Expose a generic "role" field expected by views/JS
                 $s['role'] = $s['role_slug'] ?? ($s['role_name'] ?? null);
                 return $s;
             }, $staff);
-
         } catch (\Exception $e) {
             log_message('error', 'UserService getAvailableStaff error: ' . $e->getMessage());
             return [];
@@ -564,18 +355,6 @@ class UserService
      */
     private function canViewUser($user, $viewerRole)
     {
-        switch ($viewerRole) {
-            case 'admin':
-            case 'it_staff':
-                return true;
-                
-            case 'doctor':
-            case 'nurse':
-                // Can view users in same department
-                return true; // Implement department check if needed
-                
-            default:
-                return false;
-        }
+        return in_array($viewerRole, ['admin', 'it_staff', 'doctor', 'nurse']);
     }
 }

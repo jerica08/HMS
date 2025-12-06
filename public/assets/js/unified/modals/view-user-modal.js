@@ -7,22 +7,7 @@ window.ViewUserModal = {
     
     init() {
         this.modal = document.getElementById('viewUserModal');
-        
-        // Close modal on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal && !this.modal.getAttribute('aria-hidden')) {
-                this.close();
-            }
-        });
-        
-        // Close modal on background click
-        if (this.modal) {
-            this.modal.addEventListener('click', (e) => {
-                if (e.target === this.modal) {
-                    this.close();
-                }
-            });
-        }
+        UserModalUtils.setupModal('viewUserModal');
     },
     
     async open(userId) {
@@ -31,26 +16,19 @@ window.ViewUserModal = {
             return;
         }
         
-        if (this.modal) {
-            this.modal.classList.add('active');
-            this.modal.setAttribute('aria-hidden', 'false');
-            
-            try {
-                await this.loadUserDetails(userId);
-            } catch (error) {
-                console.error('Error loading user details:', error);
-                UserUtils.showNotification('Failed to load user details', 'error');
-                this.close();
-            }
+        UserModalUtils.openModal('viewUserModal');
+        try {
+            await this.loadUserDetails(userId);
+        } catch (error) {
+            console.error('Error loading user details:', error);
+            UserUtils.showNotification('Failed to load user details', 'error');
+            this.close();
         }
     },
     
     close() {
-        if (this.modal) {
-            this.modal.classList.remove('active');
-            this.modal.setAttribute('aria-hidden', 'true');
-            this.clearForm();
-        }
+        UserModalUtils.closeModal('viewUserModal');
+        this.clearForm();
     },
     
     async loadUserDetails(userId) {

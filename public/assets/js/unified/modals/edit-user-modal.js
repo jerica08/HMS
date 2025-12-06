@@ -14,21 +14,7 @@ window.EditUserModal = {
             this.form.addEventListener('submit', (e) => this.handleSubmit(e));
         }
         
-        // Close modal on escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal && !this.modal.getAttribute('aria-hidden')) {
-                this.close();
-            }
-        });
-        
-        // Close modal on background click
-        if (this.modal) {
-            this.modal.addEventListener('click', (e) => {
-                if (e.target === this.modal) {
-                    this.close();
-                }
-            });
-        }
+        UserModalUtils.setupModal('editUserModal');
     },
     
     async open(userId) {
@@ -37,39 +23,27 @@ window.EditUserModal = {
             return;
         }
         
-        if (this.modal) {
-            this.modal.classList.add('active');
-            this.modal.setAttribute('aria-hidden', 'false');
-            this.clearErrors();
-            
-            try {
-                await this.loadUserDetails(userId);
-            } catch (error) {
-                console.error('Error loading user details:', error);
-                UserUtils.showNotification('Failed to load user details', 'error');
-                this.close();
-            }
+        UserModalUtils.openModal('editUserModal');
+        UserModalUtils.clearErrors(this.form, 'e_');
+        try {
+            await this.loadUserDetails(userId);
+        } catch (error) {
+            console.error('Error loading user details:', error);
+            UserUtils.showNotification('Failed to load user details', 'error');
+            this.close();
         }
     },
     
     close() {
-        if (this.modal) {
-            this.modal.classList.remove('active');
-            this.modal.setAttribute('aria-hidden', 'true');
-            this.resetForm();
-        }
+        UserModalUtils.closeModal('editUserModal');
+        this.resetForm();
     },
     
     resetForm() {
         if (this.form) {
             this.form.reset();
-            this.clearErrors();
+            UserModalUtils.clearErrors(this.form, 'e_');
         }
-    },
-    
-    clearErrors() {
-        const errorElements = this.form?.querySelectorAll('[id^="e_err_"]');
-        errorElements?.forEach(el => el.textContent = '');
     },
     
     async loadUserDetails(userId) {
@@ -126,9 +100,9 @@ window.EditUserModal = {
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
             }
             
-            this.clearErrors();
+            UserModalUtils.clearErrors(this.form, 'e_');
             
-            const formData = this.collectFormData();
+            const formData = UserModalUtils.collectFormData(this.form);
             const userId = formData.user_id;
             
             const response = await UserUtils.makeRequest(
@@ -149,7 +123,7 @@ window.EditUserModal = {
                 }
             } else {
                 if (response.errors) {
-                    this.displayErrors(response.errors);
+                    UserModalUtils.displayErrors(response.errors, 'e_');
                 }
                 throw new Error(response.message || 'Failed to update user');
             }
@@ -164,25 +138,6 @@ window.EditUserModal = {
         }
     },
     
-    collectFormData() {
-        const formData = new FormData(this.form);
-        const data = {};
-        
-        for (let [key, value] of formData.entries()) {
-            data[key] = value;
-        }
-        
-        return data;
-    },
-    
-    displayErrors(errors) {
-        for (const [field, message] of Object.entries(errors)) {
-            const errorElement = document.getElementById(`e_err_${field}`);
-            if (errorElement) {
-                errorElement.textContent = Array.isArray(message) ? message[0] : message;
-            }
-        }
-    }
 };
 
 // Global functions for backward compatibility

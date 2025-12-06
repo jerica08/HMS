@@ -21,7 +21,6 @@ $routes->get('contact', 'Home::contact');
 $routes->get('login', 'Auth::login');
 $routes->post('login', 'Auth::login');
 $routes->get('logout', 'Auth::logout');
-$routes->get('auth/logout', 'Auth::logout');
 
 // ===================================================================
 // UNIFIED DASHBOARD MANAGEMENT
@@ -49,12 +48,12 @@ $routes->post('api/dashboard-preferences', 'Unified\DashboardController::updateP
 // UNIFIED USER MANAGEMENT
 // ===================================================================
 
-// User Management Views - Role-specific entry points (temporarily removed auth for testing)
-$routes->get('admin/user-management', 'UserManagement::index');
-$routes->get('doctor/users', 'UserManagement::index');
-$routes->get('it-staff/users', 'UserManagement::index');
-$routes->get('nurse/users', 'UserManagement::index');
-$routes->get('receptionist/users', 'UserManagement::index');
+// User Management Views - Role-specific entry points
+$routes->get('admin/user-management', 'UserManagement::index', ['filter' => 'roleauth:admin']);
+$routes->get('doctor/users', 'UserManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('it-staff/users', 'UserManagement::index', ['filter' => 'roleauth:it_staff']);
+$routes->get('nurse/users', 'UserManagement::index', ['filter' => 'roleauth:nurse']);
+$routes->get('receptionist/users', 'UserManagement::index', ['filter' => 'roleauth:receptionist']);
 
 // User Management API Routes
 $routes->get('users/api', 'UserManagement::getUsersAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
@@ -65,18 +64,6 @@ $routes->post('users/update/(:num)', 'UserManagement::update/$1', ['filter' => '
 $routes->post('users/reset-password/(:num)', 'UserManagement::resetPassword/$1', ['filter' => 'roleauth:admin,it_staff']);
 $routes->delete('users/delete/(:num)', 'UserManagement::delete/$1', ['filter' => 'roleauth:admin,it_staff']);
 $routes->post('users/restore/(:num)', 'UserManagement::restore/$1', ['filter' => 'roleauth:admin,it_staff']);
-
-// Legacy Admin User Management Routes
-$routes->post('admin/user-management/create', 'UserManagement::create', ['filter' => 'roleauth:admin']);
-$routes->post('admin/user-management/update', 'UserManagement::update', ['filter' => 'roleauth:admin']);
-$routes->get('admin/user-management/delete/(:num)', 'UserManagement::delete/$1', ['filter' => 'roleauth:admin']);
-$routes->get('admin/user-management/reset-password/(:num)', 'UserManagement::resetPassword/$1', ['filter' => 'roleauth:admin']);
-$routes->get('admin/user-management/users', 'UserManagement::getUsersAPI', ['filter' => 'roleauth:admin']);
-$routes->get('admin/user-management/user/(:num)', 'UserManagement::getUser/$1', ['filter' => 'roleauth:admin']);
-$routes->get('admin/user-management/staff/(:num)', 'UserManagement::getAvailableStaffAPI', ['filter' => 'roleauth:admin']);
-
-// Debug route for troubleshooting
-$routes->get('debug', 'DebugController::index');
 
 // ===================================================================
 // UNIFIED STAFF MANAGEMENT
@@ -96,16 +83,6 @@ $routes->get('staff/next-employee-id', 'StaffManagement::getNextEmployeeId', ['f
 $routes->post('staff/create', 'StaffManagement::create', ['filter' => 'roleauth:admin,it_staff']);
 $routes->post('staff/update', 'StaffManagement::update', ['filter' => 'roleauth:admin,it_staff']);
 $routes->delete('staff/delete/(:num)', 'StaffManagement::delete/$1', ['filter' => 'roleauth:admin,it_staff']);
-
-// Legacy Admin Staff Management Routes
-$routes->match(['get', 'post'], 'admin/staff-management/create', 'StaffManagement::create', ['filter' => 'roleauth:admin']);
-$routes->post('admin/staff-management/update/(:num)', 'StaffManagement::update/$1', ['filter' => 'roleauth:admin']);
-$routes->post('admin/staff-management/update', 'StaffManagement::update', ['filter' => 'roleauth:admin']);
-$routes->get('admin/staff-management/delete/(:num)', 'StaffManagement::delete/$1', ['filter' => 'roleauth:admin']);
-$routes->get('admin/staff-management/view/(:num)', 'StaffManagement::view/$1', ['filter' => 'roleauth:admin']);
-$routes->get('admin/staff-management/api', 'StaffManagement::getStaffAPI', ['filter' => 'roleauth:admin']);
-$routes->get('admin/staff-management/staff/(:num)', 'StaffManagement::getStaff/$1', ['filter' => 'roleauth:admin']);
-$routes->get('admin/staff-management/doctors/api', 'StaffManagement::getDoctorsAPI', ['filter' => 'roleauth:admin']);
 $routes->get('admin/doctors/api', 'StaffManagement::getDoctorsAPI', ['filter' => 'roleauth:admin']);
 
 // ===================================================================
@@ -121,7 +98,7 @@ $routes->post('admin/resource-management/update', 'ResourceManagement::update', 
 $routes->post('admin/resource-management/delete', 'ResourceManagement::delete', ['filter' => 'roleauth:admin']);
 
 // ===================================================================
-// ROOM MANAGEMENT (UNIFIED)
+// ROOM MANAGEMENT
 // ===================================================================
 
 $routes->get('admin/room-management', 'RoomManagement::index', ['filter' => 'roleauth:admin']);
@@ -141,11 +118,11 @@ $routes->get('admin/department-management', 'DepartmentManagement::index', ['fil
 $routes->match(['get','post','options'], 'departments/create', 'Departments::create', ['filter' => 'roleauth:admin,it_staff']);
 
 // ===================================================================
-// UNIFIED SCHEDULE MANAGEMENT (formerly Shift Management)
+// UNIFIED SCHEDULE MANAGEMENT
 // ===================================================================
 
-// Schedule Management Views - Role-specific entry points (new preferred URLs)
-$routes->get('admin/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:admin']); // Main admin schedule management route
+// Schedule Management Views - Role-specific entry points
+$routes->get('admin/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('doctor/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:doctor']);
 $routes->get('it-staff/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:it_staff']);
 $routes->get('nurse/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:nurse']);
@@ -157,14 +134,9 @@ $routes->get('doctor/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:d
 $routes->get('it-staff/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:it_staff']);
 $routes->get('nurse/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:nurse']);
 $routes->get('receptionist/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:receptionist']);
-
-// Unified Schedule Management Route
-$routes->get('unified/schedule', 'ShiftManagement::index', ['filter' => 'roleauth:admin,doctor,it_staff,nurse,receptionist']);
-
-// Backward-compatible unified shifts URL
 $routes->get('unified/shifts', 'ShiftManagement::index', ['filter' => 'roleauth:admin,doctor,it_staff,nurse,receptionist']);
 
-// Schedule Management API Routes (keep existing paths for now)
+// Schedule Management API Routes
 $routes->get('shifts/api', 'ShiftManagement::getShiftsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('shifts/(:num)', 'ShiftManagement::getShift/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('shifts/available-staff', 'ShiftManagement::getAvailableStaffAPI', ['filter' => 'roleauth:admin,it_staff']);
@@ -180,11 +152,11 @@ $routes->post('shifts/(:num)/status', 'ShiftManagement::updateStatus/$1', ['filt
 // Patient Management Views - Role-specific entry points
 $routes->get('admin/patient-management', 'PatientManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('doctor/patient-management', 'PatientManagement::index', ['filter' => 'roleauth:doctor']);
-$routes->get('doctor/patients', 'PatientManagement::index', ['filter' => 'roleauth:doctor']);
 $routes->get('it-staff/patients', 'PatientManagement::index', ['filter' => 'roleauth:it_staff']);
 $routes->get('nurse/patients', 'PatientManagement::index', ['filter' => 'roleauth:nurse']);
 $routes->get('receptionist/patients', 'PatientManagement::index', ['filter' => 'roleauth:receptionist']);
-// Patient Records View (shared for multiple roles)
+
+// Patient Records View
 $routes->get('unified/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,laboratorist']);
 $routes->get('admin/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:admin']);
 $routes->get('doctor/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:doctor']);
@@ -203,7 +175,7 @@ $routes->post('patients/(:num)/status', 'PatientManagement::updatePatientStatus/
 $routes->post('patients/(:num)/assign-doctor', 'PatientManagement::assignDoctor/$1', ['filter' => 'roleauth:admin,receptionist,it_staff']);
 $routes->delete('patients/(:num)', 'PatientManagement::deletePatient/$1', ['filter' => 'roleauth:admin,it_staff']);
 
-// Philippine geographic reference data APIs (Region XII by default)
+// Geographic Reference Data APIs
 $routes->get('api/geo/provinces', 'GeoDataController::provinces', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('api/geo/cities', 'GeoDataController::cities', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('api/geo/barangays', 'GeoDataController::barangays', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
@@ -243,9 +215,6 @@ $routes->get('nurse/prescriptions', 'PrescriptionManagement::index', ['filter' =
 $routes->get('pharmacist/prescriptions', 'PrescriptionManagement::index', ['filter' => 'roleauth:pharmacist']);
 $routes->get('receptionist/prescriptions', 'PrescriptionManagement::index', ['filter' => 'roleauth:receptionist']);
 
-// Unified Prescription Route
-$routes->get('unified/prescriptions', 'PrescriptionManagement::index', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,receptionist,it_staff']);
-
 // Prescription Management API Routes
 $routes->get('prescriptions/api', 'PrescriptionManagement::getPrescriptionsAPI', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,receptionist,it_staff']);
 $routes->get('prescriptions/(:num)', 'PrescriptionManagement::getPrescription/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,receptionist,it_staff']);
@@ -258,14 +227,6 @@ $routes->post('prescriptions/delete', 'PrescriptionManagement::delete', ['filter
 $routes->post('prescriptions/(:num)/status', 'PrescriptionManagement::updateStatus/$1', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
 $routes->post('prescriptions/(:num)/bill', 'PrescriptionManagement::addToBilling/$1', ['filter' => 'roleauth:admin,accountant,pharmacist']);
 
-// Legacy Doctor Prescription Routes
-$routes->get('doctor/create-prescription', 'PrescriptionManagement::index', ['filter' => 'roleauth:doctor']);
-$routes->post('doctor/create-prescription', 'PrescriptionManagement::create', ['filter' => 'roleauth:doctor']);
-$routes->get('doctor/prescriptions/api', 'PrescriptionManagement::getPrescriptionsAPI', ['filter' => 'roleauth:doctor']);
-$routes->post('doctor/update-prescription-status', 'PrescriptionManagement::updateStatus', ['filter' => 'roleauth:doctor']);
-$routes->get('doctor/prescription/(:any)', 'PrescriptionManagement::getPrescription/$1', ['filter' => 'roleauth:doctor']);
-$routes->put('doctor/prescription/(:any)', 'PrescriptionManagement::update', ['filter' => 'roleauth:doctor']);
-
 // ===================================================================
 // FINANCIAL MANAGEMENT
 // ===================================================================
@@ -273,22 +234,23 @@ $routes->put('doctor/prescription/(:any)', 'PrescriptionManagement::update', ['f
 // Financial Management Views - Role-specific entry points
 $routes->get('accountant/financial', 'FinancialController::index', ['filter' => 'roleauth:accountant']);
 $routes->get('admin/financial-management', 'FinancialController::index', ['filter' => 'roleauth:admin']);
-$routes->get('admin/financial', 'FinancialController::index', ['filter' => 'roleauth:admin']);
-$routes->get('admin/finance', 'FinancialController::index', ['filter' => 'roleauth:admin']);
-// Redirect common typos to the canonical route
-if (method_exists($routes, 'addRedirect')) {
-    $routes->addRedirect('admin/financial%20management', 'admin/financial-management');
-    $routes->addRedirect('admin/financial_management', 'admin/financial-management');
-}
 $routes->get('doctor/financial', 'FinancialController::index', ['filter' => 'roleauth:doctor']);
 $routes->get('receptionist/financial', 'FinancialController::index', ['filter' => 'roleauth:receptionist']);
 
-// Billing account actions
+// Financial Management API Routes
+$routes->get('api/users', 'FinancialController::getUsersAPI');
+$routes->get('financial-management', 'FinancialController::index');
+$routes->get('financial-management/add', 'FinancialController::addTransaction');
+$routes->post('financial-management/add', 'FinancialController::addTransaction');
+$routes->get('financial-management/categories', 'FinancialController::getCategoriesByType');
+$routes->get('billing/accounts/(:num)', 'FinancialController::getBillingAccount/$1', ['filter' => 'roleauth:admin,accountant']);
 $routes->post('financial/billing-accounts/(:num)/paid', 'FinancialController::markBillingAccountPaid/$1', ['filter' => 'roleauth:admin,accountant']);
-// Delete billing account
 $routes->post('financial/billing-accounts/(:num)/delete', 'FinancialController::deleteBillingAccount/$1', ['filter' => 'roleauth:admin,accountant']);
 
-// Analytics & Reports Routes
+// ===================================================================
+// ANALYTICS & REPORTS
+// ===================================================================
+
 $routes->get('admin/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('accountant/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:accountant']);
 $routes->get('doctor/analytics', 'AnalyticsManagement::index', ['filter' => 'roleauth:doctor']);
@@ -299,68 +261,6 @@ $routes->get('analytics/api', 'AnalyticsManagement::getAnalyticsAPI', ['filter' 
 $routes->post('analytics/report/generate', 'AnalyticsManagement::generateReport', ['filter' => 'roleauth:admin,accountant,doctor,it_staff']);
 
 // ===================================================================
-// ROLE-SPECIFIC ROUTES (LEGACY)
-// ===================================================================
-
-// Doctor Routes
-$routes->get('doctor/doctors/api', 'Doctor::getDoctorsAPI');
-$routes->get('doctor/EHR', 'Doctor::ehr');
-$routes->get('doctor/lab-results', 'Doctor::labResults');
-$routes->get('doctor/schedule', 'Doctor::schedule');
-
-// Nurse Routes
-$routes->get('nurse/dashboard', 'Nurse::dashboard');
-$routes->get('nurse/doctors/api', 'Nurse::getDoctorsAPI');
-$routes->get('nurse/medication', 'Nurse::medication');
-$routes->get('nurse/patient', 'Nurse::patient');
-$routes->get('nurse/patient-management', 'Nurse::patient');
-$routes->get('nurse/shift-report', 'Nurse::shiftReport');
-$routes->get('nurse/vitals', 'Nurse::vitals');
-
-// Receptionist Routes
-$routes->get('receptionist/appointment-booking', 'Receptionist::appointmentBooking');
-$routes->get('receptionist/dashboard', 'Receptionist::dashboard');
-$routes->get('receptionist/patient-registration', 'Receptionist::patientRegistration');
-$routes->post('receptionist/patient-registration/store', 'Receptionist::storePatient');
-$routes->post('receptionist/register-patient', 'Receptionist::registerPatient');
-$routes->get('receptionist/patients/api', 'Receptionist::getPatientsAPI');
-
-// Accountant Routes
-$routes->get('accountant/billing', 'Accountant::billing');
-$routes->get('accountant/dashboard', 'Accountant::dashboard');
-$routes->get('accountant/insurance', 'Accountant::insurance');
-$routes->get('accountant/payments', 'Accountant::payments');
-
-// IT Staff Routes
-$routes->get('it/dashboard', 'ITStaff::dashboard');
-$routes->get('it/maintenance', 'ITStaff::maintenance');
-$routes->get('it/security', 'ITStaff::security');
-
-// Laboratorist Routes
-$routes->get('laboratorists/dashboard', 'Laboratorist::dashboard');
-$routes->get('laboratorists/sample-management', 'Laboratorist::sampleManagement');
-$routes->get('laboratorists/test-request', 'Laboratorist::testRequest');
-$routes->get('laboratorists/test-result', 'Laboratorist::testResult');
-
-// Pharmacist Routes
-$routes->get('pharmacists/dashboard', 'Pharmacist::dashboard');
-$routes->get('pharmacists/inventory', 'Pharmacist::inventory');
-$routes->get('pharmacists/prescription', 'Pharmacist::prescription');
-
-// ===================================================================
-// FINANCIAL MANAGEMENT ROUTES
-// ===================================================================
-
-$routes->get('financial-test', 'FinancialController::test');
-$routes->get('financial-modal-demo', 'FinancialController::demo');
-$routes->get('api/users', 'FinancialController::getUsersAPI');
-$routes->get('financial-management', 'FinancialController::index');
-$routes->get('financial-management/add', 'FinancialController::addTransaction');
-$routes->post('financial-management/add', 'FinancialController::addTransaction');
-$routes->get('financial-management/categories', 'FinancialController::getCategoriesByType');
-$routes->get('billing/accounts/(:num)', 'FinancialController::getBillingAccount/$1', ['filter' => 'roleauth:admin,accountant']);
-
-// ===================================================================
 // UNIFIED LAB MANAGEMENT
 // ===================================================================
 
@@ -369,8 +269,6 @@ $routes->get('admin/labs', 'LabManagement::index', ['filter' => 'roleauth:admin'
 $routes->get('doctor/labs', 'LabManagement::index', ['filter' => 'roleauth:doctor']);
 $routes->get('laboratorist/labs', 'LabManagement::index', ['filter' => 'roleauth:laboratorist']);
 $routes->get('receptionist/labs', 'LabManagement::index', ['filter' => 'roleauth:receptionist']);
-
-// Unified Lab Route
 $routes->get('unified/labs', 'LabManagement::index', ['filter' => 'roleauth:admin,doctor,laboratorist,receptionist,accountant,it_staff']);
 
 // Lab Management API Routes
@@ -387,9 +285,8 @@ $routes->post('labs/(:num)/status', 'LabManagement::updateStatus/$1', ['filter' 
 $routes->post('labs/(:num)/bill', 'LabManagement::addToBilling/$1', ['filter' => 'roleauth:admin,accountant']);
 
 // ===================================================================
-// LEGACY COMPATIBILITY ROUTES
+// DEBUG & TEST ROUTES (Development Only)
 // ===================================================================
 
-// Legacy admin routes for backward compatibility
-
+$routes->get('debug', 'DebugController::index');
 $routes->get('test-doctors', 'TestController::doctors');

@@ -164,46 +164,6 @@ class PatientService
         }
     }
 
-    /**
-     * Get patients with optional filtering by doctor (legacy method)
-     */
-    public function getPatients($doctorId = null)
-    {
-        try {
-            $builder = $this->db->table($this->patientTable . ' p')
-                ->select('p.*, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
-                ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left');
-
-            if ($doctorId) {
-                $builder->where('p.primary_doctor_id', $doctorId);
-            }
-
-            $patients = $builder->orderBy('p.patient_id', 'DESC')
-                ->get()
-                ->getResultArray();
-
-            // Compute ages
-            foreach ($patients as &$p) {
-                $p['age'] = $p['date_of_birth']
-                    ? (new \DateTime())->diff(new \DateTime($p['date_of_birth']))->y
-                    : null;
-                $p['id'] = $p['patient_id'];
-                $p['full_name'] = trim(($p['first_name'] ?? '') . ' ' . ($p['middle_name'] ?? '') . ' ' . ($p['last_name'] ?? ''));
-            }
-
-            return [
-                'success' => true,
-                'data' => $patients,
-            ];
-        } catch (\Throwable $e) {
-            log_message('error', 'Error fetching patients: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to fetch patients',
-                'data' => [],
-            ];
-        }
-    }
 
     /**
      * Get single patient by ID

@@ -138,20 +138,6 @@ class AppointmentService
         }
     }
 
-    /**
-     * Get available time slots for a doctor on a specific date
-     */
-    public function getAvailableTimeSlots($doctorId, $date)
-    {
-        try {
-            $bookedTimes = array_column($this->db->table('appointments')->select('appointment_time')->where('doctor_id', $doctorId)->where('appointment_date', $date)->where('status !=', 'cancelled')->get()->getResultArray(), 'appointment_time');
-            $allSlots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
-            return ['success' => true, 'time_slots' => array_values(array_diff($allSlots, $bookedTimes))];
-        } catch (\Throwable $e) {
-            log_message('error', 'Error fetching time slots: ' . $e->getMessage());
-            return ['success' => false, 'message' => 'Failed to get time slots', 'time_slots' => []];
-        }
-    }
 
     private function determineDoctorId($input, $userRole, $staffId)
     {

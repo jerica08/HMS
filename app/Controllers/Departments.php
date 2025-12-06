@@ -6,11 +6,6 @@ use App\Controllers\BaseController;
 
 class Departments extends BaseController
 {
-    public function ping()
-    {
-        return $this->response->setJSON(['status' => 'ok']);
-    }
-
     public function create()
     {
         try {

@@ -720,19 +720,4 @@ class ShiftManagement extends BaseController
         }
     }
 
-    /**
-     * Test method to verify doctors data
-     */
-    public function testDoctors()
-    {
-        try {
-            $doctors = $this->getAvailableDoctors();
-            echo "<h2>Doctors Data Test</h2>";
-            echo "<pre>";
-            print_r($doctors);
-            echo "</pre>";
-        } catch (\Throwable $e) {
-            echo "Error: " . $e->getMessage();
-        }
-    }
 }

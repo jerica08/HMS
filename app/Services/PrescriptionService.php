@@ -21,84 +21,19 @@ class PrescriptionService
     public function getPrescriptionsByRole($userRole, $staffId = null, $filters = [])
     {
         try {
-            $builder = $this->db->table('prescriptions p')
-                ->select([
-                    'p.id',
-                    'p.rx_number as prescription_id',
-                    'p.patient_id',
-                    'p.patient_name',
-                    'p.medication',
-                    'p.dosage',
-                    'p.frequency',
-                    'p.days_supply as duration',
-                    'p.quantity',
-                    'p.prescriber',
-                    'p.priority',
-                    'p.notes',
-                    'p.status',
-                    'p.created_at',
-                    'p.updated_at',
-                    'p.dispensed_at',
-                    'p.created_by',
-                    'COALESCE(pat.patient_id, p.patient_id) as pat_id',
-                    'pat.date_of_birth',
-                    // patients table uses contact_number, not contact_no
-                    'pat.contact_number as patient_phone',
-                    'pat.email as patient_email'
-                ])
-                // Join to the correct patients table so listing works
-                ->join('patients pat', 'pat.patient_id = p.patient_id', 'left');
-
-            // Apply role-based filtering
-            switch ($userRole) {
-                case 'admin':
-                case 'it_staff':
-                    // Admin and IT staff see all prescriptions
-                    break;
-                    
-                case 'doctor':
-                    // Doctors: for now, show all prescriptions (no primary_doctor_id column on patients)
-                    break;
-                    
-                case 'nurse':
-                    // Nurses: for now, show all prescriptions (no primary_doctor_id to derive department)
-                    break;
-                    
-                case 'pharmacist':
-                    // Pharmacists see all prescriptions for dispensing
-                    break;
-                    
-                case 'receptionist':
-                    // Receptionists see all prescriptions for coordination
-                    break;
-                    
-                default:
-                    // Other roles see no prescriptions
-                    $builder->where('1', '0');
-                    break;
+            $builder = $this->buildPrescriptionQuery();
+            
+            if (!in_array($userRole, ['admin', 'it_staff', 'doctor', 'nurse', 'pharmacist', 'receptionist'])) {
+                $builder->where('1', '0');
             }
 
-            // Apply additional filters
-            if (!empty($filters['status'])) {
-                $builder->where('p.status', $filters['status']);
-            }
-            
-            if (!empty($filters['date'])) {
-                $builder->where('DATE(p.created_at)', $filters['date']);
-            }
-            
-            if (!empty($filters['patient_id'])) {
-                $builder->where('p.patient_id', $filters['patient_id']);
-            }
-            
-            // Doctor-specific filtering based on patients.primary_doctor_id is disabled
-
+            if (!empty($filters['status'])) $builder->where('p.status', $filters['status']);
+            if (!empty($filters['date'])) $builder->where('DATE(p.created_at)', $filters['date']);
+            if (!empty($filters['patient_id'])) $builder->where('p.patient_id', $filters['patient_id']);
             if (!empty($filters['date_range'])) {
-                $builder->where('p.created_at >=', $filters['date_range']['start']);
-                $builder->where('p.created_at <=', $filters['date_range']['end']);
+                $builder->where('p.created_at >=', $filters['date_range']['start'])
+                        ->where('p.created_at <=', $filters['date_range']['end']);
             }
-
-            // Search functionality
             if (!empty($filters['search'])) {
                 $search = $filters['search'];
                 $builder->groupStart()
@@ -109,13 +44,10 @@ class PrescriptionService
                     ->groupEnd();
             }
 
-            $builder->orderBy('p.created_at', 'DESC');
-            
-            return $builder->get()->getResultArray();
+            return $builder->orderBy('p.created_at', 'DESC')->get()->getResultArray();
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionService::getPrescriptionsByRole error: ' . $e->getMessage());
-            log_message('error', 'PrescriptionService::getPrescriptionsByRole trace: ' . $e->getTraceAsString());
             return [];
         }
     }
@@ -133,67 +65,52 @@ class PrescriptionService
                 'end' => date('Y-m-d', strtotime('sunday this week'))
             ];
 
-            switch ($userRole) {
-                case 'admin':
-                case 'it_staff':
-                    $stats = [
-                        'total_prescriptions' => $this->getTotalPrescriptions(),
-                        'today_prescriptions' => $this->getPrescriptionsCount(['date' => $today]),
-                        'week_prescriptions' => $this->getPrescriptionsCount(['date_range' => $thisWeek]),
-                        'active_prescriptions' => $this->getPrescriptionsCount(['status' => 'active']),
-                        'completed_prescriptions' => $this->getPrescriptionsCount(['status' => 'completed']),
-                        'pending_prescriptions' => $this->getPrescriptionsCount(['status' => 'pending']),
-                        'cancelled_prescriptions' => $this->getPrescriptionsCount(['status' => 'cancelled']),
-                        'active_doctors' => $this->getActiveDoctorsCount()
-                    ];
-                    break;
-                    
-                case 'doctor':
-                    $stats = [
-                        'my_prescriptions' => $this->getPrescriptionsCount([], 'doctor', $staffId),
-                        'today_prescriptions' => $this->getPrescriptionsCount(['date' => $today], 'doctor', $staffId),
-                        'week_prescriptions' => $this->getPrescriptionsCount(['date_range' => $thisWeek], 'doctor', $staffId),
-                        'active_prescriptions' => $this->getPrescriptionsCount(['status' => 'active'], 'doctor', $staffId),
-                        'completed_prescriptions' => $this->getPrescriptionsCount(['status' => 'completed'], 'doctor', $staffId),
-                        'pending_prescriptions' => $this->getPrescriptionsCount(['status' => 'pending'], 'doctor', $staffId),
-                        'my_patients' => $this->getMyPatientsCount($staffId)
-                    ];
-                    break;
-                    
-                case 'nurse':
+            $stats = match($userRole) {
+                'admin', 'it_staff' => [
+                    'total_prescriptions' => $this->getTotalPrescriptions(),
+                    'today_prescriptions' => $this->getPrescriptionsCount(['date' => $today]),
+                    'week_prescriptions' => $this->getPrescriptionsCount(['date_range' => $thisWeek]),
+                    'active_prescriptions' => $this->getPrescriptionsCount(['status' => 'active']),
+                    'completed_prescriptions' => $this->getPrescriptionsCount(['status' => 'completed']),
+                    'pending_prescriptions' => $this->getPrescriptionsCount(['status' => 'pending']),
+                    'cancelled_prescriptions' => $this->getPrescriptionsCount(['status' => 'cancelled']),
+                    'active_doctors' => $this->getActiveDoctorsCount()
+                ],
+                'doctor' => [
+                    'my_prescriptions' => $this->getPrescriptionsCount([], 'doctor', $staffId),
+                    'today_prescriptions' => $this->getPrescriptionsCount(['date' => $today], 'doctor', $staffId),
+                    'week_prescriptions' => $this->getPrescriptionsCount(['date_range' => $thisWeek], 'doctor', $staffId),
+                    'active_prescriptions' => $this->getPrescriptionsCount(['status' => 'active'], 'doctor', $staffId),
+                    'completed_prescriptions' => $this->getPrescriptionsCount(['status' => 'completed'], 'doctor', $staffId),
+                    'pending_prescriptions' => $this->getPrescriptionsCount(['status' => 'pending'], 'doctor', $staffId),
+                    'my_patients' => $this->getMyPatientsCount($staffId)
+                ],
+                'nurse' => (function() use ($staffId) {
                     $userDept = $this->getUserDepartment($staffId);
-                    $stats = [
+                    $today = date('Y-m-d');
+                    return [
                         'department_prescriptions' => $this->getDepartmentPrescriptionsCount($userDept),
                         'today_prescriptions' => $this->getDepartmentPrescriptionsCount($userDept, ['date' => $today]),
                         'active_prescriptions' => $this->getDepartmentPrescriptionsCount($userDept, ['status' => 'active']),
                         'pending_prescriptions' => $this->getDepartmentPrescriptionsCount($userDept, ['status' => 'pending']),
                         'department' => $userDept
                     ];
-                    break;
-                    
-                case 'pharmacist':
-                    $stats = [
-                        'total_prescriptions' => $this->getTotalPrescriptions(),
-                        'pending_prescriptions' => $this->getPrescriptionsCount(['status' => 'active']),
-                        'dispensed_today' => $this->getPrescriptionsCount(['status' => 'completed', 'date' => $today]),
-                        'ready_to_dispense' => $this->getPrescriptionsCount(['status' => 'ready']),
-                        'stat_prescriptions' => $this->getStatPrescriptionsCount()
-                    ];
-                    break;
-                    
-                case 'receptionist':
-                    $stats = [
-                        'total_prescriptions' => $this->getTotalPrescriptions(),
-                        'today_prescriptions' => $this->getPrescriptionsCount(['date' => $today]),
-                        'active_prescriptions' => $this->getPrescriptionsCount(['status' => 'active']),
-                        'completed_prescriptions' => $this->getPrescriptionsCount(['status' => 'completed'])
-                    ];
-                    break;
-                    
-                default:
-                    $stats = ['message' => 'No prescription access for this role'];
-                    break;
-            }
+                })(),
+                'pharmacist' => [
+                    'total_prescriptions' => $this->getTotalPrescriptions(),
+                    'pending_prescriptions' => $this->getPrescriptionsCount(['status' => 'active']),
+                    'dispensed_today' => $this->getPrescriptionsCount(['status' => 'completed', 'date' => $today]),
+                    'ready_to_dispense' => $this->getPrescriptionsCount(['status' => 'ready']),
+                    'stat_prescriptions' => $this->getStatPrescriptionsCount()
+                ],
+                'receptionist' => [
+                    'total_prescriptions' => $this->getTotalPrescriptions(),
+                    'today_prescriptions' => $this->getPrescriptionsCount(['date' => $today]),
+                    'active_prescriptions' => $this->getPrescriptionsCount(['status' => 'active']),
+                    'completed_prescriptions' => $this->getPrescriptionsCount(['status' => 'completed'])
+                ],
+                default => ['message' => 'No prescription access for this role']
+            };
 
             return $stats;
 
@@ -274,6 +191,15 @@ class PrescriptionService
 
             // Generate rx_number
             $rxNumber = $this->generatePrescriptionId();
+            
+            // Validate rx_number is not empty
+            if (empty($rxNumber) || trim($rxNumber) === '') {
+                log_message('error', 'PrescriptionService::createPrescription - Generated empty rx_number');
+                return [
+                    'success' => false,
+                    'message' => 'Failed to generate prescription ID. Please try again.'
+                ];
+            }
 
             // Get patient name (use correct patients table)
             $patient = $this->db->table('patients')
@@ -308,24 +234,30 @@ class PrescriptionService
             // logic disabled here to avoid incorrect reservations. It can be
             // reworked later on a per-item basis if needed.
 
-            // Map status values
-            $statusMap = [
-                'active' => 'queued',
-                'pending' => 'queued',
-                'ready' => 'ready',
-                'completed' => 'dispensed',
-                'cancelled' => 'cancelled'
-            ];
-            
-            $status = $statusMap[$data['status'] ?? 'active'] ?? 'queued';
+            $status = $this->mapStatus($data['status'] ?? 'active');
 
             // Use first item to build a legacy summary for list views
             $firstItem          = $items[0];
             $firstMedication    = $firstItem['medication_name'];
             $medicationSummary  = $firstMedication . (count($items) > 1 ? ' +' . (count($items) - 1) . ' more' : '');
 
+            // Ensure rx_number is never empty or null
+            if (empty($rxNumber) || trim($rxNumber) === '') {
+                log_message('error', 'PrescriptionService::createPrescription - rx_number is empty, regenerating');
+                $rxNumber = $this->generatePrescriptionId();
+                if (empty($rxNumber)) {
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to generate prescription ID. Please try again.'
+                    ];
+                }
+            }
+
+            // Check if prescription_id column exists (legacy support) and set it to avoid unique constraint violation
+            $hasPrescriptionIdColumn = $this->db->fieldExists('prescription_id', 'prescriptions');
+            
             $prescriptionData = [
-                'rx_number'    => $rxNumber,
+                'rx_number'    => trim($rxNumber),
                 'patient_id'   => (int) $data['patient_id'],
                 'patient_name' => $patientName,
                 // legacy single-medication columns now store a summary so existing
@@ -343,6 +275,11 @@ class PrescriptionService
                 'created_at'   => date('Y-m-d H:i:s'),
                 'updated_at'   => date('Y-m-d H:i:s')
             ];
+            
+            // Set prescription_id if column exists (for legacy database structure)
+            if ($hasPrescriptionIdColumn) {
+                $prescriptionData['prescription_id'] = trim($rxNumber);
+            }
 
             // Insert header + items in a transaction
             $this->db->transBegin();
@@ -413,53 +350,18 @@ class PrescriptionService
                 return ['success' => false, 'message' => 'Permission denied'];
             }
 
-            // Prepare update data - map form fields to database columns
-            $updateData = [];
-            
-            if (isset($data['medication'])) {
-                $updateData['medication'] = $data['medication'];
-            }
-            
-            if (isset($data['dosage'])) {
-                $updateData['dosage'] = $data['dosage'];
-            }
-            
-            if (isset($data['frequency'])) {
-                $updateData['frequency'] = $data['frequency'];
-            }
-            
-            // Map duration to days_supply (database column name)
-            if (isset($data['duration'])) {
-                $updateData['days_supply'] = !empty($data['duration']) ? (int)filter_var($data['duration'], FILTER_SANITIZE_NUMBER_INT) : null;
-            }
-            
-            if (isset($data['quantity'])) {
-                $updateData['quantity'] = (int)$data['quantity'];
-            }
-            
-            if (isset($data['notes'])) {
-                $updateData['notes'] = $data['notes'];
-            }
-            
-            // Map status values (UI to database ENUM)
-            if (isset($data['status'])) {
-                $statusMap = [
-                    'active' => 'queued',
-                    'pending' => 'queued',
-                    'ready' => 'ready',
-                    'completed' => 'dispensed',
-                    'cancelled' => 'cancelled',
-                    'verifying' => 'verifying',
-                    'queued' => 'queued',
-                    'dispensed' => 'dispensed'
-                ];
-                $updateData['status'] = $statusMap[$data['status']] ?? $data['status'];
-            }
-            
-            // Always update the timestamp
-            $updateData['updated_at'] = date('Y-m-d H:i:s');
+            $updateData = array_filter([
+                'medication' => $data['medication'] ?? null,
+                'dosage' => $data['dosage'] ?? null,
+                'frequency' => $data['frequency'] ?? null,
+                'days_supply' => isset($data['duration']) ? (!empty($data['duration']) ? (int)filter_var($data['duration'], FILTER_SANITIZE_NUMBER_INT) : null) : null,
+                'quantity' => isset($data['quantity']) ? (int)$data['quantity'] : null,
+                'notes' => $data['notes'] ?? null,
+                'status' => isset($data['status']) ? $this->mapStatus($data['status']) : null,
+                'updated_at' => date('Y-m-d H:i:s')
+            ], fn($v) => $v !== null);
 
-            if (empty($updateData) || count($updateData) === 1) {
+            if (count($updateData) <= 1) {
                 return ['success' => false, 'message' => 'No fields to update'];
             }
             
@@ -516,8 +418,6 @@ class PrescriptionService
     public function getPrescription($id)
     {
         try {
-            log_message('info', 'PrescriptionService::getPrescription - Looking for ID: ' . $id);
-            
             $prescription = $this->db->table('prescriptions p')
                 ->select([
                     'p.id',
@@ -550,8 +450,6 @@ class PrescriptionService
                 ->get()
                 ->getRowArray();
             
-            log_message('info', 'PrescriptionService::getPrescription - Found: ' . ($prescription ? 'YES' : 'NO'));
-            
             if ($prescription) {
                 // Use prescription's patient_name if available, otherwise construct from patient table
                 if (empty($prescription['patient_name']) && !empty($prescription['patient_first_name'])) {
@@ -571,15 +469,12 @@ class PrescriptionService
                 }
 
                 $prescription['items'] = $items;
-
-                log_message('info', 'PrescriptionService::getPrescription - Prescription data: ' . json_encode($prescription));
             }
             
             return $prescription;
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionService::getPrescription error: ' . $e->getMessage());
-            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             return null;
         }
     }
@@ -601,19 +496,7 @@ class PrescriptionService
                 return ['success' => false, 'message' => 'Permission denied'];
             }
 
-            // Validate status - map UI status to database ENUM values
-            $statusMap = [
-                'active' => 'queued',
-                'pending' => 'queued',
-                'ready' => 'ready',
-                'completed' => 'dispensed',
-                'cancelled' => 'cancelled',
-                'verifying' => 'verifying',
-                'queued' => 'queued',
-                'dispensed' => 'dispensed'
-            ];
-            
-            $dbStatus = $statusMap[$status] ?? $status;
+            $dbStatus = $this->mapStatus($status);
             $validStatuses = ['queued', 'verifying', 'ready', 'dispensed', 'cancelled'];
             
             if (!in_array($dbStatus, $validStatuses)) {
@@ -662,6 +545,20 @@ class PrescriptionService
     }
 
     // Private helper methods
+    
+    private function buildPrescriptionQuery()
+    {
+        return $this->db->table('prescriptions p')
+            ->select([
+                'p.id', 'p.rx_number as prescription_id', 'p.patient_id', 'p.patient_name',
+                'p.medication', 'p.dosage', 'p.frequency', 'p.days_supply as duration',
+                'p.quantity', 'p.prescriber', 'p.priority', 'p.notes', 'p.status',
+                'p.created_at', 'p.updated_at', 'p.dispensed_at', 'p.created_by',
+                'COALESCE(pat.patient_id, p.patient_id) as pat_id', 'pat.date_of_birth',
+                'pat.contact_number as patient_phone', 'pat.email as patient_email'
+            ])
+            ->join('patients pat', 'pat.patient_id = p.patient_id', 'left');
+    }
 
     private function getTotalPrescriptions()
     {
@@ -771,14 +668,26 @@ class PrescriptionService
         $prefix = 'RX';
         $year = date('Y');
         $month = date('m');
-        $unique = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        $maxAttempts = 100;
+        $attempt = 0;
 
-        $prescriptionId = $prefix . $year . $month . $unique;
-
-        // Ensure uniqueness
-        while ($this->db->table('prescriptions')->where('rx_number', $prescriptionId)->countAllResults() > 0) {
+        do {
             $unique = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
             $prescriptionId = $prefix . $year . $month . $unique;
+            $exists = $this->db->table('prescriptions')
+                ->where('rx_number', $prescriptionId)
+                ->countAllResults() > 0;
+            $attempt++;
+        } while ($exists && $attempt < $maxAttempts);
+
+        if ($attempt >= $maxAttempts) {
+            // Fallback: use timestamp-based ID if random generation fails
+            $prescriptionId = $prefix . $year . $month . substr(time(), -6) . rand(10, 99);
+        }
+
+        // Final validation - ensure it's never empty
+        if (empty($prescriptionId) || trim($prescriptionId) === '') {
+            $prescriptionId = $prefix . $year . $month . substr(time(), -4) . rand(100, 999);
         }
 
         return $prescriptionId;
@@ -806,17 +715,23 @@ class PrescriptionService
 
     private function canDeletePrescription($prescription, $userRole, $staffId = null)
     {
-        // Only admin can delete prescriptions
-        if ($userRole === 'admin') {
-            return true;
-        }
-
-        // Doctors can delete their own prescriptions if not yet dispensed
-        if ($userRole === 'doctor' && $staffId && $prescription['doctor_id'] == $staffId && 
-            in_array($prescription['status'], ['active', 'pending'])) {
-            return true;
-        }
-
-        return false;
+        return $userRole === 'admin' || 
+               ($userRole === 'doctor' && $staffId && ($prescription['doctor_id'] ?? null) == $staffId && 
+                in_array($prescription['status'] ?? '', ['active', 'pending', 'queued']));
+    }
+    
+    private function mapStatus($status)
+    {
+        $statusMap = [
+            'active' => 'queued',
+            'pending' => 'queued',
+            'ready' => 'ready',
+            'completed' => 'dispensed',
+            'cancelled' => 'cancelled',
+            'verifying' => 'verifying',
+            'queued' => 'queued',
+            'dispensed' => 'dispensed'
+        ];
+        return $statusMap[$status] ?? $status;
     }
 }

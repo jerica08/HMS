@@ -1,17 +1,11 @@
 <!-- View Prescription Modal -->
-<div id="viewPrescriptionModal" class="modal-overlay">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h3 class="modal-title">
-                <i class="fas fa-eye"></i>
-                Prescription Details
-            </h3>
-            <button type="button" class="modal-close" id="closeViewPrescriptionModal">
-                <i class="fas fa-times"></i>
-            </button>
+<div id="viewPrescriptionModal" class="hms-modal-overlay" aria-hidden="true">
+    <div class="hms-modal" role="dialog" aria-modal="true" aria-labelledby="viewPrescriptionTitle">
+        <div class="hms-modal-header">
+            <div class="hms-modal-title" id="viewPrescriptionTitle"><i class="fas fa-eye" style="color:#4f46e5"></i> Prescription Details</div>
+            <button type="button" class="btn btn-secondary btn-small" id="closeViewPrescriptionModal" aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
-        
-        <div class="modal-body">
+        <div class="hms-modal-body">
             <div class="prescription-details">
                 <div class="detail-section">
                     <h4>Prescription Information</h4>
@@ -79,13 +73,10 @@
                 </div>
             </div>
         </div>
-        
-        <div class="modal-footer">
+        <div class="hms-modal-actions">
             <button type="button" class="btn btn-secondary" id="closeViewPrescriptionBtn">Close</button>
-            <?php if ($permissions['canEdit']): ?>
-            <button type="button" class="btn btn-primary" id="editFromViewBtn">
-                <i class="fas fa-edit"></i> Edit
-            </button>
+            <?php if ($permissions['canEdit'] ?? false): ?>
+                <button type="button" class="btn btn-primary" id="editFromViewBtn"><i class="fas fa-edit"></i> Edit</button>
             <?php endif; ?>
         </div>
     </div>

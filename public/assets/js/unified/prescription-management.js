@@ -45,89 +45,15 @@ class PrescriptionManager {
     }
 
     bindEvents() {
-        // Modal events
-        this.bindModalEvents();
-        
-        // Filter events
         this.bindFilterEvents();
-        
-        // Form events
         this.bindFormEvents();
-        
-        // Action button events
         this.bindActionEvents();
+        this.initializeModals();
     }
-
-    bindModalEvents() {
-        // Create prescription modal
-        const createBtn = document.getElementById('createPrescriptionBtn');
-        const prescriptionModal = document.getElementById('prescriptionModal');
-        const closePrescriptionModal = document.getElementById('closePrescriptionModal');
-        const cancelPrescriptionBtn = document.getElementById('cancelPrescriptionBtn');
-
-        if (createBtn) {
-            createBtn.addEventListener('click', () => this.openCreateModal());
-        }
-
-        if (closePrescriptionModal) {
-            closePrescriptionModal.addEventListener('click', () => this.closePrescriptionModal());
-        }
-
-        if (cancelPrescriptionBtn) {
-            cancelPrescriptionBtn.addEventListener('click', () => this.closePrescriptionModal());
-        }
-
-        // View prescription modal
-        const viewPrescriptionModal = document.getElementById('viewPrescriptionModal');
-        const closeViewPrescriptionModal = document.getElementById('closeViewPrescriptionModal');
-        const closeViewPrescriptionBtn = document.getElementById('closeViewPrescriptionBtn');
-        const editFromViewBtn = document.getElementById('editFromViewBtn');
-        const completeFromViewBtn = document.getElementById('completeFromViewBtn');
-
-        if (closeViewPrescriptionModal) {
-            closeViewPrescriptionModal.addEventListener('click', () => this.closeViewPrescriptionModal());
-        }
-
-        if (closeViewPrescriptionBtn) {
-            closeViewPrescriptionBtn.addEventListener('click', () => this.closeViewPrescriptionModal());
-        }
-
-        if (editFromViewBtn) {
-            editFromViewBtn.addEventListener('click', () => this.editFromView());
-        }
-
-        if (completeFromViewBtn) {
-            completeFromViewBtn.addEventListener('click', () => {
-                if (this.currentViewPrescription && this.currentViewPrescription.id) {
-                    this.completePrescription(this.currentViewPrescription.id);
-                }
-            });
-        }
-
-        // Click outside to close
-        if (prescriptionModal) {
-            prescriptionModal.addEventListener('click', (e) => {
-                if (e.target === prescriptionModal) {
-                    this.closePrescriptionModal();
-                }
-            });
-        }
-
-        if (viewPrescriptionModal) {
-            viewPrescriptionModal.addEventListener('click', (e) => {
-                if (e.target === viewPrescriptionModal) {
-                    this.closeViewPrescriptionModal();
-                }
-            });
-        }
-
-        // Escape key to close
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.closePrescriptionModal();
-                this.closeViewPrescriptionModal();
-            }
-        });
+    
+    initializeModals() {
+        if (window.AddPrescriptionModal) window.AddPrescriptionModal.init();
+        if (window.ViewPrescriptionModal) window.ViewPrescriptionModal.init();
     }
 
     bindFilterEvents() {
@@ -229,35 +155,17 @@ class PrescriptionManager {
     }
 
     bindFormEvents() {
-        const prescriptionForm = document.getElementById('prescriptionForm');
-        
-        if (prescriptionForm) {
-            prescriptionForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
-        }
-
-        // Add medicine row button
-        const addBtn = document.getElementById('addMedicineRowBtn');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => this.addMedicineRow());
-        }
-
-        // Remove medicine row (event delegation)
-        const medicinesBody = document.getElementById('medicinesTableBody');
-        if (medicinesBody) {
-            medicinesBody.addEventListener('click', (e) => {
-                const removeBtn = e.target.closest('.remove-medicine-row');
-                if (removeBtn) {
-                    const row = removeBtn.closest('.medicine-row');
-                    if (row && medicinesBody.children.length > 1) {
-                        row.remove();
-                    }
-                }
-            });
-        }
-
         const billingForm = document.getElementById('prescriptionBillingForm');
         if (billingForm) {
             billingForm.addEventListener('submit', (e) => this.submitBillingForm(e));
+        }
+    }
+
+    showNotification(message, type) {
+        if (type === 'success') {
+            this.showSuccess(message);
+        } else {
+            this.showError(message);
         }
     }
 
@@ -267,15 +175,15 @@ class PrescriptionManager {
             if (e.target.matches('.btn-view') || e.target.closest('.btn-view')) {
                 const btn = e.target.matches('.btn-view') ? e.target : e.target.closest('.btn-view');
                 const prescriptionId = btn.dataset.prescriptionId;
-                if (prescriptionId) {
-                    this.viewPrescription(prescriptionId);
+                if (prescriptionId && window.ViewPrescriptionModal) {
+                    window.ViewPrescriptionModal.open(prescriptionId);
                 }
             }
 
             if (e.target.matches('.btn-edit') || e.target.closest('.btn-edit')) {
                 const btn = e.target.matches('.btn-edit') ? e.target : e.target.closest('.btn-edit');
                 const prescriptionId = btn.dataset.prescriptionId;
-                if (prescriptionId) {
+                if (prescriptionId && window.AddPrescriptionModal) {
                     this.editPrescription(prescriptionId);
                 }
             }
@@ -471,77 +379,15 @@ class PrescriptionManager {
         this.loadPrescriptions();
     }
 
-    async openCreateModal() {
-        this.resetForm();
-        document.getElementById('modalTitle').textContent = 'Create Prescription';
-        document.getElementById('prescriptionId').value = '';
-        
-        const modal = document.getElementById('prescriptionModal');
-        
-        if (modal) {
-            // Load available patients
-            await this.loadAvailablePatients();
-
-            // Load available medications from Resource Management
-            await this.loadAvailableMedications();
-            
-            // Add active class
-            modal.classList.add('active');
-            
-            // Set inline styles for compatibility
-            modal.style.display = 'flex';
-            modal.style.position = 'fixed';
-            modal.style.top = '0';
-            modal.style.left = '0';
-            modal.style.width = '100vw';
-            modal.style.height = '100vh';
-            modal.style.zIndex = '9999';
-            modal.style.alignItems = 'center';
-            modal.style.justifyContent = 'center';
-            modal.style.background = 'rgba(15, 23, 42, 0.55)';
-            
-            document.body.style.overflow = 'hidden';
-        }
-    }
-
     async editPrescription(prescriptionId) {
         try {
             const response = await fetch(`${this.config.endpoints.getPrescription}/${prescriptionId}`);
             const data = await response.json();
 
-            if (data.status === 'success' && data.data) {
-                // Load available patients first
-                await this.loadAvailablePatients();
-
-                // Load medications so selector is populated before filling form
-                await this.loadAvailableMedications();
-                
-                // Populate form with prescription data
-                this.populateForm(data.data);
-                
-                // Set modal title and ID
-                document.getElementById('modalTitle').textContent = 'Edit Prescription';
-                document.getElementById('prescriptionId').value = prescriptionId;
-                
-                // Open modal with proper styling
-                const modal = document.getElementById('prescriptionModal');
-                if (modal) {
-                    modal.classList.add('active');
-                    
-                    // Set inline styles for proper display
-                    modal.style.display = 'flex';
-                    modal.style.position = 'fixed';
-                    modal.style.top = '0';
-                    modal.style.left = '0';
-                    modal.style.width = '100vw';
-                    modal.style.height = '100vh';
-                    modal.style.zIndex = '9999';
-                    modal.style.alignItems = 'center';
-                    modal.style.justifyContent = 'center';
-                    modal.style.background = 'rgba(15, 23, 42, 0.55)';
-                    
-                    document.body.style.overflow = 'hidden';
-                }
+            if (data.status === 'success' && data.data && window.AddPrescriptionModal) {
+                await window.AddPrescriptionModal.loadAvailablePatients();
+                await window.AddPrescriptionModal.loadAvailableMedications();
+                window.AddPrescriptionModal.openForEdit(data.data);
             } else {
                 this.showError('Failed to load prescription details');
             }
@@ -549,21 +395,9 @@ class PrescriptionManager {
             this.showError('Failed to load prescription details');
         }
     }
-
-    async viewPrescription(prescriptionId) {
-        try {
-            const response = await fetch(`${this.config.endpoints.getPrescription}/${prescriptionId}`);
-            const data = await response.json();
-
-            if (data.status === 'success' && data.data) {
-                this.populateViewModal(data.data);
-                document.getElementById('viewPrescriptionModal').classList.add('active');
-            } else {
-                this.showError('Failed to load prescription details');
-            }
-        } catch (error) {
-            this.showError('Failed to load prescription details');
-        }
+    
+    refreshPrescriptions() {
+        this.loadPrescriptions();
     }
 
     async deletePrescription(prescriptionId) {
@@ -677,407 +511,6 @@ class PrescriptionManager {
         }
     }
 
-    async handleFormSubmit(e) {
-        e.preventDefault();
-        
-        const form = e.target;
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
-
-        // Build items[] from medicines table
-        const rows = Array.from(document.querySelectorAll('#medicinesTableBody .medicine-row'));
-        const items = [];
-
-        rows.forEach(row => {
-            const medSelect = row.querySelector('select[name="medication_resource_id[]"]');
-            const nameInput = row.querySelector('input[name="medication_name[]"]');
-            const dosage    = row.querySelector('input[name="dosage[]"]');
-            const freq      = row.querySelector('select[name="frequency[]"]');
-            const duration  = row.querySelector('select[name="duration[]"]');
-            const qtyInput  = row.querySelector('input[name="quantity[]"]');
-
-            const medicationName = (nameInput?.value || '').trim();
-            const quantity       = parseInt(qtyInput?.value || '0', 10);
-
-            // Skip completely empty rows
-            if (!medicationName && !quantity) {
-                return;
-            }
-
-            if (!medicationName || quantity <= 0) {
-                // Basic client-side validation; backend will also validate
-                return;
-            }
-
-            items.push({
-                medication_resource_id: medSelect?.value || null,
-                medication_name: medicationName,
-                dosage: dosage?.value || '',
-                frequency: freq?.value || '',
-                duration: duration?.value || '',
-                quantity: quantity
-            });
-        });
-
-        if (!items.length) {
-            this.showError('Please add at least one medicine with a name and quantity.');
-            return;
-        }
-
-        data.items = items;
-
-        // Remove legacy single-medication fields if present
-        delete data.medication_resource_id;
-        delete data.medication;
-        delete data.dosage;
-        delete data.frequency;
-        delete data.duration;
-        delete data.quantity;
-
-        // Add CSRF token
-        data[this.config.csrfToken] = this.config.csrfHash;
-
-        const isEdit = !!data.id;
-        const endpoint = isEdit ? this.config.endpoints.update : this.config.endpoints.create;
-
-        try {
-            this.showLoading(true, form);
-
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                this.showSuccess(isEdit ? 'Prescription updated successfully' : 'Prescription created successfully');
-                this.closePrescriptionModal();
-                this.loadPrescriptions();
-            } else {
-                this.showError(result.message || 'Failed to save prescription');
-                
-                // Show validation errors
-                if (result.errors) {
-                    this.showValidationErrors(result.errors);
-                }
-            }
-
-            // Update CSRF hash
-            if (result.csrf) {
-                this.config.csrfHash = result.csrf.value;
-            }
-        } catch (error) {
-            this.showError('Failed to save prescription');
-        } finally {
-            this.showLoading(false, form);
-        }
-    }
-
-    populateForm(prescription) {
-        console.log('Populating form with:', prescription);
-        
-        // Check if prescription object exists
-        if (!prescription) {
-            console.error('Cannot populate form: prescription object is null');
-            this.showError('Failed to load prescription data');
-            return;
-        }
-        
-        // Helper function to safely set field values
-        const setFieldValue = (fieldId, value) => {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.value = value || '';
-            }
-        };
-        
-        // Ensure patient dropdown reflects the prescription's patient
-        const selectedPatientId = prescription.patient_id || prescription.pat_id || '';
-        setFieldValue('patientSelect', selectedPatientId);
-        
-        // Set doctor field if it exists (admin only)
-        if (this.config.userRole === 'admin' && prescription.doctor_id) {
-            setFieldValue('doctorSelect', prescription.doctor_id);
-        }
-        
-        setFieldValue('prescriptionDate', prescription.created_at ? prescription.created_at.split(' ')[0] : '');
-
-        // Clear existing medicine rows except the first template
-        const medicinesBody = document.getElementById('medicinesTableBody');
-        if (medicinesBody) {
-            const rows = Array.from(medicinesBody.querySelectorAll('.medicine-row'));
-            rows.slice(1).forEach(r => r.remove());
-        }
-
-        // Ensure medications are loaded
-        this.loadAvailableMedications().then(() => {
-            const items = Array.isArray(prescription.items) && prescription.items.length
-                ? prescription.items
-                : [{
-                    medication_name: prescription.medication,
-                    dosage: prescription.dosage,
-                    frequency: prescription.frequency,
-                    duration: prescription.duration,
-                    quantity: prescription.quantity
-                }];
-
-            // Fill first row, then add extra rows as needed
-            if (medicinesBody) {
-                const firstRow = medicinesBody.querySelector('.medicine-row');
-                if (firstRow) {
-                    this.fillMedicineRow(firstRow, items[0]);
-                }
-
-                for (let i = 1; i < items.length; i++) {
-                    this.addMedicineRow(items[i]);
-                }
-            }
-        });
-        setFieldValue('prescriptionStatus', prescription.status || 'queued');
-        setFieldValue('prescriptionNotes', prescription.notes);
-        
-        // Store the prescription ID for update
-        const idField = document.getElementById('prescriptionId');
-        if (idField) {
-            idField.value = prescription.id || '';
-        }
-    }
-
-    populateViewModal(prescription) {
-        console.log('Populating view modal with:', prescription);
-        
-        // Safely set text content with null checks
-        const setElementText = (id, value) => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = value || 'N/A';
-            } else {
-                console.warn(`Element not found: ${id}`);
-            }
-        };
-        
-        setElementText('viewPrescriptionId', prescription.prescription_id);
-        setElementText('viewPrescriptionDate', this.formatDate(prescription.created_at));
-        setElementText('viewDoctorName', prescription.prescriber || 'Unknown');
-        setElementText('viewPatientName', prescription.patient_name || 'Unknown');
-        setElementText('viewPatientId', prescription.pat_id);
-        // Render medicines table
-        const body = document.getElementById('viewMedicinesBody');
-        if (body) {
-            const items = Array.isArray(prescription.items) && prescription.items.length
-                ? prescription.items
-                : [{
-                    medication_name: prescription.medication,
-                    dosage: prescription.dosage,
-                    frequency: prescription.frequency,
-                    duration: prescription.duration,
-                    quantity: prescription.quantity
-                }];
-
-            body.innerHTML = items.map(item => `
-                <tr>
-                    <td>${this.escapeHtml(item.medication_name || prescription.medication || 'N/A')}</td>
-                    <td>${this.escapeHtml(item.dosage || '')}</td>
-                    <td>${this.escapeHtml(item.frequency || '')}</td>
-                    <td>${this.escapeHtml(item.duration || '')}</td>
-                    <td>${this.escapeHtml(String(item.quantity || ''))}</td>
-                </tr>
-            `).join('');
-        }
-        setElementText('viewPrescriptionNotes', prescription.notes || 'No notes available');
-        
-        // Handle status badge specially
-        const statusElement = document.getElementById('viewPrescriptionStatus');
-        if (statusElement) {
-            statusElement.textContent = prescription.status || 'Queued';
-            statusElement.className = `status-badge ${(prescription.status || 'queued').toLowerCase()}`;
-        }
-
-        // Store prescription data for edit functionality
-        this.currentViewPrescription = prescription;
-    }
-
-    resetForm() {
-        const form = document.getElementById('prescriptionForm');
-        if (form) {
-            form.reset();
-            // Set default date to today
-            const dateField = document.getElementById('prescriptionDate');
-            if (dateField) {
-                dateField.value = new Date().toISOString().split('T')[0];
-            }
-        }
-
-        // Reset medicines table to a single empty row
-        const medicinesBody = document.getElementById('medicinesTableBody');
-        if (medicinesBody) {
-            const rows = Array.from(medicinesBody.querySelectorAll('.medicine-row'));
-            rows.slice(1).forEach(r => r.remove());
-            const firstRow = medicinesBody.querySelector('.medicine-row');
-            if (firstRow) {
-                firstRow.querySelectorAll('input, select').forEach(input => {
-                    input.value = '';
-                });
-            }
-        }
-
-        this.clearValidationErrors();
-    }
-
-    /**
-     * Load medications from Resource Management into all medication selectors.
-     */
-    async loadAvailableMedications() {
-        // If already loaded, just populate all selects
-        if (this.medicationOptionsCache !== null) {
-            this.populateAllMedicationSelects();
-            return;
-        }
-
-        try {
-            const response = await fetch(this.config.endpoints.availableMedications);
-            const data = await response.json();
-
-            if (data.status === 'success' && Array.isArray(data.data)) {
-                this.medicationOptionsCache = data.data;
-            } else {
-                this.medicationOptionsCache = [];
-            }
-        } catch (error) {
-            console.error('Error loading medications:', error);
-            this.medicationOptionsCache = [];
-        }
-
-        this.populateAllMedicationSelects();
-    }
-
-    populateAllMedicationSelects() {
-        const selects = document.querySelectorAll('.medicine-medication-select');
-        selects.forEach(select => this.populateMedicationSelect(select));
-    }
-
-    populateMedicationSelect(select) {
-        if (!select) return;
-
-        select.innerHTML = '<option value="">Select medication</option>';
-
-        if (!Array.isArray(this.medicationOptionsCache) || !this.medicationOptionsCache.length) {
-            select.innerHTML = '<option value="">No medications available</option>';
-            return;
-        }
-
-        this.medicationOptionsCache.forEach(med => {
-            const opt = document.createElement('option');
-            opt.value = med.id;
-            opt.textContent = `${med.equipment_name} (Stock: ${med.quantity})`;
-            opt.dataset.name = med.equipment_name;
-            select.appendChild(opt);
-        });
-
-        // Keep hidden medication name in sync with selected resource
-        select.addEventListener('change', () => {
-            const selected = select.options[select.selectedIndex];
-            const hidden = select.closest('td')?.querySelector('.medicine-name-hidden');
-            if (hidden) {
-                hidden.value = selected && selected.dataset ? (selected.dataset.name || selected.textContent || '') : '';
-            }
-        });
-    }
-
-    addMedicineRow(item = null) {
-        const body = document.getElementById('medicinesTableBody');
-        if (!body) return;
-
-        const template = body.querySelector('.medicine-row');
-        if (!template) return;
-
-        const row = template.cloneNode(true);
-        row.querySelectorAll('input, select').forEach(input => {
-            input.value = '';
-        });
-
-        body.appendChild(row);
-
-        const select = row.querySelector('.medicine-medication-select');
-        this.populateMedicationSelect(select);
-
-        if (item) {
-            this.fillMedicineRow(row, item);
-        }
-    }
-
-    fillMedicineRow(row, item) {
-        if (!row || !item) return;
-
-        const select   = row.querySelector('.medicine-medication-select');
-        const nameHide = row.querySelector('.medicine-name-hidden');
-        const dosage   = row.querySelector('input[name="dosage[]"]');
-        const freq     = row.querySelector('select[name="frequency[]"]');
-        const duration = row.querySelector('select[name="duration[]"]');
-        const quantity = row.querySelector('input[name="quantity[]"]');
-
-        if (nameHide) {
-            nameHide.value = item.medication_name || '';
-        }
-        if (dosage) dosage.value = item.dosage || '';
-        if (freq) freq.value = item.frequency || '';
-        if (duration) duration.value = item.duration || '';
-        if (quantity) quantity.value = item.quantity || '';
-
-        if (select && Array.isArray(this.medicationOptionsCache)) {
-            // try by resource id first
-            if (item.medication_resource_id) {
-                select.value = item.medication_resource_id;
-            } else if (item.medication_name) {
-                // fallback match by name
-                const target = item.medication_name.toLowerCase();
-                for (let i = 0; i < select.options.length; i++) {
-                    const opt = select.options[i];
-                    const name = (opt.dataset?.name || opt.textContent || '').toLowerCase();
-                    if (name.startsWith(target)) {
-                        select.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    closePrescriptionModal() {
-        const modal = document.getElementById('prescriptionModal');
-        if (modal) {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
-            document.body.style.overflow = '';
-        }
-        this.resetForm();
-    }
-
-    closeViewPrescriptionModal() {
-        document.getElementById('viewPrescriptionModal').classList.remove('active');
-        this.currentViewPrescription = null;
-    }
-
-    editFromView() {
-        if (this.currentViewPrescription) {
-            this.closeViewPrescriptionModal();
-            this.populateForm(this.currentViewPrescription);
-            const modalTitle = document.getElementById('modalTitle');
-            if (modalTitle) modalTitle.textContent = 'Edit Prescription';
-            const prescriptionId = document.getElementById('prescriptionId');
-            if (prescriptionId) prescriptionId.value = this.currentViewPrescription.id;
-            const modal = document.getElementById('prescriptionModal');
-            if (modal) modal.classList.add('active');
-        } else {
-            console.error('No prescription data available to edit');
-            this.showError('Failed to load prescription for editing');
-        }
-    }
 
     setupAutoRefresh() {
         // Refresh prescriptions every 5 minutes
@@ -1146,89 +579,6 @@ class PrescriptionManager {
         return window.currentStaffId || null;
     }
 
-    async loadAvailablePatients() {
-        try {
-            const patientSelect = document.getElementById('patientSelect');
-            if (!patientSelect) {
-                return;
-            }
-
-            // Show loading state
-            patientSelect.innerHTML = '<option value="">Loading patients...</option>';
-            patientSelect.disabled = true;
-
-            const response = await fetch(this.config.endpoints.availablePatients);
-            const data = await response.json();
-
-            if (data.status === 'success' && Array.isArray(data.data)) {
-                // Clear and populate dropdown
-                patientSelect.innerHTML = '<option value="">Select Patient</option>';
-                
-                data.data.forEach(patient => {
-                    const option = document.createElement('option');
-                    option.value = patient.patient_id;
-                    option.textContent = `${patient.first_name} ${patient.last_name} (ID: ${patient.patient_id})`;
-                    patientSelect.appendChild(option);
-                });
-            } else {
-                patientSelect.innerHTML = '<option value="">No patients available</option>';
-            }
-
-            patientSelect.disabled = false;
-
-        } catch (error) {
-            console.error('Error loading patients:', error);
-            const patientSelect = document.getElementById('patientSelect');
-            if (patientSelect) {
-                patientSelect.innerHTML = '<option value="">Error loading patients</option>';
-                patientSelect.disabled = false;
-            }
-            this.showError('Failed to load patients. Please refresh the page.');
-        }
-    }
-
-    async loadAvailableDoctors() {
-        try {
-            const doctorSelect = document.getElementById('doctorSelect');
-            if (!doctorSelect) {
-                return;
-            }
-
-            // Show loading state
-            doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
-            doctorSelect.disabled = true;
-
-            const response = await fetch(this.config.endpoints.availableDoctors);
-            const data = await response.json();
-
-            if (data.status === 'success' && Array.isArray(data.data)) {
-                // Clear and populate dropdown
-                doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
-                
-                data.data.forEach(doctor => {
-                    const option = document.createElement('option');
-                    option.value = doctor.staff_id;
-                    const doctorInfo = `${doctor.first_name} ${doctor.last_name}`;
-                    const specialty = doctor.specialization ? ` - ${doctor.specialization}` : '';
-                    option.textContent = doctorInfo + specialty;
-                    doctorSelect.appendChild(option);
-                });
-            } else {
-                doctorSelect.innerHTML = '<option value="">No doctors available</option>';
-            }
-
-            doctorSelect.disabled = false;
-
-        } catch (error) {
-            console.error('Error loading doctors:', error);
-            const doctorSelect = document.getElementById('doctorSelect');
-            if (doctorSelect) {
-                doctorSelect.innerHTML = '<option value="">Error loading doctors</option>';
-                doctorSelect.disabled = false;
-            }
-            this.showError('Failed to load doctors. Please refresh the page.');
-        }
-    }
 
     // Utility methods
     showLoading(show, element = null) {
@@ -1360,7 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Global functions for backward compatibility
-window.viewPrescription = (id) => window.prescriptionManager?.viewPrescription(id);
+window.viewPrescription = (id) => window.ViewPrescriptionModal?.open(id);
 window.editPrescription = (id) => window.prescriptionManager?.editPrescription(id);
 window.deletePrescription = (id) => window.prescriptionManager?.deletePrescription(id);
 window.updatePrescriptionStatus = (id, status) => window.prescriptionManager?.updatePrescriptionStatus(id, status);

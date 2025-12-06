@@ -21,11 +21,17 @@ class PrescriptionManagement extends BaseController
         $this->prescriptionService = new PrescriptionService();
         $this->permissionManager = new PermissionManager();
         $this->financialService = new FinancialService();
-        
-        // Get user role and staff_id from session
         $session = session();
         $this->userRole = $session->get('role');
         $this->staffId = $session->get('staff_id');
+    }
+    
+    private function jsonResponse($status, $message, $data = null, $statusCode = 200)
+    {
+        $response = ['status' => $status, 'message' => $message];
+        if ($data !== null) $response['data'] = $data;
+        $response['csrf'] = ['name' => csrf_token(), 'value' => csrf_hash()];
+        return $this->response->setStatusCode($statusCode)->setJSON($response);
     }
 
     /**
@@ -166,29 +172,15 @@ class PrescriptionManagement extends BaseController
     {
         try {
             if (!$this->canViewPrescriptions()) {
-                return $this->response->setStatusCode(403)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Access denied'
-                ]);
+                return $this->jsonResponse('error', 'Access denied', null, 403);
             }
 
-            // Get filters from request
-            $filters = $this->getFiltersFromRequest();
-            
-            // Get prescriptions based on role
-            $prescriptions = $this->prescriptionService->getPrescriptionsByRole($this->userRole, $this->staffId, $filters);
-            
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => $prescriptions
-            ]);
+            $prescriptions = $this->prescriptionService->getPrescriptionsByRole($this->userRole, $this->staffId, $this->getFiltersFromRequest());
+            return $this->jsonResponse('success', 'Prescriptions loaded', $prescriptions);
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionManagement::getPrescriptionsAPI error: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to load prescriptions'
-            ]);
+            return $this->jsonResponse('error', 'Failed to load prescriptions', null, 500);
         }
     }
 
@@ -199,35 +191,23 @@ class PrescriptionManagement extends BaseController
     {
         try {
             if (!$this->canCreatePrescription()) {
-                return $this->response->setStatusCode(403)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Permission denied',
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                ]);
+                return $this->jsonResponse('error', 'Permission denied', null, 403);
             }
 
             $input = $this->request->getJSON(true) ?? $this->request->getPost();
-            
             $result = $this->prescriptionService->createPrescription($input, $this->userRole, $this->staffId);
             
-            $statusCode = $result['success'] ? 200 : 422;
+            $response = ['status' => $result['success'] ? 'success' : 'error', 'message' => $result['message']];
+            if (isset($result['prescription_id'])) $response['prescription_id'] = $result['prescription_id'];
+            if (isset($result['id'])) $response['id'] = $result['id'];
+            if (isset($result['errors'])) $response['errors'] = $result['errors'];
+            $response['csrf'] = ['name' => csrf_token(), 'value' => csrf_hash()];
             
-            return $this->response->setStatusCode($statusCode)->setJSON([
-                'status' => $result['success'] ? 'success' : 'error',
-                'message' => $result['message'],
-                'prescription_id' => $result['prescription_id'] ?? null,
-                'id' => $result['id'] ?? null,
-                'errors' => $result['errors'] ?? null,
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
+            return $this->response->setStatusCode($result['success'] ? 200 : 422)->setJSON($response);
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionManagement::create error: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to create prescription',
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
+            return $this->jsonResponse('error', 'Failed to create prescription', null, 500);
         }
     }
 
@@ -240,30 +220,17 @@ class PrescriptionManagement extends BaseController
             $input = $this->request->getJSON(true) ?? $this->request->getPost();
             
             if (empty($input['id'])) {
-                return $this->response->setStatusCode(422)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Prescription ID is required',
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                ]);
+                return $this->jsonResponse('error', 'Prescription ID is required', null, 422);
             }
 
             $result = $this->prescriptionService->updatePrescription($input['id'], $input, $this->userRole, $this->staffId);
-            
             $statusCode = $result['success'] ? 200 : ($result['message'] === 'Permission denied' ? 403 : 422);
             
-            return $this->response->setStatusCode($statusCode)->setJSON([
-                'status' => $result['success'] ? 'success' : 'error',
-                'message' => $result['message'],
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
+            return $this->jsonResponse($result['success'] ? 'success' : 'error', $result['message'], null, $statusCode);
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionManagement::update error: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to update prescription',
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
+            return $this->jsonResponse('error', 'Failed to update prescription', null, 500);
         }
     }
 
@@ -277,30 +244,17 @@ class PrescriptionManagement extends BaseController
             $id = $input['id'] ?? null;
 
             if (!$id) {
-                return $this->response->setStatusCode(422)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Prescription ID is required',
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                ]);
+                return $this->jsonResponse('error', 'Prescription ID is required', null, 422);
             }
 
             $result = $this->prescriptionService->deletePrescription($id, $this->userRole, $this->staffId);
-            
             $statusCode = $result['success'] ? 200 : ($result['message'] === 'Permission denied' ? 403 : 422);
             
-            return $this->response->setStatusCode($statusCode)->setJSON([
-                'status' => $result['success'] ? 'success' : 'error',
-                'message' => $result['message'],
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
+            return $this->jsonResponse($result['success'] ? 'success' : 'error', $result['message'], null, $statusCode);
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionManagement::delete error: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to delete prescription',
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
+            return $this->jsonResponse('error', 'Failed to delete prescription', null, 500);
         }
     }
 
@@ -310,57 +264,21 @@ class PrescriptionManagement extends BaseController
     public function getPrescription($id)
     {
         try {
-            log_message('info', 'PrescriptionManagement::getPrescription - Request for ID: ' . $id);
-            log_message('info', 'PrescriptionManagement::getPrescription - User role: ' . $this->userRole);
-            log_message('info', 'PrescriptionManagement::getPrescription - Staff ID: ' . $this->staffId);
-            
             if (!$this->canViewPrescriptions()) {
-                log_message('warning', 'PrescriptionManagement::getPrescription - Access denied for role: ' . $this->userRole);
-                return $this->response->setStatusCode(403)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Access denied'
-                ]);
+                return $this->jsonResponse('error', 'Access denied', null, 403);
             }
 
             $prescription = $this->prescriptionService->getPrescription($id);
             
             if (!$prescription) {
-                log_message('warning', 'PrescriptionManagement::getPrescription - Prescription not found: ' . $id);
-                
-                // Check if prescriptions table has any data
-                $db = \Config\Database::connect();
-                $count = $db->table('prescriptions')->countAllResults();
-                log_message('info', 'Total prescriptions in database: ' . $count);
-                
-                // Check if this specific ID exists
-                $exists = $db->table('prescriptions')->where('id', $id)->countAllResults();
-                log_message('info', 'Prescription with ID ' . $id . ' exists: ' . ($exists ? 'YES' : 'NO'));
-                
-                return $this->response->setStatusCode(404)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Prescription not found',
-                    'debug' => [
-                        'id' => $id,
-                        'total_prescriptions' => $count,
-                        'exists' => $exists > 0
-                    ]
-                ]);
+                return $this->jsonResponse('error', 'Prescription not found', null, 404);
             }
-
-            log_message('info', 'PrescriptionManagement::getPrescription - Successfully found prescription: ' . $id);
             
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => $prescription
-            ]);
+            return $this->jsonResponse('success', 'Prescription loaded', $prescription);
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionManagement::getPrescription error: ' . $e->getMessage());
-            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to load prescription: ' . $e->getMessage()
-            ]);
+            return $this->jsonResponse('error', 'Failed to load prescription', null, 500);
         }
     }
 
@@ -374,30 +292,17 @@ class PrescriptionManagement extends BaseController
             $status = $input['status'] ?? null;
 
             if (!$status) {
-                return $this->response->setStatusCode(422)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Status is required',
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                ]);
+                return $this->jsonResponse('error', 'Status is required', null, 422);
             }
 
             $result = $this->prescriptionService->updatePrescriptionStatus($id, $status, $this->userRole, $this->staffId);
-            
             $statusCode = $result['success'] ? 200 : ($result['message'] === 'Permission denied' ? 403 : 422);
             
-            return $this->response->setStatusCode($statusCode)->setJSON([
-                'status' => $result['success'] ? 'success' : 'error',
-                'message' => $result['message'],
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
+            return $this->jsonResponse($result['success'] ? 'success' : 'error', $result['message'], null, $statusCode);
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionManagement::updateStatus error: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to update prescription status',
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
+            return $this->jsonResponse('error', 'Failed to update prescription status', null, 500);
         }
     }
 
@@ -408,25 +313,15 @@ class PrescriptionManagement extends BaseController
     {
         try {
             if (!$this->canCreatePrescription()) {
-                return $this->response->setStatusCode(403)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Access denied'
-                ]);
+                return $this->jsonResponse('error', 'Access denied', null, 403);
             }
 
             $patients = $this->prescriptionService->getAvailablePatients($this->userRole, $this->staffId);
-            
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => $patients
-            ]);
+            return $this->jsonResponse('success', 'Patients loaded', $patients);
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionManagement::getAvailablePatientsAPI error: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to load available patients'
-            ]);
+            return $this->jsonResponse('error', 'Failed to load available patients', null, 500);
         }
     }
 
@@ -554,52 +449,15 @@ class PrescriptionManagement extends BaseController
 
     private function getPageConfig()
     {
-        $configs = [
-            'admin' => [
-                'title' => 'Prescription Management',
-                'subtitle' => 'Manage all prescriptions and medication orders',
-                'redirectUrl' => 'admin/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'admin'
-            ],
-            'doctor' => [
-                'title' => 'My Prescriptions',
-                'subtitle' => 'Create and manage patient prescriptions',
-                'redirectUrl' => 'doctor/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'doctor'
-            ],
-            'nurse' => [
-                'title' => 'Department Prescriptions',
-                'subtitle' => 'View department prescription orders',
-                'redirectUrl' => 'nurse/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'nurse'
-            ],
-            'pharmacist' => [
-                'title' => 'Prescription Queue',
-                'subtitle' => 'Process and dispense medications',
-                'redirectUrl' => 'pharmacist/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'pharmacist'
-            ],
-            'receptionist' => [
-                'title' => 'Prescription Overview',
-                'subtitle' => 'View prescription status for coordination',
-                'redirectUrl' => 'receptionist/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'receptionist'
-            ],
-            'it_staff' => [
-                'title' => 'Prescription Management',
-                'subtitle' => 'System administration of prescriptions',
-                'redirectUrl' => 'it-staff/dashboard',
-                'showSidebar' => true,
-                'sidebarType' => 'admin'
-            ]
-        ];
-
-        return $configs[$this->userRole] ?? $configs['admin'];
+        return match($this->userRole) {
+            'admin' => ['title' => 'Prescription Management', 'subtitle' => 'Manage all prescriptions and medication orders', 'redirectUrl' => 'admin/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin'],
+            'doctor' => ['title' => 'My Prescriptions', 'subtitle' => 'Create and manage patient prescriptions', 'redirectUrl' => 'doctor/dashboard', 'showSidebar' => true, 'sidebarType' => 'doctor'],
+            'nurse' => ['title' => 'Department Prescriptions', 'subtitle' => 'View department prescription orders', 'redirectUrl' => 'nurse/dashboard', 'showSidebar' => true, 'sidebarType' => 'nurse'],
+            'pharmacist' => ['title' => 'Prescription Queue', 'subtitle' => 'Process and dispense medications', 'redirectUrl' => 'pharmacist/dashboard', 'showSidebar' => true, 'sidebarType' => 'pharmacist'],
+            'receptionist' => ['title' => 'Prescription Overview', 'subtitle' => 'View prescription status for coordination', 'redirectUrl' => 'receptionist/dashboard', 'showSidebar' => true, 'sidebarType' => 'receptionist'],
+            'it_staff' => ['title' => 'Prescription Management', 'subtitle' => 'System administration of prescriptions', 'redirectUrl' => 'it-staff/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin'],
+            default => ['title' => 'Prescription Management', 'subtitle' => 'Manage all prescriptions and medication orders', 'redirectUrl' => 'admin/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin']
+        };
     }
 
     private function getAvailablePatientsForRole()

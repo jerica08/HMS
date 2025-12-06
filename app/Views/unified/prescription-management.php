@@ -16,18 +16,10 @@
 </head>
 <body class="<?= esc($userRole) ?>">
 
-    <?php include APPPATH . 'Views/template/header.php'; ?>
-
-    <?= $this->include('unified/components/notification', [
-        'id' => 'prescriptionsNotification',
-        'dismissFn' => 'dismissPrescriptionsNotification()'
-    ]) ?>
-
+    <?= $this->include('template/header') ?>
+    <?= $this->include('unified/components/notification', ['id' => 'prescriptionsNotification', 'dismissFn' => 'dismissPrescriptionsNotification()']) ?>
     <div class="main-container">
-        <?php 
-        // Include unified sidebar component
-        include APPPATH . 'Views/unified/components/sidebar.php'; 
-        ?>
+        <?= $this->include('unified/components/sidebar') ?>
 
         <main class="content" role="main">
             <h1 class="page-title">
@@ -45,14 +37,10 @@
             </h1>
             <div class="page-actions">
                 <?php if ($permissions['canCreate']): ?>
-                    <button type="button" id="createPrescriptionBtn" class="btn btn-primary" aria-label="Create New Prescription" onclick="showPrescriptionModalDirect()">
-                        <i class="fas fa-plus" aria-hidden="true"></i> Add Prescription
-                    </button>
+                    <button type="button" id="createPrescriptionBtn" class="btn btn-primary" aria-label="Create New Prescription"><i class="fas fa-plus"></i> Add Prescription</button>
                 <?php endif; ?>
                 <?php if (in_array($userRole ?? '', ['admin', 'it_staff', 'pharmacist'])): ?>
-                    <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
-                        <i class="fas fa-download" aria-hidden="true"></i> Export
-                    </button>
+                    <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download"></i> Export</button>
                 <?php endif; ?>
             </div>
             
@@ -343,197 +331,15 @@
         </div>
     </div>
 
-<!-- Modals -->
-<?php 
-    $modalData = [
-        'statuses' => $statuses ?? [],
-        'priorities' => $priorities ?? [],
-        'availablePatients' => $availablePatients ?? [],
-        'userRole' => $userRole ?? '',
-        'permissions' => $permissions ?? []
-    ];
-?>
-<?= view('unified/modals/add-prescription-modal', $modalData) ?>
-<?= view('unified/modals/view-prescription-modal', $modalData) ?>
+    <!-- Modals -->
+    <?php $modalData = ['statuses' => $statuses ?? [], 'priorities' => $priorities ?? [], 'availablePatients' => $availablePatients ?? [], 'userRole' => $userRole ?? '', 'permissions' => $permissions ?? []]; ?>
+    <?= $this->include('unified/modals/add-prescription-modal', $modalData) ?>
+    <?= $this->include('unified/modals/view-prescription-modal', $modalData) ?>
 
     <!-- JavaScript -->
+    <script src="<?= base_url('assets/js/unified/modals/shared/prescription-modal-utils.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/modals/add-prescription-modal.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/modals/view-prescription-modal.js') ?>"></script>
     <script src="<?= base_url('assets/js/unified/prescription-management.js') ?>"></script>
-    <script src="<?= base_url('assets/js/unified/prescription-management-init.js') ?>"></script>
-    
-    <script>
-    // Direct function to show prescription modal
-    async function showPrescriptionModalDirect() {
-        const modal = document.getElementById('prescriptionModal');
-        
-        if (modal) {
-            // Reset form
-            const form = document.getElementById('prescriptionForm');
-            if (form) {
-                form.reset();
-                const idField = document.getElementById('prescriptionId');
-                if (idField) {
-                    idField.value = '';
-                }
-                // Set default date to today
-                const dateField = document.getElementById('prescriptionDate');
-                if (dateField) {
-                    dateField.value = new Date().toISOString().split('T')[0];
-                }
-            }
-            
-            // Load available patients dynamically
-            await loadAvailablePatientsForModal();
-            
-            // Show modal
-            modal.classList.add('active');
-            modal.style.display = 'flex';
-            modal.style.position = 'fixed';
-            modal.style.top = '0';
-            modal.style.left = '0';
-            modal.style.width = '100vw';
-            modal.style.height = '100vh';
-            modal.style.zIndex = '9999';
-            modal.style.alignItems = 'center';
-            modal.style.justifyContent = 'center';
-            modal.style.background = 'rgba(15, 23, 42, 0.55)';
-            
-            document.body.style.overflow = 'hidden';
-        }
-    }
-    
-    // Function to load available patients for the modal
-    async function loadAvailablePatientsForModal() {
-        try {
-            const patientSelect = document.getElementById('patientSelect');
-            if (!patientSelect) {
-                return;
-            }
-
-            // Show loading state
-            patientSelect.innerHTML = '<option value="">Loading patients...</option>';
-            patientSelect.disabled = true;
-
-            const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
-            const response = await fetch(`${baseUrl}prescriptions/available-patients`);
-            const data = await response.json();
-
-            if (data.status === 'success' && Array.isArray(data.data)) {
-                // Clear and populate dropdown
-                patientSelect.innerHTML = '<option value="">Select Patient</option>';
-                
-                data.data.forEach(patient => {
-                    const option = document.createElement('option');
-                    option.value = patient.patient_id;
-                    option.textContent = `${patient.first_name} ${patient.last_name} (ID: ${patient.patient_id})`;
-                    patientSelect.appendChild(option);
-                });
-            } else {
-                patientSelect.innerHTML = '<option value="">No patients available</option>';
-            }
-
-            patientSelect.disabled = false;
-
-        } catch (error) {
-            console.error('Error loading patients:', error);
-            const patientSelect = document.getElementById('patientSelect');
-            if (patientSelect) {
-                patientSelect.innerHTML = '<option value="">Error loading patients</option>';
-                patientSelect.disabled = false;
-            }
-        }
-        
-        // Load doctors for admin users
-        const userRole = document.querySelector('meta[name="user-role"]')?.content || '';
-        if (userRole === 'admin') {
-            await loadAvailableDoctorsForModal();
-        }
-    }
-    
-    // Function to load available doctors for the modal (admin only)
-    async function loadAvailableDoctorsForModal() {
-        try {
-            const doctorSelect = document.getElementById('doctorSelect');
-            if (!doctorSelect) {
-                return;
-            }
-
-            // Show loading state
-            doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
-            doctorSelect.disabled = true;
-
-            const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
-            const response = await fetch(`${baseUrl}prescriptions/available-doctors`);
-            const data = await response.json();
-
-            if (data.status === 'success' && Array.isArray(data.data)) {
-                if (data.data.length === 0) {
-                    doctorSelect.innerHTML = '<option value="">No doctors available</option>';
-                } else {
-                    // Clear and populate dropdown
-                    doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
-                    
-                    data.data.forEach(doctor => {
-                        const option = document.createElement('option');
-                        option.value = doctor.staff_id;
-                        const doctorInfo = `${doctor.first_name} ${doctor.last_name}`;
-                        const specialty = doctor.specialization ? ` - ${doctor.specialization}` : '';
-                        option.textContent = doctorInfo + specialty;
-                        doctorSelect.appendChild(option);
-                    });
-                }
-            } else {
-                doctorSelect.innerHTML = `<option value="">${data.message || 'No doctors available'}</option>`;
-            }
-
-            doctorSelect.disabled = false;
-
-        } catch (error) {
-            console.error('Error loading doctors:', error);
-            const doctorSelect = document.getElementById('doctorSelect');
-            if (doctorSelect) {
-                doctorSelect.innerHTML = '<option value="">Error loading doctors</option>';
-                doctorSelect.disabled = false;
-            }
-        }
-    }
-    
-    // Direct function to hide modal
-    function hidePrescriptionModalDirect() {
-        const modal = document.getElementById('prescriptionModal');
-        if (modal) {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
-            document.body.style.overflow = '';
-        }
-    }
-    
-    // Make functions global
-    window.showPrescriptionModalDirect = showPrescriptionModalDirect;
-    window.hidePrescriptionModalDirect = hidePrescriptionModalDirect;
-    
-    // Add event listeners for close buttons
-    document.addEventListener('DOMContentLoaded', function() {
-        const closeBtn = document.getElementById('closePrescriptionModal');
-        const cancelBtn = document.getElementById('cancelPrescriptionBtn');
-        
-        if (closeBtn) {
-            closeBtn.addEventListener('click', hidePrescriptionModalDirect);
-        }
-        
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', hidePrescriptionModalDirect);
-        }
-        
-        // Click outside to close
-        const modal = document.getElementById('prescriptionModal');
-        if (modal) {
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    hidePrescriptionModalDirect();
-                }
-            });
-        }
-    });
-    </script>
 </body>
 </html>

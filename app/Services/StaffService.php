@@ -14,69 +14,45 @@ class StaffService
     }
 
     /**
+     * Build base staff query with all joins
+     */
+    private function buildStaffQuery($includeId = false)
+    {
+        $select = 's.*, s.department_id, dpt.name as department, CONCAT(s.first_name, " ", s.last_name) as full_name, TIMESTAMPDIFF(YEAR, s.dob, CURDATE()) as age, DATE_FORMAT(s.date_joined, "%M %d, %Y") as formatted_date_joined, d.specialization as doctor_specialization, d.license_no as doctor_license_no, n.license_no as nurse_license_no, p.license_no as pharmacist_license_no, l.license_no as laboratorist_license_no, l.specialization as laboratorist_specialization, a.license_no as accountant_license_no, r.desk_no as receptionist_desk_no, i.expertise as it_expertise, s.role_id, rl.slug as role_slug, rl.name as role_name';
+        if ($includeId) $select = 's.staff_id as id, ' . $select;
+        
+        return $this->db->table('staff s')->select($select)
+            ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
+            ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
+            ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
+            ->join('pharmacist p', 'p.staff_id = s.staff_id', 'left')
+            ->join('laboratorist l', 'l.staff_id = s.staff_id', 'left')
+            ->join('accountant a', 'a.staff_id = s.staff_id', 'left')
+            ->join('receptionist r', 'r.staff_id = s.staff_id', 'left')
+            ->join('it_staff i', 'i.staff_id = s.staff_id', 'left')
+            ->join('roles rl', 'rl.role_id = s.role_id', 'left');
+    }
+
+    /**
      * Get staff with role-based filtering
      */
     public function getStaffByRole($userRole, $staffId = null, $filters = [])
     {
         try {
-            $builder = $this->db->table('staff s')
-                ->select('s.*, 
-                         s.staff_id as id,
-                         s.department_id,
-                         dpt.name as department,
-                         CONCAT(s.first_name, " ", s.last_name) as full_name,
-                         TIMESTAMPDIFF(YEAR, s.dob, CURDATE()) as age,
-                         DATE_FORMAT(s.date_joined, "%M %d, %Y") as formatted_date_joined,
-                         d.specialization as doctor_specialization,
-                         d.license_no as doctor_license_no,
-                         n.license_no as nurse_license_no,
-                         p.license_no as pharmacist_license_no,
-                         l.license_no as laboratorist_license_no,
-                         l.specialization as laboratorist_specialization,
-                         a.license_no as accountant_license_no,
-                         r.desk_no as receptionist_desk_no,
-                         i.expertise as it_expertise,
-                         s.role_id,
-                         rl.slug as role_slug,
-                         rl.name as role_name')
-                ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
-                ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
-                ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
-                ->join('pharmacist p', 'p.staff_id = s.staff_id', 'left')
-                ->join('laboratorist l', 'l.staff_id = s.staff_id', 'left')
-                ->join('accountant a', 'a.staff_id = s.staff_id', 'left')
-                ->join('receptionist r', 'r.staff_id = s.staff_id', 'left')
-                ->join('it_staff i', 'i.staff_id = s.staff_id', 'left')
-                ->join('roles rl', 'rl.role_id = s.role_id', 'left');
+            $builder = $this->buildStaffQuery(true);
 
             // Role-based filtering
-            switch ($userRole) {
-                case 'admin':
-                case 'it_staff':
-                    // Admin and IT staff can see all staff
-                    break;
-                case 'doctor':
-                    // Doctors can see staff in their department and nurses
-                    $doctorInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                    if ($doctorInfo && !empty($doctorInfo['department_id'])) {
-                        $builder->where('s.department_id', $doctorInfo['department_id']);
-                    }
-                    break;
-                case 'nurse':
-                    // Nurses can see staff in their department
-                    $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                    if ($nurseInfo && !empty($nurseInfo['department_id'])) {
-                        $builder->where('s.department_id', $nurseInfo['department_id']);
-                    }
-                    break;
-                case 'receptionist':
-                    // Receptionists can see doctors and nurses for scheduling
-                    $builder->whereIn('rl.slug', ['doctor', 'nurse']);
-                    break;
-                default:
-                    // Other roles see limited staff
-                    $builder->where('s.staff_id', $staffId);
-                    break;
+            if (in_array($userRole, ['admin', 'it_staff'])) {
+                // Admin and IT staff can see all staff
+            } elseif (in_array($userRole, ['doctor', 'nurse'])) {
+                $info = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
+                if ($info && !empty($info['department_id'])) {
+                    $builder->where('s.department_id', $info['department_id']);
+                }
+            } elseif ($userRole === 'receptionist') {
+                $builder->whereIn('rl.slug', ['doctor', 'nurse']);
+            } else {
+                $builder->where('s.staff_id', $staffId);
             }
 
             // Apply additional filters
@@ -109,7 +85,7 @@ class StaffService
                 ->get()
                 ->getResultArray();
 
-            // Normalize role field for frontend (prefer slug, then name)
+            // Normalize role field for frontend
             $staff = array_map(function ($row) {
                 if (empty($row['role'])) {
                     $row['role'] = $row['role_slug'] ?? ($row['role_name'] ?? null);
@@ -117,17 +93,10 @@ class StaffService
                 return $row;
             }, $staff);
 
-            return [
-                'success' => true,
-                'data' => $staff,
-            ];
+            return ['success' => true, 'data' => $staff];
         } catch (\Throwable $e) {
             log_message('error', 'Error fetching staff: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to fetch staff',
-                'data' => [],
-            ];
+            return ['success' => false, 'message' => 'Failed to fetch staff', 'data' => []];
         }
     }
 
@@ -193,56 +162,17 @@ class StaffService
     public function getStaff($id)
     {
         try {
-            $staff = $this->db->table('staff s')
-                ->select('s.*, 
-                         CONCAT(s.first_name, " ", s.last_name) as full_name,
-                         TIMESTAMPDIFF(YEAR, s.dob, CURDATE()) as age,
-                         dpt.name as department,
-                         d.specialization as doctor_specialization,
-                         d.license_no as doctor_license_no,
-                         n.license_no as nurse_license_no,
-                         p.license_no as pharmacist_license_no,
-                         l.license_no as laboratorist_license_no,
-                         l.specialization as laboratorist_specialization,
-                         a.license_no as accountant_license_no,
-                         r.desk_no as receptionist_desk_no,
-                         i.expertise as it_expertise,
-                         s.role_id,
-                         rl.slug as role_slug,
-                         rl.name as role_name')
-                ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
-                ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
-                ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
-                ->join('pharmacist p', 'p.staff_id = s.staff_id', 'left')
-                ->join('laboratorist l', 'l.staff_id = s.staff_id', 'left')
-                ->join('accountant a', 'a.staff_id = s.staff_id', 'left')
-                ->join('receptionist r', 'r.staff_id = s.staff_id', 'left')
-                ->join('it_staff i', 'i.staff_id = s.staff_id', 'left')
-                ->join('roles rl', 'rl.role_id = s.role_id', 'left')
-                ->where('s.staff_id', $id)
-                ->get()
-                ->getRowArray();
+            $staff = $this->buildStaffQuery()->where('s.staff_id', $id)->get()->getRowArray();
 
             if (!$staff) {
-                return [
-                    'success' => false,
-                    'message' => 'Staff member not found',
-                ];
+                return ['success' => false, 'message' => 'Staff member not found'];
             }
 
-            // Add ID alias for frontend compatibility
             $staff['id'] = $staff['staff_id'];
-
-            return [
-                'success' => true,
-                'staff' => $staff,
-            ];
+            return ['success' => true, 'staff' => $staff];
         } catch (\Throwable $e) {
             log_message('error', 'Error fetching staff member: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Database error',
-            ];
+            return ['success' => false, 'message' => 'Database error'];
         }
     }
 
@@ -251,123 +181,64 @@ class StaffService
      */
   public function createStaff($input, $userRole)
 {
-    // Check permissions
     if (!$this->canCreateStaff($userRole)) {
-        return [
-            'success' => false,
-            'message' => 'Permission denied',
-        ];
+        return ['success' => false, 'message' => 'Permission denied'];
     }
 
     $input = $this->normalizeInput($input);
 
-    // DOB + age validation (18–100 years; adjust as needed)
     $dobCheck = $this->validateDobAndAge($input['dob'] ?? null, 18, 100);
     if (!$dobCheck['valid']) {
-        return [
-            'success' => false,
-            'message' => 'Validation failed',
-            'errors'  => ['dob' => $dobCheck['error']],
-        ];
+        return ['success' => false, 'message' => 'Validation failed', 'errors' => ['dob' => $dobCheck['error']]];
     }
 
-    // Auto-generate employee_id based on role if not provided
     if (empty($input['employee_id']) && !empty($input['role'])) {
         try {
             $input['employee_id'] = $this->generateEmployeeIdForRole($input['role']);
         } catch (\Throwable $e) {
-            return [
-                'success' => false,
-                'message' => 'Failed to generate employee ID: ' . $e->getMessage(),
-            ];
+            return ['success' => false, 'message' => 'Failed to generate employee ID: ' . $e->getMessage()];
         }
     }
 
-    // Validation
     $validation = \Config\Services::validation();
     $validation->setRules($this->getValidationRules($input['role'] ?? 'staff'));
-
     if (!$validation->run($input)) {
-        return [
-            'success' => false,
-            'message' => 'Validation failed',
-            'errors' => $validation->getErrors(),
-        ];
+        return ['success' => false, 'message' => 'Validation failed', 'errors' => $validation->getErrors()];
     }
 
-    // Check for duplicate employee ID
-    $existing = $this->db->table('staff')
-        ->where('employee_id', $input['employee_id'])
-        ->get()
-        ->getRowArray();
-
-    if ($existing) {
-        return [
-            'success' => false,
-            'message' => 'Employee ID already exists',
-        ];
+    if ($this->db->table('staff')->where('employee_id', $input['employee_id'])->get()->getRowArray()) {
+        return ['success' => false, 'message' => 'Employee ID already exists'];
     }
 
     try {
         if (!empty($input['department'])) {
-            // Ensure the named department exists
             $this->ensureDepartmentExists($input['department']);
-
-            // Look up its ID and set department_id accordingly
-            $deptRow = $this->db->table('department')
-                ->where('name', $input['department'])
-                ->get()
-                ->getRowArray();
-            if ($deptRow && isset($deptRow['department_id'])) {
-                $input['department_id'] = $deptRow['department_id'];
-            }
+            $deptRow = $this->db->table('department')->where('name', $input['department'])->get()->getRowArray();
+            $input['department_id'] = $deptRow['department_id'] ?? null;
         } else {
-            // No department provided – ensure department_id is null so FK is not violated
             $input['department_id'] = null;
         }
 
-        // Prepare staff data
-        $staffData = $this->prepareStaffData($input);
-        
-        // Insert staff record (filter to existing columns)
-        $staffData = $this->filterToExistingColumns('staff', $staffData);
+        $staffData = $this->filterToExistingColumns('staff', $this->prepareStaffData($input));
         $this->db->table('staff')->insert($staffData);
 
-        // Check for low-level DB error immediately after insert
         $dbError = $this->db->error();
         if (!empty($dbError['code'])) {
             log_message('error', 'StaffService::createStaff DB error: ' . json_encode($dbError) . ' data=' . json_encode($staffData));
-            $errMsg = !empty($dbError['message']) ? $dbError['message'] : 'Failed to create staff member';
-            return [
-                'success' => false,
-                'message' => $errMsg,
-                'errors'  => $dbError,
-            ];
+            return ['success' => false, 'message' => $dbError['message'] ?? 'Failed to create staff member', 'errors' => $dbError];
         }
 
         $staffId = $this->db->insertID();
         if (!$staffId) {
             log_message('error', 'StaffService::createStaff insertID is zero; data=' . json_encode($staffData));
-            return [
-                'success' => false,
-                'message' => 'Failed to create staff member',
-            ];
+            return ['success' => false, 'message' => 'Failed to create staff member'];
         }
 
-        // After staff row is saved, try role-specific insert without transaction
         $this->insertRoleSpecificData($input['role'], $staffId, $input);
-
-        return [
-            'success' => true,
-            'message' => 'Staff member created successfully',
-            'id' => $staffId,
-        ];
+        return ['success' => true, 'message' => 'Staff member created successfully', 'id' => $staffId];
     } catch (\Throwable $e) {
         log_message('error', 'Failed to create staff: ' . $e->getMessage());
-        return [
-            'success' => false,
-            'message' => 'Database error: ' . $e->getMessage(),
-        ];
+        return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
     }
 }
 
@@ -376,110 +247,55 @@ class StaffService
      */
     public function updateStaff($id, $input, $userRole)
     {
-        // Check permissions
         if (!$this->canEditStaff($id, $userRole)) {
-            return [
-                'success' => false,
-                'message' => 'Permission denied',
-            ];
+            return ['success' => false, 'message' => 'Permission denied'];
         }
-        // Normalize input first (maps designation -> role, normalizes dates, etc.)
         $input = $this->normalizeInput($input);
 
-        // Get existing staff (for defaults)
         $existingStaff = $this->getStaff($id);
         if (empty($existingStaff['success']) || empty($existingStaff['staff']) || !is_array($existingStaff['staff'])) {
             return $existingStaff;
         }
-
         $existing = $existingStaff['staff'];
+        $input['role'] = $input['role'] ?? ($existing['role'] ?? ($existing['role_slug'] ?? null));
+        $input['employee_id'] = $input['employee_id'] ?? ($existing['employee_id'] ?? null);
 
-        // If role still empty after normalization, fall back to existing role/role_slug
-        if (empty($input['role'])) {
-            $input['role'] = $existing['role'] ?? ($existing['role_slug'] ?? null);
-        }
-
-        // Ensure employee_id is kept if not provided
-        if (empty($input['employee_id'])) {
-            $input['employee_id'] = $existing['employee_id'] ?? null;
-        }
-
-        // Handle department and department_id so department doesn't become null
-        // If a department name is provided, ensure it exists and set department_id accordingly
+        // Handle department and department_id
         if (!empty($input['department'])) {
             $this->ensureDepartmentExists($input['department']);
-            $deptRow = $this->db->table('department')
-                ->where('name', $input['department'])
-                ->get()
-                ->getRowArray();
-            if ($deptRow && isset($deptRow['department_id'])) {
-                $input['department_id'] = $deptRow['department_id'];
-            } elseif (!isset($input['department_id'])) {
-                // Fallback to existing department_id if lookup fails
-                $input['department_id'] = $existing['department_id'] ?? null;
-            }
-        } else {
-            // No department provided in update payload – preserve existing department_id
-            if (!isset($input['department_id'])) {
-                $input['department_id'] = $existing['department_id'] ?? null;
-            }
+            $deptRow = $this->db->table('department')->where('name', $input['department'])->get()->getRowArray();
+            $input['department_id'] = $deptRow['department_id'] ?? ($existing['department_id'] ?? null);
+        } elseif (!isset($input['department_id'])) {
+            $input['department_id'] = $existing['department_id'] ?? null;
         }
 
-        // Validation
         $validation = \Config\Services::validation();
         $validation->setRules($this->getUpdateValidationRules($input['role'] ?? 'staff', $id));
-
         if (!$validation->run($input)) {
-            return [
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validation->getErrors(),
-            ];
+            return ['success' => false, 'message' => 'Validation failed', 'errors' => $validation->getErrors()];
         }
 
         try {
-            // Prepare update data and filter to existing columns
-            $staffData = $this->prepareStaffData($input);
-            $staffData = $this->filterToExistingColumns('staff', $staffData);
-            // Add timestamp only if column exists
-            $staffColumns = $this->getTableColumns('staff');
-            if (in_array('updated_at', $staffColumns, true)) {
+            $staffData = $this->filterToExistingColumns('staff', $this->prepareStaffData($input));
+            if (in_array('updated_at', $this->getTableColumns('staff'), true)) {
                 $staffData['updated_at'] = date('Y-m-d H:i:s');
             }
-
-            // Update staff record
-            $this->db->table('staff')
-                ->where('staff_id', $id)
-                ->update($staffData);
+            $this->db->table('staff')->where('staff_id', $id)->update($staffData);
 
             // Keep linked user role in sync with staff role
             $roleId = $staffData['role_id'] ?? null;
             if (empty($roleId) && !empty($input['role'])) {
-                $roleRow = $this->db->table('roles')
-                    ->where('slug', $input['role'])
-                    ->get()
-                    ->getRowArray();
-                if ($roleRow && isset($roleRow['role_id'])) {
-                    $roleId = (int) $roleRow['role_id'];
-                }
+                $roleRow = $this->db->table('roles')->where('slug', $input['role'])->get()->getRowArray();
+                $roleId = $roleRow['role_id'] ?? null;
             }
-
             if (!empty($roleId)) {
-                $this->db->table('users')
-                    ->where('staff_id', $id)
-                    ->update(['role_id' => $roleId]);
+                $this->db->table('users')->where('staff_id', $id)->update(['role_id' => $roleId]);
             }
 
-            return [
-                'success' => true,
-                'message' => 'Staff member updated successfully',
-            ];
+            return ['success' => true, 'message' => 'Staff member updated successfully'];
         } catch (\Throwable $e) {
             log_message('error', 'Failed to update staff: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Database error: ' . $e->getMessage(),
-            ];
+            return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
         }
     }
 
@@ -488,66 +304,33 @@ class StaffService
      */
     public function deleteStaff($id, $userRole)
     {
-        // Only admin can delete staff
         if ($userRole !== 'admin') {
-            return [
-                'success' => false,
-                'message' => 'Only administrators can delete staff members',
-            ];
+            return ['success' => false, 'message' => 'Only administrators can delete staff members'];
         }
 
         try {
             $this->db->transStart();
 
-            // Get staff info for role-specific cleanup
             $staff = $this->getStaff($id);
             if (!empty($staff['success']) && !empty($staff['staff']) && is_array($staff['staff'])) {
-                // Some schemas may not have a direct 'role' column; fall back to role_slug when needed
                 $role = $staff['staff']['role'] ?? ($staff['staff']['role_slug'] ?? null);
-
                 if (!empty($role)) {
-                    // Delete role-specific data
                     $this->deleteRoleSpecificData($role, $id);
                 }
             }
 
-            // Delete staff record
-            $result = $this->db->table('staff')
-                ->where('staff_id', $id)
-                ->delete();
-
+            $result = $this->db->table('staff')->where('staff_id', $id)->delete();
             $this->db->transComplete();
 
             if ($this->db->transStatus() === false || !$result) {
-                return [
-                    'success' => false,
-                    'message' => 'Failed to delete staff member',
-                ];
+                return ['success' => false, 'message' => 'Failed to delete staff member'];
             }
 
-            return [
-                'success' => true,
-                'message' => 'Staff member deleted successfully',
-            ];
+            return ['success' => true, 'message' => 'Staff member deleted successfully'];
         } catch (\Throwable $e) {
             log_message('error', 'Failed to delete staff: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Database error: ' . $e->getMessage(),
-            ];
+            return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
         }
-        // DOB + age validation on update (validate if DOB is present)
-    $dobValue = $input['dob'] ?? ($input['date_of_birth'] ?? null);
-    if (!empty($dobValue)) {
-    $dobCheck = $this->validateDobAndAge($dobValue, 18, 100);
-    if (!$dobCheck['valid']) {
-        return [
-            'success' => false,
-            'message' => 'Validation failed',
-            'errors'  => ['dob' => $dobCheck['error']],
-        ];
-    }
-}
     }
 
     /**
@@ -574,15 +357,10 @@ class StaffService
             $builder = $this->db->table('staff');
 
             // Role-based filtering for stats
-            if ($userRole === 'nurse' && $staffId) {
-                $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                if ($nurseInfo && !empty($nurseInfo['department'])) {
-                    $builder->where('department', $nurseInfo['department']);
-                }
-            } elseif ($userRole === 'doctor' && $staffId) {
-                $doctorInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                if ($doctorInfo && !empty($doctorInfo['department'])) {
-                    $builder->where('department', $doctorInfo['department']);
+            if (in_array($userRole, ['nurse', 'doctor']) && $staffId) {
+                $info = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
+                if ($info && !empty($info['department'])) {
+                    $builder->where('department', $info['department']);
                 }
             }
 
@@ -594,13 +372,9 @@ class StaffService
             $stats['inactive_staff'] = (clone $builder)->where('status', 'inactive')->countAllResults(false);
 
             // Role counts
-            $stats['doctors'] = (clone $builder)->where('role', 'doctor')->countAllResults(false);
-            $stats['nurses'] = (clone $builder)->where('role', 'nurse')->countAllResults(false);
-            $stats['pharmacists'] = (clone $builder)->where('role', 'pharmacist')->countAllResults(false);
-            $stats['receptionists'] = (clone $builder)->where('role', 'receptionist')->countAllResults(false);
-            $stats['laboratorists'] = (clone $builder)->where('role', 'laboratorist')->countAllResults(false);
-            $stats['accountants'] = (clone $builder)->where('role', 'accountant')->countAllResults(false);
-            $stats['it_staff'] = (clone $builder)->where('role', 'it_staff')->countAllResults();
+            foreach (['doctors' => 'doctor', 'nurses' => 'nurse', 'pharmacists' => 'pharmacist', 'receptionists' => 'receptionist', 'laboratorists' => 'laboratorist', 'accountants' => 'accountant', 'it_staff' => 'it_staff'] as $key => $role) {
+                $stats[$key] = (clone $builder)->where('role', $role)->countAllResults(false);
+            }
 
             // New this month
             $firstDayOfMonth = date('Y-m-01');
@@ -609,12 +383,10 @@ class StaffService
                 ->countAllResults();
 
             // Department-specific stats
-            if ($userRole === 'nurse' || $userRole === 'doctor') {
+            if (in_array($userRole, ['nurse', 'doctor']) && $staffId) {
                 $userInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
                 if ($userInfo && !empty($userInfo['department'])) {
-                    $stats['department_staff'] = $this->db->table('staff')
-                        ->where('department', $userInfo['department'])
-                        ->countAllResults();
+                    $stats['department_staff'] = $this->db->table('staff')->where('department', $userInfo['department'])->countAllResults();
                 }
             }
 
@@ -664,34 +436,22 @@ class StaffService
             }
         }
 
-        // Normalize DOB to Y-m-d if parseable
-        if (!empty($input['dob'])) {
-            $ts = strtotime($input['dob']);
-            if ($ts !== false) {
-                $input['dob'] = date('Y-m-d', $ts);
-            } else {
-                // If invalid date string, unset to avoid DB/validation errors
-                unset($input['dob']);
-            }
-        }
-
-        // Normalize date_joined
-        if (!empty($input['date_joined'])) {
-            $ts = strtotime($input['date_joined']);
-            if ($ts !== false) {
-                $input['date_joined'] = date('Y-m-d', $ts);
-            } else {
-                unset($input['date_joined']);
+        // Normalize dates to Y-m-d if parseable
+        foreach (['dob', 'date_joined'] as $dateField) {
+            if (!empty($input[$dateField])) {
+                $ts = strtotime($input[$dateField]);
+                $input[$dateField] = $ts !== false ? date('Y-m-d', $ts) : null;
+                if ($input[$dateField] === null) unset($input[$dateField]);
             }
         }
 
         return $input;
     }
 
-    private function getValidationRules($role)
+    private function getValidationRules($role, $isUpdate = false, $excludeId = null)
     {
         $baseRules = [
-            'employee_id' => 'required|min_length[3]|max_length[255]|is_unique[staff.employee_id]',
+            'employee_id' => $isUpdate ? 'permit_empty|min_length[3]|max_length[255]|is_unique[staff.employee_id,staff_id,' . $excludeId . ']' : 'required|min_length[3]|max_length[255]|is_unique[staff.employee_id]',
             'first_name' => 'required|min_length[2]|max_length[100]',
             'last_name' => 'permit_empty|max_length[100]',
             'gender' => 'permit_empty|in_list[male,female,other,Male,Female,Other]',
@@ -700,37 +460,25 @@ class StaffService
             'email' => 'permit_empty|valid_email',
             'address' => 'permit_empty',
             'department' => 'permit_empty|max_length[255]',
-            'role' => 'required|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,accountant,it_staff]',
+            'role' => $isUpdate ? 'permit_empty|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,accountant,it_staff]' : 'required|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,accountant,it_staff]',
             'date_joined' => 'permit_empty|valid_date',
         ];
 
-        // Role-specific validation
-        switch ($role) {
-            case 'doctor':
+        $roleRules = [
+            'doctor' => ['doctor_specialization' => ($isUpdate ? 'permit_empty' : 'required') . '|max_length[100]', 'doctor_license_no' => 'permit_empty|max_length[50]', 'doctor_consultation_fee' => 'permit_empty|decimal'],
+            'nurse' => ['nurse_license_no' => ($isUpdate ? 'permit_empty' : 'required') . '|max_length[100]'],
+            'pharmacist' => ['pharmacist_license_no' => ($isUpdate ? 'permit_empty' : 'required') . '|max_length[100]'],
+            'laboratorist' => ['laboratorist_license_no' => ($isUpdate ? 'permit_empty' : 'required') . '|max_length[100]', 'laboratorist_specialization' => 'permit_empty|max_length[150]', 'lab_room_no' => 'permit_empty|max_length[50]'],
+            'accountant' => ['accountant_license_no' => ($isUpdate ? 'permit_empty' : 'required') . '|max_length[100]'],
+            'receptionist' => ['receptionist_desk_no' => 'permit_empty|max_length[50]'],
+            'it_staff' => ['it_expertise' => 'permit_empty|max_length[150]'],
+        ];
+
+        if (isset($roleRules[$role])) {
+            $baseRules = array_merge($baseRules, $roleRules[$role]);
+            if ($role === 'doctor' && !$isUpdate) {
                 $baseRules['doctor_specialization'] = 'required|min_length[2]|max_length[100]';
-                $baseRules['doctor_license_no'] = 'permit_empty|max_length[50]';
-                $baseRules['doctor_consultation_fee'] = 'permit_empty|decimal';
-                break;
-            case 'nurse':
-                $baseRules['nurse_license_no'] = 'required|max_length[100]';
-                break;
-            case 'pharmacist':
-                $baseRules['pharmacist_license_no'] = 'required|max_length[100]';
-                break;
-            case 'laboratorist':
-                $baseRules['laboratorist_license_no'] = 'required|max_length[100]';
-                $baseRules['laboratorist_specialization'] = 'permit_empty|max_length[150]';
-                $baseRules['lab_room_no'] = 'permit_empty|max_length[50]';
-                break;
-            case 'accountant':
-                $baseRules['accountant_license_no'] = 'required|max_length[100]';
-                break;
-            case 'receptionist':
-                $baseRules['receptionist_desk_no'] = 'permit_empty|max_length[50]';
-                break;
-            case 'it_staff':
-                $baseRules['it_expertise'] = 'permit_empty|max_length[150]';
-                break;
+            }
         }
 
         return $baseRules;
@@ -738,56 +486,18 @@ class StaffService
 
     private function getUpdateValidationRules($role, $excludeId)
     {
-        $rules = $this->getValidationRules($role);
-        // Relax some rules for updates
-        $rules['employee_id'] = 'permit_empty|min_length[3]|max_length[255]|is_unique[staff.employee_id,staff_id,' . $excludeId . ']';
-        $rules['role'] = 'permit_empty|in_list[admin,doctor,nurse,pharmacist,receptionist,laboratorist,accountant,it_staff]';
-
-        // Role-specific: make required fields optional on update
-        switch ($role) {
-            case 'doctor':
-                $rules['doctor_specialization'] = 'permit_empty|max_length[100]';
-                $rules['doctor_license_no'] = 'permit_empty|max_length[50]';
-                $rules['doctor_consultation_fee'] = 'permit_empty|decimal';
-                break;
-            case 'nurse':
-                $rules['nurse_license_no'] = 'permit_empty|max_length[100]';
-                break;
-            case 'pharmacist':
-                $rules['pharmacist_license_no'] = 'permit_empty|max_length[100]';
-                break;
-            case 'laboratorist':
-                $rules['laboratorist_license_no'] = 'permit_empty|max_length[100]';
-                $rules['laboratorist_specialization'] = 'permit_empty|max_length[150]';
-                $rules['lab_room_no'] = 'permit_empty|max_length[50]';
-                break;
-            case 'accountant':
-                $rules['accountant_license_no'] = 'permit_empty|max_length[100]';
-                break;
-            case 'receptionist':
-                $rules['receptionist_desk_no'] = 'permit_empty|max_length[50]';
-                break;
-            case 'it_staff':
-                $rules['it_expertise'] = 'permit_empty|max_length[150]';
-                break;
-        }
-
-        return $rules;
+        return $this->getValidationRules($role, true, $excludeId);
     }
 
     private function prepareStaffData($input)
     {
         // Determine role_id from explicit input or from role slug
         $roleId = null;
-
         if (!empty($input['role_id'])) {
             $roleId = (int) $input['role_id'];
         } elseif (!empty($input['role'])) {
-            $db   = \Config\Database::connect();
-            $role = $db->table('roles')->where('slug', $input['role'])->get()->getRowArray();
-            if ($role && isset($role['role_id'])) {
-                $roleId = (int) $role['role_id'];
-            }
+            $role = $this->db->table('roles')->where('slug', $input['role'])->get()->getRowArray();
+            $roleId = $role['role_id'] ?? null;
         }
 
         return [
@@ -812,90 +522,30 @@ class StaffService
     private function insertRoleSpecificData($role, $staffId, $input)
     {
         try {
-            switch ($role) {
-                case 'doctor':
-                    $this->db->table('doctor')->insert([
-                        'staff_id' => $staffId,
-                        // Doctor table requires specialization NOT NULL; default to 'General' when missing
-                        'specialization' => ($input['doctor_specialization'] ?? $input['specialization'] ?? 'General'),
-                        'license_no' => $input['doctor_license_no'] ?? null,
-                        // 'status' column exists with default Active in schema; rely on DB default
-                    ]);
-                    break;
-                case 'admin':
-                    // Create admin record with derived credentials if not provided
-                    $username = $input['username'] ?? ($input['email'] ?? $input['employee_id'] ?? ('admin_' . $staffId));
-                    $rawPassword = $input['password'] ?? ($input['employee_id'] ?? ('Adm' . $staffId . '!'));
-                    $passwordHash = password_hash($rawPassword, PASSWORD_DEFAULT);
-                    $this->db->table('admin')->insert([
-                        'staff_id' => $staffId,
-                        'username' => $username,
-                        'password' => $passwordHash,
-                    ]);
-                    break;
-                case 'nurse':
-                    $this->db->table('nurse')->insert([
-                        'staff_id' => $staffId,
-                        'license_no' => $input['nurse_license_no'] ?? null,
-                        'specialization' => $input['nurse_specialization'] ?? null,
-                    ]);
-                    break;
-                case 'pharmacist':
-                    $this->db->table('pharmacist')->insert([
-                        'staff_id' => $staffId,
-                        'license_no' => $input['pharmacist_license_no'] ?? null,
-                        'specialization' => $input['pharmacist_specialization'] ?? null,
-                    ]);
-                    break;
-                case 'laboratorist':
-                    $this->db->table('laboratorist')->insert([
-                        'staff_id' => $staffId,
-                        'license_no' => $input['laboratorist_license_no'],
-                        'specialization' => $input['laboratorist_specialization'] ?? null,
-                        'lab_room_no' => $input['lab_room_no'] ?? null,
-                    ]);
-                    break;
-                case 'accountant':
-                    $this->db->table('accountant')->insert([
-                        'staff_id' => $staffId,
-                        'license_no' => $input['accountant_license_no'] ?? null,
-                    ]);
-                    break;
-                case 'receptionist':
-                    $this->db->table('receptionist')->insert([
-                        'staff_id' => $staffId,
-                        'desk_no' => $input['receptionist_desk_no'] ?? null,
-                    ]);
-                    break;
-                case 'it_staff':
-                    $this->db->table('it_staff')->insert([
-                        'staff_id' => $staffId,
-                        'expertise' => $input['it_expertise'] ?? null,
-                    ]);
-                    break;
+            $roleData = [
+                'doctor' => ['table' => 'doctor', 'data' => ['specialization' => $input['doctor_specialization'] ?? $input['specialization'] ?? 'General', 'license_no' => $input['doctor_license_no'] ?? null]],
+                'admin' => ['table' => 'admin', 'data' => ['username' => $input['username'] ?? ($input['email'] ?? $input['employee_id'] ?? ('admin_' . $staffId)), 'password' => password_hash($input['password'] ?? ($input['employee_id'] ?? ('Adm' . $staffId . '!')), PASSWORD_DEFAULT)]],
+                'nurse' => ['table' => 'nurse', 'data' => ['license_no' => $input['nurse_license_no'] ?? null, 'specialization' => $input['nurse_specialization'] ?? null]],
+                'pharmacist' => ['table' => 'pharmacist', 'data' => ['license_no' => $input['pharmacist_license_no'] ?? null, 'specialization' => $input['pharmacist_specialization'] ?? null]],
+                'laboratorist' => ['table' => 'laboratorist', 'data' => ['license_no' => $input['laboratorist_license_no'], 'specialization' => $input['laboratorist_specialization'] ?? null, 'lab_room_no' => $input['lab_room_no'] ?? null]],
+                'accountant' => ['table' => 'accountant', 'data' => ['license_no' => $input['accountant_license_no'] ?? null]],
+                'receptionist' => ['table' => 'receptionist', 'data' => ['desk_no' => $input['receptionist_desk_no'] ?? null]],
+                'it_staff' => ['table' => 'it_staff', 'data' => ['expertise' => $input['it_expertise'] ?? null]],
+            ];
+
+            if (isset($roleData[$role])) {
+                $this->db->table($roleData[$role]['table'])->insert(array_merge(['staff_id' => $staffId], $roleData[$role]['data']));
             }
         } catch (\Throwable $e) {
             log_message('warning', 'Role-specific insert skipped for staff_id ' . $staffId . ': ' . $e->getMessage());
-            // Do not throw; keep staff creation successful
         }
     }
 
     private function deleteRoleSpecificData($role, $staffId)
     {
-        $tables = [
-            'doctor' => 'doctor',
-            'nurse' => 'nurse',
-            'pharmacist' => 'pharmacist',
-            'laboratorist' => 'laboratorist',
-            'accountant' => 'accountant',
-            'receptionist' => 'receptionist',
-            'it_staff' => 'it_staff',
-        ];
-
-        if (isset($tables[$role])) {
-            $this->db->table($tables[$role])
-                ->where('staff_id', $staffId)
-                ->delete();
+        $tables = ['doctor', 'nurse', 'pharmacist', 'laboratorist', 'accountant', 'receptionist', 'it_staff', 'admin'];
+        if (in_array($role, $tables)) {
+            $this->db->table($role === 'it_staff' ? 'it_staff' : $role)->where('staff_id', $staffId)->delete();
         }
     }
 
@@ -955,54 +605,27 @@ class StaffService
         return array_intersect_key($data, array_flip($columns));
     }
     private function validateDobAndAge(?string $dobString, int $minAge = 18, int $maxAge = 100): array
-{
-    if (empty($dobString)) {
-        return [
-            'valid'  => false,
-            'error'  => 'Date of birth is required',
-        ];
+    {
+        if (empty($dobString)) {
+            return ['valid' => false, 'error' => 'Date of birth is required'];
+        }
+        try {
+            $dob = new \DateTime($dobString);
+            $today = new \DateTime('today');
+            if ($dob > $today) {
+                return ['valid' => false, 'error' => 'Date of birth cannot be in the future'];
+            }
+            $age = $dob->diff($today)->y;
+            if ($age < $minAge) {
+                return ['valid' => false, 'error' => 'Staff member must be at least ' . $minAge . ' years old'];
+            }
+            if ($age > $maxAge) {
+                return ['valid' => false, 'error' => 'Please check the date of birth (age seems too high)'];
+            }
+            return ['valid' => true, 'age' => $age];
+        } catch (\Throwable $e) {
+            return ['valid' => false, 'error' => 'Invalid date of birth'];
+        }
     }
-
-    try {
-        $dob = new \DateTime($dobString);
-    } catch (\Throwable $e) {
-        return [
-            'valid' => false,
-            'error' => 'Invalid date of birth',
-        ];
-    }
-
-    $today = new \DateTime('today');
-
-    // No future DOB
-    if ($dob > $today) {
-        return [
-            'valid' => false,
-            'error' => 'Date of birth cannot be in the future',
-        ];
-    }
-
-    // Calculate age accurately
-    $age = $dob->diff($today)->y;
-
-    if ($age < $minAge) {
-        return [
-            'valid' => false,
-            'error' => 'Staff member must be at least ' . $minAge . ' years old',
-        ];
-    }
-
-    if ($age > $maxAge) {
-        return [
-            'valid' => false,
-            'error' => 'Please check the date of birth (age seems too high)',
-        ];
-    }
-
-    return [
-        'valid' => true,
-        'age'   => $age,
-    ];
-}
 
 }

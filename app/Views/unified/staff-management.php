@@ -17,8 +17,7 @@
       $statusFilter = $statusFilter ?? null;
     ?>
 </head>
-<?php include APPPATH . 'Views/template/header.php'; ?> 
-
+<?= $this->include('template/header') ?>
 <?= $this->include('unified/components/notification', [
     'id' => 'staffNotification',
     'dismissFn' => 'dismissStaffNotification()'
@@ -26,7 +25,7 @@
 
 <div class="main-container">
     <!-- Unified Sidebar -->
-     <?php include APPPATH . 'Views/unified/components/sidebar.php'; ?>
+    <?= $this->include('unified/components/sidebar') ?>
 
     <main class="content" role="main">
         <h1 class="page-title">
@@ -35,14 +34,10 @@
         </h1>
         <div class="page-actions">
             <?php if (($permissions['canCreate'] ?? false) || in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
-                <button type="button" class="btn btn-primary" id="addStaffBtn" aria-label="Add New Staff">
-                    <i class="fas fa-plus" aria-hidden="true"></i> Add New Staff
-                </button>
+                <button type="button" class="btn btn-primary" id="addStaffBtn" aria-label="Add New Staff"><i class="fas fa-plus" aria-hidden="true"></i> Add New Staff</button>
             <?php endif; ?>
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
-                <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data">
-                    <i class="fas fa-download" aria-hidden="true"></i> Export
-                </button>
+                <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download" aria-hidden="true"></i> Export</button>
             <?php endif; ?>
         </div>
         
@@ -50,43 +45,27 @@
 
         <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
-                <!-- Total Staff Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern blue">
-                            <i class="fas fa-users"></i>
-                        </div>
+                        <div class="card-icon-modern blue"><i class="fas fa-users"></i></div>
                         <div class="card-info">
                             <h3 class="card-title-modern">Total Staff</h3>
                             <p class="card-subtitle">All Staff Members</p>
                         </div>
                     </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $staffStats['total_staff'] ?? 0 ?></div>
-                        </div>
-                    </div>
+                    <div class="card-metrics"><div class="metric"><div class="metric-value blue"><?= $staffStats['total_staff'] ?? 0 ?></div></div></div>
                 </div>
             <?php elseif ($userRole === 'doctor'): ?>
-                <!-- Department Staff Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern blue">
-                            <i class="fas fa-users"></i>
-                        </div>
+                        <div class="card-icon-modern blue"><i class="fas fa-users"></i></div>
                         <div class="card-info">
                             <h3 class="card-title-modern">Department Staff</h3>
                             <p class="card-subtitle">My Department</p>
                         </div>
                     </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $staffStats['department_staff'] ?? 0 ?></div>
-                        </div>
-                    </div>
+                    <div class="card-metrics"><div class="metric"><div class="metric-value blue"><?= $staffStats['department_staff'] ?? 0 ?></div></div></div>
                 </div>
-
-                <!-- Staff Type Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
                         <div class="card-icon-modern purple"><i class="fas fa-user-md"></i></div>
@@ -96,14 +75,8 @@
                         </div>
                     </div>
                     <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $staffStats['doctors'] ?? 0 ?></div>
-                            <div class="metric-label">Doctors</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value green"><?= $staffStats['nurses'] ?? 0 ?></div>
-                            <div class="metric-label">Nurses</div>
-                        </div>
+                        <div class="metric"><div class="metric-value blue"><?= $staffStats['doctors'] ?? 0 ?></div><div class="metric-label">Doctors</div></div>
+                        <div class="metric"><div class="metric-value green"><?= $staffStats['nurses'] ?? 0 ?></div><div class="metric-label">Nurses</div></div>
                     </div>
                 </div>
             <?php endif; ?>

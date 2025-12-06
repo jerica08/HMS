@@ -30,51 +30,18 @@ class StaffManagement extends BaseController
     {
         $id = (int)($id ?? 0);
         if ($id <= 0) {
-            return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Invalid staff ID'], 400);
         }
 
         try {
-            // Build enriched staff query with department and role-specific data
-            $builder = $this->db->table('staff s')
-                ->select('s.*, 
-                         dpt.name as department,
-                         d.specialization as doctor_specialization,
-                         d.license_no as doctor_license_no,
-                         n.license_no as nurse_license_no,
-                         n.specialization as nurse_specialization,
-                         p.license_no as pharmacist_license_no,
-                         p.specialization as pharmacist_specialization,
-                         l.license_no as laboratorist_license_no,
-                         l.specialization as laboratorist_specialization,
-                         l.lab_room_no as lab_room_no,
-                         a.license_no as accountant_license_no,
-                         rl.slug as role_slug,
-                         rl.name as role_name')
-                ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
-                ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
-                ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
-                ->join('pharmacist p', 'p.staff_id = s.staff_id', 'left')
-                ->join('laboratorist l', 'l.staff_id = s.staff_id', 'left')
-                ->join('accountant a', 'a.staff_id = s.staff_id', 'left')
-                ->join('roles rl', 'rl.role_id = s.role_id', 'left')
-                ->where('s.staff_id', $id);
-
-            $row = $builder->get()->getRowArray();
-
-            if (!$row) {
-                return $this->response->setStatusCode(404)->setJSON(['status' => 'error', 'message' => 'Staff not found']);
+            $result = $this->staffService->getStaff($id);
+            if (!$result['success']) {
+                return $this->jsonResponse(['status' => 'error', 'message' => $result['message'] ?? 'Staff not found'], 404);
             }
-
-            // Alias ID for frontend compatibility
-            $row['id'] = $row['staff_id'];
-
-            return $this->response->setJSON(['status' => 'success', 'data' => $row]);
+            return $this->jsonResponse(['status' => 'success', 'data' => $result['staff']]);
         } catch (\Throwable $e) {
             log_message('error', 'Failed to fetch staff for modal: ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'status' => 'error',
-                'message' => 'Failed to load staff details',
-            ]);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Failed to load staff details'], 500);
         }
     }
 
@@ -108,164 +75,66 @@ class StaffManagement extends BaseController
 
     public function create()
     {
-        if ($this->request->getMethod() === 'POST') {
-            // Support both form-encoded and JSON payloads
-            $input = $this->request->getPost();
-            if (empty($input)) {
-                $jsonInput = $this->request->getJSON(true);
-                if (is_array($jsonInput)) {
-                    $input = $jsonInput;
-                }
-            }
-            $isAjax = $this->request->isAJAX() || 
-                      $this->request->getHeaderLine('Accept') == 'application/json' ||
-                      $this->request->getHeaderLine('X-Requested-With') == 'XMLHttpRequest';
-
-            // Use service to create staff
-            $result = $this->staffService->createStaff($input, $this->userRole);
-
-            if ($isAjax) {
-                $payload = $result['success']
-                    ? ['status' => 'success', 'message' => $result['message'] ?? 'Created', 'id' => $result['id'] ?? null]
-                    : ['status' => 'error', 'message' => $result['message'] ?? 'Failed', 'errors' => $result['errors'] ?? null];
-                $statusCode = $result['success'] ? 200 : 422;
-                return $this->response->setStatusCode($statusCode)->setJSON($payload);
-            }
-
-            if ($result['success']) {
-                session()->setFlashdata('success', $result['message']);
-            } else {
-                session()->setFlashdata('error', $result['message']);
-                if (isset($result['errors'])) {
-                    session()->setFlashdata('errors', $result['errors']);
-                }
-            }
-
-            return redirect()->to(base_url('admin/staff-management'));
+        if ($this->request->getMethod() !== 'POST') {
+            return view('admin/add-staff', ['title' => 'Add Staff']);
         }
 
-        $data = ['title' => 'Add Staff'];
-        return view('admin/add-staff', $data);
+        $input = $this->request->getPost() ?: $this->request->getJSON(true) ?: [];
+        $isAjax = $this->isAjaxRequest();
+        $result = $this->staffService->createStaff($input, $this->userRole);
+
+        if ($isAjax) {
+            $payload = $result['success']
+                ? ['status' => 'success', 'message' => $result['message'] ?? 'Created', 'id' => $result['id'] ?? null]
+                : ['status' => 'error', 'message' => $result['message'] ?? 'Failed', 'errors' => $result['errors'] ?? null];
+            return $this->jsonResponse($payload, $result['success'] ? 200 : 422);
+        }
+
+        session()->setFlashdata($result['success'] ? 'success' : 'error', $result['message']);
+        if (!$result['success'] && isset($result['errors'])) {
+            session()->setFlashdata('errors', $result['errors']);
+        }
+        return redirect()->to(base_url('admin/staff-management'));
     }
 
-    private function insertRoleSpecificData($designation, $staffId)
-    {
-        try {
-            switch ($designation) {
-                case 'doctor':
-                    $this->db->table('doctor')->insert([
-                        'staff_id' => $staffId,
-                        'specialization' => $this->request->getPost('doctor_specialization'),
-                        'license_no' => $this->request->getPost('doctor_license_no') ?: null,
-                        'status' => 'Active',
-                    ]);
-                    break;
-                case 'nurse':
-                    $this->db->table('nurse')->insert([
-                        'staff_id' => $staffId,
-                        'license_no' => $this->request->getPost('nurse_license_no'),
-                        'specialization' => $this->request->getPost('nurse_specialization') ?: null,
-                    ]);
-                    break;
-                case 'pharmacist':
-                    $this->db->table('pharmacist')->insert([
-                        'staff_id' => $staffId,
-                        'license_no' => $this->request->getPost('pharmacist_license_no'),
-                        'specialization' => $this->request->getPost('pharmacist_specialization') ?: null,
-                    ]);
-                    break;
-                case 'laboratorist':
-                    $this->db->table('laboratorist')->insert([
-                        'staff_id' => $staffId,
-                        'license_no' => $this->request->getPost('laboratorist_license_no'),
-                        'specialization' => $this->request->getPost('laboratorist_specialization') ?: null,
-                        'lab_room_no' => $this->request->getPost('laboratorist_lab_room_no') ?: null,
-                    ]);
-                    break;
-                case 'accountant':
-                    $this->db->table('accountant')->insert([
-                        'staff_id' => $staffId,
-                        'license_no' => $this->request->getPost('accountant_license_no'),
-                    ]);
-                    break;
-                case 'receptionist':
-                    $this->db->table('receptionist')->insert([
-                        'staff_id' => $staffId,
-                        'desk_no' => $this->request->getPost('receptionist_desk_no') ?: null,
-                    ]);
-                    break;
-                case 'it_staff':
-                    $this->db->table('it_staff')->insert([
-                        'staff_id' => $staffId,
-                        'expertise' => $this->request->getPost('it_expertise') ?: null,
-                    ]);
-                    break;
-            }
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed inserting role-specific record for staff_id ' . $staffId . ': ' . $e->getMessage());
-            session()->setFlashdata('warning', 'Staff saved, but role details could not be created.');
-        }
-    }
 
     public function update($id = null)
     {
-        // Accept staff_id from route param, form POST, or JSON body
         $jsonInput = $this->request->getJSON(true);
         $id = (int) ($id ?? ($this->request->getPost('staff_id') ?? ($jsonInput['staff_id'] ?? 0)));
         if ($id <= 0) {
-            return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Invalid staff ID'], 400);
         }
-        $input = $this->request->getPost() ?: $jsonInput ?? [];
         
-        // Use service to update staff
-        $result = $this->staffService->updateStaff($id, $input, $this->userRole);
-        
-        if ($result['success']) {
-            return $this->response->setJSON($result);
-        } else {
-            $statusCode = ($result['message'] === 'Permission denied') ? 403 : 422;
-            return $this->response->setStatusCode($statusCode)->setJSON($result);
-        }
+        $result = $this->staffService->updateStaff($id, $this->request->getPost() ?: $jsonInput ?? [], $this->userRole);
+        $statusCode = $result['success'] ? 200 : (($result['message'] === 'Permission denied') ? 403 : 422);
+        return $this->jsonResponse($result, $statusCode);
     }
 
     public function delete($id = null)
     {
-       
-        $id = (int) ($id ?? $this->request->getPost('staff_id') ?? $this->request->getGet('staff_id')); 
-
-        $isAjax = $this->request->isAJAX() ||
-                  $this->request->getHeaderLine('Accept') === 'application/json' ||
-                  strtoupper($this->request->getMethod()) === 'DELETE';
+        $id = (int) ($id ?? $this->request->getPost('staff_id') ?? $this->request->getGet('staff_id'));
+        $isAjax = $this->isAjaxRequest();
 
         if ($id <= 0) {
             if ($isAjax) {
-                return $this->response
-                    ->setStatusCode(400)
-                    ->setJSON(['status' => 'error', 'message' => 'Invalid staff ID']);
+                return $this->jsonResponse(['status' => 'error', 'message' => 'Invalid staff ID'], 400);
             }
             session()->setFlashdata('error', 'Invalid staff ID.');
             return redirect()->to(base_url('admin/staff-management'));
         }
 
-        // Use service to delete staff
         $result = $this->staffService->deleteStaff($id, $this->userRole);
 
         if ($isAjax) {
             $statusCode = $result['success'] ? 200 : (($result['message'] ?? '') === 'Permission denied' ? 403 : 422);
-            return $this->response
-                ->setStatusCode($statusCode)
-                ->setJSON([
-                    'status'  => $result['success'] ? 'success' : 'error',
-                    'message' => $result['message'] ?? ($result['success'] ? 'Deleted' : 'Failed to delete staff'),
-                ]);
+            return $this->jsonResponse([
+                'status' => $result['success'] ? 'success' : 'error',
+                'message' => $result['message'] ?? ($result['success'] ? 'Deleted' : 'Failed to delete staff'),
+            ], $statusCode);
         }
 
-        if ($result['success']) {
-            session()->setFlashdata('success', $result['message']);
-        } else {
-            session()->setFlashdata('error', $result['message']);
-        }
-
+        session()->setFlashdata($result['success'] ? 'success' : 'error', $result['message']);
         return redirect()->to(base_url('admin/staff-management'));
     }
 
@@ -281,37 +150,28 @@ class StaffManagement extends BaseController
             return redirect()->to(base_url('admin/staff-management'));
         }
 
-        $data = ['title' => 'Staff Details', 'staff' => $staff];
-        return view('admin/view-staff', $data);
+        return view('admin/view-staff', ['title' => 'Staff Details', 'staff' => $staff]);
     }
 
     // API Methods
     public function getStaffAPI()
     {
         try {
-            // Get filters from request
-            $filters = [
+            $filters = array_filter([
                 'department' => $this->request->getGet('department'),
                 'role' => $this->request->getGet('role'),
                 'status' => $this->request->getGet('status'),
                 'search' => $this->request->getGet('search'),
-            ];
+            ], fn($v) => !empty($v));
             
-            // Remove empty filters
-            $filters = array_filter($filters, function($value) {
-                return !empty($value);
-            });
-            
-            // Get staff using service
             $result = $this->staffService->getStaffByRole($this->userRole, $this->staffId, $filters);
-            
-            if ($result['success']) {
-                return $this->response->setJSON(['status' => 'success', 'data' => $result['data']]);
-            } else {
-                return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => $result['message']]);
-            }
+            return $this->jsonResponse([
+                'status' => $result['success'] ? 'success' : 'error',
+                'data' => $result['data'] ?? [],
+                'message' => $result['message'] ?? null,
+            ], $result['success'] ? 200 : 500);
         } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load staff']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Failed to load staff'], 500);
         }
     }
 
@@ -324,14 +184,10 @@ class StaffManagement extends BaseController
                 ->orderBy('s.first_name', 'ASC')
                 ->get()->getResultArray();
         
-            $data = array_map(function($r){
-                $r['name'] = trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''));
-                return $r;
-            }, $rows);
-        
-            return $this->response->setJSON(['status' => 'success', 'data' => $data]);
+            $data = array_map(fn($r) => array_merge($r, ['name' => trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))]), $rows);
+            return $this->jsonResponse(['status' => 'success', 'data' => $data]);
         } catch (\Throwable $e) {
-            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Failed to load doctors']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Failed to load doctors'], 500);
         }
     }
 
@@ -342,31 +198,15 @@ class StaffManagement extends BaseController
     public function getNextEmployeeId()
     {
         $role = $this->request->getGet('role');
-
         if (empty($role)) {
-            return $this->response
-                ->setStatusCode(400)
-                ->setJSON([
-                    'status'  => 'error',
-                    'message' => 'Role is required',
-                ]);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Role is required'], 400);
         }
 
         try {
             $employeeId = $this->staffService->getNextEmployeeIdForRole($role);
-
-            return $this->response->setJSON([
-                'status'       => 'success',
-                'employee_id'  => $employeeId,
-                'role'         => $role,
-            ]);
+            return $this->jsonResponse(['status' => 'success', 'employee_id' => $employeeId, 'role' => $role]);
         } catch (\Throwable $e) {
-            return $this->response
-                ->setStatusCode(500)
-                ->setJSON([
-                    'status'  => 'error',
-                    'message' => 'Failed to generate employee ID',
-                ]);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Failed to generate employee ID'], 500);
         }
     }
 
@@ -379,50 +219,13 @@ class StaffManagement extends BaseController
      */
     private function getPageTitle()
     {
-        switch ($this->userRole) {
-            case 'admin':
-                return 'Staff Management';
-            case 'doctor':
-                return 'Department Team';
-            case 'nurse':
-                return 'Department Staff';
-            case 'receptionist':
-                return 'Staff Directory';
-            default:
-                return 'Staff Information';
-        }
-    }
-
-    /**
-     * Check if user can create staff
-     */
-    private function canCreateStaff()
-    {
-        return in_array($this->userRole, ['admin', 'it_staff']);
-    }
-
-    /**
-     * Check if user can edit staff
-     */
-    private function canEditStaff($staffId = null)
-    {
-        return in_array($this->userRole, ['admin', 'it_staff']);
-    }
-
-    /**
-     * Check if user can delete staff
-     */
-    private function canDeleteStaff()
-    {
-        return $this->userRole === 'admin';
-    }
-
-    /**
-     * Check if user can view staff details
-     */
-    private function canViewStaff()
-    {
-        return in_array($this->userRole, ['admin', 'doctor', 'nurse', 'receptionist', 'it_staff']);
+        return match($this->userRole) {
+            'admin' => 'Staff Management',
+            'doctor' => 'Department Team',
+            'nurse' => 'Department Staff',
+            'receptionist' => 'Staff Directory',
+            default => 'Staff Information',
+        };
     }
 
     /**
@@ -430,15 +233,35 @@ class StaffManagement extends BaseController
      */
     private function getStaffPermissions($userRole)
     {
+        $admin = $userRole === 'admin';
         return [
-            'canCreate' => in_array($userRole, ['admin']),
-            'canEdit' => in_array($userRole, ['admin']),
-            'canDelete' => in_array($userRole, ['admin']),
+            'canCreate' => $admin,
+            'canEdit' => $admin,
+            'canDelete' => $admin,
             'canView' => in_array($userRole, ['admin', 'doctor', 'nurse', 'receptionist']),
             'canViewSalary' => in_array($userRole, ['admin', 'accountant']),
             'canManageSchedule' => in_array($userRole, ['admin', 'doctor']),
             'canViewDepartment' => in_array($userRole, ['admin', 'doctor', 'nurse']),
-            'canExport' => in_array($userRole, ['admin']),
+            'canExport' => $admin,
         ];
+    }
+
+    /**
+     * Helper: Check if request is AJAX
+     */
+    private function isAjaxRequest()
+    {
+        return $this->request->isAJAX() || 
+               $this->request->getHeaderLine('Accept') === 'application/json' ||
+               strtoupper($this->request->getMethod()) === 'DELETE' ||
+               $this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
+    }
+
+    /**
+     * Helper: Return JSON response with status code
+     */
+    private function jsonResponse($data, $statusCode = 200)
+    {
+        return $this->response->setStatusCode($statusCode)->setJSON($data);
     }
 }

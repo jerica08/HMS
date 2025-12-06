@@ -1,148 +1,107 @@
 /**
- * Financial Management Main Controller
+ * Financial Management - Main Controller
  */
+(function() {
+    const baseUrl = document.querySelector('meta[name="base-url"]')?.content?.replace(/\/+$/, '') || '';
+    const utils = new BillingModalUtils(baseUrl);
+    const tableBody = document.getElementById('financialTableBody');
 
-const FinancialManager = {
-    userRole: null,
-    refreshInterval: null,
-
-    init() {
-        this.userRole = FinancialUtils.getUserRole();
-        this.bindEvents();
-        this.startAutoRefresh();
-        
-        console.log('Financial Management initialized for role:', this.userRole);
-    },
-
-    bindEvents() {
-        // Auto-refresh every 5 minutes
-        this.refreshInterval = setInterval(() => {
-            this.refreshFinancialData();
-        }, 5 * 60 * 1000);
-
-        // Manual refresh button if exists
-        const refreshBtn = document.getElementById('refreshFinancialData');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.refreshFinancialData());
-        }
-    },
-
-    startAutoRefresh() {
-        // Initial load
-        this.refreshFinancialData();
-    },
-
-    async refreshFinancialData() {
-        // Stats are currently rendered server-side; skip background API call
-        return;
-    },
-
-    updateStatistics(stats) {
-        // Update income
-        const totalIncomeEl = document.getElementById('totalIncome');
-        if (totalIncomeEl && stats.total_income !== undefined) {
-            totalIncomeEl.textContent = FinancialUtils.formatCurrency(stats.total_income);
-        }
-
-        // Update expenses (if visible for role)
-        const totalExpensesEl = document.getElementById('totalExpenses');
-        if (totalExpensesEl && stats.total_expenses !== undefined) {
-            totalExpensesEl.textContent = FinancialUtils.formatCurrency(stats.total_expenses);
-        }
-
-        // Update net balance
-        const netBalanceEl = document.getElementById('netBalance');
-        if (netBalanceEl && stats.net_balance !== undefined) {
-            netBalanceEl.textContent = FinancialUtils.formatCurrency(stats.net_balance);
-            
-            // Add color coding for positive/negative balance
-            netBalanceEl.className = stats.net_balance >= 0 ? 'stat-number positive' : 'stat-number negative';
-        }
-
-        // Update pending bills
-        const pendingBillsEl = document.getElementById('pendingBills');
-        if (pendingBillsEl && stats.pending_bills !== undefined) {
-            pendingBillsEl.textContent = stats.pending_bills;
-        }
-
-        // Update paid bills
-        const paidBillsEl = document.getElementById('paidBills');
-        if (paidBillsEl && stats.paid_bills !== undefined) {
-            paidBillsEl.textContent = stats.paid_bills;
-        }
-
-        // Update recent transactions if container exists
-        if (stats.recent_transactions) {
-            this.updateRecentTransactions(stats.recent_transactions);
-        }
-    },
-
-    updateRecentTransactions(transactions) {
-        const container = document.getElementById('recentTransactions');
-        if (!container) return;
-
-        if (transactions.length === 0) {
-            container.innerHTML = '<p class="no-data">No recent transactions</p>';
+    // Notification functions
+    window.showFinancialNotification = function(message, type = 'success') {
+        const container = document.getElementById('financialNotification');
+        const messageEl = document.getElementById('departmentsNotificationMessage') || container?.querySelector('span');
+        if (!container || !messageEl) {
+            alert(message);
             return;
         }
 
-        const transactionsList = transactions.map(transaction => `
-            <div class="transaction-item">
-                <div class="transaction-info">
-                    <div class="transaction-patient">
-                        ${FinancialUtils.escapeHtml(transaction.first_name || '')} 
-                        ${FinancialUtils.escapeHtml(transaction.last_name || '')}
-                    </div>
-                    <div class="transaction-details">
-                        ${FinancialUtils.escapeHtml(transaction.bill_number || 'N/A')} • 
-                        ${FinancialUtils.escapeHtml(transaction.payment_method || 'N/A')}
-                    </div>
-                </div>
-                <div class="transaction-amount">
-                    ${FinancialUtils.formatCurrency(transaction.amount)}
-                </div>
-                <div class="transaction-date">
-                    ${FinancialUtils.formatDate(transaction.payment_date)}
-                </div>
-            </div>
-        `).join('');
+        if (window.financialNotificationTimeout) {
+            clearTimeout(window.financialNotificationTimeout);
+        }
 
-        container.innerHTML = transactionsList;
-    },
+        container.className = `notification ${type}`;
+        messageEl.textContent = String(message || '');
+        container.style.display = 'flex';
 
-    // Export/Print functionality
-    exportFinancialReport() {
-        // Implementation for exporting financial reports
-        FinancialUtils.showNotification('Export functionality coming soon', 'info');
-    },
+        window.financialNotificationTimeout = setTimeout(dismissFinancialNotification, 5000);
+    };
 
-    printFinancialReport() {
-        // Implementation for printing financial reports
-        window.print();
-    },
+    window.dismissFinancialNotification = function() {
+        const container = document.getElementById('financialNotification');
+        if (container) {
+            container.style.display = 'none';
+        }
+    };
 
-    // Cleanup
-    destroy() {
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
+    function handleTableClick(event) {
+        const btn = event.target.closest('button[data-action]');
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const billingId = btn.dataset.billingId;
+
+        if (action === 'view') {
+            const patientName = btn.dataset.patientName;
+            if (window.ViewBillingAccountModal && window.ViewBillingAccountModal.open) {
+                window.ViewBillingAccountModal.open(billingId, patientName);
+            }
+        } else if (action === 'mark-paid') {
+            markBillingAccountPaid(billingId);
+        } else if (action === 'delete') {
+            deleteBillingAccount(billingId);
         }
     }
-};
 
-// Global function for refreshing data (used by modals)
-function refreshFinancialData() {
-    FinancialManager.refreshFinancialData();
-}
+    function markBillingAccountPaid(billingId) {
+        if (!billingId || !confirm('Mark this billing account as PAID?')) return;
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    FinancialManager.init();
-});
+        fetch(`${baseUrl}/financial/billing-accounts/${billingId}/paid`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ billing_id: billingId })
+        })
+            .then(resp => resp.json())
+            .then(result => {
+                const ok = result && (result.success === true || result.status === 'success');
+                utils.showNotification(
+                    result.message || (ok ? 'Billing account marked as paid.' : 'Failed to mark billing account as paid.'),
+                    ok ? 'success' : 'error'
+                );
+                if (ok) window.location.reload();
+            })
+            .catch(err => {
+                console.error('Failed to mark billing account paid', err);
+                utils.showNotification('Failed to mark billing account as paid.', 'error');
+            });
+    }
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    FinancialManager.destroy();
-});
+    function deleteBillingAccount(billingId) {
+        if (!billingId || !confirm('Delete this billing account and all its items? This action cannot be undone.')) return;
 
-// Export to global scope
-window.FinancialManager = FinancialManager;
+        fetch(`${baseUrl}/financial/billing-accounts/${billingId}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ billing_id: billingId })
+        })
+            .then(resp => resp.json())
+            .then(result => {
+                const ok = result && (result.success === true || result.status === 'success');
+                utils.showNotification(
+                    result.message || (ok ? 'Billing account deleted successfully.' : 'Failed to delete billing account.'),
+                    ok ? 'success' : 'error'
+                );
+                if (ok) window.location.reload();
+            })
+            .catch(err => {
+                console.error('Failed to delete billing account', err);
+                utils.showNotification('Failed to delete billing account.', 'error');
+            });
+    }
+
+    // Initialize
+    if (tableBody) {
+        tableBody.addEventListener('click', handleTableClick);
+    }
+})();

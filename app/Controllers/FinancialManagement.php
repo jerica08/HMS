@@ -23,111 +23,103 @@ class FinancialManagement extends BaseController
         $userRole = session()->get('role');
         $staffId = session()->get('staff_id');
 
-        $permissions = $this->getPermissions($userRole);
-        $stats = $this->financialService->getFinancialStats($userRole, $staffId);
-
-        $data = [
+        return view('unified/financial-management', [
             'title' => $this->getPageTitle($userRole),
             'userRole' => $userRole,
-            'permissions' => $permissions,
-            'stats' => $stats,
+            'permissions' => $this->getPermissions($userRole),
+            'stats' => $this->financialService->getFinancialStats($userRole, $staffId),
             'transactions' => $this->financialService->getAllTransactions($userRole, $staffId)
-        ];
-
-        return view('unified/financial-management', $data);
+        ]);
     }
 
     public function createBill()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
+        $result = $this->financialService->createBill(
+            $this->getRequestData(),
+            session()->get('role'),
+            session()->get('staff_id')
+        );
 
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
-        $result = $this->financialService->createBill($input, $userRole, $staffId);
-
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($result);
     }
 
     public function processPayment()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
+        $result = $this->financialService->processPayment(
+            $this->getRequestData(),
+            session()->get('role'),
+            session()->get('staff_id')
+        );
 
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
-        $result = $this->financialService->processPayment($input, $userRole, $staffId);
-
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($result);
     }
 
     public function createExpense()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
-        $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
+        $result = $this->financialService->createExpense(
+            $this->getRequestData(),
+            session()->get('role'),
+            session()->get('staff_id')
+        );
 
-        $input = $this->request->getJSON(true) ?? $this->request->getPost();
-        $result = $this->financialService->createExpense($input, $userRole, $staffId);
-
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($result);
     }
 
     public function createFinancialRecord()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Not authenticated'], 401);
         }
 
         $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
-
-        $data = $this->request->getJSON(true) ?? $this->request->getPost();
-
-        // Validate permissions - check if user has any financial permissions
         $permissions = $this->getPermissions($userRole);
         if (empty($permissions) || !in_array('view', $permissions)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Insufficient permissions']);
+            return $this->jsonResponse(['success' => false, 'message' => 'Insufficient permissions'], 403);
         }
 
-        $result = $this->financialService->createFinancialRecord($data, $userRole, $staffId);
+        $result = $this->financialService->createFinancialRecord(
+            $this->getRequestData(),
+            $userRole,
+            session()->get('staff_id')
+        );
 
-        return $this->response->setJSON($result);
+        return $this->jsonResponse($result);
     }
 
     public function addTransaction()
     {
         if (!session()->get('isLoggedIn')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Not authenticated']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Not authenticated'], 401);
         }
 
         $userRole = session()->get('role');
-        $staffId = session()->get('staff_id');
-
-        $data = $this->request->getPost();
-
-        // Validate permissions
         $permissions = $this->getPermissions($userRole);
         if (empty($permissions) || !in_array('view', $permissions)) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
+            return $this->jsonResponse(['status' => 'error', 'message' => 'Insufficient permissions'], 403);
         }
 
-        $result = $this->financialService->handleFinancialTransactionFormSubmission($data, $userRole, $staffId);
+        $result = $this->financialService->handleFinancialTransactionFormSubmission(
+            $this->request->getPost(),
+            $userRole,
+            session()->get('staff_id')
+        );
 
-        if ($result['success']) {
-            return $this->response->setJSON(['status' => 'success', 'message' => $result['message']]);
-        } else {
-            return $this->response->setJSON(['status' => 'error', 'message' => $result['message']]);
-        }
+        return $this->jsonResponse([
+            'status' => $result['success'] ? 'success' : 'error',
+            'message' => $result['message']
+        ]);
     }
 
     private function getPermissions($userRole)
@@ -143,15 +135,26 @@ class FinancialManagement extends BaseController
         return $permissions[$userRole] ?? ['view'];
     }
 
+    private function getRequestData(): array
+    {
+        $input = $this->request->getJSON(true);
+        return is_array($input) ? $input : $this->request->getPost();
+    }
+
+    private function jsonResponse(array $data, int $statusCode = 200)
+    {
+        return $this->response->setStatusCode($statusCode)->setJSON($data);
+    }
+
     private function getPageTitle($userRole)
     {
-        switch ($userRole) {
-            case 'admin': return 'Financial Management';
-            case 'accountant': return 'Accounting & Finance';
-            case 'doctor': return 'My Financial Overview';
-            case 'receptionist': return 'Billing & Payments';
-            case 'it_staff': return 'Financial Management';
-            default: return 'Financial Overview';
-        }
+        return match ($userRole) {
+            'admin' => 'Financial Management',
+            'accountant' => 'Accounting & Finance',
+            'doctor' => 'My Financial Overview',
+            'receptionist' => 'Billing & Payments',
+            'it_staff' => 'Financial Management',
+            default => 'Financial Overview',
+        };
     }
 }

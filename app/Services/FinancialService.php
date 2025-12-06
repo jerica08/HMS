@@ -42,18 +42,12 @@ class FinancialService
     public function getFinancialStats(string $userRole, int $userId = null): array
     {
         try {
-            switch ($userRole) {
-                case 'admin':
-                case 'accountant':
-                case 'it_staff':
-                    return $this->getSystemWideStats();
-                case 'doctor':
-                    return $this->getDoctorStats($userId);
-                case 'receptionist':
-                    return $this->getReceptionistStats();
-                default:
-                    return $this->getBasicStats();
-            }
+            return match ($userRole) {
+                'admin', 'accountant', 'it_staff' => $this->getSystemWideStats(),
+                'doctor' => $this->getDoctorStats($userId),
+                'receptionist' => $this->getReceptionistStats(),
+                default => $this->getBasicStats(),
+            };
         } catch (\Exception $e) {
             log_message('error', 'FinancialService error: ' . $e->getMessage());
             return $this->getBasicStats();
@@ -71,8 +65,36 @@ class FinancialService
             'total_expenses' => (float)$totalExpenses,
             'net_balance' => (float)$totalIncome - (float)$totalExpenses,
             'pending_bills' => $pendingBills,
-            'paid_bills' => $this->countIfTable('bills', ['status' => 'paid'])
+            'paid_bills' => $this->countIfTable('bills', ['status' => 'paid']),
+            'monthly_income' => $this->getMonthlyIncome(),
+            'monthly_expenses' => $this->getMonthlyExpenses(),
+            'profit_margin' => (float)$totalIncome - (float)$totalExpenses,
         ];
+    }
+
+    private function getMonthlyIncome(): float
+    {
+        if (!$this->db->tableExists('payments')) {
+            return 0.0;
+        }
+        return (float)$this->db->table('payments')
+            ->selectSum('amount')
+            ->where('MONTH(payment_date)', date('m'))
+            ->where('YEAR(payment_date)', date('Y'))
+            ->where('status', 'completed')
+            ->get()->getRow()->amount ?? 0.0;
+    }
+
+    private function getMonthlyExpenses(): float
+    {
+        if (!$this->db->tableExists('expenses')) {
+            return 0.0;
+        }
+        return (float)$this->db->table('expenses')
+            ->selectSum('amount')
+            ->where('MONTH(expense_date)', date('m'))
+            ->where('YEAR(expense_date)', date('Y'))
+            ->get()->getRow()->amount ?? 0.0;
     }
 
     private function getDoctorStats(int $doctorId): array
@@ -85,15 +107,31 @@ class FinancialService
                 ->where('b.doctor_id', $doctorId)
                 ->where('p.status', 'completed')
                 ->get()->getRow();
-            $income = isset($row) && isset($row->amount) ? (float)$row->amount : 0.0;
+            $income = (float)($row->amount ?? 0.0);
+        }
+
+        $monthlyIncome = 0.0;
+        if ($this->db->tableExists('payments') && $this->db->tableExists('bills')) {
+            $row = $this->db->table('payments p')
+                ->join('bills b', 'b.bill_id = p.bill_id')
+                ->selectSum('p.amount')
+                ->where('b.doctor_id', $doctorId)
+                ->where('p.status', 'completed')
+                ->where('MONTH(p.payment_date)', date('m'))
+                ->where('YEAR(p.payment_date)', date('Y'))
+                ->get()->getRow();
+            $monthlyIncome = (float)($row->amount ?? 0.0);
         }
 
         return [
             'total_income' => (float)$income,
+            'my_income' => (float)$income,
+            'monthly_income' => (float)$monthlyIncome,
             'total_expenses' => 0,
             'net_balance' => (float)$income,
             'pending_bills' => $this->countIfTable('bills', ['doctor_id' => $doctorId, 'status' => 'pending']),
-            'paid_bills' => 0
+            'paid_bills' => 0,
+            'overdue_bills' => 0,
         ];
     }
 
@@ -106,7 +144,7 @@ class FinancialService
                 ->where('DATE(payment_date)', date('Y-m-d'))
                 ->where('status', 'completed')
                 ->get()->getRow();
-            $todayIncome = isset($row) && isset($row->amount) ? (float)$row->amount : 0.0;
+            $todayIncome = (float)($row->amount ?? 0.0);
         }
 
         return [
@@ -114,7 +152,8 @@ class FinancialService
             'total_expenses' => 0,
             'net_balance' => (float)$todayIncome,
             'pending_bills' => $this->countIfTable('bills', ['status' => 'pending']),
-            'paid_bills' => 0
+            'paid_bills' => 0,
+            'overdue_bills' => 0,
         ];
     }
 
@@ -131,16 +170,16 @@ class FinancialService
 
     public function createBill(array $billData, string $userRole, int $userId): array
     {
+        if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'doctor', 'it_staff'])) {
+            return ['success' => false, 'message' => 'Insufficient permissions'];
+        }
+
+        if (!$this->db->tableExists('bills')) {
+            return ['success' => false, 'message' => 'Bills table is missing'];
+        }
+
         try {
-            if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'doctor', 'it_staff'])) {
-                return ['success' => false, 'message' => 'Insufficient permissions'];
-            }
-
-            if (!$this->db->tableExists('bills')) {
-                return ['success' => false, 'message' => 'Bills table is missing'];
-            }
-
-            $bill = [
+            $this->db->table('bills')->insert([
                 'bill_number' => 'BILL-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
                 'patient_id' => $billData['patient_id'] ?? null,
                 'doctor_id' => $billData['doctor_id'] ?? $userId,
@@ -148,223 +187,217 @@ class FinancialService
                 'status' => $billData['status'] ?? 'pending',
                 'bill_date' => date('Y-m-d H:i:s'),
                 'created_by' => $userId
-            ];
+            ]);
 
-            $billId = $this->db->table('bills')->insert($bill);
-            return ['success' => true, 'message' => 'Bill created successfully', 'bill_id' => $billId];
+            return ['success' => true, 'message' => 'Bill created successfully', 'bill_id' => $this->db->insertID()];
         } catch (\Exception $e) {
+            log_message('error', 'FinancialService::createBill error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error creating bill'];
         }
     }
 
     public function processPayment(array $paymentData, string $userRole, int $userId): array
     {
+        if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'it_staff'])) {
+            return ['success' => false, 'message' => 'Insufficient permissions'];
+        }
+
+        if (!$this->db->tableExists('payments')) {
+            return ['success' => false, 'message' => 'Payments table is missing'];
+        }
+
         try {
-            if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'it_staff'])) {
-                return ['success' => false, 'message' => 'Insufficient permissions'];
-            }
-
-            if (!$this->db->tableExists('payments')) {
-                return ['success' => false, 'message' => 'Payments table is missing'];
-            }
-
-            $payment = [
+            $this->db->table('payments')->insert([
                 'bill_id' => $paymentData['bill_id'] ?? null,
                 'amount' => $paymentData['amount'] ?? 0,
                 'payment_method' => $paymentData['payment_method'] ?? 'cash',
                 'payment_date' => date('Y-m-d H:i:s'),
                 'status' => 'completed',
                 'processed_by' => $userId
-            ];
+            ]);
 
-            $paymentId = $this->db->table('payments')->insert($payment);
             return ['success' => true, 'message' => 'Payment processed successfully'];
         } catch (\Exception $e) {
+            log_message('error', 'FinancialService::processPayment error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error processing payment'];
         }
     }
 
     public function createExpense(array $expenseData, string $userRole, int $userId): array
     {
+        if (!in_array($userRole, ['admin', 'accountant', 'it_staff'])) {
+            return ['success' => false, 'message' => 'Insufficient permissions'];
+        }
+
+        if (!$this->db->tableExists('expenses')) {
+            return ['success' => false, 'message' => 'Expenses table is missing'];
+        }
+
         try {
-            if (!in_array($userRole, ['admin', 'accountant', 'it_staff'])) {
-                return ['success' => false, 'message' => 'Insufficient permissions'];
-            }
-
-            if (!$this->db->tableExists('expenses')) {
-                return ['success' => false, 'message' => 'Expenses table is missing'];
-            }
-
-            $expense = [
+            $this->db->table('expenses')->insert([
                 'expense_name' => $expenseData['name'] ?? '',
                 'amount' => $expenseData['amount'] ?? 0,
                 'category' => $expenseData['category'] ?? 'other',
                 'expense_date' => $expenseData['date'] ?? date('Y-m-d'),
                 'created_by' => $userId
-            ];
+            ]);
 
-            $expenseId = $this->db->table('expenses')->insert($expense);
             return ['success' => true, 'message' => 'Expense created successfully'];
         } catch (\Exception $e) {
+            log_message('error', 'FinancialService::createExpense error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error creating expense'];
         }
     }
 
     public function handleFinancialTransactionFormSubmission(array $data, string $userRole, int $userId): array
     {
+        $type = $data['type'] ?? '';
+        $validation = $this->validateTransactionPermissions($type, $userRole);
+        if (!$validation['valid']) {
+            return $validation;
+        }
+
+        $validation = $this->validateTransactionData($data);
+        if (!$validation['valid']) {
+            return $validation;
+        }
+
+        if (!$this->db->tableExists('financial_transaction')) {
+            return ['success' => false, 'message' => 'Financial transaction table is missing'];
+        }
+
         try {
-            // Validate permissions based on type
-            $type = $data['type'] ?? '';
-            if ($type === 'Income') {
-                if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'doctor', 'it_staff'])) {
-                    return ['success' => false, 'message' => 'Insufficient permissions to create income records'];
-                }
-            } elseif ($type === 'Expense') {
-                if (!in_array($userRole, ['admin', 'accountant', 'it_staff'])) {
-                    return ['success' => false, 'message' => 'Insufficient permissions to create expense records'];
-                }
-            } else {
-                return ['success' => false, 'message' => 'Invalid transaction type'];
-            }
-
-            // Validate required fields
-            $requiredFields = ['type', 'category', 'amount', 'transaction_date'];
-            foreach ($requiredFields as $field) {
-                if (empty($data[$field])) {
-                    return ['success' => false, 'message' => "Field '{$field}' is required"];
-                }
-            }
-
-            // Validate amount
-            $amount = (float)($data['amount'] ?? 0);
-            if ($amount <= 0) {
-                return ['success' => false, 'message' => 'Amount must be greater than zero'];
-            }
-
-            // Validate date
-            $date = $data['transaction_date'];
-            if (!strtotime($date)) {
-                return ['success' => false, 'message' => 'Invalid date format'];
-            }
-
-            // Check if financial_transaction table exists
-            if (!$this->db->tableExists('financial_transaction')) {
-                return ['success' => false, 'message' => 'Financial transaction table is missing'];
-            }
-
-            // Insert into financial_transaction table
-            $transaction = [
+            $this->db->table('financial_transaction')->insert([
                 'user_id' => $userId,
                 'type' => $type,
                 'category' => $data['category'],
-                'amount' => $amount,
+                'amount' => (float)$data['amount'],
                 'description' => $data['description'] ?? null,
-                'transaction_date' => $date,
+                'transaction_date' => $data['transaction_date'],
                 'created_at' => date('Y-m-d H:i:s')
-            ];
+            ]);
 
-            $transactionId = $this->db->table('financial_transaction')->insert($transaction);
-            
-            if ($transactionId) {
-                return ['success' => true, 'message' => 'Financial transaction created successfully', 'transaction_id' => $transactionId];
-            } else {
-                return ['success' => false, 'message' => 'Failed to create financial transaction'];
-            }
-
+            return ['success' => true, 'message' => 'Financial transaction created successfully', 'transaction_id' => $this->db->insertID()];
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::handleFinancialTransactionFormSubmission error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error creating financial record'];
         }
     }
 
+    private function validateTransactionPermissions(string $type, string $userRole): array
+    {
+        if ($type === 'Income' && !in_array($userRole, ['admin', 'accountant', 'receptionist', 'doctor', 'it_staff'])) {
+            return ['valid' => false, 'success' => false, 'message' => 'Insufficient permissions to create income records'];
+        }
+        if ($type === 'Expense' && !in_array($userRole, ['admin', 'accountant', 'it_staff'])) {
+            return ['valid' => false, 'success' => false, 'message' => 'Insufficient permissions to create expense records'];
+        }
+        if (!in_array($type, ['Income', 'Expense'])) {
+            return ['valid' => false, 'success' => false, 'message' => 'Invalid transaction type'];
+        }
+        return ['valid' => true];
+    }
+
+    private function validateTransactionData(array $data): array
+    {
+        $requiredFields = ['type', 'category', 'amount', 'transaction_date'];
+        foreach ($requiredFields as $field) {
+            if (empty($data[$field])) {
+                return ['valid' => false, 'success' => false, 'message' => "Field '{$field}' is required"];
+            }
+        }
+
+        $amount = (float)($data['amount'] ?? 0);
+        if ($amount <= 0) {
+            return ['valid' => false, 'success' => false, 'message' => 'Amount must be greater than zero'];
+        }
+
+        if (!strtotime($data['transaction_date'])) {
+            return ['valid' => false, 'success' => false, 'message' => 'Invalid date format'];
+        }
+
+        return ['valid' => true];
+    }
+
     public function createFinancialRecord(array $data, string $userRole, int $userId): array
     {
+        $category = $data['category'] ?? '';
+        $validation = $this->validateTransactionPermissions($category, $userRole);
+        if (!$validation['valid']) {
+            return $validation;
+        }
+
+        $requiredFields = ['transaction_name', 'category', 'amount', 'date'];
+        foreach ($requiredFields as $field) {
+            if (empty($data[$field])) {
+                return ['success' => false, 'message' => "Field '{$field}' is required"];
+            }
+        }
+
+        $amount = (float)($data['amount'] ?? 0);
+        if ($amount <= 0) {
+            return ['success' => false, 'message' => 'Amount must be greater than zero'];
+        }
+
+        if (!strtotime($data['date'])) {
+            return ['success' => false, 'message' => 'Invalid date format'];
+        }
+
         try {
-            // Validate permissions based on category
-            $category = $data['category'] ?? '';
             if ($category === 'Income') {
-                if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'doctor', 'it_staff'])) {
-                    return ['success' => false, 'message' => 'Insufficient permissions to create income records'];
-                }
+                return $this->createIncomeRecord($data, $amount, $userId);
             } elseif ($category === 'Expense') {
-                if (!in_array($userRole, ['admin', 'accountant', 'it_staff'])) {
-                    return ['success' => false, 'message' => 'Insufficient permissions to create expense records'];
-                }
-            } else {
-                return ['success' => false, 'message' => 'Invalid category'];
-            }
-
-            // Validate required fields
-            $requiredFields = ['transaction_name', 'category', 'amount', 'date'];
-            foreach ($requiredFields as $field) {
-                if (empty($data[$field])) {
-                    return ['success' => false, 'message' => "Field '{$field}' is required"];
-                }
-            }
-
-            // Validate amount
-            $amount = (float)($data['amount'] ?? 0);
-            if ($amount <= 0) {
-                return ['success' => false, 'message' => 'Amount must be greater than zero'];
-            }
-
-            // Validate date
-            $date = $data['date'];
-            if (!strtotime($date)) {
-                return ['success' => false, 'message' => 'Invalid date format'];
-            }
-
-            if ($category === 'Income') {
-                // Create income record (payment)
-                if (!$this->db->tableExists('payments')) {
-                    return ['success' => false, 'message' => 'Payments table is missing'];
-                }
-
-                $payment = [
-                    'bill_id' => null, // General income, not tied to specific bill
-                    'amount' => $amount,
-                    'payment_method' => $data['payment_method'] ?? 'cash',
-                    'payment_date' => $date . ' ' . date('H:i:s'),
-                    'status' => 'completed',
-                    'processed_by' => $userId,
-                    'description' => $data['description'] ?? null
-                ];
-
-                $paymentId = $this->db->table('payments')->insert($payment);
-                return ['success' => true, 'message' => 'Income record created successfully'];
-
-            } elseif ($category === 'Expense') {
-                // Create expense record
-                if (!$this->db->tableExists('expenses')) {
-                    return ['success' => false, 'message' => 'Expenses table is missing'];
-                }
-
-                $expense = [
-                    'expense_name' => $data['transaction_name'],
-                    'amount' => $amount,
-                    'category' => $data['expense_category'] ?? 'other',
-                    'expense_date' => $date,
-                    'created_by' => $userId,
-                    'description' => $data['description'] ?? null
-                ];
-
-                $expenseId = $this->db->table('expenses')->insert($expense);
-                return ['success' => true, 'message' => 'Expense record created successfully'];
+                return $this->createExpenseRecord($data, $amount, $userId);
             }
 
             return ['success' => false, 'message' => 'Invalid category'];
-
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::createFinancialRecord error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error creating financial record'];
         }
+    }
+
+    private function createIncomeRecord(array $data, float $amount, int $userId): array
+    {
+        if (!$this->db->tableExists('payments')) {
+            return ['success' => false, 'message' => 'Payments table is missing'];
+        }
+
+        $this->db->table('payments')->insert([
+            'bill_id' => null,
+            'amount' => $amount,
+            'payment_method' => $data['payment_method'] ?? 'cash',
+            'payment_date' => $data['date'] . ' ' . date('H:i:s'),
+            'status' => 'completed',
+            'processed_by' => $userId,
+            'description' => $data['description'] ?? null
+        ]);
+
+        return ['success' => true, 'message' => 'Income record created successfully'];
+    }
+
+    private function createExpenseRecord(array $data, float $amount, int $userId): array
+    {
+        if (!$this->db->tableExists('expenses')) {
+            return ['success' => false, 'message' => 'Expenses table is missing'];
+        }
+
+        $this->db->table('expenses')->insert([
+            'expense_name' => $data['transaction_name'],
+            'amount' => $amount,
+            'category' => $data['expense_category'] ?? 'other',
+            'expense_date' => $data['date'],
+            'created_by' => $userId,
+            'description' => $data['description'] ?? null
+        ]);
+
+        return ['success' => true, 'message' => 'Expense record created successfully'];
     }
     public function getAllTransactions(string $userRole, int $userId = null): array
     {
         try {
             $transactions = [];
 
-            // Get income transactions (from payments table)
             if ($this->db->tableExists('payments')) {
                 $payments = $this->db->table('payments')
                     ->select('id, amount, payment_date as date, \'Income\' as category, payment_method as transaction_name, description')
@@ -382,7 +415,6 @@ class FinancialService
                 }
             }
 
-            // Get expense transactions (from expenses table)
             if ($this->db->tableExists('expenses')) {
                 $expenses = $this->db->table('expenses')
                     ->select('id, expense_name as transaction_name, amount, expense_date as date, category as expense_category, description, \'Expense\' as category')
@@ -396,13 +428,8 @@ class FinancialService
                 }
             }
 
-            // Sort all transactions by date (newest first)
-            usort($transactions, function($a, $b) {
-                return strtotime($b['date']) - strtotime($a['date']);
-            });
-
-            return array_slice($transactions, 0, 20); // Return latest 20 transactions
-
+            usort($transactions, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
+            return array_slice($transactions, 0, 20);
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::getAllTransactions error: ' . $e->getMessage());
             return [];
@@ -415,67 +442,50 @@ class FinancialService
 
     public function getOrCreateBillingAccountForPatient(int $patientId, ?int $admissionId = null, int $createdByStaffId = null): ?array
     {
+        if (!$this->db->tableExists('billing_accounts')) {
+            return null;
+        }
+
         try {
-            if (!$this->db->tableExists('billing_accounts')) {
-                return null;
-            }
-
-            $builder = $this->db->table('billing_accounts');
-            $builder->where('patient_id', $patientId);
-            if ($admissionId !== null) {
-                $builder->where('admission_id', $admissionId);
-            }
-
-            // Optionally filter by status if such a column exists
-            if ($this->db->fieldExists('status', 'billing_accounts')) {
-                $builder->where('status', 'open');
-            }
-
-            $account = $builder->get()->getRowArray();
+            $account = $this->findExistingBillingAccount($patientId, $admissionId);
             if ($account) {
                 return $account;
             }
 
-            // Create a new billing account
-            $insertData = [
-                'patient_id' => $patientId,
-            ];
-
-            if ($admissionId !== null) {
-                $insertData['admission_id'] = $admissionId;
-            }
-
-            if ($this->db->fieldExists('status', 'billing_accounts')) {
-                $insertData['status'] = 'open';
-            }
-
-            if ($this->db->fieldExists('created_by', 'billing_accounts') && $createdByStaffId !== null) {
-                $insertData['created_by'] = $createdByStaffId;
-            }
-
-            $this->db->table('billing_accounts')->insert($insertData);
-
-            if ($this->db->affectedRows() <= 0) {
-                log_message('error', 'FinancialService::getOrCreateBillingAccountForPatient insert failed for patient_id ' . $patientId);
-                return null;
-            }
-
-            // Re-query the account using the same criteria instead of relying on insertID
-            $builder = $this->db->table('billing_accounts');
-            $builder->where('patient_id', $patientId);
-            if ($admissionId !== null) {
-                $builder->where('admission_id', $admissionId);
-            }
-            if ($this->db->fieldExists('status', 'billing_accounts')) {
-                $builder->where('status', 'open');
-            }
-
-            return $builder->orderBy('billing_id', 'DESC')->get()->getRowArray();
-
+            $this->createBillingAccount($patientId, $admissionId, $createdByStaffId);
+            return $this->findExistingBillingAccount($patientId, $admissionId);
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::getOrCreateBillingAccountForPatient error: ' . $e->getMessage());
             return null;
         }
+    }
+
+    private function findExistingBillingAccount(int $patientId, ?int $admissionId): ?array
+    {
+        $builder = $this->db->table('billing_accounts')->where('patient_id', $patientId);
+        if ($admissionId !== null) {
+            $builder->where('admission_id', $admissionId);
+        }
+        if ($this->db->fieldExists('status', 'billing_accounts')) {
+            $builder->where('status', 'open');
+        }
+        return $builder->get()->getRowArray() ?: null;
+    }
+
+    private function createBillingAccount(int $patientId, ?int $admissionId, ?int $createdByStaffId): void
+    {
+        $insertData = ['patient_id' => $patientId];
+        if ($admissionId !== null) {
+            $insertData['admission_id'] = $admissionId;
+        }
+        if ($this->db->fieldExists('status', 'billing_accounts')) {
+            $insertData['status'] = 'open';
+        }
+        if ($this->db->fieldExists('created_by', 'billing_accounts') && $createdByStaffId !== null) {
+            $insertData['created_by'] = $createdByStaffId;
+        }
+
+        $this->db->table('billing_accounts')->insert($insertData);
     }
 
     /**
@@ -483,25 +493,19 @@ class FinancialService
      */
     public function updateBillingAccountStatus(int $billingId, string $status): array
     {
+        if (!$this->db->tableExists('billing_accounts')) {
+            return ['success' => false, 'message' => 'Billing accounts table is missing'];
+        }
+
+        if (!$this->db->fieldExists('status', 'billing_accounts')) {
+            return ['success' => false, 'message' => 'Status field does not exist on billing_accounts'];
+        }
+
         try {
-            if (!$this->db->tableExists('billing_accounts')) {
-                return ['success' => false, 'message' => 'Billing accounts table is missing'];
-            }
-
-            if (!$this->db->fieldExists('status', 'billing_accounts')) {
-                // Be defensive: do not throw, just report that the field is not present
-                return ['success' => false, 'message' => 'Status field does not exist on billing_accounts'];
-            }
-
-            $this->db->table('billing_accounts')
-                ->where('billing_id', $billingId)
-                ->update(['status' => $status]);
-
-            if ($this->db->affectedRows() <= 0) {
-                return ['success' => false, 'message' => 'Billing account not found or status unchanged'];
-            }
-
-            return ['success' => true, 'message' => 'Billing account status updated'];
+            $this->db->table('billing_accounts')->where('billing_id', $billingId)->update(['status' => $status]);
+            return $this->db->affectedRows() > 0
+                ? ['success' => true, 'message' => 'Billing account status updated']
+                : ['success' => false, 'message' => 'Billing account not found or status unchanged'];
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::updateBillingAccountStatus error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error updating billing account status'];
@@ -521,28 +525,19 @@ class FinancialService
      */
     public function deleteBillingAccount(int $billingId): array
     {
+        if (!$this->db->tableExists('billing_accounts')) {
+            return ['success' => false, 'message' => 'Billing accounts table is missing'];
+        }
+
         try {
-            if (!$this->db->tableExists('billing_accounts')) {
-                return ['success' => false, 'message' => 'Billing accounts table is missing'];
-            }
-
-            // Optionally delete related billing items first when table exists
             if ($this->db->tableExists('billing_items')) {
-                $this->db->table('billing_items')
-                    ->where('billing_id', $billingId)
-                    ->delete();
+                $this->db->table('billing_items')->where('billing_id', $billingId)->delete();
             }
 
-            $this->db->table('billing_accounts')
-                ->where('billing_id', $billingId)
-                ->delete();
-
-            if ($this->db->affectedRows() <= 0) {
-                return ['success' => false, 'message' => 'Billing account not found'];
-            }
-
-            return ['success' => true, 'message' => 'Billing account deleted successfully'];
-
+            $this->db->table('billing_accounts')->where('billing_id', $billingId)->delete();
+            return $this->db->affectedRows() > 0
+                ? ['success' => true, 'message' => 'Billing account deleted successfully']
+                : ['success' => false, 'message' => 'Billing account not found'];
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::deleteBillingAccount error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error deleting billing account'];
@@ -551,16 +546,12 @@ class FinancialService
 
     public function addItemFromAppointment(int $billingId, int $appointmentId, float $unitPrice, int $quantity = 1, ?int $createdByStaffId = null): array
     {
+        if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('appointments')) {
+            return ['success' => false, 'message' => 'Billing or appointments table is missing'];
+        }
+
         try {
-            if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('appointments')) {
-                return ['success' => false, 'message' => 'Billing or appointments table is missing'];
-            }
-
-            $appointment = $this->db->table('appointments')
-                ->where('appointment_id', $appointmentId)
-                ->get()
-                ->getRowArray();
-
+            $appointment = $this->db->table('appointments')->where('appointment_id', $appointmentId)->get()->getRowArray();
             if (!$appointment) {
                 return ['success' => false, 'message' => 'Appointment not found'];
             }
@@ -570,39 +561,18 @@ class FinancialService
                 return ['success' => false, 'message' => 'Appointment has no patient linked'];
             }
 
-            $descriptionParts = [];
-            if (!empty($appointment['appointment_type'])) {
-                $descriptionParts[] = $appointment['appointment_type'];
-            } else {
-                $descriptionParts[] = 'Consultation';
-            }
+            $description = ($appointment['appointment_type'] ?? 'Consultation') . 
+                (!empty($appointment['appointment_date']) ? ' - ' . date('Y-m-d', strtotime($appointment['appointment_date'])) : '');
 
-            if (!empty($appointment['appointment_date'])) {
-                $descriptionParts[] = date('Y-m-d', strtotime($appointment['appointment_date']));
-            }
-
-            $description = implode(' - ', $descriptionParts);
-
-            $quantity = max(1, (int)$quantity);
-            $unitPrice = max(0, (float)$unitPrice);
-            $lineTotal = $quantity * $unitPrice;
-
-            $itemData = [
-                'billing_id'      => $billingId,
-                'patient_id'      => $patientId,
-                'appointment_id'  => $appointmentId,
+            $this->insertBillingItem([
+                'billing_id' => $billingId,
+                'patient_id' => $patientId,
+                'appointment_id' => $appointmentId,
                 'prescription_id' => null,
-                'description'     => $description,
-                'quantity'        => $quantity,
-                'unit_price'      => $unitPrice,
-                'line_total'      => $lineTotal,
-            ];
-
-            if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
-                $itemData['created_by_staff_id'] = $createdByStaffId;
-            }
-
-            $this->db->table('billing_items')->insert($itemData);
+                'description' => $description,
+                'quantity' => max(1, (int)$quantity),
+                'unit_price' => max(0, (float)$unitPrice),
+            ], $createdByStaffId);
 
             return ['success' => true, 'message' => 'Appointment item added to billing'];
         } catch (\Exception $e) {
@@ -613,16 +583,12 @@ class FinancialService
 
     public function addItemFromPrescription(int $billingId, int $prescriptionId, float $unitPrice, ?int $quantity = null, ?int $createdByStaffId = null): array
     {
+        if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('prescriptions')) {
+            return ['success' => false, 'message' => 'Billing or prescriptions table is missing'];
+        }
+
         try {
-            if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('prescriptions')) {
-                return ['success' => false, 'message' => 'Billing or prescriptions table is missing'];
-            }
-
-            $prescription = $this->db->table('prescriptions')
-                ->where('id', $prescriptionId)
-                ->get()
-                ->getRowArray();
-
+            $prescription = $this->db->table('prescriptions')->where('id', $prescriptionId)->get()->getRowArray();
             if (!$prescription) {
                 return ['success' => false, 'message' => 'Prescription not found'];
             }
@@ -632,57 +598,26 @@ class FinancialService
                 return ['success' => false, 'message' => 'Prescription has no patient linked'];
             }
 
-            // Avoid duplicate billing entries for the same prescription and billing account
-            $existing = $this->db->table('billing_items')
-                ->where('billing_id', $billingId)
-                ->where('prescription_id', $prescriptionId)
-                ->countAllResults();
-
-            if ($existing > 0) {
+            if ($this->db->table('billing_items')->where('billing_id', $billingId)->where('prescription_id', $prescriptionId)->countAllResults() > 0) {
                 return ['success' => true, 'message' => 'Prescription is already added to this billing account.'];
             }
 
-            $descriptionParts = [];
-            if (!empty($prescription['medication'])) {
-                $descriptionParts[] = $prescription['medication'];
-            }
-            if (!empty($prescription['dosage'])) {
-                $descriptionParts[] = $prescription['dosage'];
-            }
-
+            $descriptionParts = array_filter([$prescription['medication'] ?? '', $prescription['dosage'] ?? '']);
             $description = !empty($descriptionParts) ? implode(' - ', $descriptionParts) : 'Medication';
 
-            // Determine quantity: prefer dispensed_quantity, then quantity, then 1
             if ($quantity === null) {
-                if (!empty($prescription['dispensed_quantity'])) {
-                    $quantity = (int)$prescription['dispensed_quantity'];
-                } elseif (!empty($prescription['quantity'])) {
-                    $quantity = (int)$prescription['quantity'];
-                } else {
-                    $quantity = 1;
-                }
+                $quantity = (int)($prescription['dispensed_quantity'] ?? $prescription['quantity'] ?? 1);
             }
 
-            $quantity = max(1, (int)$quantity);
-            $unitPrice = max(0, (float)$unitPrice);
-            $lineTotal = $quantity * $unitPrice;
-
-            $itemData = [
-                'billing_id'      => $billingId,
-                'patient_id'      => $patientId,
-                'appointment_id'  => null,
+            $this->insertBillingItem([
+                'billing_id' => $billingId,
+                'patient_id' => $patientId,
+                'appointment_id' => null,
                 'prescription_id' => $prescriptionId,
-                'description'     => $description,
-                'quantity'        => $quantity,
-                'unit_price'      => $unitPrice,
-                'line_total'      => $lineTotal,
-            ];
-
-            if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
-                $itemData['created_by_staff_id'] = $createdByStaffId;
-            }
-
-            $this->db->table('billing_items')->insert($itemData);
+                'description' => $description,
+                'quantity' => max(1, (int)$quantity),
+                'unit_price' => max(0, (float)$unitPrice),
+            ], $createdByStaffId);
 
             return ['success' => true, 'message' => 'Prescription item added to billing'];
         } catch (\Exception $e) {
@@ -693,16 +628,12 @@ class FinancialService
 
     public function addItemFromLabOrder(int $billingId, int $labOrderId, float $unitPrice, ?int $createdByStaffId = null): array
     {
+        if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('lab_orders')) {
+            return ['success' => false, 'message' => 'Billing or lab_orders table is missing'];
+        }
+
         try {
-            if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('lab_orders')) {
-                return ['success' => false, 'message' => 'Billing or lab_orders table is missing'];
-            }
-
-            $order = $this->db->table('lab_orders')
-                ->where('lab_order_id', $labOrderId)
-                ->get()
-                ->getRowArray();
-
+            $order = $this->db->table('lab_orders')->where('lab_order_id', $labOrderId)->get()->getRowArray();
             if (!$order) {
                 return ['success' => false, 'message' => 'Lab order not found'];
             }
@@ -712,55 +643,30 @@ class FinancialService
                 return ['success' => false, 'message' => 'Lab order has no patient linked'];
             }
 
-            // Avoid duplicate billing entries for the same lab order and billing account when we have a lab_order_id column
             if ($this->db->fieldExists('lab_order_id', 'billing_items')) {
-                $existing = $this->db->table('billing_items')
-                    ->where('billing_id', $billingId)
-                    ->where('lab_order_id', $labOrderId)
-                    ->countAllResults();
-
-                if ($existing > 0) {
+                if ($this->db->table('billing_items')->where('billing_id', $billingId)->where('lab_order_id', $labOrderId)->countAllResults() > 0) {
                     return ['success' => true, 'message' => 'Lab order is already added to this billing account.'];
                 }
             }
 
-            $descriptionParts = [];
-            if (!empty($order['test_name'])) {
-                $descriptionParts[] = $order['test_name'];
-            }
-            if (!empty($order['test_code'])) {
-                $descriptionParts[] = $order['test_code'];
-            }
-
-            $description = !empty($descriptionParts)
-                ? implode(' - ', $descriptionParts)
-                : 'Laboratory Test';
-
-            $quantity  = 1;
-            $unitPrice = max(0, (float)$unitPrice);
-            $lineTotal = $quantity * $unitPrice;
+            $descriptionParts = array_filter([$order['test_name'] ?? '', $order['test_code'] ?? '']);
+            $description = !empty($descriptionParts) ? implode(' - ', $descriptionParts) : 'Laboratory Test';
 
             $itemData = [
-                'billing_id'      => $billingId,
-                'patient_id'      => $patientId,
-                'appointment_id'  => !empty($order['appointment_id']) ? (int)$order['appointment_id'] : null,
+                'billing_id' => $billingId,
+                'patient_id' => $patientId,
+                'appointment_id' => !empty($order['appointment_id']) ? (int)$order['appointment_id'] : null,
                 'prescription_id' => null,
-                'description'     => $description,
-                'quantity'        => $quantity,
-                'unit_price'      => $unitPrice,
-                'line_total'      => $lineTotal,
+                'description' => $description,
+                'quantity' => 1,
+                'unit_price' => max(0, (float)$unitPrice),
             ];
 
             if ($this->db->fieldExists('lab_order_id', 'billing_items')) {
                 $itemData['lab_order_id'] = $labOrderId;
             }
 
-            if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
-                $itemData['created_by_staff_id'] = $createdByStaffId;
-            }
-
-            $this->db->table('billing_items')->insert($itemData);
-
+            $this->insertBillingItem($itemData, $createdByStaffId);
             return ['success' => true, 'message' => 'Lab order item added to billing'];
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::addItemFromLabOrder error: ' . $e->getMessage());
@@ -770,16 +676,12 @@ class FinancialService
 
     public function addItemFromRoomAssignment(int $billingId, int $assignmentId, ?float $unitPricePerDay = null, ?int $createdByStaffId = null): array
     {
+        if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('room_assignment')) {
+            return ['success' => false, 'message' => 'Billing or room_assignment table is missing'];
+        }
+
         try {
-            if (!$this->db->tableExists('billing_items') || !$this->db->tableExists('room_assignment')) {
-                return ['success' => false, 'message' => 'Billing or room_assignment table is missing'];
-            }
-
-            $assignment = $this->db->table('room_assignment')
-                ->where('assignment_id', $assignmentId)
-                ->get()
-                ->getRowArray();
-
+            $assignment = $this->db->table('room_assignment')->where('assignment_id', $assignmentId)->get()->getRowArray();
             if (!$assignment) {
                 return ['success' => false, 'message' => 'Room assignment not found'];
             }
@@ -790,40 +692,17 @@ class FinancialService
             }
 
             if ($this->db->fieldExists('room_assignment_id', 'billing_items')) {
-                $existing = $this->db->table('billing_items')
-                    ->where('billing_id', $billingId)
-                    ->where('room_assignment_id', $assignmentId)
-                    ->countAllResults();
-
-                if ($existing > 0) {
+                if ($this->db->table('billing_items')->where('billing_id', $billingId)->where('room_assignment_id', $assignmentId)->countAllResults() > 0) {
                     return ['success' => true, 'message' => 'Room assignment is already added to this billing account.'];
                 }
             }
 
-            $totalDays  = (int)($assignment['total_days'] ?? 0);
-            $totalHours = (int)($assignment['total_hours'] ?? 0);
-
-            if ($totalDays <= 0 && $totalHours > 0) {
-                $totalDays = 1;
-            } elseif ($totalDays <= 0) {
-                $totalDays = 1;
-            }
-
-            $dailyRate = $unitPricePerDay !== null
-                ? (float)$unitPricePerDay
-                : (float)($assignment['room_rate_at_time'] ?? 0);
-
-            if ($dailyRate <= 0 && isset($assignment['bed_rate_at_time'])) {
-                $dailyRate = (float)$assignment['bed_rate_at_time'];
-            }
+            $totalDays = max(1, (int)($assignment['total_days'] ?? 0) ?: ((int)($assignment['total_hours'] ?? 0) > 0 ? 1 : 1));
+            $dailyRate = $unitPricePerDay ?? (float)($assignment['room_rate_at_time'] ?? $assignment['bed_rate_at_time'] ?? 0);
 
             if ($dailyRate <= 0) {
                 return ['success' => false, 'message' => 'No valid room rate available for this assignment'];
             }
-
-            $quantity  = max(1, $totalDays);
-            $unitPrice = max(0, $dailyRate);
-            $lineTotal = $quantity * $unitPrice;
 
             $descriptionParts = ['Room charge'];
             if (!empty($assignment['admission_id'])) {
@@ -835,29 +714,22 @@ class FinancialService
             if (!empty($assignment['date_out'])) {
                 $descriptionParts[] = 'to ' . date('Y-m-d', strtotime($assignment['date_out']));
             }
-            $description = implode(' - ', $descriptionParts);
 
             $itemData = [
-                'billing_id'      => $billingId,
-                'patient_id'      => $patientId,
-                'appointment_id'  => null,
+                'billing_id' => $billingId,
+                'patient_id' => $patientId,
+                'appointment_id' => null,
                 'prescription_id' => null,
-                'description'     => $description,
-                'quantity'        => $quantity,
-                'unit_price'      => $unitPrice,
-                'line_total'      => $lineTotal,
+                'description' => implode(' - ', $descriptionParts),
+                'quantity' => $totalDays,
+                'unit_price' => max(0, $dailyRate),
             ];
 
             if ($this->db->fieldExists('room_assignment_id', 'billing_items')) {
                 $itemData['room_assignment_id'] = $assignmentId;
             }
 
-            if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
-                $itemData['created_by_staff_id'] = $createdByStaffId;
-            }
-
-            $this->db->table('billing_items')->insert($itemData);
-
+            $this->insertBillingItem($itemData, $createdByStaffId);
             return ['success' => true, 'message' => 'Room assignment item added to billing'];
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::addItemFromRoomAssignment error: ' . $e->getMessage());
@@ -865,63 +737,29 @@ class FinancialService
         }
     }
 
+    private function insertBillingItem(array $itemData, ?int $createdByStaffId): void
+    {
+        $itemData['line_total'] = $itemData['quantity'] * $itemData['unit_price'];
+        if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
+            $itemData['created_by_staff_id'] = $createdByStaffId;
+        }
+        $this->db->table('billing_items')->insert($itemData);
+    }
+
     public function getBillingAccount(int $billingId, string $userRole, ?int $staffId = null): ?array
     {
+        if (!$this->db->tableExists('billing_accounts')) {
+            return null;
+        }
+
         try {
-            if (!$this->db->tableExists('billing_accounts')) {
-                return null;
-            }
-
-            $account = $this->db->table('billing_accounts')
-                ->where('billing_id', $billingId)
-                ->get()
-                ->getRowArray();
-
+            $account = $this->db->table('billing_accounts')->where('billing_id', $billingId)->get()->getRowArray();
             if (!$account) {
                 return null;
             }
 
-            // Attach patient name details if patients table exists
-            if (!empty($account['patient_id']) && $this->db->tableExists('patients')) {
-                $patient = $this->db->table('patients')
-                    ->where('patient_id', (int)$account['patient_id'])
-                    ->get()
-                    ->getRowArray();
-
-                if ($patient) {
-                    $firstName = $patient['first_name'] ?? '';
-                    $lastName  = $patient['last_name'] ?? '';
-                    $fullName  = trim($firstName . ' ' . $lastName);
-
-                    $account['first_name']        = $firstName;
-                    $account['last_name']         = $lastName;
-                    $account['patient_full_name'] = $fullName !== '' ? $fullName : ($patient['full_name'] ?? '');
-
-                    if (empty($account['patient_name'])) {
-                        $account['patient_name'] = $account['patient_full_name'] ?: ('Patient #' . $account['patient_id']);
-                    }
-                }
-            }
-
-            if ($this->db->tableExists('billing_items')) {
-                $items = $this->db->table('billing_items')
-                    ->where('billing_id', $billingId)
-                    ->orderBy('item_id', 'ASC')
-                    ->get()
-                    ->getResultArray();
-
-                $totalAmount = 0.0;
-                foreach ($items as $item) {
-                    $totalAmount += (float)($item['line_total'] ?? 0);
-                }
-
-                $account['items'] = $items;
-                $account['total_amount'] = $totalAmount;
-            } else {
-                $account['items'] = [];
-                $account['total_amount'] = 0.0;
-            }
-
+            $this->attachPatientInfo($account);
+            $this->attachBillingItems($account, $billingId);
             return $account;
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::getBillingAccount error: ' . $e->getMessage());
@@ -929,60 +767,80 @@ class FinancialService
         }
     }
 
+    private function attachPatientInfo(array &$account): void
+    {
+        if (empty($account['patient_id']) || !$this->db->tableExists('patients')) {
+            return;
+        }
+
+        $patient = $this->db->table('patients')->where('patient_id', (int)$account['patient_id'])->get()->getRowArray();
+        if (!$patient) {
+            return;
+        }
+
+        $firstName = $patient['first_name'] ?? '';
+        $lastName = $patient['last_name'] ?? '';
+        $fullName = trim($firstName . ' ' . $lastName);
+
+        $account['first_name'] = $firstName;
+        $account['last_name'] = $lastName;
+        $account['patient_full_name'] = $fullName ?: ($patient['full_name'] ?? '');
+        $account['patient_name'] = $account['patient_name'] ?: ($account['patient_full_name'] ?: ('Patient #' . $account['patient_id']));
+    }
+
+    private function attachBillingItems(array &$account, int $billingId): void
+    {
+        if (!$this->db->tableExists('billing_items')) {
+            $account['items'] = [];
+            $account['total_amount'] = 0.0;
+            return;
+        }
+
+        $items = $this->db->table('billing_items')
+            ->where('billing_id', $billingId)
+            ->orderBy('item_id', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $totalAmount = array_sum(array_map(fn($item) => (float)($item['line_total'] ?? 0), $items));
+
+        $account['items'] = $items;
+        $account['total_amount'] = $totalAmount;
+    }
+
     public function getBillingAccounts(array $filters, string $userRole, ?int $staffId = null): array
     {
-        try {
-            if (!$this->db->tableExists('billing_accounts')) {
-                return [];
-            }
+        if (!$this->db->tableExists('billing_accounts')) {
+            return [];
+        }
 
-            // Base query for billing accounts
+        try {
             $builder = $this->db->table('billing_accounts ba');
 
-            // Join patients table when available so we can show patient names
             if ($this->db->tableExists('patients')) {
-                $builder = $builder
-                    ->join('patients p', 'p.patient_id = ba.patient_id', 'left')
+                $builder->join('patients p', 'p.patient_id = ba.patient_id', 'left')
                     ->select('ba.*, p.first_name, p.last_name');
             } else {
-                $builder = $builder->select('ba.*');
+                $builder->select('ba.*');
             }
 
             if (!empty($filters['patient_id'])) {
                 $builder->where('ba.patient_id', (int)$filters['patient_id']);
             }
-
             if (!empty($filters['status']) && $this->db->fieldExists('status', 'billing_accounts')) {
                 $builder->where('ba.status', $filters['status']);
             }
-
             if (!empty($filters['from_date']) && $this->db->fieldExists('created_at', 'billing_accounts')) {
                 $builder->where('ba.created_at >=', $filters['from_date']);
             }
-
             if (!empty($filters['to_date']) && $this->db->fieldExists('created_at', 'billing_accounts')) {
                 $builder->where('ba.created_at <=', $filters['to_date']);
             }
 
-            $builder->orderBy('ba.billing_id', 'DESC');
+            $accounts = $builder->orderBy('ba.billing_id', 'DESC')->get()->getResultArray();
 
-            $accounts = $builder->get()->getResultArray();
-
-            // Attach patient name details if patients table exists
-            if ($this->db->tableExists('patients')) {
-                foreach ($accounts as &$account) {
-                    if (!empty($account['patient_id'])) {
-                        $firstName = $account['first_name'] ?? '';
-                        $lastName  = $account['last_name'] ?? '';
-                        $fullName  = trim($firstName . ' ' . $lastName);
-
-                        $account['patient_full_name'] = $fullName !== '' ? $fullName : ($account['full_name'] ?? '');
-
-                        if (empty($account['patient_name'])) {
-                            $account['patient_name'] = $account['patient_full_name'] ?: ('Patient #' . $account['patient_id']);
-                        }
-                    }
-                }
+            foreach ($accounts as &$account) {
+                $this->attachPatientInfo($account);
             }
 
             return $accounts;

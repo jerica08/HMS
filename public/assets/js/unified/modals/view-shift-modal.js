@@ -22,6 +22,13 @@ window.ViewShiftModal = {
             
             try {
                 await this.loadShiftDetails(shiftId);
+                // Ensure form is populated after modal is visible
+                if (this.currentShift) {
+                    // Use requestAnimationFrame to ensure DOM is ready
+                    requestAnimationFrame(() => {
+                        this.populateForm(this.currentShift);
+                    });
+                }
             } catch (error) {
                 console.error('Error loading shift details:', error);
                 this.showNotification('Failed to load shift details', 'error');
@@ -49,34 +56,113 @@ window.ViewShiftModal = {
         }
         
         this.currentShift = shift;
-        this.populateForm(shift);
+        // populateForm will be called after modal is opened
     },
     
     populateForm(shift) {
-        const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '';
+        console.log('Populating view form with shift data:', shift);
         
-        const fields = {
-            'viewDoctorName': (shift.doctor_name || 'N/A') + (shift.specialization ? ' - ' + shift.specialization : ''),
-            'viewScheduleWeekday': shift.weekday ? ShiftModalUtils.formatWeekday(shift.weekday) : (shift.date ? formatDate(shift.date) : 'N/A'),
-            'viewScheduleSlot': (() => {
-                const startVal = shift.start_time || shift.start || '';
-                const endVal = shift.end_time || shift.end || '';
-                return startVal && endVal ? `${startVal.slice(0,5)} - ${endVal.slice(0,5)}` : (shift.shift_type || 'N/A');
-            })(),
-            'viewShiftStatus': ShiftModalUtils.normalizeStatus(shift.status)
+        // Helper function to format time (handles HH:mm:ss, HH:mm, or other formats)
+        const formatTime = (timeStr) => {
+            if (!timeStr) return 'N/A';
+            // Remove any whitespace
+            timeStr = String(timeStr).trim();
+            // If it's already in HH:mm format, return it
+            if (timeStr.match(/^\d{2}:\d{2}$/)) {
+                return timeStr;
+            }
+            // If it's in HH:mm:ss format, extract HH:mm
+            if (timeStr.match(/^\d{2}:\d{2}:\d{2}/)) {
+                return timeStr.substring(0, 5);
+            }
+            // Try to extract time from any format
+            const timeMatch = timeStr.match(/(\d{2}):(\d{2})/);
+            if (timeMatch) {
+                return timeMatch[1] + ':' + timeMatch[2];
+            }
+            return timeStr;
         };
-
-        for (const [id, value] of Object.entries(fields)) {
-            const el = document.getElementById(id);
-            if (el) el.value = value;
+        
+        // Populate doctor name
+        const doctorInput = document.getElementById('viewDoctorName');
+        if (doctorInput) {
+            const doctorName = (shift.doctor_name || shift.first_name + ' ' + shift.last_name || 'N/A') + 
+                              (shift.specialization ? ' - ' + shift.specialization : '');
+            doctorInput.value = doctorName;
+        }
+        
+        // Populate weekday checkboxes
+        const weekdayCheckboxes = document.querySelectorAll('#viewWeekdays-group input[name="view_weekdays[]"]');
+        if (weekdayCheckboxes && weekdayCheckboxes.length > 0) {
+            // Clear all checkboxes first
+            weekdayCheckboxes.forEach(cb => cb.checked = false);
+            
+            // If shift has weekdays array, check all of them
+            if (Array.isArray(shift.weekdays) && shift.weekdays.length > 0) {
+                shift.weekdays.forEach(day => {
+                    const dayValue = String(day).trim();
+                    const checkbox = Array.from(weekdayCheckboxes).find(cb => cb.value === dayValue);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        console.log('Checked weekday checkbox:', dayValue);
+                    }
+                });
+            } else if (shift.weekday !== undefined && shift.weekday !== null && shift.weekday !== '') {
+                // Single weekday value - convert to string and match
+                const weekdayValue = String(shift.weekday).trim();
+                const checkbox = Array.from(weekdayCheckboxes).find(cb => cb.value === weekdayValue);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    console.log('Checked weekday checkbox:', weekdayValue);
+                } else {
+                    console.warn('Weekday checkbox not found for value:', weekdayValue);
+                }
+            } else {
+                console.warn('No weekday data found in shift:', shift);
+            }
+        } else {
+            console.warn('Weekday checkboxes not found in DOM');
+        }
+        
+        // Populate start time
+        const startTimeInput = document.getElementById('viewShiftStart');
+        if (startTimeInput) {
+            const startVal = shift.start_time || shift.start || shift.shift_start || '';
+            const formattedStart = formatTime(startVal);
+            startTimeInput.value = formattedStart;
+            console.log('Set start time:', formattedStart, 'from:', startVal);
+        }
+        
+        // Populate end time
+        const endTimeInput = document.getElementById('viewShiftEnd');
+        if (endTimeInput) {
+            const endVal = shift.end_time || shift.end || shift.shift_end || '';
+            const formattedEnd = formatTime(endVal);
+            endTimeInput.value = formattedEnd;
+            console.log('Set end time:', formattedEnd, 'from:', endVal);
+        }
+        
+        // Populate status
+        const statusInput = document.getElementById('viewShiftStatus');
+        if (statusInput) {
+            const status = ShiftModalUtils ? ShiftModalUtils.normalizeStatus(shift.status) : (shift.status || 'Scheduled');
+            statusInput.value = status;
+            console.log('Set status:', status);
         }
     },
     
     clearForm() {
-        ['viewDoctorName', 'viewScheduleWeekday', 'viewScheduleSlot', 'viewShiftStatus'].forEach(id => {
+        // Clear text inputs
+        ['viewDoctorName', 'viewShiftStart', 'viewShiftEnd', 'viewShiftStatus'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
         });
+        
+        // Clear weekday checkboxes
+        const weekdayCheckboxes = document.querySelectorAll('#viewWeekdays-group input[name="view_weekdays[]"]');
+        if (weekdayCheckboxes) {
+            weekdayCheckboxes.forEach(cb => cb.checked = false);
+        }
     },
     
     showNotification(message, type) {

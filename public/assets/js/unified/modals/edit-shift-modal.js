@@ -72,9 +72,48 @@ window.EditShiftModal = {
             throw new Error('ShiftManager not available');
         }
         
-        const shift = window.shiftManager.shifts.find(s => String(s.id) === String(shiftId));
-        if (!shift) {
+        // First, find the base shift by ID
+        const baseShift = window.shiftManager.shifts.find(s => String(s.id) === String(shiftId));
+        if (!baseShift) {
             throw new Error('Shift not found');
+        }
+        
+        // If the shift already has a weekdays array, use it
+        // Otherwise, find all related shifts (same doctor, time, status) to build weekdays array
+        let shift = baseShift;
+        
+        if (!Array.isArray(shift.weekdays) || shift.weekdays.length === 0) {
+            // Find all shifts with the same doctor, start_time, end_time, and status
+            const staffId = shift.staff_id || shift.doctor_id || '';
+            const startTime = shift.start_time || shift.start || '';
+            const endTime = shift.end_time || shift.end || '';
+            const status = shift.status || '';
+            
+            const relatedShifts = window.shiftManager.shifts.filter(s => {
+                const sStaffId = s.staff_id || s.doctor_id || '';
+                const sStartTime = s.start_time || s.start || '';
+                const sEndTime = s.end_time || s.end || '';
+                const sStatus = s.status || '';
+                
+                return sStaffId === staffId && 
+                       sStartTime === startTime && 
+                       sEndTime === endTime && 
+                       sStatus === status;
+            });
+            
+            // Collect all weekdays from related shifts
+            const weekdays = [];
+            relatedShifts.forEach(s => {
+                if (s.weekday !== undefined && s.weekday !== null && !weekdays.includes(s.weekday)) {
+                    weekdays.push(s.weekday);
+                }
+            });
+            
+            // Create a merged shift object with all weekdays
+            shift = {
+                ...baseShift,
+                weekdays: weekdays.sort((a, b) => a - b)
+            };
         }
         
         this.currentShift = shift;
@@ -83,7 +122,6 @@ window.EditShiftModal = {
     
     populateForm(shift) {
         const doctorSelect = document.getElementById('editDoctorSelect');
-        const weekdaySelect = document.getElementById('editWeekday');
         const startTimeInput = document.getElementById('editShiftStart');
         const endTimeInput = document.getElementById('editShiftEnd');
         const statusSelect = document.getElementById('editShiftStatus');
@@ -93,8 +131,30 @@ window.EditShiftModal = {
             doctorSelect.value = shift.staff_id || shift.doctor_id || '';
         }
         
-        if (weekdaySelect) {
-            weekdaySelect.value = shift.weekday || '';
+        // Handle weekday checkboxes - support both single weekday and array of weekdays
+        const weekdayCheckboxes = document.querySelectorAll('#editWeekdays-group input[name="weekdays[]"]');
+        if (weekdayCheckboxes && weekdayCheckboxes.length > 0) {
+            weekdayCheckboxes.forEach(cb => cb.checked = false);
+            
+            // If shift has weekdays array, check all of them
+            if (Array.isArray(shift.weekdays) && shift.weekdays.length > 0) {
+                shift.weekdays.forEach(day => {
+                    const dayValue = String(day).trim();
+                    const checkbox = Array.from(weekdayCheckboxes).find(cb => cb.value === dayValue);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        console.log('Checked weekday checkbox:', dayValue);
+                    }
+                });
+            } else if (shift.weekday !== undefined && shift.weekday !== null && shift.weekday !== '') {
+                // Single weekday value
+                const weekdayValue = String(shift.weekday).trim();
+                const checkbox = Array.from(weekdayCheckboxes).find(cb => cb.value === weekdayValue);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    console.log('Checked single weekday checkbox:', weekdayValue);
+                }
+            }
         }
 
         if (startTimeInput) {
@@ -174,8 +234,8 @@ window.EditShiftModal = {
         if (submitBtn) {
             submitBtn.disabled = show;
             submitBtn.innerHTML = show 
-                ? '<i class="fas fa-spinner fa-spin"></i> Updating...' 
-                : '<i class="fas fa-save"></i> Update Shift';
+                ? '<i class="fas fa-spinner fa-spin"></i> Saving...' 
+                : '<i class="fas fa-save"></i> Save Shift';
         }
     },
     

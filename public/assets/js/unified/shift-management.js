@@ -70,7 +70,6 @@ class ShiftManager {
         // Initialize modals
         if (window.AddShiftModal) window.AddShiftModal.init();
         if (window.EditShiftModal) window.EditShiftModal.init();
-        if (window.ViewShiftModal) window.ViewShiftModal.init();
     }
 
     bindFilterEvents() {
@@ -125,7 +124,6 @@ class ShiftManager {
     bindActionEvents() {
         document.addEventListener('click', (e) => {
             const actions = {
-                '.btn-view': (btn) => this.viewShift(btn.dataset.shiftId),
                 '.btn-edit': (btn) => this.editShift(btn.dataset.shiftId),
                 '.btn-delete': (btn) => this.deleteShift(btn.dataset.shiftId),
                 '.btn-status': (btn) => this.updateShiftStatus(btn.dataset.shiftId, btn.dataset.status)
@@ -282,9 +280,6 @@ class ShiftManager {
                 </td>
                 <td>
                     <div class="action-buttons">
-                        <button type="button" class="btn btn-sm btn-view" data-shift-id="${primaryId}" title="View Details">
-                            <i class="fas fa-eye"></i>
-                        </button>
                         ${canEdit ? `
                             <button type="button" class="btn btn-sm btn-edit" data-shift-id="${primaryId}" title="Edit Shift">
                                 <i class="fas fa-edit"></i>
@@ -316,7 +311,7 @@ class ShiftManager {
             eventClick: (info) => {
                 const shiftId = info.event.id;
                 if (shiftId) {
-                    this.viewShift(shiftId);
+                    this.editShift(shiftId);
                 }
             },
             eventDidMount: (info) => {
@@ -431,11 +426,6 @@ class ShiftManager {
         }
     }
 
-    async viewShift(shiftId) {
-        if (window.ViewShiftModal) {
-            window.ViewShiftModal.open(shiftId);
-        }
-    }
 
     async deleteShift(shiftId) {
         if (!confirm('Are you sure you want to delete this shift? This action cannot be undone.')) {
@@ -644,10 +634,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Global functions for backward compatibility
-window.viewShift = (id) => window.shiftManager?.viewShift(id);
 window.editShift = (id) => window.shiftManager?.editShift(id);
 window.deleteShift = (id) => window.shiftManager?.deleteShift(id);
 window.updateShiftStatus = (id, status) => window.shiftManager?.updateShiftStatus(id, status);
 window.closeAddShiftModal = () => window.AddShiftModal?.close();
-window.closeViewShiftModal = () => window.ViewShiftModal?.close();
 window.closeEditShiftModal = () => window.EditShiftModal?.close();

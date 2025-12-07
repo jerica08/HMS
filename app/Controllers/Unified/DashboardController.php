@@ -39,7 +39,7 @@ class DashboardController extends BaseController
                 'upcomingEvents' => $upcomingEvents
             ];
 
-            return view('dashboard', $data);
+            return view('unified/dashboard', $data);
 
         } catch (\Exception $e) {
             log_message('error', 'Dashboard error: ' . $e->getMessage());
@@ -53,7 +53,7 @@ class DashboardController extends BaseController
                 'upcomingEvents' => []
             ];
 
-            return view('dashboard', $data);
+            return view('unified/dashboard', $data);
         }
     }
 

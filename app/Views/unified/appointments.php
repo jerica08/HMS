@@ -100,7 +100,6 @@
             <div class="patient-table">
                 <div class="table-header">
                     <h3 id="scheduleTitle">Today's Schedule - <?= date('F j, Y') ?></h3>
-                    <button class="btn btn-primary btn-small" id="printBtn"><i class="fas fa-print"></i> Print Schedule</button>
                 </div>
                 
                 <table class="table">

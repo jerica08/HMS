@@ -13,6 +13,7 @@
     const priorityEl = document.getElementById('viewLabPriority');
     const statusEl = document.getElementById('viewLabStatus');
     const orderedAtEl = document.getElementById('viewLabOrderedAt');
+    const testCodeEl = document.getElementById('viewLabTestCode');
 
     function init() {
         if (!modal) return;
@@ -37,12 +38,80 @@
 
             if (data.success && data.data) {
                 const order = data.data;
+                
+                // Order Information
                 if (orderIdEl) orderIdEl.textContent = order.lab_order_id || 'N/A';
+                
+                const orderedAt = order.ordered_at || order.created_at || 'N/A';
+                if (orderedAtEl) {
+                    if (orderedAt !== 'N/A') {
+                        const date = new Date(orderedAt);
+                        orderedAtEl.textContent = date.toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    } else {
+                        orderedAtEl.textContent = 'N/A';
+                    }
+                }
+                
+                const priority = (order.priority || 'routine').charAt(0).toUpperCase() + (order.priority || 'routine').slice(1);
+                if (priorityEl) {
+                    priorityEl.textContent = priority;
+                    priorityEl.className = 'detail-value priority-badge';
+                    // Add priority-specific class
+                    if (priority.toLowerCase() === 'urgent') {
+                        priorityEl.style.background = '#fee2e2';
+                        priorityEl.style.color = '#991b1b';
+                    } else if (priority.toLowerCase() === 'stat') {
+                        priorityEl.style.background = '#fef3c7';
+                        priorityEl.style.color = '#92400e';
+                    } else {
+                        priorityEl.style.background = '#dbeafe';
+                        priorityEl.style.color = '#1e40af';
+                    }
+                }
+                
+                const status = (order.status || 'ordered').replace('_', ' ');
+                if (statusEl) {
+                    statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                    statusEl.className = 'detail-value status-badge';
+                    // Add status-specific styling
+                    const statusLower = status.toLowerCase();
+                    if (statusLower.includes('completed')) {
+                        statusEl.style.background = '#d1fae5';
+                        statusEl.style.color = '#065f46';
+                    } else if (statusLower.includes('progress')) {
+                        statusEl.style.background = '#fef3c7';
+                        statusEl.style.color = '#92400e';
+                    } else if (statusLower.includes('ordered')) {
+                        statusEl.style.background = '#dbeafe';
+                        statusEl.style.color = '#1e40af';
+                    } else if (statusLower.includes('cancelled')) {
+                        statusEl.style.background = '#fee2e2';
+                        statusEl.style.color = '#991b1b';
+                    }
+                }
+                
+                // Patient Information
                 if (patientEl) patientEl.textContent = order.patient_name || 'N/A';
-                if (testEl) testEl.textContent = (order.test_name || order.test_code) || 'N/A';
-                if (priorityEl) priorityEl.textContent = (order.priority || 'routine').charAt(0).toUpperCase() + (order.priority || 'routine').slice(1);
-                if (statusEl) statusEl.textContent = (order.status || 'ordered').replace('_', ' ');
-                if (orderedAtEl) orderedAtEl.textContent = order.ordered_at || order.created_at || 'N/A';
+                
+                // Test Information
+                const testName = order.test_name || order.test_code || 'N/A';
+                if (testEl) testEl.textContent = testName;
+                
+                // Show test code if available and different from test name
+                const testCodeEl = document.getElementById('viewLabTestCode');
+                const testCodeContainer = document.getElementById('viewLabTestCodeContainer');
+                if (order.test_code && order.test_name && order.test_code !== order.test_name) {
+                    if (testCodeEl) testCodeEl.textContent = order.test_code;
+                    if (testCodeContainer) testCodeContainer.style.display = 'block';
+                } else {
+                    if (testCodeContainer) testCodeContainer.style.display = 'none';
+                }
             } else {
                 alert(data.message || 'Failed to load lab order');
                 close();

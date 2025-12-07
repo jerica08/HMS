@@ -288,6 +288,7 @@ $routes->post('labs/create', 'LabManagement::createLabOrder', ['filter' => 'role
 $routes->post('labs/update', 'LabManagement::updateLabOrder', ['filter' => 'roleauth:admin,doctor,it_staff']);
 $routes->post('labs/(:num)/status', 'LabManagement::updateStatus/$1', ['filter' => 'roleauth:admin,doctor,laboratorist,it_staff']);
 $routes->post('labs/(:num)/bill', 'LabManagement::addToBilling/$1', ['filter' => 'roleauth:admin,accountant']);
+$routes->delete('labs/(:num)', 'LabManagement::deleteLabOrder/$1', ['filter' => 'roleauth:admin']);
 
 // ===================================================================
 // DEBUG & TEST ROUTES (Development Only)

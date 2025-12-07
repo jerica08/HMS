@@ -71,6 +71,11 @@ class LabService
 
             foreach ($orders as &$o) {
                 $o['patient_name'] = trim(($o['first_name'] ?? '') . ' ' . ($o['last_name'] ?? ''));
+                
+                // Add patient type for each order
+                if (!empty($o['patient_id'])) {
+                    $o['patient_type'] = $this->getPatientType((int)$o['patient_id']);
+                }
             }
 
             return $orders;

@@ -81,10 +81,37 @@
             else if (status === 'cancelled') badgeClass = 'badge-danger';
 
             const canAct = ['admin', 'doctor', 'laboratorist', 'it_staff'].includes(userRole);
+            const canEdit = ['admin', 'doctor', 'it_staff'].includes(userRole);
+            const canDelete = userRole === 'admin';
+            const labOrderId = order.lab_order_id;
+            const currentStatus = order.status || 'ordered';
+            const statusLower = currentStatus.toLowerCase();
+            
             const actions = [];
-            if (canAct && status !== 'completed' && status !== 'cancelled') {
-                actions.push(`<button class="btn btn-success" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${order.lab_order_id}, 'completed')"><i class="fas fa-check"></i> Complete</button>`);
-                actions.push(`<button class="btn btn-danger" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${order.lab_order_id}, 'cancelled')"><i class="fas fa-times"></i> Cancel</button>`);
+            
+            // View button - always available
+            if (window.ViewLabOrderModal && window.ViewLabOrderModal.open) {
+                actions.push(`<button class="btn btn-primary" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.viewOrder(${labOrderId})" title="View Details"><i class="fas fa-eye"></i> View</button>`);
+            }
+            
+            // Edit button - for admin, doctor, it_staff
+            if (canEdit && window.EditLabOrderModal && window.EditLabOrderModal.open && statusLower !== 'completed' && statusLower !== 'cancelled') {
+                actions.push(`<button class="btn btn-warning" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.editOrder(${labOrderId})" title="Edit Lab Order"><i class="fas fa-edit"></i> Edit</button>`);
+            }
+            
+            // Complete button - for non-completed, non-cancelled orders
+            if (canAct && statusLower !== 'completed' && statusLower !== 'cancelled') {
+                actions.push(`<button class="btn btn-success" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${labOrderId}, 'completed')" title="Mark as Completed"><i class="fas fa-check"></i> Complete</button>`);
+            }
+            
+            // Cancel button - for non-completed, non-cancelled orders
+            if (canAct && statusLower !== 'completed' && statusLower !== 'cancelled') {
+                actions.push(`<button class="btn btn-danger" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${labOrderId}, 'cancelled')" title="Cancel Lab Order"><i class="fas fa-times"></i> Cancel</button>`);
+            }
+            
+            // Delete button - admin only
+            if (canDelete) {
+                actions.push(`<button class="btn btn-danger" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.deleteOrder(${labOrderId})" title="Delete Lab Order"><i class="fas fa-trash"></i> Delete</button>`);
             }
 
             return `<tr>
@@ -270,7 +297,53 @@
             .replace(/'/g, '&#39;');
     }
 
+    function initTabs() {
+        const tabButtons = document.querySelectorAll('.lab-tab-button');
+        const tabContents = document.querySelectorAll('.lab-tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.getAttribute('data-tab');
+
+                // Remove active class from all buttons and contents
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.setAttribute('aria-selected', 'false');
+                });
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Add active class to clicked button and corresponding content
+                button.classList.add('active');
+                button.setAttribute('aria-selected', 'true');
+
+                // Map tab names to content IDs
+                const tabIdMap = {
+                    'lab-orders': 'tabLabOrders',
+                    'lab-master-list': 'tabLabMasterList'
+                };
+
+                const targetContentId = tabIdMap[targetTab];
+                if (targetContentId) {
+                    const targetContent = document.getElementById(targetContentId);
+                    if (targetContent) {
+                        targetContent.classList.add('active');
+                        
+                        // Load lab tests when Lab Master List tab is activated
+                        if (targetTab === 'lab-master-list' && userRole === 'admin') {
+                            fetchLabTestsForAdmin();
+                        }
+                    }
+                }
+            });
+        });
+    }
+
     function initEvents() {
+        // Initialize tabs
+        initTabs();
+
         if (statusFilter) statusFilter.addEventListener('change', fetchLabOrders);
         if (dateFilter) dateFilter.addEventListener('change', fetchLabOrders);
         if (searchInput) searchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') fetchLabOrders(); });
@@ -306,14 +379,105 @@
         }
     }
 
+    async function viewOrder(labOrderId) {
+        if (!labOrderId) return;
+        if (window.ViewLabOrderModal && window.ViewLabOrderModal.open) {
+            window.ViewLabOrderModal.open(labOrderId);
+        }
+    }
+
+    async function editOrder(labOrderId) {
+        if (!labOrderId) return;
+        if (window.EditLabOrderModal && window.EditLabOrderModal.open) {
+            window.EditLabOrderModal.open(labOrderId);
+        }
+    }
+
+    async function addToBilling(labOrderId) {
+        if (!labOrderId) return;
+        
+        const order = await fetch(baseUrl + 'labs/' + labOrderId, { credentials: 'same-origin' })
+            .then(res => res.json())
+            .catch(() => null);
+        
+        if (!order || !order.success || !order.data) {
+            alert('Failed to load lab order details');
+            return;
+        }
+
+        const testName = order.data.test_name || order.data.test_code || 'Lab Test';
+        const defaultPrice = prompt(`Enter price for ${testName}:`, '500.00');
+        
+        if (defaultPrice === null) return; // User cancelled
+        
+        const price = parseFloat(defaultPrice);
+        if (isNaN(price) || price <= 0) {
+            alert('Please enter a valid price');
+            return;
+        }
+
+        try {
+            const res = await fetch(baseUrl + 'labs/' + labOrderId + '/billing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ unit_price: price }),
+                credentials: 'same-origin'
+            });
+            const data = await res.json();
+            
+            alert(data.message || (data.success ? 'Lab order added to billing successfully' : 'Failed to add to billing'));
+            if (data.success) {
+                fetchLabOrders();
+            }
+        } catch (e) {
+            console.error('Failed to add lab order to billing', e);
+            alert('Failed to add lab order to billing');
+        }
+    }
+
+    async function deleteOrder(labOrderId) {
+        if (!labOrderId) return;
+        
+        if (!window.confirm(`Are you sure you want to delete lab order #${labOrderId}? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(baseUrl + 'labs/' + labOrderId, {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            });
+            const data = await res.json();
+            
+            alert(data.message || (data.success ? 'Lab order deleted successfully' : 'Failed to delete lab order'));
+            if (data.success) {
+                fetchLabOrders();
+            }
+        } catch (e) {
+            console.error('Failed to delete lab order', e);
+            alert('Failed to delete lab order');
+        }
+    }
+
     window.LabUI = {
         refresh: fetchLabOrders,
         updateStatus,
+        viewOrder,
+        editOrder,
+        addToBilling,
+        deleteOrder,
     };
 
     document.addEventListener('DOMContentLoaded', function() {
         initEvents();
         fetchLabOrders();
-        fetchLabTestsForAdmin();
+        // Only load lab tests if user is admin and on initial load (will reload when tab is clicked)
+        if (userRole === 'admin') {
+            // Check if Lab Master List tab is active on page load
+            const labMasterListTab = document.querySelector('.lab-tab-button[data-tab="lab-master-list"]');
+            if (labMasterListTab && labMasterListTab.classList.contains('active')) {
+                fetchLabTestsForAdmin();
+            }
+        }
     });
 })();

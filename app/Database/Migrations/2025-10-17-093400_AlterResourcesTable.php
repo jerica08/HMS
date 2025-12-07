@@ -8,7 +8,9 @@ class AlterResourcesTable extends Migration
 {
     public function up()
     {
-        // Make 'location' and 'supplier' nullable to prevent insert failures when omitted
+        $db = \Config\Database::connect();
+
+        // Make 'location' nullable, and only modify 'supplier' if it exists
         $fields = [
             'location' => [
                 'name'       => 'location',
@@ -16,20 +18,25 @@ class AlterResourcesTable extends Migration
                 'constraint' => 100,
                 'null'       => true,
             ],
-            'supplier' => [
+        ];
+
+        if ($db->fieldExists('supplier', 'resources')) {
+            $fields['supplier'] = [
                 'name'       => 'supplier',
                 'type'       => 'VARCHAR',
                 'constraint' => 100,
                 'null'       => true,
-            ],
-        ];
+            ];
+        }
 
         $this->forge->modifyColumn('resources', $fields);
     }
 
     public function down()
     {
-        // Revert 'location' and 'supplier' back to NOT NULL
+        $db = \Config\Database::connect();
+
+        // Revert 'location' to NOT NULL, and only modify 'supplier' if it exists
         $fields = [
             'location' => [
                 'name'       => 'location',
@@ -37,13 +44,16 @@ class AlterResourcesTable extends Migration
                 'constraint' => 100,
                 'null'       => false,
             ],
-            'supplier' => [
+        ];
+
+        if ($db->fieldExists('supplier', 'resources')) {
+            $fields['supplier'] = [
                 'name'       => 'supplier',
                 'type'       => 'VARCHAR',
                 'constraint' => 100,
                 'null'       => false,
-            ],
-        ];
+            ];
+        }
 
         $this->forge->modifyColumn('resources', $fields);
     }

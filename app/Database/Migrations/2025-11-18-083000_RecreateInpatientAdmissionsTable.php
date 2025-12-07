@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class RecreateInpatientAdmissionsTable extends Migration
+class LegacyInpatientAdmissionsNoop extends Migration
 {
     public function up()
     {

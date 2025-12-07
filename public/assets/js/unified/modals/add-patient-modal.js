@@ -121,6 +121,7 @@ const AddPatientModal = {
     roomNumberSelect: null,
     floorInput: null,
     dailyRateInput: null,
+    bedNumberSelect: null,
     currentRoomTypeRooms: [],
     addressControls: {},
 
@@ -140,6 +141,7 @@ const AddPatientModal = {
         this.roomNumberSelect = document.getElementById('room_number');
         this.floorInput = document.getElementById('floor_number');
         this.dailyRateInput = document.getElementById('daily_rate');
+        this.bedNumberSelect = document.getElementById('bed_number');
         this.addressControls = {
             outpatient: this.buildAddressControls('outpatient'),
             inpatient: this.buildAddressControls('inpatient')
@@ -345,13 +347,16 @@ const AddPatientModal = {
     },
 
     setupRoomAssignmentControls() {
-        if (!this.roomTypeSelect || !this.roomNumberSelect || !this.floorInput) {
+        if (!this.roomTypeSelect || !this.roomNumberSelect || !this.floorInput || !this.bedNumberSelect) {
             return;
         }
 
         this.roomTypeSelect.addEventListener('change', () => this.handleRoomTypeChange());
         this.floorInput.addEventListener('change', () => this.handleFloorChange());
-        this.roomNumberSelect.addEventListener('change', () => this.syncSelectedRoomDetails());
+        this.roomNumberSelect.addEventListener('change', () => {
+            this.syncSelectedRoomDetails();
+            this.updateBedOptionsForSelectedRoom();
+        });
         this.handleRoomTypeChange();
     },
 
@@ -367,6 +372,19 @@ const AddPatientModal = {
 
         this.roomNumberSelect.innerHTML = `<option value="">${message}</option>`;
         this.roomNumberSelect.disabled = true;
+        this.resetBedState();
+    },
+
+    resetBedState(message = 'Select a room first') {
+        if (!this.bedNumberSelect) return;
+
+        this.bedNumberSelect.innerHTML = `<option value="">${message}</option>`;
+
+        // Keep the control enabled in normal flows so the user can always open it.
+        // We will only explicitly disable it when there is a hard error state.
+        const lower = (message || '').toLowerCase();
+        const shouldDisable = lower.includes('no beds') || lower.includes('unavailable');
+        this.bedNumberSelect.disabled = shouldDisable;
     },
 
     buildAddressControls(prefix) {
@@ -611,9 +629,12 @@ const AddPatientModal = {
 
     handleFloorChange() {
         if (!this.floorInput) return;
+
         const selectedFloor = this.floorInput.value || '';
         const rooms = Array.isArray(this.currentRoomTypeRooms) ? this.currentRoomTypeRooms : [];
-        const filteredRooms = selectedFloor ? rooms.filter(room => (room.floor_number ?? '').toString().trim() === selectedFloor) : rooms;
+        const filteredRooms = selectedFloor
+            ? rooms.filter(room => (room.floor_number ?? '').toString().trim() === selectedFloor)
+            : rooms;
 
         if (!filteredRooms.length) {
             this.resetRoomNumberState(selectedFloor ? 'No rooms on this floor' : 'Select a room...');
@@ -636,16 +657,22 @@ const AddPatientModal = {
             if (room.status) {
                 opt.dataset.status = room.status;
             }
+            if (typeof room.bed_capacity !== 'undefined') {
+                opt.dataset.bedCapacity = room.bed_capacity;
+            }
             fragment.appendChild(opt);
         });
 
         this.roomNumberSelect.innerHTML = '<option value="">Select a room...</option>';
         this.roomNumberSelect.appendChild(fragment);
         this.roomNumberSelect.disabled = false;
+        this.resetBedState('Select a room...');
 
         if (filteredRooms.length === 1) {
             this.roomNumberSelect.value = filteredRooms[0].room_number || filteredRooms[0].room_name || '';
             this.syncSelectedRoomDetails();
+            // Also populate beds when a single room is auto-selected
+            this.updateBedOptionsForSelectedRoom();
         }
     },
 
@@ -661,6 +688,56 @@ const AddPatientModal = {
         if (floor && this.floorInput.value !== floor) {
             this.floorInput.value = floor;
         }
+    },
+
+    updateBedOptionsForSelectedRoom() {
+        if (!this.roomNumberSelect || !this.bedNumberSelect) return;
+
+        const selectedRoomNumber = this.roomNumberSelect.value || '';
+        const selectedRoomOption = this.roomNumberSelect.options[this.roomNumberSelect.selectedIndex];
+        if (!selectedRoomNumber || !selectedRoomOption) {
+            this.resetBedState('Select a room first');
+            return;
+        }
+
+        const rooms = Array.isArray(this.currentRoomTypeRooms) ? this.currentRoomTypeRooms : [];
+        const room = rooms.find(r => (r.room_number || '').toString() === selectedRoomNumber.toString());
+
+        const bedNames = room && Array.isArray(room.bed_names) ? room.bed_names : [];
+
+        // Prefer capacity from the selected option's data attribute; fall back to room object or bedNames length.
+        let capacity = selectedRoomOption.dataset.bedCapacity
+            ? parseInt(selectedRoomOption.dataset.bedCapacity, 10)
+            : (room && Number.isFinite(Number(room.bed_capacity))
+                ? parseInt(room.bed_capacity, 10)
+                : 0);
+
+        // If capacity is missing or zero, but we have named beds, derive capacity from names.
+        if ((!capacity || capacity <= 0) && bedNames.length > 0) {
+            capacity = bedNames.length;
+        }
+
+        // Final safety: ensure at least one bed so the dropdown is usable.
+        if (!capacity || capacity <= 0) {
+            capacity = 1;
+        }
+
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < capacity; i++) {
+            const opt = document.createElement('option');
+            const label = bedNames[i] ? String(bedNames[i]) : `Bed ${i + 1}`;
+            opt.value = label;
+            opt.textContent = label;
+            fragment.appendChild(opt);
+        }
+
+        const totalBeds = bedNames.length > 0 ? bedNames.length : capacity;
+        const capacityLabel = totalBeds === 1
+            ? '1 bed in this room'
+            : `${totalBeds} beds in this room`;
+        this.bedNumberSelect.innerHTML = `<option value="">Select a bed... (${capacityLabel})</option>`;
+        this.bedNumberSelect.appendChild(fragment);
+        this.bedNumberSelect.disabled = false;
     },
 
     updateDailyRateDisplay(roomTypeOption) {

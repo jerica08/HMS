@@ -58,10 +58,24 @@ class RoomService
 
         try {
             $roomTypeId = $this->resolveRoomTypeId($input);
-            $data = $this->mapRoomPayload($input, $roomTypeId);
-            $builder->insert($data);
+            $data       = $this->mapRoomPayload($input, $roomTypeId);
 
-            return ['success' => true, 'message' => 'Room added successfully', 'id' => $this->db->insertID()];
+            $this->db->transStart();
+
+            $builder->insert($data);
+            $roomId = (int) $this->db->insertID();
+
+            if ($roomId > 0) {
+                $this->syncBedsForRoom($roomId, $data['bed_capacity'] ?? 0, $data['bed_names'] ?? null);
+            }
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Failed to create room transaction');
+            }
+
+            return ['success' => true, 'message' => 'Room added successfully', 'id' => $roomId];
         } catch (\Throwable $e) {
             log_message('error', 'RoomService::createRoom failed: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Could not create room: ' . $e->getMessage()];
@@ -223,12 +237,25 @@ class RoomService
 
         try {
             $roomTypeId = $this->resolveRoomTypeId($input);
-            $data = $this->mapRoomPayload($input, $roomTypeId);
-            $updated = $this->db->table('room')->where('room_id', $roomId)->update($data);
+            $data       = $this->mapRoomPayload($input, $roomTypeId);
 
-            return $updated
-                ? ['success' => true, 'message' => 'Room updated successfully']
-                : ['success' => false, 'message' => 'Room was not updated. Please try again.'];
+            $this->db->transStart();
+
+            $updated = $this->db->table('room')
+                ->where('room_id', $roomId)
+                ->update($data);
+
+            if ($updated) {
+                $this->syncBedsForRoom($roomId, $data['bed_capacity'] ?? 0, $data['bed_names'] ?? null);
+            }
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false || ! $updated) {
+                throw new \RuntimeException('Failed to update room and beds');
+            }
+
+            return ['success' => true, 'message' => 'Room updated successfully'];
         } catch (\Throwable $e) {
             log_message('error', 'RoomService::updateRoom failed: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Could not update room: ' . $e->getMessage()];
@@ -284,6 +311,45 @@ class RoomService
             'bed_names' => $bedNamesValue,
             'status' => $input['status'] ?? 'available',
         ];
+    }
+
+    /**
+     * Normalize beds for a given room into the `bed` table based on capacity and names.
+     */
+    private function syncBedsForRoom(int $roomId, int $capacity, ?string $bedNamesJson = null): void
+    {
+        if ($roomId <= 0 || ! $this->db->tableExists('bed')) {
+            return;
+        }
+
+        $capacity = max(1, (int) $capacity);
+
+        $bedNames = [];
+        if ($bedNamesJson) {
+            $decoded = json_decode($bedNamesJson, true) ?? [];
+            if (is_array($decoded)) {
+                $bedNames = array_values(array_filter(array_map('strval', $decoded), static fn($n) => trim($n) !== ''));
+            }
+        }
+
+        // Remove existing beds for this room and recreate based on current definition.
+        $bedTable = $this->db->table('bed');
+        $bedTable->where('room_id', $roomId)->delete();
+
+        $rows = [];
+        for ($i = 0; $i < $capacity; $i++) {
+            $label = $bedNames[$i] ?? 'Bed ' . ($i + 1);
+            $rows[] = [
+                'room_id'            => $roomId,
+                'bed_number'         => $label,
+                'status'             => 'available',
+                'assigned_patient_id'=> null,
+            ];
+        }
+
+        if (! empty($rows)) {
+            $bedTable->insertBatch($rows);
+        }
     }
 
     private function resolveRoomTypeId(array $input): ?int

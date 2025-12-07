@@ -39,20 +39,6 @@ class CreateBedTable extends Migration
                     'unsigned' => true,
                     'null'     => true,
                 ],
-                'bed_daily_rate' => [
-                    'type'       => 'DECIMAL',
-                    'constraint' => '10,2',
-                    'null'       => true,
-                ],
-                'bed_hourly_rate' => [
-                    'type'       => 'DECIMAL',
-                    'constraint' => '10,2',
-                    'null'       => true,
-                ],
-                'last_cleaned_at' => [
-                    'type' => 'TIMESTAMP',
-                    'null' => true,
-                ],
                 // Timestamps as NULL first; defaults set via raw SQL after create
                 'created_at' => [
                     'type'    => 'TIMESTAMP',

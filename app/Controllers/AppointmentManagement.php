@@ -154,9 +154,16 @@ class AppointmentManagement extends BaseController
     public function addToBilling($appointmentId)
     {
         if (!in_array($this->userRole, ['admin', 'accountant'])) {
-            return $this->response->setJSON([
+            return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
-                'message' => 'Permission denied'
+                'message' => 'Permission denied. Only admin and accountant can add appointments to billing.'
+            ]);
+        }
+
+        if (!$this->request->is('post')) {
+            return $this->response->setStatusCode(405)->setJSON([
+                'success' => false,
+                'message' => 'Invalid request method'
             ]);
         }
 
@@ -167,15 +174,23 @@ class AppointmentManagement extends BaseController
             $quantity  = isset($input['quantity']) ? (int)$input['quantity'] : 1;
 
             if ($unitPrice <= 0) {
-                return $this->response->setJSON([
+                return $this->response->setStatusCode(422)->setJSON([
                     'success' => false,
-                    'message' => 'Invalid unit price'
+                    'message' => 'Invalid unit price. Please enter a positive amount.'
+                ]);
+            }
+
+            if (empty($appointmentId) || !is_numeric($appointmentId)) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'Invalid appointment ID'
                 ]);
             }
 
             // Load appointment to get patient
+            // Note: appointments table uses 'id' as primary key, not 'appointment_id'
             $appointment = $this->db->table('appointments')
-                ->where('appointment_id', $appointmentId)
+                ->where('id', $appointmentId)
                 ->get()
                 ->getRowArray();
 
@@ -188,8 +203,53 @@ class AppointmentManagement extends BaseController
 
             $patientId = (int)$appointment['patient_id'];
 
+            // Determine patient type and get admission_id if inpatient
+            $admissionId = null;
+            if ($this->db->tableExists('inpatient_admissions')) {
+                try {
+                    // Check if discharge_date column exists before using it
+                    $hasDischargeDate = $this->db->fieldExists('discharge_date', 'inpatient_admissions');
+                    $hasStatus = $this->db->fieldExists('status', 'inpatient_admissions');
+                    
+                    $builder = $this->db->table('inpatient_admissions')
+                        ->where('patient_id', $patientId);
+                    
+                    // If discharge_date column exists, check for non-discharged admissions
+                    if ($hasDischargeDate) {
+                        $builder->groupStart()
+                            ->where('discharge_date', null)
+                            ->orWhere('discharge_date', '')
+                        ->groupEnd();
+                    } elseif ($hasStatus) {
+                        // If status column exists, check for active status
+                        $builder->where('status', 'active');
+                    }
+                    // If neither exists, just get the most recent admission (assume it's active)
+                    
+                    $activeAdmission = $builder
+                        ->orderBy('admission_id', 'DESC')
+                        ->limit(1)
+                        ->get()
+                        ->getRowArray();
+                    
+                    if ($activeAdmission) {
+                        // If discharge_date exists and is set, skip this admission
+                        if ($hasDischargeDate && !empty($activeAdmission['discharge_date'])) {
+                            $admissionId = null;
+                        } else {
+                            $admissionId = (int)$activeAdmission['admission_id'];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // If there's an error checking for admission, just proceed without admission_id
+                    // This allows outpatients to still be billed
+                    log_message('debug', 'Error checking for admission: ' . $e->getMessage());
+                    $admissionId = null;
+                }
+            }
+
             // Get or create billing account for this patient
-            $account = $this->financialService->getOrCreateBillingAccountForPatient($patientId, null, (int)$this->staffId);
+            $account = $this->financialService->getOrCreateBillingAccountForPatient($patientId, $admissionId, (int)$this->staffId);
 
             if (!$account || empty($account['billing_id'])) {
                 return $this->response->setJSON([
@@ -200,6 +260,45 @@ class AppointmentManagement extends BaseController
 
             $billingId = (int)$account['billing_id'];
 
+            // Check if appointment is already in billing to prevent duplicates
+            // Since we already verified appointment exists, just check if it's in billing_items
+            if ($this->db->tableExists('billing_items')) {
+                $existing = $this->db->table('billing_items')
+                    ->where('billing_id', $billingId)
+                    ->where('appointment_id', (int)$appointmentId)
+                    ->countAllResults();
+                
+                if ($existing > 0) {
+                    // Double-check: verify this is not an orphaned item from a deleted appointment
+                    // by checking if the appointment_id in billing_items matches an existing appointment
+                    $appointmentCheck = $this->db->table('appointments')
+                        ->where('id', (int)$appointmentId)
+                        ->countAllResults();
+                    
+                    // If appointment exists and is in billing, it's a real duplicate
+                    if ($appointmentCheck > 0) {
+                        // Get details of existing billing item for logging
+                        $existingItem = $this->db->table('billing_items')
+                            ->where('billing_id', $billingId)
+                            ->where('appointment_id', (int)$appointmentId)
+                            ->get()
+                            ->getRowArray();
+                        
+                        log_message('info', "Duplicate check: Appointment ID {$appointmentId} already in billing account {$billingId}. Existing item ID: " . ($existingItem['item_id'] ?? 'unknown'));
+                        
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'message' => 'This appointment is already in the billing account.',
+                            'billing_id' => $billingId,
+                            'existing_item_id' => $existingItem['item_id'] ?? null
+                        ]);
+                    } else {
+                        // Orphaned item - log it but allow adding (will create new item)
+                        log_message('warning', "Found orphaned billing item for appointment {$appointmentId} - appointment no longer exists, allowing new entry");
+                    }
+                }
+            }
+
             // Add appointment item to billing
             $result = $this->financialService->addItemFromAppointment(
                 $billingId,
@@ -209,12 +308,36 @@ class AppointmentManagement extends BaseController
                 (int)$this->staffId
             );
 
-            return $this->response->setJSON($result);
+            if ($result['success']) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Appointment successfully added to billing account.',
+                    'billing_id' => $billingId
+                ]);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Failed to add appointment to billing'
+                ]);
+            }
         } catch (\Throwable $e) {
             log_message('error', 'AppointmentManagement::addToBilling error: ' . $e->getMessage());
-            return $this->response->setJSON([
+            log_message('error', 'AppointmentManagement::addToBilling stack trace: ' . $e->getTraceAsString());
+            
+            // Get database error if available
+            $dbError = $this->db->error();
+            $errorMessage = 'An error occurred while adding appointment to billing.';
+            
+            if (!empty($dbError['message'])) {
+                log_message('error', 'Database error: ' . json_encode($dbError));
+                $errorMessage .= ' Database error: ' . $dbError['message'];
+            } else {
+                $errorMessage .= ' Error: ' . $e->getMessage();
+            }
+            
+            return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
-                'message' => 'Failed to add appointment to billing'
+                'message' => $errorMessage
             ]);
         }
     }

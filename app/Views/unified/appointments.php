@@ -201,18 +201,18 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form id="billingForm">
+                    <form id="billingForm" onsubmit="event.preventDefault(); submitBillingModal();">
                         <input type="hidden" id="billing_appointment_id" name="appointment_id" value="">
                         <div class="form-group">
-                            <label for="billing_amount">Consultation Fee</label>
-                            <input type="number" step="0.01" min="0" class="form-control" id="billing_amount" name="amount" placeholder="Enter fee" required>
+                            <label for="billing_amount">Consultation Fee <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0.01" class="form-control" id="billing_amount" name="amount" placeholder="Enter fee (e.g., 500.00)" required>
                             <small class="form-text text-muted">Amount to be added to the patient's billing account for this appointment.</small>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeBillingModal()">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="submitBillingModal()">
+                    <button type="button" class="btn btn-primary" onclick="submitBillingModal()" id="billingSubmitBtn">
                         <i class="fas fa-check"></i> Add to Bill
                     </button>
                 </div>

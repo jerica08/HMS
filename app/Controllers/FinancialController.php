@@ -239,6 +239,138 @@ class FinancialController extends BaseController
         }
     }
 
+    /**
+     * Add billing item manually (for appointments, prescriptions, lab orders, or rooms)
+     */
+    public function addBillingItem()
+    {
+        $session = session();
+        $userRole = $session->get('role') ?? 'accountant';
+        $staffId = (int)($session->get('staff_id') ?? 0);
+
+        if (!in_array($userRole, ['admin', 'accountant', 'receptionist', 'it_staff'], true)) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Insufficient permissions to add billing items',
+            ]);
+        }
+
+        if (strtolower($this->request->getMethod()) !== 'post') {
+            return $this->response->setStatusCode(405)->setJSON([
+                'success' => false,
+                'message' => 'Invalid request method',
+            ]);
+        }
+
+        $input = $this->request->getJSON(true) ?? $this->request->getPost();
+
+        // Validate required fields
+        if (empty($input['patient_id']) || empty($input['item_type'])) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'patient_id and item_type are required',
+            ]);
+        }
+
+        $patientId = (int)$input['patient_id'];
+        $admissionId = !empty($input['admission_id']) ? (int)$input['admission_id'] : null;
+        $itemType = $input['item_type'];
+
+        // Get or create billing account
+        $account = $this->financialService->getOrCreateBillingAccountForPatient($patientId, $admissionId, $staffId);
+        if (!$account || empty($account['billing_id'])) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to get/create billing account',
+            ]);
+        }
+
+        $billingId = (int)$account['billing_id'];
+        $result = null;
+
+        // Add item based on type
+        switch ($itemType) {
+            case 'appointment':
+                if (empty($input['appointment_id'])) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'success' => false,
+                        'message' => 'appointment_id is required for appointment items',
+                    ]);
+                }
+                $unitPrice = (float)($input['unit_price'] ?? 500.00);
+                $result = $this->financialService->addItemFromAppointment(
+                    $billingId,
+                    (int)$input['appointment_id'],
+                    $unitPrice,
+                    1,
+                    $staffId
+                );
+                break;
+
+            case 'prescription':
+                if (empty($input['prescription_id'])) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'success' => false,
+                        'message' => 'prescription_id is required for prescription items',
+                    ]);
+                }
+                $unitPrice = (float)($input['unit_price'] ?? 100.00);
+                $quantity = (int)($input['quantity'] ?? 1);
+                $result = $this->financialService->addItemFromPrescription(
+                    $billingId,
+                    (int)$input['prescription_id'],
+                    $unitPrice,
+                    $quantity,
+                    $staffId
+                );
+                break;
+
+            case 'lab_order':
+                if (empty($input['lab_order_id'])) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'success' => false,
+                        'message' => 'lab_order_id is required for lab order items',
+                    ]);
+                }
+                $unitPrice = (float)($input['unit_price'] ?? 500.00);
+                $result = $this->financialService->addItemFromLabOrder(
+                    $billingId,
+                    (int)$input['lab_order_id'],
+                    $unitPrice,
+                    $staffId
+                );
+                break;
+
+            case 'room':
+                if (empty($input['room_assignment_id'])) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'success' => false,
+                        'message' => 'room_assignment_id is required for room items',
+                    ]);
+                }
+                $unitPrice = !empty($input['unit_price']) ? (float)$input['unit_price'] : null;
+                $result = $this->financialService->addItemFromRoomAssignment(
+                    $billingId,
+                    (int)$input['room_assignment_id'],
+                    $unitPrice,
+                    $staffId
+                );
+                break;
+
+            default:
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'Invalid item_type. Must be: appointment, prescription, lab_order, or room',
+                ]);
+        }
+
+        $statusCode = ($result['success'] ?? false) ? 200 : 400;
+        return $this->response->setStatusCode($statusCode)->setJSON($result ?? [
+            'success' => false,
+            'message' => 'Failed to add billing item',
+        ]);
+    }
+
     private function getUsers()
     {
         $db = \Config\Database::connect();

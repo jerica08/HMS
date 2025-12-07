@@ -42,6 +42,9 @@
             </h1>
 
             <div class="page-actions">
+                <button type="button" class="btn btn-primary" id="refreshBillingBtn" aria-label="Refresh Billing Accounts" onclick="window.location.reload();">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
                 <?php if (in_array($userRole ?? '', ['admin','it_staff','accountant'])): ?>
                     <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download"></i> Export</button>
                 <?php endif; ?>
@@ -228,13 +231,19 @@
                     <tbody id="financialTableBody">
 
                         <?php if (!empty($accounts) && is_array($accounts)): ?>
-                            <?php foreach ($accounts as $account): ?>
+                            <?php 
+                            // Debug: log account count
+                            log_message('debug', 'Financial management view: Rendering ' . count($accounts) . ' billing accounts');
+                            foreach ($accounts as $account): 
+                                // Debug: log each account
+                                log_message('debug', "Rendering billing account ID: {$account['billing_id']}, Patient ID: {$account['patient_id']}, Patient Name: " . ($account['patient_name'] ?? 'NOT SET'));
+                            ?>
 
                                 <tr>
                                     <td><?= esc($account['billing_id']) ?></td>
 
                                     <td>
-                                        <strong><?= esc($account['patient_name']) ?></strong><br>
+                                        <strong><?= esc($account['patient_name'] ?? ($account['first_name'] ?? '') . ' ' . ($account['last_name'] ?? '') ?: 'Patient #' . $account['patient_id']) ?></strong><br>
                                         <small>ID: <?= esc($account['patient_id']) ?></small>
                                     </td>
 
@@ -258,7 +267,7 @@
                                     </td>
 
                                     <td>
-                                        <button class="btn btn-primary btn-small" data-action="view" data-billing-id="<?= esc($account['billing_id']) ?>" data-patient-name="<?= esc($account['patient_name']) ?>"><i class="fas fa-eye"></i> View Details</button>
+                                        <button class="btn btn-primary btn-small" data-action="view" data-billing-id="<?= esc($account['billing_id']) ?>" data-patient-name="<?= esc($account['patient_name'] ?? 'Unknown') ?>"><i class="fas fa-eye"></i> View Details</button>
                                         <?php if (in_array($userRole, ['admin','accountant']) && $status !== 'paid'): ?>
                                             <button class="btn btn-success btn-small" data-action="mark-paid" data-billing-id="<?= esc($account['billing_id']) ?>"><i class="fas fa-check-circle"></i> Mark as Paid</button>
                                         <?php endif; ?>
@@ -269,6 +278,14 @@
                                 </tr>
 
                             <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 3rem; color: #6b7280;">
+                                    <i class="fas fa-file-invoice-dollar" style="font-size: 3rem; color: #d1d5db; margin-bottom: 1rem; display: block;"></i>
+                                    <p style="margin: 0.5rem 0; font-size: 1rem; font-weight: 500;">No billing accounts found</p>
+                                    <p style="margin: 0; font-size: 0.875rem;">Billing accounts will appear here when items are added from appointments, prescriptions, lab orders, or room management.</p>
+                                </td>
+                            </tr>
                         <?php endif; ?>
 
                     </tbody>
@@ -284,16 +301,44 @@
     <script src="<?= base_url('assets/js/unified/modals/view-billing-account-modal.js') ?>"></script>
     <script src="<?= base_url('assets/js/unified/financial-management.js') ?>"></script>
 
-    <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                showFinancialNotification(
-                    '<?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error'), 'js') ?>',
-                    '<?= session()->getFlashdata('success') ? 'success' : 'error' ?>'
-                );
-            });
-        </script>
-    <?php endif; ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Show flash notification if available
+            <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
+                if (typeof showFinancialNotification === 'function') {
+                    showFinancialNotification(
+                        '<?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error'), 'js') ?>',
+                        '<?= session()->getFlashdata('success') ? 'success' : 'error' ?>'
+                    );
+                } else {
+                    // Fallback if function not loaded yet
+                    setTimeout(function() {
+                        if (typeof showFinancialNotification === 'function') {
+                            showFinancialNotification(
+                                '<?= esc(session()->getFlashdata('success') ?: session()->getFlashdata('error'), 'js') ?>',
+                                '<?= session()->getFlashdata('success') ? 'success' : 'error' ?>'
+                            );
+                        }
+                    }, 100);
+                }
+            <?php endif; ?>
+            
+            // Check URL parameters for notifications
+            const urlParams = new URLSearchParams(window.location.search);
+            const billingAdded = urlParams.get('billing_added');
+            const billingError = urlParams.get('billing_error');
+            
+            if (billingAdded === 'true' && typeof showFinancialNotification === 'function') {
+                showFinancialNotification('Appointment successfully added to billing account!', 'success');
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (billingError && typeof showFinancialNotification === 'function') {
+                showFinancialNotification(decodeURIComponent(billingError), 'error');
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+    </script>
 
 </body>
 </html>

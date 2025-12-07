@@ -6,6 +6,9 @@
         </div>
         <div class="hms-modal-body">
             <div id="billingAccountHeader" class="billing-account-header" style="margin-bottom:0.75rem;"></div>
+            <div id="billingAccountPatientType" class="billing-patient-type-badge" style="margin-bottom:0.75rem;"></div>
+            <div id="billingAccountAdmissionInfo" class="billing-admission-info" style="margin-bottom:0.75rem; display:none;"></div>
+            <div id="billingAccountInsuranceInfo" class="billing-insurance-info" style="margin-bottom:0.75rem; display:none;"></div>
             <div class="table-responsive">
                 <table class="financial-table">
                     <thead>

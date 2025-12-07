@@ -96,6 +96,7 @@ class AppointmentService
 
     /**
      * Update appointment status (DB primary key `id`)
+     * Automatically adds to billing when status is 'completed'
      */
     public function updateAppointmentStatus($id, $status, $userRole = null, $staffId = null)
     {
@@ -104,18 +105,199 @@ class AppointmentService
         }
 
         try {
+            // Get appointment before updating
+            $appointment = $this->db->table('appointments')->where('id', $id)->get()->getRowArray();
+            if (!$appointment) {
+                return ['success' => false, 'message' => 'Appointment not found'];
+            }
+
             $builder = $this->db->table('appointments')->where('id', $id);
             if ($userRole === 'doctor' && $staffId) {
                 $builder->where('doctor_id', $staffId);
             }
             $updated = $builder->update(['status' => $status, 'updated_at' => date('Y-m-d H:i:s')]);
-            return $updated && $this->db->affectedRows() > 0
-                ? ['success' => true, 'message' => 'Appointment status updated successfully']
-                : ['success' => false, 'message' => 'Appointment not found or no permission to update'];
+            
+            if ($updated && $this->db->affectedRows() > 0) {
+                // Automatically add to billing when appointment is completed
+                if ($status === 'completed') {
+                    $this->addAppointmentToBilling($id, $appointment, $staffId);
+                }
+                
+                return ['success' => true, 'message' => 'Appointment status updated successfully'];
+            }
+            
+            return ['success' => false, 'message' => 'Appointment not found or no permission to update'];
         } catch (\Throwable $e) {
             log_message('error', 'Failed to update appointment status: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
         }
+    }
+
+    /**
+     * Automatically add completed appointment to billing account
+     */
+    private function addAppointmentToBilling($appointmentId, $appointment, $staffId = null): void
+    {
+        try {
+            // Check if FinancialService is available
+            if (!class_exists(\App\Services\FinancialService::class)) {
+                log_message('warning', 'FinancialService not available for auto-billing appointment');
+                return;
+            }
+
+            $patientId = (int)($appointment['patient_id'] ?? 0);
+            if ($patientId <= 0) {
+                log_message('warning', "Appointment {$appointmentId}: No patient ID found");
+                return;
+            }
+
+            $financialService = new \App\Services\FinancialService();
+
+            // Get patient type and admission ID
+            $patientType = $this->getPatientType($patientId);
+            $admissionId = null;
+            
+            if (strtolower($patientType) === 'inpatient') {
+                $admissionId = $this->getActiveAdmissionId($patientId);
+            }
+
+            // Get or create billing account
+            $account = $financialService->getOrCreateBillingAccountForPatient($patientId, $admissionId, $staffId);
+            if (!$account || empty($account['billing_id'])) {
+                log_message('error', "Appointment {$appointmentId}: Failed to get/create billing account for patient {$patientId}");
+                return;
+            }
+
+            $billingId = (int)$account['billing_id'];
+
+            // Check if appointment is already in billing
+            // Only count if the appointment still exists (not orphaned from deleted appointment)
+            if ($this->db->tableExists('billing_items') && $this->db->tableExists('appointments')) {
+                $existing = $this->db->table('billing_items bi')
+                    ->join('appointments a', 'a.id = bi.appointment_id', 'inner')
+                    ->where('bi.billing_id', $billingId)
+                    ->where('bi.appointment_id', $appointmentId)
+                    ->where('a.id', $appointmentId) // Ensure appointment still exists
+                    ->countAllResults();
+                
+                if ($existing > 0) {
+                    log_message('debug', "Appointment {$appointmentId}: Already in billing account {$billingId}");
+                    return; // Already added
+                }
+            }
+
+            // Get consultation fee
+            $consultationFee = $this->getConsultationFee($appointment['appointment_type'] ?? 'Consultation');
+
+            // Add to billing
+            $result = $financialService->addItemFromAppointment(
+                $billingId,
+                $appointmentId,
+                $consultationFee,
+                1,
+                $staffId
+            );
+
+            if (!($result['success'] ?? false)) {
+                log_message('error', "Appointment {$appointmentId}: Failed to add to billing - " . ($result['message'] ?? 'Unknown error'));
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'AppointmentService::addAppointmentToBilling error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get patient type (inpatient/outpatient)
+     */
+    private function getPatientType(int $patientId): string
+    {
+        try {
+            if (!$this->db->tableExists('patients')) {
+                return 'outpatient';
+            }
+
+            $patient = $this->db->table('patients')
+                ->select('patient_type')
+                ->where('patient_id', $patientId)
+                ->get()
+                ->getRowArray();
+
+            if ($patient && !empty($patient['patient_type'])) {
+                return strtolower($patient['patient_type']);
+            }
+
+            // Check for active admission
+            if ($this->db->tableExists('inpatient_admissions')) {
+                $builder = $this->db->table('inpatient_admissions')
+                    ->where('patient_id', $patientId);
+                
+                // Only check discharge_date if the column exists
+                if ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
+                    $builder->groupStart()
+                        ->where('discharge_date', null)
+                        ->orWhere('discharge_date', '')
+                    ->groupEnd();
+                }
+                
+                $admission = $builder->get()->getRowArray();
+
+                if ($admission) {
+                    return 'inpatient';
+                }
+            }
+
+            return 'outpatient';
+        } catch (\Throwable $e) {
+            log_message('error', 'AppointmentService::getPatientType error: ' . $e->getMessage());
+            return 'outpatient';
+        }
+    }
+
+    /**
+     * Get active admission ID for inpatient
+     */
+    private function getActiveAdmissionId(int $patientId): ?int
+    {
+        try {
+            if (!$this->db->tableExists('inpatient_admissions')) {
+                return null;
+            }
+
+            $builder = $this->db->table('inpatient_admissions')
+                ->select('admission_id')
+                ->where('patient_id', $patientId);
+            
+            // Only check discharge_date if the column exists
+            if ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
+                $builder->groupStart()
+                    ->where('discharge_date', null)
+                    ->orWhere('discharge_date', '')
+                ->groupEnd();
+            }
+            
+            $admission = $builder->get()->getRowArray();
+
+            return $admission ? (int)$admission['admission_id'] : null;
+        } catch (\Throwable $e) {
+            log_message('error', 'AppointmentService::getActiveAdmissionId error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get consultation fee based on appointment type
+     */
+    private function getConsultationFee(string $appointmentType): float
+    {
+        // Default fees (can be moved to config or database)
+        $fees = [
+            'Consultation' => 500.00,
+            'Follow-up' => 300.00,
+            'Check-up' => 400.00,
+            'Emergency' => 1000.00,
+        ];
+
+        return $fees[$appointmentType] ?? 500.00; // Default fee
     }
 
     /**

@@ -250,6 +250,7 @@ $routes->get('financial-management/categories', 'FinancialController::getCategor
 $routes->get('billing/accounts/(:num)', 'FinancialController::getBillingAccount/$1', ['filter' => 'roleauth:admin,accountant']);
 $routes->post('financial/billing-accounts/(:num)/paid', 'FinancialController::markBillingAccountPaid/$1', ['filter' => 'roleauth:admin,accountant']);
 $routes->post('financial/billing-accounts/(:num)/delete', 'FinancialController::deleteBillingAccount/$1', ['filter' => 'roleauth:admin,accountant']);
+$routes->post('financial/billing-items/add', 'FinancialController::addBillingItem', ['filter' => 'roleauth:admin,accountant,receptionist,it_staff']);
 
 // ===================================================================
 // ANALYTICS & REPORTS

@@ -365,9 +365,17 @@ class PrescriptionService
                 return ['success' => false, 'message' => 'No fields to update'];
             }
             
+            $newStatus = isset($data['status']) ? $this->mapStatus($data['status']) : null;
+            $oldStatus = $existingPrescription['status'] ?? null;
+            
             $result = $this->db->table('prescriptions')->where('id', $id)->update($updateData);
             
             if ($result) {
+                // Automatically add to billing when prescription is dispensed/completed
+                if ($newStatus && in_array($newStatus, ['dispensed', 'completed']) && $oldStatus !== $newStatus) {
+                    $this->addPrescriptionToBilling($id, $existingPrescription, $staffId);
+                }
+                
                 return ['success' => true, 'message' => 'Prescription updated successfully'];
             }
 
@@ -771,5 +779,233 @@ class PrescriptionService
             'dispensed' => 'dispensed'
         ];
         return $statusMap[$status] ?? $status;
+    }
+
+    /**
+     * Automatically add dispensed prescription to billing account
+     */
+    private function addPrescriptionToBilling($prescriptionId, $prescription, $staffId = null): void
+    {
+        try {
+            // Check if FinancialService is available
+            if (!class_exists(\App\Services\FinancialService::class)) {
+                log_message('warning', 'FinancialService not available for auto-billing prescription');
+                return;
+            }
+
+            $patientId = (int)($prescription['patient_id'] ?? 0);
+            if ($patientId <= 0) {
+                log_message('warning', "Prescription {$prescriptionId}: No patient ID found");
+                return;
+            }
+
+            $financialService = new \App\Services\FinancialService();
+
+            // Get patient type and admission ID
+            $patientType = $this->getPatientType($patientId);
+            $admissionId = null;
+            
+            if (strtolower($patientType) === 'inpatient') {
+                $admissionId = $this->getActiveAdmissionId($patientId);
+            }
+
+            // Get or create billing account
+            $account = $financialService->getOrCreateBillingAccountForPatient($patientId, $admissionId, $staffId);
+            if (!$account || empty($account['billing_id'])) {
+                log_message('error', "Prescription {$prescriptionId}: Failed to get/create billing account for patient {$patientId}");
+                return;
+            }
+
+            $billingId = (int)$account['billing_id'];
+
+            // Check if prescription is already in billing
+            if ($this->db->tableExists('billing_items')) {
+                $existing = $this->db->table('billing_items')
+                    ->where('billing_id', $billingId)
+                    ->where('prescription_id', $prescriptionId)
+                    ->countAllResults();
+                
+                if ($existing > 0) {
+                    log_message('debug', "Prescription {$prescriptionId}: Already in billing account {$billingId}");
+                    return; // Already added
+                }
+            }
+
+            // Calculate medication cost
+            $medicationCost = $this->calculateMedicationCost($prescriptionId, $prescription);
+            $quantity = (int)($prescription['quantity'] ?? $prescription['dispensed_quantity'] ?? 1);
+
+            // Add to billing
+            $result = $financialService->addItemFromPrescription(
+                $billingId,
+                $prescriptionId,
+                $medicationCost,
+                $quantity,
+                $staffId
+            );
+
+            if (!($result['success'] ?? false)) {
+                log_message('error', "Prescription {$prescriptionId}: Failed to add to billing - " . ($result['message'] ?? 'Unknown error'));
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'PrescriptionService::addPrescriptionToBilling error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Calculate medication cost from prescription items or inventory
+     */
+    private function calculateMedicationCost($prescriptionId, $prescription): float
+    {
+        try {
+            // Try to get cost from prescription_items if table exists
+            if ($this->db->tableExists('prescription_items')) {
+                $items = $this->db->table('prescription_items')
+                    ->where('prescription_id', $prescriptionId)
+                    ->get()
+                    ->getResultArray();
+
+                if (!empty($items)) {
+                    $totalCost = 0.0;
+                    foreach ($items as $item) {
+                        // Try to get price from inventory or use default
+                        $unitPrice = $this->getMedicationPrice($item['medication_name'] ?? '', $item['resource_id'] ?? null);
+                        $quantity = (int)($item['quantity'] ?? 1);
+                        $totalCost += $unitPrice * $quantity;
+                    }
+                    return $totalCost > 0 ? $totalCost : 100.00; // Default if calculation fails
+                }
+            }
+
+            // Fallback: try to get price from inventory using medication name
+            $medicationName = $prescription['medication'] ?? '';
+            if (!empty($medicationName)) {
+                $price = $this->getMedicationPrice($medicationName);
+                return $price > 0 ? $price : 100.00; // Default medication cost
+            }
+
+            return 100.00; // Default medication cost
+        } catch (\Throwable $e) {
+            log_message('error', 'PrescriptionService::calculateMedicationCost error: ' . $e->getMessage());
+            return 100.00; // Default on error
+        }
+    }
+
+    /**
+     * Get medication price from inventory/resources
+     */
+    private function getMedicationPrice(string $medicationName, ?int $resourceId = null): float
+    {
+        try {
+            // Try to get price from resources/inventory table
+            if ($this->db->tableExists('resources') && $resourceId) {
+                $resource = $this->db->table('resources')
+                    ->select('unit_price, selling_price')
+                    ->where('resource_id', $resourceId)
+                    ->get()
+                    ->getRowArray();
+
+                if ($resource) {
+                    return (float)($resource['selling_price'] ?? $resource['unit_price'] ?? 0);
+                }
+            }
+
+            // Try to find by medication name
+            if ($this->db->tableExists('resources') && !empty($medicationName)) {
+                $resource = $this->db->table('resources')
+                    ->select('unit_price, selling_price')
+                    ->like('resource_name', $medicationName)
+                    ->orLike('name', $medicationName)
+                    ->get()
+                    ->getRowArray();
+
+                if ($resource) {
+                    return (float)($resource['selling_price'] ?? $resource['unit_price'] ?? 0);
+                }
+            }
+
+            return 0.0;
+        } catch (\Throwable $e) {
+            log_message('error', 'PrescriptionService::getMedicationPrice error: ' . $e->getMessage());
+            return 0.0;
+        }
+    }
+
+    /**
+     * Get patient type (inpatient/outpatient)
+     */
+    private function getPatientType(int $patientId): string
+    {
+        try {
+            if (!$this->db->tableExists('patients')) {
+                return 'outpatient';
+            }
+
+            $patient = $this->db->table('patients')
+                ->select('patient_type')
+                ->where('patient_id', $patientId)
+                ->get()
+                ->getRowArray();
+
+            if ($patient && !empty($patient['patient_type'])) {
+                return strtolower($patient['patient_type']);
+            }
+
+            // Check for active admission
+            if ($this->db->tableExists('inpatient_admissions')) {
+                $builder = $this->db->table('inpatient_admissions')
+                    ->where('patient_id', $patientId);
+                
+                // Only check discharge_date if the column exists
+                if ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
+                    $builder->groupStart()
+                        ->where('discharge_date', null)
+                        ->orWhere('discharge_date', '')
+                    ->groupEnd();
+                }
+                
+                $admission = $builder->get()->getRowArray();
+
+                if ($admission) {
+                    return 'inpatient';
+                }
+            }
+
+            return 'outpatient';
+        } catch (\Throwable $e) {
+            log_message('error', 'PrescriptionService::getPatientType error: ' . $e->getMessage());
+            return 'outpatient';
+        }
+    }
+
+    /**
+     * Get active admission ID for inpatient
+     */
+    private function getActiveAdmissionId(int $patientId): ?int
+    {
+        try {
+            if (!$this->db->tableExists('inpatient_admissions')) {
+                return null;
+            }
+
+            $builder = $this->db->table('inpatient_admissions')
+                ->select('admission_id')
+                ->where('patient_id', $patientId);
+            
+            // Only check discharge_date if the column exists
+            if ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
+                $builder->groupStart()
+                    ->where('discharge_date', null)
+                    ->orWhere('discharge_date', '')
+                ->groupEnd();
+            }
+            
+            $admission = $builder->get()->getRowArray();
+
+            return $admission ? (int)$admission['admission_id'] : null;
+        } catch (\Throwable $e) {
+            log_message('error', 'PrescriptionService::getActiveAdmissionId error: ' . $e->getMessage());
+            return null;
+        }
     }
 }

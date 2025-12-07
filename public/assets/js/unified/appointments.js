@@ -50,14 +50,30 @@
         const modal = document.getElementById('billingModal');
         const idInput = document.getElementById('billing_appointment_id');
         const amountInput = document.getElementById('billing_amount');
-        if (!modal || !idInput || !amountInput) return;
+        const submitBtn = document.getElementById('billingSubmitBtn');
+        
+        if (!modal || !idInput || !amountInput) {
+            console.error('Billing modal elements not found');
+            return;
+        }
 
         idInput.value = appointmentId || '';
         amountInput.value = '';
+        
+        // Reset submit button state
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Add to Bill';
+        }
 
         modal.classList.add('active');
         modal.removeAttribute('hidden');
         modal.setAttribute('aria-hidden', 'false');
+        
+        // Focus on amount input for better UX
+        setTimeout(() => {
+            amountInput.focus();
+        }, 100);
     }
 
     function closeBillingModal() {
@@ -71,14 +87,30 @@
     function submitBillingModal() {
         const idInput = document.getElementById('billing_appointment_id');
         const amountInput = document.getElementById('billing_amount');
-        if (!idInput || !amountInput) return;
+        if (!idInput || !amountInput) {
+            alert('Form elements not found.');
+            return;
+        }
 
         const appointmentId = parseInt(idInput.value, 10);
         const unitPrice = parseFloat(amountInput.value);
 
-        if (!appointmentId || isNaN(unitPrice) || unitPrice <= 0) {
-            alert('Please enter a valid positive amount.');
+        if (!appointmentId || isNaN(appointmentId) || appointmentId <= 0) {
+            alert('Invalid appointment ID.');
             return;
+        }
+
+        if (isNaN(unitPrice) || unitPrice <= 0) {
+            alert('Please enter a valid positive amount.');
+            amountInput.focus();
+            return;
+        }
+
+        // Disable submit button to prevent double submission
+        const submitBtn = document.querySelector('#billingModal .btn-primary');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
         }
 
         addAppointmentToBill(appointmentId, unitPrice);
@@ -86,38 +118,113 @@
 
     // Core function to call backend billing endpoint
     function addAppointmentToBill(appointmentId, unitPrice) {
-        if (!appointmentId) return;
+        if (!appointmentId) {
+            console.error('No appointment ID provided');
+            return;
+        }
 
         const baseUrlMeta = document.querySelector('meta[name="base-url"]');
-        const baseUrl = baseUrlMeta ? baseUrlMeta.content : '';
+        let baseUrl = baseUrlMeta ? baseUrlMeta.content : '';
+        // Remove trailing slash if present to avoid double slashes
+        if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
+        }
         const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfHashMeta = document.querySelector('meta[name="csrf-hash"]');
         const csrfToken = csrfTokenMeta ? csrfTokenMeta.content : '';
+        const csrfHash = csrfHashMeta ? csrfHashMeta.content : '';
 
         const url = `${baseUrl}/appointments/${appointmentId}/bill`;
+
+        // Prepare request body with CSRF token for CodeIgniter
+        const requestBody = {
+            unit_price: unitPrice,
+            quantity: 1
+        };
+        
+        // Add CSRF token to body (CodeIgniter expects it in the body or header)
+        if (csrfToken && csrfHash) {
+            requestBody[csrfToken] = csrfHash;
+        }
 
         fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({
-                unit_price: unitPrice,
-                quantity: 1
-            })
+            body: JSON.stringify(requestBody)
         })
-        .then(response => response.json())
+        .then(async response => {
+            // Try to get error message from response
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.clone().json();
+                if (errorData.message) {
+                    errorMessage = errorData.message;
+                }
+            } catch (e) {
+                // If response is not JSON, use status text
+                errorMessage = response.statusText || errorMessage;
+            }
+            
+            if (!response.ok) {
+                throw new Error(errorMessage);
+            }
+            return response.json();
+        })
         .then(result => {
+            // Re-enable submit button
+            const submitBtn = document.querySelector('#billingModal .btn-primary');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> Add to Bill';
+            }
+
             if (result.success) {
-                showAppointmentsNotification(result.message || 'Appointment added to billing.', 'success');
-                closeBillingModal();
+                // Check if it's a duplicate message (should be shown as warning)
+                const message = result.message || 'Appointment added to billing successfully.';
+                const isDuplicate = message.toLowerCase().includes('already') || message.toLowerCase().includes('duplicate');
+                const notificationType = isDuplicate ? 'warning' : 'success';
+                
+                // Show notification
+                showAppointmentsNotification(message, notificationType);
+                
+                // Clear the form
+                const amountInput = document.getElementById('billing_amount');
+                if (amountInput) {
+                    amountInput.value = '';
+                }
+                
+                // Close modal after a short delay to show notification
+                setTimeout(() => {
+                    closeBillingModal();
+                }, 500);
             } else {
                 showAppointmentsNotification(result.message || 'Failed to add appointment to billing.', 'error');
             }
         })
         .catch(error => {
             console.error('Error adding appointment to billing:', error);
-            showAppointmentsNotification('Failed to add appointment to billing. Please try again.', 'error');
+            console.error('URL:', url);
+            console.error('Request body:', requestBody);
+            
+            // Re-enable submit button
+            const submitBtn = document.querySelector('#billingModal .btn-primary');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> Add to Bill';
+            }
+            
+            // Show more detailed error message
+            let errorMsg = 'Failed to add appointment to billing. ';
+            if (error.message) {
+                errorMsg += error.message;
+            } else {
+                errorMsg += 'Please check your connection and try again.';
+            }
+            
+            showAppointmentsNotification(errorMsg, 'error');
         });
     }
 
@@ -164,32 +271,126 @@
         const refreshBtn = document.getElementById('refreshBtn');
         if (refreshBtn) refreshBtn.addEventListener('click', (e) => { e.preventDefault(); refreshAppointments(); });
 
+        // Handle Enter key in billing modal
+        const billingAmountInput = document.getElementById('billing_amount');
+        if (billingAmountInput) {
+            billingAmountInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitBillingModal();
+                }
+            });
+        }
+
+        // Handle form submission in billing modal
+        const billingForm = document.getElementById('billingForm');
+        if (billingForm) {
+            billingForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitBillingModal();
+            });
+        }
+
         refreshAppointments();
     });
 
 
     function showAppointmentsNotification(message, type) {
-        const container = document.getElementById('appointmentsNotification');
-        const iconEl = document.getElementById('appointmentsNotificationIcon');
-        const textEl = document.getElementById('appointmentsNotificationText');
-        if (!container || !iconEl || !textEl) return;
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => showAppointmentsNotification(message, type));
+            return;
+        }
 
-        const isError = type === 'error';
+        let container = document.getElementById('appointmentsNotification');
+        let iconEl = document.getElementById('appointmentsNotificationIcon');
+        let textEl = document.getElementById('appointmentsNotificationText');
+        
+        // If container doesn't exist, create it
+        if (!container) {
+            // Try to find where to insert it (after header, before main-container)
+            const header = document.querySelector('header') || document.querySelector('.main-container');
+            const mainContainer = document.querySelector('.main-container');
+            
+            container = document.createElement('div');
+            container.id = 'appointmentsNotification';
+            container.setAttribute('role', 'alert');
+            container.setAttribute('aria-live', 'polite');
+            container.style.cssText = 'display: none; margin: 0.75rem auto 0 auto; padding: 0.75rem 1rem; max-width: 1180px; border-radius: 6px; align-items: center; gap: 0.5rem; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15); font-size: 0.95rem; font-weight: 500; position: relative; z-index: 1000;';
+            
+            iconEl = document.createElement('i');
+            iconEl.id = 'appointmentsNotificationIcon';
+            iconEl.setAttribute('aria-hidden', 'true');
+            iconEl.style.cssText = 'font-size: 1.1rem; flex-shrink: 0;';
+            
+            textEl = document.createElement('span');
+            textEl.id = 'appointmentsNotificationText';
+            textEl.style.cssText = 'flex: 1;';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.setAttribute('aria-label', 'Dismiss notification');
+            closeBtn.onclick = dismissAppointmentNotification;
+            closeBtn.style.cssText = 'margin-left:auto; background:transparent; border:none; cursor:pointer; color:inherit; padding: 0.25rem; flex-shrink: 0;';
+            closeBtn.innerHTML = '<i class="fas fa-times" style="font-size: 0.9rem;"></i>';
+            
+            container.appendChild(iconEl);
+            container.appendChild(textEl);
+            container.appendChild(closeBtn);
+            
+            if (mainContainer && mainContainer.parentNode) {
+                mainContainer.parentNode.insertBefore(container, mainContainer);
+            } else if (header && header.nextSibling) {
+                header.parentNode.insertBefore(container, header.nextSibling);
+            } else {
+                document.body.insertBefore(container, document.body.firstChild);
+            }
+        }
+        
+        // If icon or text elements don't exist, create them
+        if (!iconEl) {
+            iconEl = document.createElement('i');
+            iconEl.id = 'appointmentsNotificationIcon';
+            iconEl.setAttribute('aria-hidden', 'true');
+            iconEl.style.cssText = 'font-size: 1.1rem; flex-shrink: 0;';
+            container.insertBefore(iconEl, container.firstChild);
+        }
+        
+        if (!textEl) {
+            textEl = document.createElement('span');
+            textEl.id = 'appointmentsNotificationText';
+            textEl.style.cssText = 'flex: 1;';
+            if (iconEl.nextSibling) {
+                container.insertBefore(textEl, iconEl.nextSibling);
+            } else {
+                container.appendChild(textEl);
+            }
+        }
 
-        // Match user-management flashNotice styling
+        const isError = type === 'error' || type === 'warning';
+
+        // Set styling based on type
         container.style.border = isError ? '1px solid #fecaca' : '1px solid #86efac';
         container.style.background = isError ? '#fee2e2' : '#dcfce7';
         container.style.color = isError ? '#991b1b' : '#166534';
+        container.style.display = 'flex';
 
+        // Set icon
         iconEl.className = 'fas ' + (isError ? 'fa-exclamation-triangle' : 'fa-check-circle');
         textEl.textContent = message || '';
 
-        container.style.display = 'flex';
+        // Scroll to top to show notification
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // Auto-hide after a few seconds
-        setTimeout(function() {
-            container.style.display = 'none';
-        }, 4000);
+        // Auto-hide after 5 seconds
+        if (window.appointmentsNotificationTimeout) {
+            clearTimeout(window.appointmentsNotificationTimeout);
+        }
+        window.appointmentsNotificationTimeout = setTimeout(function() {
+            if (container) {
+                container.style.display = 'none';
+            }
+        }, 5000);
     }
 
     function dismissAppointmentNotification() {

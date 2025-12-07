@@ -465,27 +465,52 @@ class FinancialService
         $builder = $this->db->table('billing_accounts')->where('patient_id', $patientId);
         if ($admissionId !== null) {
             $builder->where('admission_id', $admissionId);
+        } else {
+            // For outpatients, admission_id should be NULL
+            $builder->where('admission_id IS NULL');
         }
         if ($this->db->fieldExists('status', 'billing_accounts')) {
             $builder->where('status', 'open');
         }
-        return $builder->get()->getRowArray() ?: null;
+        $account = $builder->get()->getRowArray();
+        if ($account) {
+            log_message('debug', "findExistingBillingAccount: Found billing account {$account['billing_id']} for patient {$patientId}, admission_id=" . ($admissionId ?? 'NULL'));
+        } else {
+            log_message('debug', "findExistingBillingAccount: No billing account found for patient {$patientId}, admission_id=" . ($admissionId ?? 'NULL'));
+        }
+        return $account ?: null;
     }
 
     private function createBillingAccount(int $patientId, ?int $admissionId, ?int $createdByStaffId): void
     {
         $insertData = ['patient_id' => $patientId];
-        if ($admissionId !== null) {
-            $insertData['admission_id'] = $admissionId;
+        
+        // Add admission_id if provided (for inpatients) or set to NULL if field allows it (for outpatients)
+        if ($this->db->fieldExists('admission_id', 'billing_accounts')) {
+            // For outpatients, admission_id should be NULL
+            // For inpatients, admission_id should be set
+            $insertData['admission_id'] = $admissionId; // This will be NULL for outpatients
         }
+        
         if ($this->db->fieldExists('status', 'billing_accounts')) {
             $insertData['status'] = 'open';
         }
         if ($this->db->fieldExists('created_by', 'billing_accounts') && $createdByStaffId !== null) {
             $insertData['created_by'] = $createdByStaffId;
         }
+        if ($this->db->fieldExists('created_at', 'billing_accounts')) {
+            $insertData['created_at'] = date('Y-m-d H:i:s');
+        }
 
-        $this->db->table('billing_accounts')->insert($insertData);
+        $result = $this->db->table('billing_accounts')->insert($insertData);
+        
+        if (!$result) {
+            $error = $this->db->error();
+            $errorMsg = $error['message'] ?? 'Unknown database error';
+            log_message('error', 'Failed to create billing account. Error: ' . $errorMsg);
+            log_message('error', 'Insert data: ' . json_encode($insertData));
+            throw new \RuntimeException('Failed to create billing account: ' . $errorMsg);
+        }
     }
 
     /**
@@ -551,9 +576,22 @@ class FinancialService
         }
 
         try {
-            $appointment = $this->db->table('appointments')->where('appointment_id', $appointmentId)->get()->getRowArray();
+            // Note: appointments table uses 'id' as primary key, not 'appointment_id'
+            $appointment = $this->db->table('appointments')->where('id', $appointmentId)->get()->getRowArray();
             if (!$appointment) {
                 return ['success' => false, 'message' => 'Appointment not found'];
+            }
+
+            // Check for duplicate: only if appointment still exists and is in this billing account
+            if ($this->db->fieldExists('appointment_id', 'billing_items')) {
+                $existing = $this->db->table('billing_items')
+                    ->where('billing_id', $billingId)
+                    ->where('appointment_id', $appointmentId)
+                    ->countAllResults();
+                
+                if ($existing > 0) {
+                    return ['success' => true, 'message' => 'This appointment is already in the billing account.'];
+                }
             }
 
             $patientId = (int)($appointment['patient_id'] ?? 0);
@@ -743,6 +781,9 @@ class FinancialService
         if ($this->db->fieldExists('created_by_staff_id', 'billing_items') && $createdByStaffId !== null) {
             $itemData['created_by_staff_id'] = $createdByStaffId;
         }
+        if ($this->db->fieldExists('created_at', 'billing_items')) {
+            $itemData['created_at'] = date('Y-m-d H:i:s');
+        }
         $this->db->table('billing_items')->insert($itemData);
     }
 
@@ -759,6 +800,7 @@ class FinancialService
             }
 
             $this->attachPatientInfo($account);
+            $this->attachPatientTypeAndAdmission($account);
             $this->attachBillingItems($account, $billingId);
             return $account;
         } catch (\Exception $e) {
@@ -769,23 +811,133 @@ class FinancialService
 
     private function attachPatientInfo(array &$account): void
     {
+        // Ensure patient_name is always set, even if empty
+        if (!isset($account['patient_name'])) {
+            $account['patient_name'] = null;
+        }
+        
         if (empty($account['patient_id']) || !$this->db->tableExists('patients')) {
+            // If we have first_name and last_name from JOIN, use them
+            if (!empty($account['first_name']) || !empty($account['last_name'])) {
+                $firstName = $account['first_name'] ?? '';
+                $lastName = $account['last_name'] ?? '';
+                $fullName = trim($firstName . ' ' . $lastName);
+                $account['patient_name'] = $fullName ?: ('Patient #' . ($account['patient_id'] ?? 'Unknown'));
+                $account['patient_full_name'] = $fullName;
+            } else {
+                $account['patient_name'] = 'Patient #' . ($account['patient_id'] ?? 'Unknown');
+            }
             return;
         }
 
         $patient = $this->db->table('patients')->where('patient_id', (int)$account['patient_id'])->get()->getRowArray();
         if (!$patient) {
+            // Fallback: use first_name and last_name from JOIN if available
+            if (!empty($account['first_name']) || !empty($account['last_name'])) {
+                $firstName = $account['first_name'] ?? '';
+                $lastName = $account['last_name'] ?? '';
+                $fullName = trim($firstName . ' ' . $lastName);
+                $account['patient_name'] = $fullName ?: ('Patient #' . ($account['patient_id'] ?? 'Unknown'));
+                $account['patient_full_name'] = $fullName;
+            } else {
+                $account['patient_name'] = 'Patient #' . ($account['patient_id'] ?? 'Unknown');
+            }
             return;
         }
 
-        $firstName = $patient['first_name'] ?? '';
-        $lastName = $patient['last_name'] ?? '';
+        $firstName = $patient['first_name'] ?? $account['first_name'] ?? '';
+        $lastName = $patient['last_name'] ?? $account['last_name'] ?? '';
         $fullName = trim($firstName . ' ' . $lastName);
 
         $account['first_name'] = $firstName;
         $account['last_name'] = $lastName;
         $account['patient_full_name'] = $fullName ?: ($patient['full_name'] ?? '');
-        $account['patient_name'] = $account['patient_name'] ?: ($account['patient_full_name'] ?: ('Patient #' . $account['patient_id']));
+        $account['patient_name'] = $account['patient_name'] ?: ($account['patient_full_name'] ?: ('Patient #' . ($account['patient_id'] ?? 'Unknown')));
+    }
+
+    /**
+     * Attach patient type (inpatient/outpatient) and admission information
+     */
+    private function attachPatientTypeAndAdmission(array &$account): void
+    {
+        // Check if patient_id field exists and has a value
+        if (!$this->db->fieldExists('patient_id', 'billing_accounts') || empty($account['patient_id'])) {
+            $account['patient_type'] = 'Outpatient';
+            return;
+        }
+
+        $patientId = (int)$account['patient_id'];
+
+        // Check if patient has patient_type field
+        if ($this->db->tableExists('patients') && $this->db->fieldExists('patient_type', 'patients')) {
+            $patient = $this->db->table('patients')
+                ->select('patient_type')
+                ->where('patient_id', $patientId)
+                ->get()
+                ->getRowArray();
+            
+            if ($patient && !empty($patient['patient_type'])) {
+                $account['patient_type'] = ucfirst(strtolower(trim($patient['patient_type'])));
+            }
+        }
+
+        // If patient_type is not set, check for active admission
+        if (empty($account['patient_type']) && $this->db->tableExists('inpatient_admissions')) {
+            $builder = $this->db->table('inpatient_admissions')
+                ->where('patient_id', $patientId);
+            
+            // Only check discharge_date if the column exists
+            if ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
+                $builder->groupStart()
+                    ->where('discharge_date', null)
+                    ->orWhere('discharge_date', '')
+                ->groupEnd();
+            }
+            
+            $activeAdmission = $builder->get()->getRowArray();
+
+            if ($activeAdmission) {
+                $account['patient_type'] = 'Inpatient';
+            } else {
+                $account['patient_type'] = 'Outpatient';
+            }
+        }
+
+        // Default to Outpatient if still not set
+        if (empty($account['patient_type'])) {
+            $account['patient_type'] = 'Outpatient';
+        }
+
+        // If this is an inpatient billing account, attach admission details
+        if (strtolower($account['patient_type']) === 'inpatient' && !empty($account['admission_id'])) {
+            $this->attachAdmissionInfo($account, (int)$account['admission_id']);
+        }
+    }
+
+    /**
+     * Attach admission information for inpatient billing accounts
+     */
+    private function attachAdmissionInfo(array &$account, int $admissionId): void
+    {
+        if (!$this->db->tableExists('inpatient_admissions')) {
+            return;
+        }
+
+        $admission = $this->db->table('inpatient_admissions')
+            ->where('admission_id', $admissionId)
+            ->get()
+            ->getRowArray();
+
+        if ($admission) {
+            $account['admission'] = [
+                'admission_id' => $admissionId,
+                'admission_datetime' => $admission['admission_datetime'] ?? null,
+                'admission_type' => $admission['admission_type'] ?? null,
+                'admitting_diagnosis' => $admission['admitting_diagnosis'] ?? null,
+                'admitting_doctor' => $admission['admitting_doctor'] ?? null,
+                'discharge_date' => $admission['discharge_date'] ?? null,
+            ];
+        }
     }
 
     private function attachBillingItems(array &$account, int $billingId): void
@@ -811,6 +963,7 @@ class FinancialService
     public function getBillingAccounts(array $filters, string $userRole, ?int $staffId = null): array
     {
         if (!$this->db->tableExists('billing_accounts')) {
+            log_message('debug', 'getBillingAccounts: billing_accounts table does not exist');
             return [];
         }
 
@@ -839,6 +992,7 @@ class FinancialService
             }
 
             $accounts = $builder->orderBy('ba.billing_id', 'DESC')->get()->getResultArray();
+            log_message('debug', 'getBillingAccounts: Found ' . count($accounts) . ' billing accounts before filtering by items');
 
             // Filter to only show accounts that have billing items
             if ($this->db->tableExists('billing_items')) {
@@ -848,16 +1002,35 @@ class FinancialService
                         ->where('billing_id', $account['billing_id'])
                         ->countAllResults();
                     
+                    log_message('debug', "getBillingAccounts: Billing account {$account['billing_id']} has {$itemCount} items");
+                    
                     if ($itemCount > 0) {
                         $accountsWithItems[] = $account;
                     }
                 }
                 $accounts = $accountsWithItems;
+                log_message('debug', 'getBillingAccounts: After filtering, ' . count($accounts) . ' accounts have items');
+            } else {
+                log_message('debug', 'getBillingAccounts: billing_items table does not exist');
             }
 
             foreach ($accounts as &$account) {
-                $this->attachPatientInfo($account);
+                try {
+                    $this->attachPatientInfo($account);
+                    
+                    // Debug logging - use isset to avoid undefined key error
+                    $patientName = isset($account['patient_name']) ? $account['patient_name'] : 'NOT SET';
+                    log_message('debug', "Billing account {$account['billing_id']}: patient_id={$account['patient_id']}, patient_name={$patientName}");
+                } catch (\Exception $e) {
+                    log_message('error', "Error attaching patient info for billing account {$account['billing_id']}: " . $e->getMessage());
+                    // Set a default patient name if attachment fails
+                    if (!isset($account['patient_name'])) {
+                        $account['patient_name'] = 'Patient #' . ($account['patient_id'] ?? 'Unknown');
+                    }
+                }
             }
+
+            log_message('debug', 'FinancialService::getBillingAccounts returning ' . count($accounts) . ' accounts with items');
 
             return $accounts;
         } catch (\Exception $e) {

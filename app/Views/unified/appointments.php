@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="<?= base_url('assets/css/common.css') ?>" />
     <link rel="stylesheet" href="<?= base_url('assets/css/unified/appointments.css') ?>" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet" />
 </head>
 
 <?= $this->include('template/header') ?>
@@ -28,6 +29,14 @@
             <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
                 <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download"></i> Export</button>
             <?php endif; ?>
+            <div class="view-toggle" style="display: flex; gap: 0.5rem; margin-left: auto;">
+                <button type="button" class="btn btn-secondary view-toggle-btn active" id="tableViewBtn" data-view="table" aria-label="Table View">
+                    <i class="fas fa-table"></i> Table
+                </button>
+                <button type="button" class="btn btn-secondary view-toggle-btn" id="calendarViewBtn" data-view="calendar" aria-label="Calendar View">
+                    <i class="fas fa-calendar"></i> Calendar
+                </button>
+            </div>
         </div>
 
         <br />
@@ -96,8 +105,8 @@
                 </div>
             </div>
 
-            <!-- Appointments Table -->
-            <div class="patient-table">
+            <!-- Appointments Table View -->
+            <div class="patient-table" id="tableView">
                 <div class="table-header">
                     <h3 id="scheduleTitle">Today's Schedule - <?= date('F j, Y') ?></h3>
                 </div>
@@ -180,6 +189,14 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Appointments Calendar View -->
+            <div class="patient-table" id="calendarView" style="display: none;">
+                <div class="table-header">
+                    <h3>Appointment Calendar</h3>
+                </div>
+                <div id="appointmentsCalendar" style="padding: 1.5rem;"></div>
+            </div>
         </main>
     </div>
 
@@ -220,6 +237,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
     <script src="<?= base_url('assets/js/unified/modals/shared/appointment-modal-utils.js') ?>"></script>
     <script src="<?= base_url('assets/js/unified/modals/add-appointment-modal.js') ?>"></script>
     <script src="<?= base_url('assets/js/unified/modals/edit-appointment-modal.js') ?>"></script>

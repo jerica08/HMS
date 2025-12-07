@@ -246,7 +246,15 @@
         // Initialize filters
         const dateSelector = document.getElementById('dateSelector');
         if (dateSelector) {
-            dateSelector.addEventListener('change', refreshAppointments);
+            dateSelector.addEventListener('change', () => {
+                refreshAppointments();
+                if (calendar) {
+                    const selectedDate = dateSelector.value;
+                    if (selectedDate) {
+                        calendar.gotoDate(selectedDate);
+                    }
+                }
+            });
         }
 
         const statusFilterAppointment = document.getElementById('statusFilterAppointment');
@@ -291,8 +299,192 @@
             });
         }
 
+        // Initialize calendar first
+        initializeCalendar();
+
+        // View toggle functionality
+        const tableViewBtn = document.getElementById('tableViewBtn');
+        const calendarViewBtn = document.getElementById('calendarViewBtn');
+        const tableView = document.getElementById('tableView');
+        const calendarView = document.getElementById('calendarView');
+
+        if (tableViewBtn && calendarViewBtn) {
+            tableViewBtn.addEventListener('click', () => {
+                switchView('table');
+            });
+
+            calendarViewBtn.addEventListener('click', () => {
+                switchView('calendar');
+            });
+        }
+
+        // Load appointments - will load based on current view
         refreshAppointments();
     });
+
+    // Calendar instance
+    let calendar = null;
+
+    function initializeCalendar() {
+        const calendarEl = document.getElementById('appointmentsCalendar');
+        if (!calendarEl) return;
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            height: 'auto',
+            events: [],
+            eventClick: function(info) {
+                const appointmentId = info.event.extendedProps.appointmentId;
+                if (appointmentId) {
+                    viewAppointment(appointmentId);
+                }
+                info.jsEvent.preventDefault();
+            },
+            eventContent: function(info) {
+                const status = info.event.extendedProps.status || 'scheduled';
+                const patientName = info.event.extendedProps.patientName || '';
+                const doctorName = info.event.extendedProps.doctorName || '';
+                const statusColors = {
+                    'completed': '#10b981',
+                    'in-progress': '#3b82f6',
+                    'cancelled': '#ef4444',
+                    'no-show': '#f59e0b',
+                    'scheduled': '#6366f1'
+                };
+                const color = statusColors[status.toLowerCase()] || '#6366f1';
+
+                const eventEl = document.createElement('div');
+                eventEl.style.cssText = `
+                    background: ${color};
+                    color: white;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    cursor: pointer;
+                `;
+                
+                const doctorEl = document.createElement('div');
+                doctorEl.textContent = doctorName ? `Dr. ${doctorName}` : 'No Doctor';
+                doctorEl.style.cssText = 'font-weight: 600; margin-bottom: 0.125rem; overflow: hidden; text-overflow: ellipsis;';
+                
+                const nameEl = document.createElement('div');
+                nameEl.textContent = patientName;
+                nameEl.style.cssText = 'font-size: 0.7rem; opacity: 0.95; overflow: hidden; text-overflow: ellipsis;';
+                
+                eventEl.appendChild(doctorEl);
+                eventEl.appendChild(nameEl);
+                
+                return { domNodes: [eventEl] };
+            },
+            dayMaxEvents: 3,
+            moreLinkClick: 'popover',
+            eventDidMount: function(info) {
+                const status = info.event.extendedProps.status || 'scheduled';
+                const time = info.event.extendedProps.time || '';
+                const tooltip = `
+                    <div style="padding: 0.5rem;">
+                        <strong>${info.event.extendedProps.patientName || 'Patient'}</strong><br>
+                        ${info.event.extendedProps.doctorName ? 'Dr. ' + info.event.extendedProps.doctorName : 'No Doctor'}<br>
+                        ${time ? '<small>Time: ' + time + '</small><br>' : ''}
+                        <small>Status: ${status.charAt(0).toUpperCase() + status.slice(1)}</small><br>
+                        <small>Type: ${info.event.extendedProps.appointmentType || 'N/A'}</small>
+                    </div>
+                `;
+                info.el.setAttribute('title', tooltip);
+            }
+        });
+
+        calendar.render();
+    }
+
+    function switchView(view) {
+        const tableView = document.getElementById('tableView');
+        const calendarView = document.getElementById('calendarView');
+        const tableViewBtn = document.getElementById('tableViewBtn');
+        const calendarViewBtn = document.getElementById('calendarViewBtn');
+
+        if (view === 'table') {
+            tableView.style.display = 'block';
+            calendarView.style.display = 'none';
+            if (tableViewBtn) tableViewBtn.classList.add('active');
+            if (calendarViewBtn) calendarViewBtn.classList.remove('active');
+        } else {
+            tableView.style.display = 'none';
+            calendarView.style.display = 'block';
+            if (tableViewBtn) tableViewBtn.classList.remove('active');
+            if (calendarViewBtn) calendarViewBtn.classList.add('active');
+            
+            // Load all appointments when switching to calendar view
+            refreshAppointments();
+        }
+    }
+
+    function updateCalendarEvents() {
+        if (!calendar) return;
+
+        // Only update calendar if calendar view is visible
+        const calendarView = document.getElementById('calendarView');
+        if (!calendarView || calendarView.style.display === 'none') {
+            return;
+        }
+
+        const events = allAppointments
+            .filter(appt => {
+                // Ensure we have valid date and time
+                const appointmentDate = appt.appointment_date || appt.date;
+                return appointmentDate != null;
+            })
+            .map(appt => {
+                const appointmentDate = appt.appointment_date || appt.date;
+                const appointmentTime = appt.appointment_time || appt.time || '00:00:00';
+                const dateTime = new Date(appointmentDate + 'T' + appointmentTime);
+                
+                // Skip invalid dates
+                if (isNaN(dateTime.getTime())) {
+                    return null;
+                }
+                
+                const patientName = `${appt.patient_first_name || ''} ${appt.patient_last_name || ''}`.trim() || 'Patient';
+                const doctorName = appt.doctor_first_name && appt.doctor_last_name 
+                    ? `${appt.doctor_first_name} ${appt.doctor_last_name}`.trim()
+                    : '';
+                const status = (appt.status || 'scheduled').toLowerCase();
+                const appointmentId = appt.appointment_id || appt.id;
+                const appointmentType = appt.appointment_type || 'N/A';
+                
+                const formattedTime = formatAppointmentTime(appointmentTime);
+
+                return {
+                    title: doctorName ? `Dr. ${doctorName} - ${patientName}` : patientName,
+                    start: dateTime,
+                    allDay: false,
+                    extendedProps: {
+                        appointmentId: appointmentId,
+                        patientName: patientName,
+                        doctorName: doctorName,
+                        status: status,
+                        appointmentType: appointmentType,
+                        time: formattedTime
+                    }
+                };
+            })
+            .filter(event => event !== null); // Remove null entries
+
+        calendar.removeAllEvents();
+        if (events.length > 0) {
+            calendar.addEventSource(events);
+        }
+        calendar.refetchEvents();
+    }
 
 
     function showAppointmentsNotification(message, type) {
@@ -429,10 +621,17 @@
         const userRole = document.querySelector('meta[name="user-role"]').content || 'guest';
         const params = new URLSearchParams();
 
-        // Use date filter only if a date selector exists and has a value
-        const dateFilterEl = document.getElementById('dateSelector');
-        if (dateFilterEl && dateFilterEl.value) {
-            params.append('date', dateFilterEl.value);
+        // Check if calendar view is active
+        const calendarView = document.getElementById('calendarView');
+        const isCalendarView = calendarView && calendarView.style.display !== 'none';
+
+        // For calendar view, load all appointments (no date filter)
+        // For table view, use date filter if set
+        if (!isCalendarView) {
+            const dateFilterEl = document.getElementById('dateSelector');
+            if (dateFilterEl && dateFilterEl.value) {
+                params.append('date', dateFilterEl.value);
+            }
         }
 
         const url = params.toString()
@@ -444,10 +643,31 @@
             .then(data => {
                 if (data.status === 'success') {
                     allAppointments = data.data || [];
+                    
+                    // Filter to show all incoming appointments in calendar (today and future)
+                    if (isCalendarView) {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        allAppointments = allAppointments.filter(appt => {
+                            const apptDate = appt.appointment_date || appt.date;
+                            if (!apptDate) return false;
+                            const appointmentDate = new Date(apptDate);
+                            appointmentDate.setHours(0, 0, 0, 0);
+                            
+                            // Show all appointments from today onwards (incoming appointments)
+                            // This includes today, tomorrow, and all future dates
+                            return appointmentDate >= today;
+                        });
+                    }
+                    
                     applyFilters();
+                    updateCalendarEvents();
                 } else {
                     allAppointments = [];
                     renderAppointmentsTable([]);
+                    if (calendar) {
+                        calendar.removeAllEvents();
+                    }
                 }
 
                 // Title is already rendered with today's date by PHP
@@ -492,6 +712,10 @@
         });
 
         renderAppointmentsTable(filtered);
+        
+        // Update calendar - in calendar view, show all appointments (not filtered)
+        // The calendar will show all appointments loaded, not the filtered ones
+        updateCalendarEvents();
     }
 
     function clearFilters() {

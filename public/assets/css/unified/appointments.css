@@ -20,6 +20,8 @@
     display: flex;
     gap: 0.75rem;
     margin-bottom: 2rem;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 /* Dashboard Overview Cards */
@@ -673,6 +675,173 @@ textarea.form-control {
     font-size: 1.25rem;
 }
 
+/* View Toggle Buttons */
+.view-toggle {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.view-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #4a5568;
+    transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e0;
+}
+
+.view-toggle-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.view-toggle-btn.active:hover {
+    background: #5a67d8;
+    border-color: #5a67d8;
+}
+
+/* Calendar View Styles */
+#appointmentsCalendar {
+    min-height: 600px;
+}
+
+#appointmentsCalendar .fc {
+    font-family: inherit;
+}
+
+#appointmentsCalendar .fc-header-toolbar {
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+#appointmentsCalendar .fc-button {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+#appointmentsCalendar .fc-button:hover {
+    background: #5a67d8;
+    border-color: #5a67d8;
+}
+
+#appointmentsCalendar .fc-button:disabled {
+    background: #e2e8f0;
+    border-color: #e2e8f0;
+    color: #a0aec0;
+    opacity: 0.6;
+}
+
+#appointmentsCalendar .fc-button-active {
+    background: #4c51bf;
+    border-color: #4c51bf;
+}
+
+#appointmentsCalendar .fc-toolbar-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+#appointmentsCalendar .fc-daygrid-day {
+    border-color: #e2e8f0;
+}
+
+#appointmentsCalendar .fc-daygrid-day-top {
+    padding: 0.5rem;
+}
+
+#appointmentsCalendar .fc-daygrid-day-number {
+    color: #4a5568;
+    font-weight: 500;
+    padding: 0.5rem;
+}
+
+#appointmentsCalendar .fc-day-today {
+    background: #f0f9ff;
+}
+
+#appointmentsCalendar .fc-day-today .fc-daygrid-day-number {
+    color: #667eea;
+    font-weight: 700;
+}
+
+#appointmentsCalendar .fc-col-header-cell {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    padding: 0.75rem 0;
+}
+
+#appointmentsCalendar .fc-col-header-cell-cushion {
+    color: #374151;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+#appointmentsCalendar .fc-event {
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#appointmentsCalendar .fc-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#appointmentsCalendar .fc-daygrid-event {
+    margin: 0.125rem 0.25rem;
+}
+
+#appointmentsCalendar .fc-timegrid-event {
+    border-radius: 4px;
+}
+
+#appointmentsCalendar .fc-popover {
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e2e8f0;
+}
+
+#appointmentsCalendar .fc-popover-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+#appointmentsCalendar .fc-popover-body {
+    padding: 0.5rem;
+}
+
+#appointmentsCalendar .fc-more-link {
+    color: #667eea;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+#appointmentsCalendar .fc-more-link:hover {
+    color: #5a67d8;
+    text-decoration: underline;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .dashboard-overview {
@@ -740,6 +909,24 @@ textarea.form-control {
     .table td {
         padding: 0.75rem;
     }
+
+    #appointmentsCalendar {
+        min-height: 500px;
+    }
+
+    #appointmentsCalendar .fc-toolbar-title {
+        font-size: 1.25rem;
+    }
+
+    .view-toggle {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+
+    .view-toggle-btn {
+        flex: 1;
+    }
 }
 
 @media (max-width: 480px) {
@@ -789,5 +976,25 @@ textarea.form-control {
     .btn-small {
         width: 100%;
         padding: 0.4rem 0.75rem;
+    }
+
+    #appointmentsCalendar {
+        min-height: 400px;
+    }
+
+    #appointmentsCalendar .fc-header-toolbar {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    #appointmentsCalendar .fc-toolbar-chunk {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    #appointmentsCalendar .fc-button {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
     }
 }

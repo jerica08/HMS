@@ -527,16 +527,54 @@ class PrescriptionService
     {
         try {
             // Use the correct patients table and existing columns (match AppointmentManagement)
-            $builder = $this->db->table('patients p')
-                ->select([
-                    'p.patient_id',
-                    'p.first_name',
-                    'p.last_name',
-                    'p.date_of_birth'
-                ]);
-
-            // For now, do not filter by primary doctor since that column is not present
-            return $builder->orderBy('p.first_name', 'ASC')->get()->getResultArray();
+            // Determine which table name to use
+            $tableName = $this->db->tableExists('patients') ? 'patients' : ($this->db->tableExists('patient') ? 'patient' : 'patients');
+            
+            $selectFields = [
+                'p.patient_id',
+                'p.first_name',
+                'p.last_name',
+                'p.date_of_birth'
+            ];
+            
+            if ($this->db->fieldExists('patient_type', $tableName)) {
+                $selectFields[] = 'p.patient_type';
+            }
+            
+            $patients = $this->db->table($tableName . ' p')
+                ->select($selectFields)
+                ->orderBy('p.first_name', 'ASC')
+                ->get()
+                ->getResultArray();
+            
+            // Always try to derive patient_type if not set or if column doesn't exist
+            if ($this->db->tableExists('inpatient_admissions')) {
+                foreach ($patients as &$patient) {
+                    if (!isset($patient['patient_type']) || empty($patient['patient_type'])) {
+                        $hasActiveAdmission = $this->db->table('inpatient_admissions')
+                            ->where('patient_id', $patient['patient_id'])
+                            ->groupStart()
+                                ->where('discharge_date', null)
+                                ->orWhere('discharge_date', '')
+                            ->groupEnd()
+                            ->countAllResults() > 0;
+                        
+                        $patient['patient_type'] = $hasActiveAdmission ? 'Inpatient' : 'Outpatient';
+                    } else {
+                        $patient['patient_type'] = ucfirst(strtolower(trim($patient['patient_type'])));
+                    }
+                }
+            } else {
+                foreach ($patients as &$patient) {
+                    if (!isset($patient['patient_type']) || empty($patient['patient_type'])) {
+                        $patient['patient_type'] = 'Outpatient';
+                    } else {
+                        $patient['patient_type'] = ucfirst(strtolower(trim($patient['patient_type'])));
+                    }
+                }
+            }
+            
+            return $patients;
 
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionService::getAvailablePatients error: ' . $e->getMessage());

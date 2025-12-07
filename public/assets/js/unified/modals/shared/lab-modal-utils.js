@@ -81,7 +81,24 @@ class LabModalUtils {
                     data.data.forEach(p => {
                         const option = document.createElement('option');
                         option.value = p.patient_id;
-                        option.textContent = `${p.first_name || ''} ${p.last_name || ''}`.trim() || `Patient #${p.patient_id}`;
+                        const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim() || `Patient #${p.patient_id}`;
+                        
+                        // Always display patient type
+                        let patientType = '';
+                        if (p.hasOwnProperty('patient_type') && p.patient_type !== null && p.patient_type !== undefined) {
+                            const type = String(p.patient_type).trim();
+                            if (type !== '' && type.toLowerCase() !== 'null' && type.toLowerCase() !== 'undefined') {
+                                // Capitalize first letter for display
+                                patientType = ` (${type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()})`;
+                            }
+                        }
+                        
+                        // Default to Outpatient if not set
+                        if (!patientType) {
+                            patientType = ' (Outpatient)';
+                        }
+                        
+                        option.textContent = `${fullName}${patientType}`;
                         select.appendChild(option);
                     });
                 }

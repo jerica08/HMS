@@ -815,6 +815,7 @@ class FinancialService
         }
 
         try {
+            // First, get all billing accounts
             $builder = $this->db->table('billing_accounts ba');
 
             if ($this->db->tableExists('patients')) {
@@ -838,6 +839,21 @@ class FinancialService
             }
 
             $accounts = $builder->orderBy('ba.billing_id', 'DESC')->get()->getResultArray();
+
+            // Filter to only show accounts that have billing items
+            if ($this->db->tableExists('billing_items')) {
+                $accountsWithItems = [];
+                foreach ($accounts as $account) {
+                    $itemCount = $this->db->table('billing_items')
+                        ->where('billing_id', $account['billing_id'])
+                        ->countAllResults();
+                    
+                    if ($itemCount > 0) {
+                        $accountsWithItems[] = $account;
+                    }
+                }
+                $accounts = $accountsWithItems;
+            }
 
             foreach ($accounts as &$account) {
                 $this->attachPatientInfo($account);

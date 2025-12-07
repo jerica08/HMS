@@ -183,7 +183,14 @@ window.AddPrescriptionModal = {
                 data.data.forEach(patient => {
                     const option = document.createElement('option');
                     option.value = patient.patient_id;
-                    option.textContent = `${patient.first_name} ${patient.last_name} (ID: ${patient.patient_id})`;
+                    const fullName = `${patient.first_name} ${patient.last_name} (ID: ${patient.patient_id})`;
+                    // Display patient type if available (handle both null/undefined and empty string)
+                    let patientType = '';
+                    if (patient.patient_type && patient.patient_type.trim() !== '') {
+                        const type = patient.patient_type.trim();
+                        patientType = ` - ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+                    }
+                    option.textContent = `${fullName}${patientType}`;
                     patientSelect.appendChild(option);
                 });
             } else {

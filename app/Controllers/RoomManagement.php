@@ -67,12 +67,44 @@ class RoomManagement extends BaseController
             return $this->jsonResponse(['status' => 'success', 'data' => []]);
         }
 
+        $selectFields = 'patient_id, first_name, last_name, CONCAT(first_name, " ", last_name) AS full_name';
+        if ($this->db->fieldExists('patient_type', $tableName)) {
+            $selectFields .= ', patient_type';
+        }
+
         $patients = $this->db->table($tableName)
-            ->select('patient_id, first_name, last_name, CONCAT(first_name, " ", last_name) AS full_name')
+            ->select($selectFields)
             ->orderBy('first_name', 'ASC')->orderBy('last_name', 'ASC')
             ->limit(200)
             ->get()
             ->getResultArray();
+        
+        // Always try to derive patient_type if not set or if column doesn't exist
+        if ($this->db->tableExists('inpatient_admissions')) {
+            foreach ($patients as &$patient) {
+                if (!isset($patient['patient_type']) || empty($patient['patient_type'])) {
+                    $hasActiveAdmission = $this->db->table('inpatient_admissions')
+                        ->where('patient_id', $patient['patient_id'])
+                        ->groupStart()
+                            ->where('discharge_date', null)
+                            ->orWhere('discharge_date', '')
+                        ->groupEnd()
+                        ->countAllResults() > 0;
+                    
+                    $patient['patient_type'] = $hasActiveAdmission ? 'Inpatient' : 'Outpatient';
+                } else {
+                    $patient['patient_type'] = ucfirst(strtolower(trim($patient['patient_type'])));
+                }
+            }
+        } else {
+            foreach ($patients as &$patient) {
+                if (!isset($patient['patient_type']) || empty($patient['patient_type'])) {
+                    $patient['patient_type'] = 'Outpatient';
+                } else {
+                    $patient['patient_type'] = ucfirst(strtolower(trim($patient['patient_type'])));
+                }
+            }
+        }
 
         return $this->jsonResponse(['status' => 'success', 'data' => $patients]);
     }

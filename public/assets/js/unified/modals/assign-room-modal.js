@@ -58,7 +58,13 @@
                 '<option value="">Select patient</option>',
                 ...patients.map(p => {
                     const name = utils.escapeHtml(p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || `Patient #${p.patient_id}`);
-                    return `<option value="${p.patient_id}">${name}</option>`;
+                    // Display patient type if available (handle both null/undefined and empty string)
+                    let patientType = '';
+                    if (p.patient_type && p.patient_type.trim() !== '') {
+                        const type = p.patient_type.trim();
+                        patientType = ` (${type.charAt(0).toUpperCase() + type.slice(1)})`;
+                    }
+                    return `<option value="${p.patient_id}">${name}${patientType}</option>`;
                 }),
             ].join('');
         } catch (error) {

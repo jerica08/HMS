@@ -69,18 +69,88 @@ class LabManagement extends BaseController
         }
 
         $db = \Config\Database::connect();
-        if (!$db->tableExists('patients')) {
+        
+        // Determine which table name to use
+        $tableName = null;
+        if ($db->tableExists('patients')) {
+            $tableName = 'patients';
+        } elseif ($db->tableExists('patient')) {
+            $tableName = 'patient';
+        }
+        
+        if (!$tableName) {
             return $this->jsonResponse(['status' => 'error', 'message' => 'Patients table not found', 'data' => []]);
         }
 
-        $patients = $db->table('patients p')
-            ->select('p.patient_id, p.first_name, p.last_name, p.date_of_birth')
-            ->orderBy('p.first_name', 'ASC')
-            ->orderBy('p.last_name', 'ASC')
-            ->get()
-            ->getResultArray();
+        try {
+            
+            // Start with basic fields
+            $selectFields = 'p.patient_id, p.first_name, p.last_name, p.date_of_birth';
+            
+            // Try to add patient_type if column exists (wrap in try-catch in case fieldExists fails)
+            try {
+                if ($db->fieldExists('patient_type', $tableName)) {
+                    $selectFields .= ', p.patient_type';
+                }
+            } catch (\Exception $e) {
+                // If fieldExists check fails, just continue without patient_type
+                log_message('debug', 'Could not check patient_type field: ' . $e->getMessage());
+            }
 
-        return $this->jsonResponse(['status' => 'success', 'data' => $patients]);
+            $patients = $db->table($tableName . ' p')
+                ->select($selectFields)
+                ->orderBy('p.first_name', 'ASC')
+                ->orderBy('p.last_name', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            if (empty($patients)) {
+                return $this->jsonResponse(['status' => 'success', 'data' => []]);
+            }
+
+            // Always ensure patient_type is set for every patient
+            // This ensures patient type is always displayed even if column doesn't exist
+            foreach ($patients as &$patient) {
+                // If patient_type is not set or empty, derive it
+                if (!isset($patient['patient_type']) || empty($patient['patient_type']) || trim($patient['patient_type']) === '') {
+                    // Try to derive from active admissions
+                    try {
+                        if ($db->tableExists('inpatient_admissions')) {
+                            $hasActiveAdmission = $db->table('inpatient_admissions')
+                                ->where('patient_id', $patient['patient_id'])
+                                ->groupStart()
+                                    ->where('discharge_date', null)
+                                    ->orWhere('discharge_date', '')
+                                ->groupEnd()
+                                ->countAllResults() > 0;
+                            
+                            $patient['patient_type'] = $hasActiveAdmission ? 'Inpatient' : 'Outpatient';
+                        } else {
+                            // Default to Outpatient if no admissions table
+                            $patient['patient_type'] = 'Outpatient';
+                        }
+                    } catch (\Exception $e) {
+                        // If admission check fails, default to Outpatient
+                        log_message('debug', 'Could not check admissions for patient ' . $patient['patient_id'] . ': ' . $e->getMessage());
+                        $patient['patient_type'] = 'Outpatient';
+                    }
+                } else {
+                    // Normalize the patient_type value
+                    $type = trim($patient['patient_type']);
+                    $patient['patient_type'] = ucfirst(strtolower($type));
+                }
+            }
+
+            return $this->jsonResponse(['status' => 'success', 'data' => $patients]);
+        } catch (\Throwable $e) {
+            log_message('error', 'LabManagement::getLabPatientsAPI error: ' . $e->getMessage());
+            log_message('error', 'LabManagement::getLabPatientsAPI stack trace: ' . $e->getTraceAsString());
+            return $this->jsonResponse([
+                'status' => 'error', 
+                'message' => 'Failed to load patients: ' . $e->getMessage(), 
+                'data' => []
+            ]);
+        }
     }
 
     public function getLabTestsAPI()

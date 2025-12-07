@@ -6,11 +6,50 @@
     let currentPatientId = null;
     let patientRecordsData = null;
 
+    // Initialize Vital Signs Button (defined early to avoid hoisting issues)
+    function initializeVitalSignsButton() {
+        // Use event delegation to handle dynamically created buttons
+        // The function reference will be resolved when the event fires, not when the listener is set up
+        document.addEventListener('click', function(e) {
+            const button = e.target.closest('#addVitalSignsBtn');
+            if (button) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Call the function when button is clicked (it will be defined by then)
+                if (typeof openAddVitalSignsModal === 'function') {
+                    openAddVitalSignsModal();
+                } else if (typeof window.openAddVitalSignsModal === 'function') {
+                    window.openAddVitalSignsModal();
+                } else {
+                    console.error('openAddVitalSignsModal function not found');
+                }
+            }
+        });
+
+        // Also attach directly if button exists (for immediate attachment)
+        const button = document.getElementById('addVitalSignsBtn');
+        if (button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Call the function when button is clicked (it will be defined by then)
+                if (typeof openAddVitalSignsModal === 'function') {
+                    openAddVitalSignsModal();
+                } else if (typeof window.openAddVitalSignsModal === 'function') {
+                    window.openAddVitalSignsModal();
+                } else {
+                    console.error('openAddVitalSignsModal function not found');
+                }
+            });
+        }
+    }
+
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
         initializePatientSearch();
         initializePatientSelection();
         initializeTabs();
+        initializeVitalSignsButton();
     });
 
     // Patient Search
@@ -570,6 +609,7 @@
                 </div>
                 <div class="record-card-body">
                     ${formatVitals(vital)}
+                    ${vital.notes ? `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e5e7eb;"><strong>Notes:</strong> ${escapeHtml(vital.notes)}</div>` : ''}
                 </div>
             </div>
         `).join('');
@@ -645,19 +685,66 @@
         }
     }
 
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     function formatCurrency(amount) {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
     }
 
     function formatVitals(data) {
         const vitals = [];
-        if (data.blood_pressure || data.bp) vitals.push(`<strong>BP:</strong> ${data.blood_pressure || data.bp}`);
-        if (data.heart_rate || data.hr) vitals.push(`<strong>HR:</strong> ${data.heart_rate || data.hr} bpm`);
-        if (data.respiratory_rate || data.rr) vitals.push(`<strong>RR:</strong> ${data.respiratory_rate || data.rr} /min`);
-        if (data.temperature || data.temp) vitals.push(`<strong>Temp:</strong> ${data.temperature || data.temp}°C`);
-        if (data.spo2) vitals.push(`<strong>SpO2:</strong> ${data.spo2}%`);
-        if (data.weight) vitals.push(`<strong>Weight:</strong> ${data.weight} kg`);
-        if (data.height) vitals.push(`<strong>Height:</strong> ${data.height} cm`);
+        
+        // Blood Pressure
+        if (data.blood_pressure_systolic && data.blood_pressure_diastolic) {
+            vitals.push(`<strong>BP:</strong> ${data.blood_pressure_systolic}/${data.blood_pressure_diastolic} mmHg`);
+        } else if (data.blood_pressure || data.bp) {
+            vitals.push(`<strong>BP:</strong> ${data.blood_pressure || data.bp}`);
+        }
+        
+        // Pulse Rate / Heart Rate
+        if (data.pulse_rate) {
+            vitals.push(`<strong>HR:</strong> ${data.pulse_rate} bpm`);
+        } else if (data.heart_rate || data.hr) {
+            vitals.push(`<strong>HR:</strong> ${data.heart_rate || data.hr} bpm`);
+        }
+        
+        // Respiratory Rate
+        if (data.respiratory_rate || data.rr) {
+            vitals.push(`<strong>RR:</strong> ${data.respiratory_rate || data.rr} /min`);
+        }
+        
+        // Temperature
+        if (data.temperature || data.temp) {
+            vitals.push(`<strong>Temp:</strong> ${data.temperature || data.temp}°C`);
+        }
+        
+        // Oxygen Saturation
+        if (data.oxygen_saturation) {
+            vitals.push(`<strong>SpO2:</strong> ${data.oxygen_saturation}%`);
+        } else if (data.spo2) {
+            vitals.push(`<strong>SpO2:</strong> ${data.spo2}%`);
+        }
+        
+        // Weight
+        if (data.weight) {
+            vitals.push(`<strong>Weight:</strong> ${data.weight} kg`);
+        }
+        
+        // Height
+        if (data.height) {
+            vitals.push(`<strong>Height:</strong> ${data.height} cm`);
+        }
+        
+        // BMI
+        if (data.bmi) {
+            vitals.push(`<strong>BMI:</strong> ${data.bmi}`);
+        }
+        
         return vitals.length > 0 ? vitals.join(' | ') : 'N/A';
     }
 
@@ -695,6 +782,186 @@
             errorDiv.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>${message}</p></div>`;
             errorDiv.style.display = 'block';
         }
+    }
+
+    // Vital Signs Modal Functions
+    function openAddVitalSignsModal() {
+        if (!currentPatientId) {
+            alert('Please select a patient first');
+            return;
+        }
+
+        const modal = document.getElementById('addVitalSignsModal');
+        const patientIdInput = document.getElementById('vitalSignsPatientId');
+        
+        if (!modal) {
+            console.error('Vital signs modal not found');
+            alert('Modal not found. Please refresh the page.');
+            return;
+        }
+
+        if (!patientIdInput) {
+            console.error('Patient ID input not found in modal');
+            return;
+        }
+
+        patientIdInput.value = currentPatientId;
+        modal.classList.add('active');
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Expose to window for inline onclick handlers (backup)
+    window.openAddVitalSignsModal = openAddVitalSignsModal;
+
+    function closeAddVitalSignsModal() {
+        const modal = document.getElementById('addVitalSignsModal');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.hidden = true;
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            // Reset form
+            const form = document.getElementById('addVitalSignsForm');
+            if (form) {
+                form.reset();
+                // Reset recorded_at to current datetime
+                const recordedAtInput = document.getElementById('vital_recorded_at');
+                if (recordedAtInput) {
+                    recordedAtInput.value = new Date().toISOString().slice(0, 16);
+                }
+            }
+        }
+    }
+
+    // Expose to window for inline onclick handlers (backup)
+    window.closeAddVitalSignsModal = closeAddVitalSignsModal;
+
+    // Handle vital signs form submission
+    document.addEventListener('DOMContentLoaded', function() {
+        const vitalSignsForm = document.getElementById('addVitalSignsForm');
+        if (vitalSignsForm) {
+            vitalSignsForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const submitBtn = document.getElementById('saveVitalSignsBtn');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording...';
+
+                try {
+                    const formData = new FormData(this);
+                    const data = {};
+                    
+                    // Convert FormData to object, only including non-empty values
+                    for (let [key, value] of formData.entries()) {
+                        if (value && value.trim() !== '') {
+                            if (key === 'temperature' || key === 'oxygen_saturation' || key === 'weight' || key === 'height') {
+                                data[key] = parseFloat(value);
+                            } else if (key === 'blood_pressure_systolic' || key === 'blood_pressure_diastolic' || 
+                                      key === 'pulse_rate' || key === 'respiratory_rate') {
+                                data[key] = parseInt(value);
+                            } else {
+                                data[key] = value;
+                            }
+                        }
+                    }
+
+                    // Convert datetime-local to proper format
+                    if (data.recorded_at) {
+                        const date = new Date(data.recorded_at);
+                        data.recorded_at = date.toISOString().slice(0, 19).replace('T', ' ');
+                    }
+
+                    const patientId = data.patient_id || currentPatientId;
+                    if (!patientId) {
+                        throw new Error('Patient ID is required');
+                    }
+
+                    const response = await fetch(`${baseUrl}/patients/${patientId}/vital-signs`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.status === 'success') {
+                        // Close modal
+                        closeAddVitalSignsModal();
+                        
+                        // Reload patient records to show new vital signs
+                        if (currentPatientId) {
+                            await loadPatientRecords(currentPatientId);
+                            
+                            // Switch to vital signs tab
+                            const vitalsTab = document.querySelector('.tab-button[data-tab="vitals"]');
+                            if (vitalsTab) {
+                                vitalsTab.click();
+                            }
+                        }
+
+                        // Show success message
+                        showNotification('Vital signs recorded successfully', 'success');
+                    } else {
+                        throw new Error(result.message || 'Failed to record vital signs');
+                    }
+                } catch (error) {
+                    console.error('Error recording vital signs:', error);
+                    showNotification(error.message || 'Failed to record vital signs. Please try again.', 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            });
+        }
+
+        // Close modal on overlay click
+        const modal = document.getElementById('addVitalSignsModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeAddVitalSignsModal();
+                }
+            });
+        }
+    });
+
+    // Helper function to show notifications
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+        `;
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
     }
 })();
 

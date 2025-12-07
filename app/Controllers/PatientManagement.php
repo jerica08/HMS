@@ -157,6 +157,132 @@ class PatientManagement extends BaseController
     }
 
     /**
+     * Record vital signs for a patient
+     */
+    public function recordVitalSigns($patientId = null)
+    {
+        try {
+            // Check permissions - nurses, doctors, and admins can record vital signs
+            if (!in_array($this->userRole, ['admin', 'doctor', 'nurse'])) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Insufficient permissions to record vital signs'
+                ]);
+            }
+
+            if ($this->request->getMethod() !== 'POST') {
+                return $this->response->setStatusCode(405)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Method not allowed'
+                ]);
+            }
+
+            $input = $this->request->getJSON(true) ?? $this->request->getPost();
+            $patientId = $patientId ?? $input['patient_id'] ?? null;
+
+            if (!$patientId) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Patient ID is required'
+                ]);
+            }
+
+            // Validate patient exists
+            $patientTable = $this->db->tableExists('patient') ? 'patient' : 'patients';
+            $patient = $this->db->table($patientTable)
+                ->where('patient_id', $patientId)
+                ->get()
+                ->getRowArray();
+
+            if (!$patient) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Patient not found'
+                ]);
+            }
+
+            // Get nurse_id if user is a nurse
+            $nurseId = null;
+            if ($this->userRole === 'nurse' && $this->staffId) {
+                $nurseModel = new \App\Models\NurseModel();
+                $nurse = $nurseModel->getNurseByStaffId($this->staffId);
+                $nurseId = $nurse['nurse_id'] ?? null;
+            }
+
+            // Prepare vital signs data
+            $vitalData = [
+                'patient_id' => $patientId,
+                'nurse_id' => $nurseId,
+                'temperature' => !empty($input['temperature']) ? (float)$input['temperature'] : null,
+                'blood_pressure_systolic' => !empty($input['blood_pressure_systolic']) ? (int)$input['blood_pressure_systolic'] : null,
+                'blood_pressure_diastolic' => !empty($input['blood_pressure_diastolic']) ? (int)$input['blood_pressure_diastolic'] : null,
+                'pulse_rate' => !empty($input['pulse_rate']) ? (int)$input['pulse_rate'] : null,
+                'respiratory_rate' => !empty($input['respiratory_rate']) ? (int)$input['respiratory_rate'] : null,
+                'oxygen_saturation' => !empty($input['oxygen_saturation']) ? (float)$input['oxygen_saturation'] : null,
+                'height' => !empty($input['height']) ? (float)$input['height'] : null,
+                'weight' => !empty($input['weight']) ? (float)$input['weight'] : null,
+                'bmi' => null, // Will calculate if height and weight are provided
+                'notes' => $input['notes'] ?? null,
+                'recorded_at' => $input['recorded_at'] ?? date('Y-m-d H:i:s'),
+            ];
+
+            // Calculate BMI if height and weight are provided
+            if ($vitalData['height'] && $vitalData['weight'] && $vitalData['height'] > 0) {
+                $heightInMeters = $vitalData['height'] / 100; // Convert cm to meters
+                $vitalData['bmi'] = round($vitalData['weight'] / ($heightInMeters * $heightInMeters), 2);
+            }
+
+            // Validate that at least one vital sign is provided
+            $hasVitalSign = $vitalData['temperature'] !== null ||
+                           $vitalData['blood_pressure_systolic'] !== null ||
+                           $vitalData['pulse_rate'] !== null ||
+                           $vitalData['respiratory_rate'] !== null ||
+                           $vitalData['oxygen_saturation'] !== null ||
+                           $vitalData['weight'] !== null ||
+                           $vitalData['height'] !== null;
+
+            if (!$hasVitalSign) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'status' => 'error',
+                    'message' => 'At least one vital sign must be provided'
+                ]);
+            }
+
+            // Check if vital_signs table exists
+            if (!$this->db->tableExists('vital_signs')) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Vital signs table does not exist. Please run migrations.'
+                ]);
+            }
+
+            // Insert vital signs
+            $nurseModel = new \App\Models\NurseModel();
+            $result = $nurseModel->recordVitals($vitalData);
+
+            if ($result) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Vital signs recorded successfully',
+                    'data' => $vitalData
+                ]);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Failed to record vital signs'
+                ]);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'RecordVitalSigns Error: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Server error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Create Patient - All authorized roles
      */
     public function createPatient()

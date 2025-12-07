@@ -354,7 +354,14 @@
 
                     <div id="tabVitals" class="tab-content">
                         <div class="record-section">
-                            <h3>Vital Signs</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3 style="margin: 0;">Vital Signs</h3>
+                                <?php if (in_array($userRole ?? '', ['admin', 'doctor', 'nurse'], true)): ?>
+                                <button type="button" class="btn btn-primary" id="addVitalSignsBtn">
+                                    <i class="fas fa-plus"></i> Record Vital Signs
+                                </button>
+                                <?php endif; ?>
+                            </div>
                             <div id="vitalsContent">
                                 <!-- Vital signs will be loaded here -->
                             </div>
@@ -365,6 +372,8 @@
         </div>
     </main>
 </div>
+
+<?= $this->include('unified/modals/add-vital-signs-modal') ?>
 
 <script src="<?= base_url('assets/js/unified/patient-records.js') ?>"></script>
 </body>

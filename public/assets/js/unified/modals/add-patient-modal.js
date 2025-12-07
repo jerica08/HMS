@@ -1024,11 +1024,13 @@ const AddPatientModal = {
                 email: { email: true, label: 'Email Address' }
             };
         } else {
+            // Inpatient form uses first_name/last_name/phone instead of a single full_name/contact_number
+            // Only require fields that actually exist as inputs on the inpatient form.
             rules = {
-                full_name: { required: true, label: 'Full Name' },
-                age: { required: true, label: 'Age' },
+                last_name: { required: true, label: 'Last Name' },
+                first_name: { required: true, label: 'First Name' },
                 gender: { required: true, label: 'Sex' },
-                contact_number: { required: true, label: 'Contact Number' },
+                phone: { required: true, label: 'Contact Number' },
                 civil_status: { required: true, label: 'Civil Status' },
                 guardian_name: { required: true, label: 'Guardian Name' },
                 guardian_relationship: { required: true, label: 'Guardian Relationship' },
@@ -1037,12 +1039,10 @@ const AddPatientModal = {
                 admission_type: { required: true, label: 'Admission Type' },
                 admitting_diagnosis: { required: true, label: 'Admitting Diagnosis' },
                 admitting_doctor: { required: true, label: 'Admitting Doctor' },
-                admitting_department: { required: true, label: 'Department / Ward' },
                 room_type: { required: true, label: 'Room Type' },
                 floor_number: { required: true, label: 'Floor Number' },
                 room_number: { required: true, label: 'Room Number' },
                 bed_number: { required: true, label: 'Bed Number' },
-                patient_classification: { required: true, label: 'Patient Classification' },
                 level_of_consciousness: { required: true, label: 'Level of Consciousness' }
             };
         }

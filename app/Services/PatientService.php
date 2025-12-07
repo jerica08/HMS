@@ -43,24 +43,47 @@ class PatientService
             ];
         }
 
-        // Prepare data
+        // Prepare data for primary patient table
         $data = $this->preparePatientData($input, $primaryDoctorId);
         $data = $this->sanitizePatientDataForTable($data);
 
+        $this->db->transBegin();
+
         try {
+            // Insert main patient record
             $this->db->table($this->patientTable)->insert($data);
             $newPatientId = (int) $this->db->insertID();
+
+            // Insert role-specific records (outpatient visit or inpatient admission tree)
             $this->persistRoleSpecificRecords($newPatientId, $input);
+
+            if ($this->db->transStatus() === false) {
+                // Something went wrong in the transaction
+                $this->db->transRollback();
+                return [
+                    'status' => 'error',
+                    'message' => 'Database error: failed to save patient records (transaction rolled back).',
+                ];
+            }
+
+            $this->db->transCommit();
+
             return [
                 'status' => 'success',
                 'message' => 'Patient added successfully',
                 'id' => $newPatientId,
             ];
         } catch (\Throwable $e) {
-            log_message('error', 'Failed to insert patient: ' . $e->getMessage());
+            // Ensure we never leave partial patient data behind
+            if ($this->db->transStatus() !== false) {
+                $this->db->transRollback();
+            }
+
+            log_message('error', 'Failed to insert patient (transaction): ' . $e->getMessage());
+
             return [
                 'status' => 'error',
-                'message' => 'Database error: ' . $e->getMessage(),
+                'message' => 'Database error',
             ];
         }
     }
@@ -614,7 +637,7 @@ class PatientService
 
     private function persistRoleSpecificRecords(int $patientId, array $input): void
     {
-        if (!$patientId) {
+        if (! $patientId) {
             return;
         }
 
@@ -625,41 +648,13 @@ class PatientService
             return;
         }
 
+        // Default: treat as outpatient visit
         $this->createOutpatientVisitRecord($patientId, $input);
     }
 
-    private function createOutpatientVisitRecord(int $patientId, array $input): void
-    {
-        if (! $this->db->tableExists('outpatient_visits')) {
-            return;
-        }
-
-        $visitData = [
-            'patient_id' => $patientId,
-            'department' => $input['department'] ?? null,
-            'assigned_doctor' => $this->resolveDoctorFullName($input['assigned_doctor'] ?? null),
-            'appointment_datetime' => $input['appointment_datetime'] ?? null,
-            'visit_type' => $input['visit_type'] ?? null,
-            'chief_complaint' => $input['chief_complaint'] ?? null,
-            'allergies' => $input['allergies'] ?? null,
-            'existing_conditions' => $input['existing_conditions'] ?? null,
-            'current_medications' => $input['current_medications'] ?? null,
-            'blood_pressure' => $input['blood_pressure'] ?? null,
-            'heart_rate' => $input['heart_rate'] ?? null,
-            'respiratory_rate' => $input['respiratory_rate'] ?? null,
-            'temperature' => $input['temperature'] ?? null,
-            'weight' => $input['weight_kg'] ?? $input['weight'] ?? null,
-            'height' => $input['height_cm'] ?? $input['height'] ?? null,
-            'payment_type' => $input['payment_type'] ?? null,
-        ];
-
-        try {
-            $this->db->table('outpatient_visits')->insert($visitData);
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to insert outpatient visit for patient ' . $patientId . ': ' . $e->getMessage());
-        }
-    }
-
+    /**
+     * Create inpatient admission + related inpatient records
+     */
     private function createInpatientAdmissionRecord(int $patientId, array $input): void
     {
         if (! $this->db->tableExists('inpatient_admissions')) {
@@ -667,16 +662,47 @@ class PatientService
         }
 
         $consent = $input['consent_uploaded'] ?? $input['consent_signed'] ?? null;
+
+        // Normalize admission_type to match ENUM values in inpatient_admissions table
+        $rawAdmissionType = $input['admission_type'] ?? null;
+        $normalizedAdmissionType = null;
+
+        if ($rawAdmissionType !== null && $rawAdmissionType !== '') {
+            switch ($rawAdmissionType) {
+                case 'Transfer from other facility/hospital':
+                    $normalizedAdmissionType = 'Transfer';
+                    break;
+                default:
+                    $normalizedAdmissionType = $rawAdmissionType;
+                    break;
+            }
+
+            if (! in_array($normalizedAdmissionType, ['ER', 'Scheduled', 'Transfer'], true)) {
+                $normalizedAdmissionType = null;
+            }
+        }
+
+        // Base admission data
         $admissionData = [
-            'patient_id' => $patientId,
-            'admission_datetime' => $input['admission_datetime'] ?? null,
-            'admission_type' => $input['admission_type'] ?? null,
+            'patient_id'          => $patientId,
+            'admission_datetime'  => $input['admission_datetime'] ?? null,
+            'admission_type'      => $normalizedAdmissionType,
             'admitting_diagnosis' => $input['admitting_diagnosis'] ?? null,
-            'admitting_doctor' => $input['admitting_doctor'] ?? null,
-            'department' => $input['admitting_department'] ?? $input['department'] ?? null,
-            'patient_classification' => $input['patient_classification'] ?? null,
-            'consent_signed' => in_array($consent, ['1', 'true', 'yes', 'on'], true) ? 1 : 0,
+            'admitting_doctor'    => $input['admitting_doctor'] ?? null,
+            'consent_signed'      => in_array($consent, ['1', 'true', 'yes', 'on'], true) ? 1 : 0,
         ];
+
+        // Filter admission data to only include columns that actually exist on inpatient_admissions
+        try {
+            $fields = $this->db->getFieldData('inpatient_admissions');
+            $existingColumns = array_map(static fn($field) => $field->name ?? null, $fields);
+            $existingColumns = array_filter($existingColumns);
+
+            $admissionData = array_intersect_key($admissionData, array_flip($existingColumns));
+        } catch (\Throwable $e) {
+            // If schema inspection fails, continue with raw $admissionData; insert try/catch below
+            // will still guard the transaction and log any concrete DB error.
+        }
 
         try {
             $this->db->table('inpatient_admissions')->insert($admissionData);
@@ -749,6 +775,19 @@ class PatientService
             return;
         }
 
+        // Normalize daily_rate: the UI may submit a placeholder like 'Auto-calculated'
+        // which is not a valid DECIMAL value for the DB schema.
+        $rawDailyRate = $input['daily_rate'] ?? null;
+        $normalizedDailyRate = null;
+
+        if ($rawDailyRate !== null && $rawDailyRate !== '') {
+            // Accept numeric strings, otherwise leave as NULL
+            $numeric = is_numeric($rawDailyRate) ? (float) $rawDailyRate : null;
+            if ($numeric !== null) {
+                $normalizedDailyRate = $numeric;
+            }
+        }
+
         $roomData = [
             'admission_id' => $admissionId,
             // room_type is stored as textual classification in this table; UI may provide
@@ -757,7 +796,7 @@ class PatientService
             'floor_number' => $input['floor_number'] ?? null,
             'room_number' => $input['room_number'] ?? null,
             'bed_number' => $input['bed_number'] ?? null,
-            'daily_rate' => $input['daily_rate'] ?? null,
+            'daily_rate' => $normalizedDailyRate,
         ];
 
         try {

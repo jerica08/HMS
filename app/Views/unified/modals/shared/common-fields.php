@@ -62,18 +62,6 @@ $defaultDepts = ['Administration','Emergency','Cardiology','Intensive Care Unit'
     <?php if ($prefix === ''): ?><input type="hidden" id="department_id" name="department_id" value=""><?php endif; ?>
     <small id="<?= $prefix ?>err_department" style="color:#dc2626"></small>
 </div>
-<?php if (!($excludeDesignation ?? false)): ?>
-<div>
-    <label class="form-label" for="<?= $prefix ?>designation">Role/Designation</label>
-    <select id="<?= $prefix ?>designation" name="designation" class="form-select">
-        <option value="">Select role</option>
-        <?php foreach (['admin', 'doctor', 'nurse', 'pharmacist', 'receptionist', 'laboratorist', 'it_staff', 'accountant'] as $role): ?>
-        <option value="<?= $role ?>"><?= ucfirst(str_replace('_', ' ', $role)) ?></option>
-        <?php endforeach; ?>
-    </select>
-    <small id="<?= $prefix ?>err_designation" style="color:#dc2626"></small>
-</div>
-<?php endif; ?>
 <div>
     <label class="form-label" for="<?= $prefix ?>date_joined">Date Joined</label>
     <input type="date" id="<?= $prefix ?>date_joined" name="date_joined" class="form-input">

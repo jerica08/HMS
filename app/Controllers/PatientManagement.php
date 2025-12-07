@@ -102,23 +102,58 @@ class PatientManagement extends BaseController
     }
 
     /**
-     * Patient Records front-end placeholder view
+     * Patient Records front-end view
      */
     public function patientRecords()
     {
-        if (!in_array($this->userRole, ['admin', 'doctor', 'nurse', 'pharmacist', 'laboratorist'], true)) {
+        if (!in_array($this->userRole, ['admin', 'doctor', 'nurse', 'pharmacist', 'laboratorist', 'receptionist', 'accountant', 'it_staff'], true)) {
             return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
         }
 
         $stats = $this->patientService->getPatientStats($this->userRole, $this->staffId);
+        $patients = $this->patientService->getPatientsByRole($this->userRole, $this->staffId);
 
         $data = [
             'title' => 'Patient Records',
             'userRole' => $this->userRole,
             'patientStats' => $stats,
+            'patients' => $patients,
         ];
 
         return view('unified/patient-records', $data);
+    }
+
+    /**
+     * Get comprehensive patient records API
+     */
+    public function getPatientRecordsAPI($patientId)
+    {
+        try {
+            if (!$this->canView()) {
+                return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Insufficient permissions']);
+            }
+
+            if (!$patientId) {
+                return $this->response->setStatusCode(400)->setJSON(['status' => 'error', 'message' => 'Invalid patient ID']);
+            }
+
+            $result = $this->patientService->getPatientRecords($patientId);
+            
+            if ($result['status'] === 'success') {
+                return $this->response->setJSON($result);
+            }
+            
+            // Return error with status code
+            $statusCode = isset($result['message']) && strpos($result['message'], 'not found') !== false ? 404 : 500;
+            return $this->response->setStatusCode($statusCode)->setJSON($result);
+        } catch (\Throwable $e) {
+            log_message('error', 'PatientRecordsAPI Error: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => 'Server error: ' . $e->getMessage()
+            ]);
+        }
     }
 
     /**

@@ -167,6 +167,8 @@ $routes->get('laboratorist/patient-records', 'PatientManagement::patientRecords'
 // Patient Management API Routes
 $routes->get('patients/api', 'PatientManagement::getPatientsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('patients/(:num)', 'PatientManagement::getPatient/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->get('patients/(:num)/records', 'PatientManagement::getPatientRecordsAPI/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,laboratorist,receptionist,accountant,it_staff']);
+$routes->get('patient-management/records/(:num)', 'PatientManagement::getPatientRecordsAPI/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,laboratorist,receptionist,accountant,it_staff']);
 $routes->get('patients/doctors', 'PatientManagement::getDoctorsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->post('patients/create', 'PatientManagement::createPatient', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
 $routes->put('patients/(:num)', 'PatientManagement::updatePatient/$1', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);

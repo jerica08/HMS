@@ -850,6 +850,302 @@ class PatientService
     }
 
     /**
+     * Get comprehensive patient records including all related data
+     */
+    public function getPatientRecords($patientId)
+    {
+        try {
+            $patient = $this->getPatient($patientId);
+            
+            if ($patient['status'] !== 'success') {
+                return [
+                    'status' => 'error',
+                    'message' => $patient['message'] ?? 'Patient not found'
+                ];
+            }
+
+            $records = [
+                'patient' => $patient['patient'],
+                'appointments' => $this->getPatientAppointments($patientId),
+                'prescriptions' => $this->getPatientPrescriptions($patientId),
+                'lab_orders' => $this->getPatientLabOrders($patientId),
+                'outpatient_visits' => $this->getPatientOutpatientVisits($patientId),
+                'inpatient_admissions' => $this->getPatientInpatientAdmissions($patientId),
+                'financial_records' => $this->getPatientFinancialRecords($patientId),
+                'vital_signs' => $this->getPatientVitalSigns($patientId),
+            ];
+
+            return [
+                'status' => 'success',
+                'records' => $records
+            ];
+        } catch (\Throwable $e) {
+            log_message('error', 'Error fetching patient records: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            return [
+                'status' => 'error',
+                'message' => 'Failed to fetch patient records: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get patient appointments
+     */
+    private function getPatientAppointments($patientId)
+    {
+        try {
+            if (!$this->db->tableExists('appointments')) {
+                return [];
+            }
+
+            return $this->db->table('appointments a')
+                ->select('a.*, CONCAT(s.first_name, " ", s.last_name) as doctor_name')
+                ->join('staff s', 's.staff_id = a.doctor_id', 'left')
+                ->where('a.patient_id', $patientId)
+                ->orderBy('a.appointment_date', 'DESC')
+                ->orderBy('a.appointment_time', 'DESC')
+                ->get()
+                ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Error fetching patient appointments: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get patient prescriptions
+     */
+    private function getPatientPrescriptions($patientId)
+    {
+        try {
+            if (!$this->db->tableExists('prescriptions')) {
+                return [];
+            }
+
+            $prescriptions = $this->db->table('prescriptions')
+                ->where('patient_id', $patientId)
+                ->orderBy('created_at', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            // Load prescription items for each prescription
+            foreach ($prescriptions as &$prescription) {
+                if ($this->db->tableExists('prescription_items')) {
+                    $prescription['items'] = $this->db->table('prescription_items')
+                        ->where('prescription_id', $prescription['id'])
+                        ->get()
+                        ->getResultArray();
+                }
+            }
+
+            return $prescriptions;
+        } catch (\Throwable $e) {
+            log_message('error', 'Error fetching patient prescriptions: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get patient lab orders
+     */
+    private function getPatientLabOrders($patientId)
+    {
+        try {
+            if (!$this->db->tableExists('lab_orders')) {
+                return [];
+            }
+
+            return $this->db->table('lab_orders')
+                ->where('patient_id', $patientId)
+                ->orderBy('ordered_at', 'DESC')
+                ->get()
+                ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Error fetching patient lab orders: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get patient outpatient visits
+     */
+    private function getPatientOutpatientVisits($patientId)
+    {
+        try {
+            if (!$this->db->tableExists('outpatient_visits')) {
+                return [];
+            }
+
+            return $this->db->table('outpatient_visits')
+                ->where('patient_id', $patientId)
+                ->orderBy('created_at', 'DESC')
+                ->get()
+                ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Error fetching patient outpatient visits: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get patient inpatient admissions
+     */
+    private function getPatientInpatientAdmissions($patientId)
+    {
+        try {
+            if (!$this->db->tableExists('inpatient_admissions')) {
+                return [];
+            }
+
+            $admissions = $this->db->table('inpatient_admissions')
+                ->where('patient_id', $patientId)
+                ->orderBy('admission_datetime', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            // Load related records for each admission
+            foreach ($admissions as &$admission) {
+                $admissionId = $admission['admission_id'] ?? null;
+                
+                if ($admissionId) {
+                    // Medical history
+                    if ($this->db->tableExists('inpatient_medical_history')) {
+                        $admission['medical_history'] = $this->db->table('inpatient_medical_history')
+                            ->where('admission_id', $admissionId)
+                            ->get()
+                            ->getRowArray();
+                    }
+
+                    // Initial assessment
+                    if ($this->db->tableExists('inpatient_initial_assessment')) {
+                        $admission['initial_assessment'] = $this->db->table('inpatient_initial_assessment')
+                            ->where('admission_id', $admissionId)
+                            ->get()
+                            ->getRowArray();
+                    }
+
+                    // Room assignments
+                    if ($this->db->tableExists('inpatient_room_assignments')) {
+                        $admission['room_assignments'] = $this->db->table('inpatient_room_assignments')
+                            ->where('admission_id', $admissionId)
+                            ->get()
+                            ->getResultArray();
+                    }
+                }
+            }
+
+            return $admissions;
+        } catch (\Throwable $e) {
+            log_message('error', 'Error fetching patient inpatient admissions: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get patient financial records
+     */
+    private function getPatientFinancialRecords($patientId)
+    {
+        try {
+            $records = [
+                'invoices' => [],
+                'payments' => [],
+                'insurance_claims' => [],
+                'transactions' => [],
+            ];
+
+            // Invoices
+            if ($this->db->tableExists('invoices')) {
+                $records['invoices'] = $this->db->table('invoices')
+                    ->where('patient_id', $patientId)
+                    ->orderBy('created_at', 'DESC')
+                    ->get()
+                    ->getResultArray();
+            }
+
+            // Payments
+            if ($this->db->tableExists('payments')) {
+                $records['payments'] = $this->db->table('payments')
+                    ->where('patient_id', $patientId)
+                    ->orderBy('payment_date', 'DESC')
+                    ->get()
+                    ->getResultArray();
+            }
+
+            // Insurance Claims
+            if ($this->db->tableExists('insurance_claims')) {
+                $builder = $this->db->table('insurance_claims');
+                
+                // Check if patient_id field exists, otherwise match by patient name
+                if ($this->db->fieldExists('patient_id', 'insurance_claims')) {
+                    $builder->where('patient_id', $patientId);
+                } else {
+                    // Fallback: get patient name and match by name
+                    $patient = $this->db->table($this->patientTable)
+                        ->select('first_name, last_name')
+                        ->where('patient_id', $patientId)
+                        ->get()
+                        ->getRowArray();
+                    
+                    if ($patient) {
+                        $patientName = trim(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? ''));
+                        if ($patientName) {
+                            $builder->like('patient_name', $patientName);
+                        }
+                    }
+                }
+                
+                $records['insurance_claims'] = $builder
+                    ->orderBy('created_at', 'DESC')
+                    ->get()
+                    ->getResultArray();
+            }
+
+            // Transactions
+            if ($this->db->tableExists('transactions')) {
+                $records['transactions'] = $this->db->table('transactions')
+                    ->where('patient_id', $patientId)
+                    ->orderBy('transaction_date', 'DESC')
+                    ->get()
+                    ->getResultArray();
+            }
+
+            return $records;
+        } catch (\Throwable $e) {
+            log_message('error', 'Error fetching patient financial records: ' . $e->getMessage());
+            return [
+                'invoices' => [],
+                'payments' => [],
+                'insurance_claims' => [],
+                'transactions' => [],
+            ];
+        }
+    }
+
+    /**
+     * Get patient vital signs
+     */
+    private function getPatientVitalSigns($patientId)
+    {
+        try {
+            if (!$this->db->tableExists('vital_signs')) {
+                return [];
+            }
+
+            return $this->db->table('vital_signs')
+                ->where('patient_id', $patientId)
+                ->orderBy('recorded_at', 'DESC')
+                ->limit(50) // Limit to last 50 records
+                ->get()
+                ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Error fetching patient vital signs: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Resolve patient table name
      */
     private function resolvePatientTableName(): string

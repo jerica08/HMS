@@ -205,6 +205,22 @@ class LabService
      */
     private function addLabOrderToBillingForOutpatient(int $labOrderId, int $patientId, string $testCode, ?int $staffId): void
     {
+        $this->addLabOrderToBilling($labOrderId, $patientId, $testCode, $staffId, null);
+    }
+
+    /**
+     * Automatically add lab order to billing for inpatients
+     */
+    private function addLabOrderToBillingForInpatient(int $labOrderId, int $patientId, string $testCode, ?int $staffId, ?int $admissionId): void
+    {
+        $this->addLabOrderToBilling($labOrderId, $patientId, $testCode, $staffId, $admissionId);
+    }
+
+    /**
+     * Add lab order to billing (works for both inpatient and outpatient)
+     */
+    private function addLabOrderToBilling(int $labOrderId, int $patientId, string $testCode, ?int $staffId, ?int $admissionId = null): void
+    {
         try {
             // Check if FinancialService is available
             if (!class_exists(\App\Services\FinancialService::class)) {
@@ -221,24 +237,38 @@ class LabService
                 $unitPrice = 500.00; // Default price
             }
 
-            // Get or create billing account for patient
-            $account = $financialService->getOrCreateBillingAccountForPatient($patientId, null, $staffId);
+            // Get or create billing account for patient (with admission_id for inpatients)
+            $account = $financialService->getOrCreateBillingAccountForPatient($patientId, $admissionId, $staffId);
             if (!$account || empty($account['billing_id'])) {
-                log_message('error', "Lab order {$labOrderId}: Failed to get/create billing account for patient {$patientId}");
+                log_message('error', "Lab order {$labOrderId}: Failed to get/create billing account for patient {$patientId}" . ($admissionId ? ", admission {$admissionId}" : ""));
                 return;
             }
 
             $billingId = (int) $account['billing_id'];
+
+            // Check if lab order is already in ANY billing account (prevent duplicates across all accounts)
+            if ($this->db->tableExists('billing_items') && $this->db->fieldExists('lab_order_id', 'billing_items')) {
+                $existing = $this->db->table('billing_items')
+                    ->where('lab_order_id', $labOrderId)
+                    ->countAllResults();
+                
+                if ($existing > 0) {
+                    log_message('warning', "Lab order {$labOrderId}: Already exists in billing. Skipping duplicate addition.");
+                    return; // Already added to some billing account
+                }
+            }
 
             // Add lab order to billing
             if (method_exists($financialService, 'addItemFromLabOrder')) {
                 $result = $financialService->addItemFromLabOrder($billingId, $labOrderId, $unitPrice, $staffId);
                 if (!($result['success'] ?? false)) {
                     log_message('error', "Lab order {$labOrderId}: Failed to add to billing - " . ($result['message'] ?? 'Unknown error'));
+                } else {
+                    log_message('debug', "Lab order {$labOrderId}: Successfully added to billing account {$billingId}" . ($admissionId ? " (inpatient admission {$admissionId})" : " (outpatient)"));
                 }
             }
         } catch (\Throwable $e) {
-            log_message('error', 'LabService::addLabOrderToBillingForOutpatient error: ' . $e->getMessage());
+            log_message('error', 'LabService::addLabOrderToBilling error: ' . $e->getMessage());
         }
     }
 
@@ -266,6 +296,37 @@ class LabService
         } catch (\Throwable $e) {
             log_message('error', 'LabService::getTestPrice error: ' . $e->getMessage());
             return 0.0;
+        }
+    }
+
+    /**
+     * Get active admission ID for inpatient
+     */
+    private function getActiveAdmissionId(int $patientId): ?int
+    {
+        try {
+            if (!$this->db->tableExists('inpatient_admissions')) {
+                return null;
+            }
+
+            $builder = $this->db->table('inpatient_admissions')
+                ->select('admission_id')
+                ->where('patient_id', $patientId);
+            
+            // Only check discharge_date if the column exists
+            if ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
+                $builder->groupStart()
+                    ->where('discharge_date', null)
+                    ->orWhere('discharge_date', '')
+                ->groupEnd();
+            }
+            
+            $admission = $builder->get()->getRowArray();
+
+            return $admission ? (int)$admission['admission_id'] : null;
+        } catch (\Throwable $e) {
+            log_message('error', 'LabService::getActiveAdmissionId error: ' . $e->getMessage());
+            return null;
         }
     }
 
@@ -348,16 +409,124 @@ class LabService
                 if ($patientId > 0) {
                     $patientType = $this->getPatientType($patientId);
                     
-                    // For outpatients, verify payment before allowing lab surgery to start
+                    // For outpatients, verify payment before allowing lab procedure to start
                     if (strtolower($patientType) === 'outpatient') {
+                        // First, ensure lab order is added to billing
+                        $testCode = $order['test_code'] ?? '';
+                        if (!empty($testCode)) {
+                            // Check if lab order is already in billing
+                            $inBilling = false;
+                            $billingId = null;
+                            if ($this->db->tableExists('billing_items') && $this->db->fieldExists('lab_order_id', 'billing_items')) {
+                                $billingItem = $this->db->table('billing_items')
+                                    ->where('lab_order_id', $labOrderId)
+                                    ->get()
+                                    ->getRowArray();
+                                
+                                if ($billingItem) {
+                                    $inBilling = true;
+                                    $billingId = (int)($billingItem['billing_id'] ?? 0);
+                                }
+                            }
+                            
+                            // If not in billing, add it automatically
+                            if (!$inBilling) {
+                                $this->addLabOrderToBillingForOutpatient($labOrderId, $patientId, $testCode, $staffId);
+                                // Re-check billing after adding
+                                if ($this->db->tableExists('billing_items') && $this->db->fieldExists('lab_order_id', 'billing_items')) {
+                                    $billingItem = $this->db->table('billing_items')
+                                        ->where('lab_order_id', $labOrderId)
+                                        ->get()
+                                        ->getRowArray();
+                                    if ($billingItem) {
+                                        $billingId = (int)($billingItem['billing_id'] ?? 0);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // STRICT: Verify payment before allowing procedure to start
+                        // This is mandatory for outpatients - no exceptions
                         if (!$this->isLabOrderPaid($labOrderId)) {
+                            $testName = $order['test_name'] ?? $order['test_code'] ?? 'lab test';
+                            $errorMessage = 'PAYMENT REQUIRED: Outpatient lab procedures require payment before they can begin. ';
+                            
+                            if ($billingId) {
+                                $errorMessage .= "Please process payment for Billing ID {$billingId} in the Financial Management section, then try again.";
+                            } else {
+                                $errorMessage .= "The lab order for '{$testName}' has been added to billing. Please process the payment first, then try to start the procedure again.";
+                            }
+                            
                             return [
                                 'success' => false,
-                                'message' => 'Payment is required before starting lab surgery for outpatients. Please ensure the lab order has been added to billing and payment has been processed.'
+                                'message' => $errorMessage,
+                                'requires_payment' => true,
+                                'billing_id' => $billingId
                             ];
                         }
                     }
                     // Inpatients can proceed without payment verification
+                }
+            }
+
+            // Additional safety check: If current status is 'ordered' and trying to go to 'in_progress',
+            // and patient is outpatient, ensure payment is verified (double-check)
+            if ($status === 'in_progress' && strtolower($order['status'] ?? '') === 'ordered') {
+                $patientId = (int) ($order['patient_id'] ?? 0);
+                if ($patientId > 0) {
+                    $patientType = $this->getPatientType($patientId);
+                    if (strtolower($patientType) === 'outpatient' && !$this->isLabOrderPaid($labOrderId)) {
+                        return [
+                            'success' => false,
+                            'message' => 'PAYMENT REQUIRED: Payment verification failed. Outpatient lab procedures cannot proceed without confirmed payment. Please process payment in the Financial Management section before starting the lab procedure.',
+                            'requires_payment' => true
+                        ];
+                    }
+                }
+            }
+
+            // Check payment requirement for outpatients when completing lab order
+            if ($status === 'completed') {
+                $patientId = (int) ($order['patient_id'] ?? 0);
+                if ($patientId > 0) {
+                    $patientType = $this->getPatientType($patientId);
+                    
+                    // For outpatients, verify payment before allowing completion
+                    if (strtolower($patientType) === 'outpatient') {
+                        // Get billing ID for error message
+                        $billingId = null;
+                        if ($this->db->tableExists('billing_items') && $this->db->fieldExists('lab_order_id', 'billing_items')) {
+                            $billingItem = $this->db->table('billing_items')
+                                ->where('lab_order_id', $labOrderId)
+                                ->get()
+                                ->getRowArray();
+                            
+                            if ($billingItem) {
+                                $billingId = (int)($billingItem['billing_id'] ?? 0);
+                            }
+                        }
+                        
+                        // STRICT: Verify payment before allowing completion
+                        // Outpatients must pay before lab order can be completed
+                        if (!$this->isLabOrderPaid($labOrderId)) {
+                            $testName = $order['test_name'] ?? $order['test_code'] ?? 'lab test';
+                            $errorMessage = 'PAYMENT REQUIRED: Outpatient lab orders cannot be completed without payment. ';
+                            
+                            if ($billingId) {
+                                $errorMessage .= "Please process payment for Billing ID {$billingId} in the Financial Management section, then try to complete the lab order again.";
+                            } else {
+                                $errorMessage .= "The lab order for '{$testName}' must be paid before completion. Please process the payment first.";
+                            }
+                            
+                            return [
+                                'success' => false,
+                                'message' => $errorMessage,
+                                'requires_payment' => true,
+                                'billing_id' => $billingId
+                            ];
+                        }
+                    }
+                    // Inpatients can complete without payment verification (billed later)
                 }
             }
 
@@ -373,6 +542,47 @@ class LabService
             $this->db->table('lab_orders')
                 ->where('lab_order_id', $labOrderId)
                 ->update($update);
+
+            // For inpatients: automatically add to billing when lab order is completed
+            if ($status === 'completed') {
+                $patientId = (int) ($order['patient_id'] ?? 0);
+                if ($patientId > 0) {
+                    $patientType = $this->getPatientType($patientId);
+                    
+                    // Check if lab order is already in billing (prevent duplicates)
+                    $inBilling = false;
+                    if ($this->db->tableExists('billing_items') && $this->db->fieldExists('lab_order_id', 'billing_items')) {
+                        $inBilling = $this->db->table('billing_items')
+                            ->where('lab_order_id', $labOrderId)
+                            ->countAllResults() > 0;
+                    }
+                    
+                    if (!$inBilling) {
+                        if (strtolower($patientType) === 'inpatient') {
+                            $testCode = $order['test_code'] ?? '';
+                            if (!empty($testCode)) {
+                                // Get active admission ID for inpatient
+                                $admissionId = $this->getActiveAdmissionId($patientId);
+                                if ($admissionId) {
+                                    $this->addLabOrderToBillingForInpatient($labOrderId, $patientId, $testCode, $staffId, $admissionId);
+                                } else {
+                                    log_message('warning', "Lab order {$labOrderId}: Patient {$patientId} is marked as inpatient but has no active admission");
+                                }
+                            }
+                        } else {
+                            // If patient is now outpatient but lab order wasn't added to billing, add it now
+                            // This handles cases where patient type changed or was misidentified
+                            $testCode = $order['test_code'] ?? '';
+                            if (!empty($testCode)) {
+                                log_message('info', "Lab order {$labOrderId}: Patient {$patientId} is outpatient, adding to billing on completion");
+                                $this->addLabOrderToBillingForOutpatient($labOrderId, $patientId, $testCode, $staffId);
+                            }
+                        }
+                    } else {
+                        log_message('debug', "Lab order {$labOrderId}: Already in billing, skipping duplicate addition");
+                    }
+                }
+            }
 
             return ['success' => true, 'message' => 'Status updated successfully'];
         } catch (\Throwable $e) {
@@ -428,27 +638,29 @@ class LabService
      * Check if lab order has been paid
      * Returns true if:
      * 1. Lab order is linked to a billing item, AND
-     * 2. The billing account has status 'paid' OR has completed payments
+     * 2. The billing account has status 'paid' OR has completed payments that cover the lab order cost
      */
     private function isLabOrderPaid(int $labOrderId): bool
     {
         try {
             // Check if billing_items table exists and has lab_order_id field
             if (!$this->db->tableExists('billing_items')) {
+                log_message('debug', "Lab order {$labOrderId}: billing_items table does not exist");
                 return false;
             }
 
             if (!$this->db->fieldExists('lab_order_id', 'billing_items')) {
                 // If lab_order_id field doesn't exist, we can't link lab orders to billing
-                // In this case, we'll check if there's any billing account for the patient
                 $order = $this->getLabOrder($labOrderId);
                 if (!$order || empty($order['patient_id'])) {
+                    log_message('debug', "Lab order {$labOrderId}: Order not found or has no patient");
                     return false;
                 }
 
                 // For backward compatibility, if lab_order_id field doesn't exist,
-                // we'll allow proceeding (assuming payment will be handled separately)
-                return true;
+                // we'll require payment verification through patient billing account
+                $patientId = (int)$order['patient_id'];
+                return $this->checkPatientBillingAccountPaid($patientId);
             }
 
             // Find billing items linked to this lab order
@@ -458,13 +670,20 @@ class LabService
                 ->getResultArray();
 
             if (empty($billingItems)) {
+                log_message('debug', "Lab order {$labOrderId}: Not added to billing yet");
                 return false; // Lab order not added to billing yet
+            }
+
+            // Calculate total amount for this lab order
+            $labOrderTotal = 0.0;
+            foreach ($billingItems as $item) {
+                $labOrderTotal += (float)($item['line_total'] ?? ($item['unit_price'] ?? 0) * ($item['quantity'] ?? 1));
             }
 
             // Get unique billing IDs
             $billingIds = array_unique(array_column($billingItems, 'billing_id'));
 
-            // Check if any billing account is marked as paid
+            // Check if any billing account is marked as paid or has payments covering the lab order
             if ($this->db->tableExists('billing_accounts')) {
                 foreach ($billingIds as $billingId) {
                     $account = $this->db->table('billing_accounts')
@@ -475,46 +694,105 @@ class LabService
                     if ($account) {
                         // Check if billing account status is 'paid'
                         if (isset($account['status']) && strtolower($account['status']) === 'paid') {
+                            log_message('debug', "Lab order {$labOrderId}: Billing account {$billingId} is marked as paid");
                             return true;
                         }
 
                         // Check if there are completed payments for this billing account
                         if ($this->db->tableExists('payments')) {
+                            $totalPaid = 0.0;
+                            
                             // Check if payments table has billing_id field
                             if ($this->db->fieldExists('billing_id', 'payments')) {
-                                $payment = $this->db->table('payments')
+                                $payments = $this->db->table('payments')
                                     ->where('billing_id', $billingId)
                                     ->where('status', 'completed')
                                     ->get()
-                                    ->getRowArray();
-
-                                if ($payment) {
-                                    return true;
+                                    ->getResultArray();
+                                
+                                foreach ($payments as $payment) {
+                                    $totalPaid += (float)($payment['amount'] ?? 0);
                                 }
                             } else {
                                 // If payments table doesn't have billing_id, check via bill_id
-                                // This is a fallback for older payment structures
                                 if ($this->db->tableExists('bills') && isset($account['bill_id'])) {
-                                    $payment = $this->db->table('payments')
+                                    $payments = $this->db->table('payments')
                                         ->where('bill_id', $account['bill_id'])
                                         ->where('status', 'completed')
                                         ->get()
-                                        ->getRowArray();
-
-                                    if ($payment) {
-                                        return true;
+                                        ->getResultArray();
+                                    
+                                    foreach ($payments as $payment) {
+                                        $totalPaid += (float)($payment['amount'] ?? 0);
                                     }
                                 }
+                            }
+
+                            // Check if total paid covers at least the lab order amount
+                            if ($totalPaid >= $labOrderTotal && $labOrderTotal > 0) {
+                                log_message('debug', "Lab order {$labOrderId}: Payment verified - paid {$totalPaid} for lab order amount {$labOrderTotal}");
+                                return true;
+                            } elseif ($totalPaid > 0 && $labOrderTotal == 0) {
+                                // If lab order amount is 0 (free), any payment is sufficient
+                                log_message('debug', "Lab order {$labOrderId}: Free lab order with payment recorded");
+                                return true;
                             }
                         }
                     }
                 }
             }
 
+            log_message('debug', "Lab order {$labOrderId}: Payment not verified");
             return false;
         } catch (\Throwable $e) {
             log_message('error', 'LabService::isLabOrderPaid error: ' . $e->getMessage());
             return false; // On error, assume not paid to be safe
+        }
+    }
+
+    /**
+     * Check if patient's billing account has been paid (fallback for systems without lab_order_id in billing_items)
+     */
+    private function checkPatientBillingAccountPaid(int $patientId): bool
+    {
+        try {
+            if (!$this->db->tableExists('billing_accounts')) {
+                return false;
+            }
+
+            $account = $this->db->table('billing_accounts')
+                ->where('patient_id', $patientId)
+                ->where('admission_id IS NULL') // Outpatient account
+                ->get()
+                ->getRowArray();
+
+            if (!$account) {
+                return false;
+            }
+
+            // Check if account status is paid
+            if (isset($account['status']) && strtolower($account['status']) === 'paid') {
+                return true;
+            }
+
+            // Check for completed payments
+            if ($this->db->tableExists('payments')) {
+                $billingId = (int)($account['billing_id'] ?? 0);
+                if ($billingId > 0 && $this->db->fieldExists('billing_id', 'payments')) {
+                    $payment = $this->db->table('payments')
+                        ->where('billing_id', $billingId)
+                        ->where('status', 'completed')
+                        ->get()
+                        ->getRowArray();
+                    
+                    return !empty($payment);
+                }
+            }
+
+            return false;
+        } catch (\Throwable $e) {
+            log_message('error', 'LabService::checkPatientBillingAccountPaid error: ' . $e->getMessage());
+            return false;
         }
     }
 

@@ -681,14 +681,39 @@ class FinancialService
                 return ['success' => false, 'message' => 'Lab order has no patient linked'];
             }
 
+            // Check if lab order is already in ANY billing account (prevent duplicates)
             if ($this->db->fieldExists('lab_order_id', 'billing_items')) {
-                if ($this->db->table('billing_items')->where('billing_id', $billingId)->where('lab_order_id', $labOrderId)->countAllResults() > 0) {
-                    return ['success' => true, 'message' => 'Lab order is already added to this billing account.'];
+                $existing = $this->db->table('billing_items')
+                    ->where('lab_order_id', $labOrderId)
+                    ->countAllResults();
+                
+                if ($existing > 0) {
+                    // Get the billing account where it's already added
+                    $existingItem = $this->db->table('billing_items')
+                        ->where('lab_order_id', $labOrderId)
+                        ->get()
+                        ->getRowArray();
+                    
+                    if ($existingItem && (int)$existingItem['billing_id'] === $billingId) {
+                        return ['success' => true, 'message' => 'Lab order is already added to this billing account.'];
+                    } else {
+                        return ['success' => false, 'message' => 'This lab order has already been added to another billing account. Each lab order can only be billed once.'];
+                    }
                 }
             }
 
+            // Note: Lab orders can be added to billing in different statuses:
+            // - Outpatients: Added when 'ordered' (payment required before procedure)
+            // - Inpatients: Added when 'completed' (billed upon completion)
+            // This method is called by LabService which handles the status check appropriately
+
             $descriptionParts = array_filter([$order['test_name'] ?? '', $order['test_code'] ?? '']);
-            $description = !empty($descriptionParts) ? implode(' - ', $descriptionParts) : 'Laboratory Test';
+            $description = 'Lab Test: ' . (!empty($descriptionParts) ? implode(' - ', $descriptionParts) : 'Laboratory Test');
+            
+            // Add completion date if available
+            if (!empty($order['completed_at'])) {
+                $description .= ' (Completed: ' . date('M d, Y', strtotime($order['completed_at'])) . ')';
+            }
 
             $itemData = [
                 'billing_id' => $billingId,
@@ -953,6 +978,47 @@ class FinancialService
             ->orderBy('item_id', 'ASC')
             ->get()
             ->getResultArray();
+
+        // Enhance lab order items with status information
+        if ($this->db->tableExists('lab_orders') && $this->db->fieldExists('lab_order_id', 'billing_items')) {
+            foreach ($items as &$item) {
+                if (!empty($item['lab_order_id'])) {
+                    $labOrder = $this->db->table('lab_orders')
+                        ->where('lab_order_id', $item['lab_order_id'])
+                        ->get()
+                        ->getRowArray();
+                    
+                    if ($labOrder) {
+                        // Only include completed lab orders in billing details
+                        if (strtolower($labOrder['status'] ?? '') === 'completed') {
+                            // Enhance description with lab order details
+                            $statusInfo = '';
+                            if (!empty($labOrder['completed_at'])) {
+                                $statusInfo = ' (Completed: ' . date('M d, Y', strtotime($labOrder['completed_at'])) . ')';
+                            }
+                            
+                            // Update description to include lab test information
+                            $testInfo = [];
+                            if (!empty($labOrder['test_name'])) {
+                                $testInfo[] = $labOrder['test_name'];
+                            }
+                            if (!empty($labOrder['test_code'])) {
+                                $testInfo[] = '[' . $labOrder['test_code'] . ']';
+                            }
+                            
+                            if (!empty($testInfo)) {
+                                $item['description'] = 'Lab Test: ' . implode(' ', $testInfo) . $statusInfo;
+                            } else {
+                                $item['description'] = ($item['description'] ?? 'Laboratory Test') . $statusInfo;
+                            }
+                        } else {
+                            // For non-completed lab orders, mark them but still show
+                            $item['description'] = ($item['description'] ?? 'Laboratory Test') . ' (Status: ' . ucfirst($labOrder['status'] ?? 'Unknown') . ')';
+                        }
+                    }
+                }
+            }
+        }
 
         $totalAmount = array_sum(array_map(fn($item) => (float)($item['line_total'] ?? 0), $items));
 

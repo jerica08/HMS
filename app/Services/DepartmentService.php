@@ -19,8 +19,41 @@ class DepartmentService
             return [];
         }
 
-        return $this->db->table('department')
-            ->select('department_id, name, description, created_at, updated_at')
+        $builder = $this->db->table('department');
+        
+        // Select all available columns
+        $selectColumns = ['department_id', 'name'];
+        
+        // Add optional columns if they exist
+        if ($this->fieldExists('code', 'department')) {
+            $selectColumns[] = 'code';
+        }
+        if ($this->fieldExists('type', 'department')) {
+            $selectColumns[] = 'type';
+        }
+        if ($this->fieldExists('floor', 'department')) {
+            $selectColumns[] = 'floor';
+        }
+        if ($this->fieldExists('department_head_id', 'department')) {
+            $selectColumns[] = 'department_head_id';
+        }
+        if ($this->fieldExists('contact_number', 'department')) {
+            $selectColumns[] = 'contact_number';
+        }
+        if ($this->fieldExists('description', 'department')) {
+            $selectColumns[] = 'description';
+        }
+        if ($this->fieldExists('status', 'department')) {
+            $selectColumns[] = 'status';
+        }
+        if ($this->fieldExists('created_at', 'department')) {
+            $selectColumns[] = 'created_at';
+        }
+        if ($this->fieldExists('updated_at', 'department')) {
+            $selectColumns[] = 'updated_at';
+        }
+
+        return $builder->select($selectColumns)
             ->orderBy('name', 'ASC')
             ->get()
             ->getResultArray();

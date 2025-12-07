@@ -64,13 +64,22 @@ class PatientManagement extends BaseController
                 continue;
             }
 
+            $bedNames = [];
+            if (! empty($room['bed_names'])) {
+                $decoded = json_decode((string) $room['bed_names'], true);
+                if (is_array($decoded)) {
+                    $bedNames = array_values($decoded);
+                }
+            }
+
             $roomInventory[$typeId][] = [
-                'room_id' => (int) ($room['room_id'] ?? 0),
-                'room_number' => (string) ($room['room_number'] ?? ''),
-                'room_name' => (string) ($room['room_name'] ?? ''),
-                'floor_number' => (string) ($room['floor_number'] ?? ''),
-                'status' => (string) ($room['status'] ?? ''),
-                'bed_capacity' => (int) ($room['bed_capacity'] ?? 0),
+                'room_id'       => (int) ($room['room_id'] ?? 0),
+                'room_number'   => (string) ($room['room_number'] ?? ''),
+                'room_name'     => (string) ($room['room_name'] ?? ''),
+                'floor_number'  => (string) ($room['floor_number'] ?? ''),
+                'status'        => (string) ($room['status'] ?? ''),
+                'bed_capacity'  => (int) ($room['bed_capacity'] ?? 0),
+                'bed_names'     => $bedNames,
             ];
         }
         $permissions = PermissionManager::getRolePermissions($this->userRole);

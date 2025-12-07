@@ -612,7 +612,9 @@
                                     </div>
                                     <div>
                                         <label class="form-label" for="bed_number">Bed Number*</label>
-                                        <input type="text" id="bed_number" name="bed_number" class="form-input" required>
+                                        <select id="bed_number" name="bed_number" class="form-select" required disabled>
+                                            <option value="">Select a bed...</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label class="form-label" for="daily_rate">Daily Room Rate</label>

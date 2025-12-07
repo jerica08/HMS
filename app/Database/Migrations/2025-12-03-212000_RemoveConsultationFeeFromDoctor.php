@@ -8,8 +8,16 @@ class RemoveConsultationFeeFromDoctor extends Migration
 {
     public function up()
     {
-        // Drop the consultation_fee column from the doctor table
-        $this->forge->dropColumn('doctor', 'consultation_fee');
+        // Safely drop the consultation_fee column from the doctor table
+        $db = \Config\Database::connect();
+
+        if (! $db->tableExists('doctor')) {
+            return;
+        }
+
+        if ($db->fieldExists('consultation_fee', 'doctor')) {
+            $this->forge->dropColumn('doctor', 'consultation_fee');
+        }
     }
 
     public function down()

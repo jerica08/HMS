@@ -230,7 +230,6 @@ class PrescriptionManager {
                         <div class="medication-name">${this.escapeHtml(prescription.medication || 'N/A')}</div>
                     </div>
                 </td>
-                <td>${this.escapeHtml(prescription.dosage || '-')}</td>
                 <td>${this.escapeHtml(prescription.frequency || '-')}</td>
                 <td>${this.formatDate(prescription.created_at)}</td>
                 <td>

@@ -90,7 +90,6 @@ window.AddPrescriptionModal = {
                 ? prescription.items
                 : [{
                     medication_name: prescription.medication,
-                    dosage: prescription.dosage,
                     frequency: prescription.frequency,
                     duration: prescription.duration,
                     quantity: prescription.quantity
@@ -111,14 +110,12 @@ window.AddPrescriptionModal = {
         if (!row || !item) return;
         
         const nameInput = row.querySelector('.medicine-name-hidden');
-        const dosage = row.querySelector('input[name="dosage[]"]');
         const freq = row.querySelector('select[name="frequency[]"]');
         const duration = row.querySelector('select[name="duration[]"]');
         const quantity = row.querySelector('input[name="quantity[]"]');
         const select = row.querySelector('.medicine-medication-select');
         
         if (nameInput) nameInput.value = item.medication_name || '';
-        if (dosage) dosage.value = item.dosage || '';
         if (freq) freq.value = item.frequency || '';
         if (duration) duration.value = item.duration || '';
         if (quantity) quantity.value = item.quantity || '';

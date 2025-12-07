@@ -29,7 +29,6 @@
                                 <thead>
                                     <tr>
                                         <th>Medication</th>
-                                        <th>Dosage</th>
                                         <th>Frequency</th>
                                         <th>Duration</th>
                                         <th>Quantity</th>
@@ -44,7 +43,6 @@
                                             </select>
                                             <input type="hidden" name="medication_name[]" class="medicine-name-hidden">
                                         </td>
-                                        <td><input type="text" name="dosage[]" class="form-input" placeholder="e.g., 500mg"></td>
                                         <td>
                                             <select name="frequency[]" class="form-select">
                                                 <option value="">Select Frequency</option>

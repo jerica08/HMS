@@ -390,7 +390,7 @@
         container.innerHTML = prescriptions.map(pres => {
             const items = pres.items || [];
             const medications = items.length > 0 
-                ? items.map(item => `${item.medication_name || item.medication} - ${item.dosage || 'N/A'}`).join('<br>')
+                ? items.map(item => `${item.medication_name || item.medication}`).join('<br>')
                 : (pres.medication || 'N/A');
 
             return `

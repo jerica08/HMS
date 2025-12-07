@@ -118,7 +118,6 @@ window.ViewPrescriptionModal = {
             body.innerHTML = items.map(item => `
                 <tr>
                     <td>${this.escapeHtml(item.medication_name || prescription.medication || 'N/A')}</td>
-                    <td>${this.escapeHtml(item.dosage || '')}</td>
                     <td>${this.escapeHtml(item.frequency || '')}</td>
                     <td>${this.escapeHtml(item.duration || '')}</td>
                     <td>${this.escapeHtml(String(item.quantity || ''))}</td>

@@ -263,7 +263,7 @@ class PrescriptionService
                 // legacy single-medication columns now store a summary so existing
                 // list views continue to work without change
                 'medication'   => $medicationSummary,
-                'dosage'       => $firstItem['dosage'],
+                'dosage'       => $firstItem['dosage'] ?? null,
                 'frequency'    => $firstItem['frequency'],
                 'days_supply'  => $firstItem['days_supply'],
                 'quantity'     => $firstItem['quantity'],

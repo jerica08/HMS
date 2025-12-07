@@ -277,7 +277,6 @@
                             <th>Prescription ID</th>
                             <th>Patient</th>
                             <th>Medication</th>
-                            <th>Dosage</th>
                             <th>Frequency</th>
                             <th>Date Issued</th>
                             <th>Status</th>
@@ -286,7 +285,7 @@
                     </thead>
                     <tbody id="prescriptionsTableBody">
                         <tr>
-                            <td colspan="8" class="loading-row">
+                            <td colspan="7" class="loading-row">
                                 <i class="fas fa-spinner fa-spin"></i> Loading prescriptions...
                             </td>
                         </tr>

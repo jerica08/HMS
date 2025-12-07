@@ -50,7 +50,6 @@
                             <thead>
                                 <tr>
                                     <th>Medication</th>
-                                    <th>Dosage</th>
                                     <th>Frequency</th>
                                     <th>Duration</th>
                                     <th>Quantity</th>

@@ -62,7 +62,6 @@ window.PrescriptionModalUtils = {
         const items = [];
         const medicationIds = formData.getAll('medication_resource_id[]');
         const medicationNames = formData.getAll('medication_name[]');
-        const dosages = formData.getAll('dosage[]');
         const frequencies = formData.getAll('frequency[]');
         const durations = formData.getAll('duration[]');
         const quantities = formData.getAll('quantity[]');
@@ -75,7 +74,6 @@ window.PrescriptionModalUtils = {
                 items.push({
                     medication_resource_id: medicationIds[i] || null,
                     medication_name: medName,
-                    dosage: dosages[i] || null,
                     frequency: frequencies[i] || null,
                     duration: durations[i] || null,
                     quantity: qty

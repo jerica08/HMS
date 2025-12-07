@@ -260,7 +260,7 @@ class ResourceService
             }
 
             return $builder
-                ->select('id, equipment_name, quantity, status')
+                ->select('id, equipment_name, quantity, status, price')
                 ->orderBy('equipment_name', 'ASC')
                 ->get()
                 ->getResultArray();

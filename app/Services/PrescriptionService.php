@@ -320,6 +320,15 @@ class PrescriptionService
 
             $this->db->transCommit();
 
+            // Automatically add to billing if prescription is created with completed/dispensed status
+            if (in_array($status, ['completed', 'dispensed'])) {
+                // Fetch the full prescription to ensure we have all data
+                $fullPrescription = $this->getPrescription($prescriptionId);
+                if ($fullPrescription) {
+                    $this->addPrescriptionToBilling($prescriptionId, $fullPrescription, $staffId);
+                }
+            }
+
             return [
                 'success'         => true,
                 'message'         => 'Prescription created successfully',
@@ -511,13 +520,30 @@ class PrescriptionService
                 return ['success' => false, 'message' => 'Invalid status'];
             }
 
+            $oldStatus = $existingPrescription['status'] ?? null;
             $updateData = [
                 'status' => $dbStatus,
                 'updated_at' => date('Y-m-d H:i:s')
             ];
 
+            // Also set dispensed_at timestamp if status is being changed to dispensed
+            if ($dbStatus === 'dispensed' && $oldStatus !== 'dispensed') {
+                $updateData['dispensed_at'] = date('Y-m-d H:i:s');
+            }
+
             if ($this->db->table('prescriptions')->where('id', $id)->update($updateData)) {
-                return ['success' => true, 'message' => 'Prescription status updated successfully'];
+                // Automatically add to billing when prescription is completed or dispensed
+                // Note: 'completed' status maps to 'dispensed' via mapStatus, so we check for 'dispensed'
+                if ($dbStatus === 'dispensed' && $oldStatus !== 'dispensed') {
+                    // Get updated prescription data
+                    $updatedPrescription = $this->getPrescription($id);
+                    if ($updatedPrescription) {
+                        $this->addPrescriptionToBilling($id, $updatedPrescription, $staffId);
+                    }
+                }
+                
+                return ['success' => true, 'message' => 'Prescription status updated successfully. ' . 
+                    ($dbStatus === 'dispensed' ? 'Prescription has been automatically added to billing.' : '')];
             }
 
             return ['success' => false, 'message' => 'Failed to update prescription status'];
@@ -868,8 +894,9 @@ class PrescriptionService
                 if (!empty($items)) {
                     $totalCost = 0.0;
                     foreach ($items as $item) {
-                        // Try to get price from inventory or use default
-                        $unitPrice = $this->getMedicationPrice($item['medication_name'] ?? '', $item['resource_id'] ?? null);
+                        // Try to get price from resources using medication_resource_id or medication_name
+                        $resourceId = $item['medication_resource_id'] ?? $item['resource_id'] ?? null;
+                        $unitPrice = $this->getMedicationPrice($item['medication_name'] ?? '', $resourceId);
                         $quantity = (int)($item['quantity'] ?? 1);
                         $totalCost += $unitPrice * $quantity;
                     }
@@ -897,30 +924,36 @@ class PrescriptionService
     private function getMedicationPrice(string $medicationName, ?int $resourceId = null): float
     {
         try {
-            // Try to get price from resources/inventory table
+            // Try to get price from resources table by ID
             if ($this->db->tableExists('resources') && $resourceId) {
                 $resource = $this->db->table('resources')
-                    ->select('unit_price, selling_price')
-                    ->where('resource_id', $resourceId)
+                    ->select('price, unit_price, selling_price')
+                    ->where('id', $resourceId)
+                    ->where('category', 'Medications')
                     ->get()
                     ->getRowArray();
 
                 if ($resource) {
-                    return (float)($resource['selling_price'] ?? $resource['unit_price'] ?? 0);
+                    // Use price field first, then fallback to selling_price or unit_price
+                    return (float)($resource['price'] ?? $resource['selling_price'] ?? $resource['unit_price'] ?? 0);
                 }
             }
 
             // Try to find by medication name
             if ($this->db->tableExists('resources') && !empty($medicationName)) {
                 $resource = $this->db->table('resources')
-                    ->select('unit_price, selling_price')
-                    ->like('resource_name', $medicationName)
-                    ->orLike('name', $medicationName)
+                    ->select('price, unit_price, selling_price')
+                    ->where('category', 'Medications')
+                    ->groupStart()
+                        ->like('equipment_name', $medicationName)
+                        ->orLike('medication_name', $medicationName)
+                    ->groupEnd()
                     ->get()
                     ->getRowArray();
 
                 if ($resource) {
-                    return (float)($resource['selling_price'] ?? $resource['unit_price'] ?? 0);
+                    // Use price field first, then fallback to selling_price or unit_price
+                    return (float)($resource['price'] ?? $resource['selling_price'] ?? $resource['unit_price'] ?? 0);
                 }
             }
 

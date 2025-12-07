@@ -17,6 +17,18 @@
         utils.toggleMedicationFields('er_category', 'editMedicationFields');
 
         form.addEventListener('submit', handleSubmit);
+        
+        // Additional validation for price when category is Medications
+        const categorySelect = document.getElementById('er_category');
+        if (categorySelect) {
+            categorySelect.addEventListener('change', () => {
+                const isMedication = categorySelect.value === 'Medications';
+                const priceInput = document.getElementById('er_price');
+                if (priceInput) {
+                    priceInput.required = isMedication;
+                }
+            });
+        }
     }
 
     function open(resourceId) {
@@ -55,12 +67,15 @@
         set('er_serial_number', resource.serial_number || '');
         set('er_batch_number', resource.batch_number || '');
         set('er_expiry_date', resource.expiry_date || '');
+        set('er_price', resource.price || '');
         set('er_remarks', resource.remarks || '');
 
         // Show/hide medication fields
         const isMedication = resource.category === 'Medications';
         const medFields = document.getElementById('editMedicationFields');
         if (medFields) medFields.style.display = isMedication ? 'flex' : 'none';
+        const priceFields = document.getElementById('editMedicationPriceFields');
+        if (priceFields) priceFields.style.display = isMedication ? 'flex' : 'none';
     }
 
     async function handleSubmit(e) {
@@ -90,6 +105,15 @@
         if (!location) {
             document.getElementById('err_er_location').textContent = 'Location is required.';
             hasErrors = true;
+        }
+        
+        // Validate price for medications
+        if (category === 'Medications') {
+            const price = document.getElementById('er_price')?.value;
+            if (!price || parseFloat(price) < 0) {
+                document.getElementById('err_er_price').textContent = 'Price is required and must be 0 or greater for medications.';
+                hasErrors = true;
+            }
         }
 
         if (hasErrors) return;

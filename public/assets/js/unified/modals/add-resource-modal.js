@@ -17,6 +17,18 @@
         utils.toggleMedicationFields('res_category', 'medicationFields');
 
         form.addEventListener('submit', handleSubmit);
+        
+        // Additional validation for price when category is Medications
+        const categorySelect = document.getElementById('res_category');
+        if (categorySelect) {
+            categorySelect.addEventListener('change', () => {
+                const isMedication = categorySelect.value === 'Medications';
+                const priceInput = document.getElementById('res_price');
+                if (priceInput) {
+                    priceInput.required = isMedication;
+                }
+            });
+        }
     }
 
     function open() {
@@ -58,6 +70,15 @@
         if (!location) {
             document.getElementById('err_res_location').textContent = 'Location is required.';
             hasErrors = true;
+        }
+        
+        // Validate price for medications
+        if (category === 'Medications') {
+            const price = document.getElementById('res_price')?.value;
+            if (!price || parseFloat(price) < 0) {
+                document.getElementById('err_res_price').textContent = 'Price is required and must be 0 or greater for medications.';
+                hasErrors = true;
+            }
         }
 
         if (hasErrors) return;

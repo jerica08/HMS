@@ -79,6 +79,18 @@ class ResourceModalUtils {
                 expiryDate.required = isMedication;
                 if (!isMedication) expiryDate.value = '';
             }
+            
+            // Toggle price fields
+            const priceFieldsId = fieldsContainerId === 'medicationFields' ? 'medicationPriceFields' : 'editMedicationPriceFields';
+            const priceFields = document.getElementById(priceFieldsId);
+            if (priceFields) {
+                priceFields.style.display = isMedication ? 'flex' : 'none';
+                const priceInput = priceFields.querySelector('[name="price"]');
+                if (priceInput) {
+                    priceInput.required = isMedication;
+                    if (!isMedication) priceInput.value = '';
+                }
+            }
         };
         
         categorySelect.addEventListener('change', toggleFields);

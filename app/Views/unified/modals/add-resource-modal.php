@@ -56,6 +56,13 @@
                             <small id="err_res_expiry_date" style="color:#dc2626"></small>
                         </div>
                     </div>
+                    <div class="form-row" id="medicationPriceFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="res_price"><i class="fas fa-dollar-sign"></i> Price <small style="color: #666;">(Required for medications - used for billing)</small></label>
+                            <input id="res_price" name="price" type="number" step="0.01" min="0" class="form-control" autocomplete="off" placeholder="0.00">
+                            <small id="err_res_price" style="color:#dc2626"></small>
+                        </div>
+                    </div>
                     <div class="form-row">
                         <div class="form-group full-width">
                             <label for="res_remarks">Remarks/Notes</label>

@@ -60,53 +60,22 @@ class RoomManagement extends BaseController
         return $this->jsonResponse(['status' => 'success', 'data' => $this->roomService->getRooms()]);
     }
 
-    public function getPatientsAPI()
+    public function getRoom(int $roomId)
     {
-        $tableName = $this->db->tableExists('patients') ? 'patients' : ($this->db->tableExists('patient') ? 'patient' : null);
-        if (!$tableName) {
-            return $this->jsonResponse(['status' => 'success', 'data' => []]);
-        }
-
-        $selectFields = 'patient_id, first_name, last_name, CONCAT(first_name, " ", last_name) AS full_name';
-        if ($this->db->fieldExists('patient_type', $tableName)) {
-            $selectFields .= ', patient_type';
-        }
-
-        $patients = $this->db->table($tableName)
-            ->select($selectFields)
-            ->orderBy('first_name', 'ASC')->orderBy('last_name', 'ASC')
-            ->limit(200)
-            ->get()
-            ->getResultArray();
+        $room = $this->roomService->getRoomById($roomId);
         
-        // Always try to derive patient_type if not set or if column doesn't exist
-        if ($this->db->tableExists('inpatient_admissions')) {
-            foreach ($patients as &$patient) {
-                if (!isset($patient['patient_type']) || empty($patient['patient_type'])) {
-                    $hasActiveAdmission = $this->db->table('inpatient_admissions')
-                        ->where('patient_id', $patient['patient_id'])
-                        ->groupStart()
-                            ->where('discharge_date', null)
-                            ->orWhere('discharge_date', '')
-                        ->groupEnd()
-                        ->countAllResults() > 0;
-                    
-                    $patient['patient_type'] = $hasActiveAdmission ? 'Inpatient' : 'Outpatient';
-                } else {
-                    $patient['patient_type'] = ucfirst(strtolower(trim($patient['patient_type'])));
-                }
-            }
-        } else {
-            foreach ($patients as &$patient) {
-                if (!isset($patient['patient_type']) || empty($patient['patient_type'])) {
-                    $patient['patient_type'] = 'Outpatient';
-                } else {
-                    $patient['patient_type'] = ucfirst(strtolower(trim($patient['patient_type'])));
-                }
-            }
+        if (!$room) {
+            return $this->jsonResponse($this->appendCsrfHash([
+                'success' => false,
+                'message' => 'Room not found'
+            ]), 404);
         }
 
-        return $this->jsonResponse(['status' => 'success', 'data' => $patients]);
+        return $this->jsonResponse($this->appendCsrfHash([
+            'success' => true,
+            'status' => 'success',
+            'data' => $room
+        ]));
     }
 
     public function createRoom()
@@ -166,27 +135,6 @@ class RoomManagement extends BaseController
         }
 
         return $this->jsonResponse($this->appendCsrfHash($payload));
-    }
-
-    public function assignRoom()
-    {
-        if (!$this->request->is('post')) {
-            return $this->jsonResponse($this->appendCsrfHash(['success' => false, 'message' => 'Method not allowed']), 405);
-        }
-
-        $input = $this->getRequestData();
-        if (!$this->validateCsrf($input)) {
-            return $this->jsonResponse($this->appendCsrfHash(['success' => false, 'message' => 'Invalid CSRF token']), 403);
-        }
-
-        $result = $this->roomService->assignRoomToPatient(
-            (int) ($input['room_id'] ?? 0),
-            (int) ($input['patient_id'] ?? 0),
-            (int) (session()->get('staff_id') ?? 0),
-            null
-        );
-
-        return $this->jsonResponse($this->appendCsrfHash($result), $result['success'] ? 200 : 400);
     }
 
     public function updateRoom(int $roomId)

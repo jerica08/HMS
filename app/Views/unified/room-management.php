@@ -173,7 +173,7 @@
 </div>
 
 <?= $this->include('unified/modals/add-room-modal', ['roomTypes' => $roomTypes ?? [], 'departments' => $departments ?? []]) ?>
-<?= $this->include('unified/modals/assign-room-modal') ?>
+<?= $this->include('unified/modals/view-room-modal') ?>
 
 
 <script>
@@ -182,7 +182,7 @@ window.roomTypeMetadata = <?= json_encode($roomTypeMetadata ?? [], JSON_HEX_TAG)
 
 <script src="<?= base_url('assets/js/unified/modals/shared/room-modal-utils.js') ?>"></script>
 <script src="<?= base_url('assets/js/unified/modals/add-room-modal.js') ?>"></script>
-<script src="<?= base_url('assets/js/unified/modals/assign-room-modal.js') ?>"></script>
+<script src="<?= base_url('assets/js/unified/modals/view-room-modal.js') ?>"></script>
 <script src="<?= base_url('assets/js/unified/room-management.js') ?>"></script>
 
 <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>

@@ -145,11 +145,11 @@
                 <td>${capitalize(room.status || 'unknown')}</td>
                 <td>
                     <div class="table-actions">
+                        <button class="btn btn-sm btn-outline" data-action="view" data-room-id="${room.room_id}" aria-label="View room ${escapeHtml(room.room_number)}">
+                            <i class="fas fa-eye"></i>
+                        </button>
                         <button class="btn btn-sm btn-outline" data-action="edit" data-room-id="${room.room_id}" aria-label="Edit room ${escapeHtml(room.room_number)}">
                             <i class="fas fa-pen"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline" data-action="assign" data-room-id="${room.room_id}" aria-label="Assign room ${escapeHtml(room.room_number)} to patient">
-                            <i class="fas fa-user-plus"></i>
                         </button>
                         ${isOccupied ? `<button class="btn btn-sm btn-outline" data-action="discharge" data-room-id="${room.room_id}" aria-label="Discharge room ${escapeHtml(room.room_number)}">
                             <i class="fas fa-door-open"></i>
@@ -174,13 +174,13 @@
             return;
         }
 
-        if (action === 'edit') {
+        if (action === 'view') {
+            if (window.ViewRoomModal && window.ViewRoomModal.open) {
+                window.ViewRoomModal.open(room.room_id);
+            }
+        } else if (action === 'edit') {
             if (window.AddRoomModal && window.AddRoomModal.open) {
                 window.AddRoomModal.open(room);
-            }
-        } else if (action === 'assign') {
-            if (window.AssignRoomModal && window.AssignRoomModal.open) {
-                window.AssignRoomModal.open(room.room_id);
             }
         } else if (action === 'discharge') {
             confirmDischargeRoom(room);

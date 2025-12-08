@@ -24,7 +24,7 @@
                 </div>
                 <div class="patient-tabs__content" data-form-wrapper>
                     <section id="outpatientTab" class="patient-tabs__panel active" role="tabpanel" aria-labelledby="outpatientTabBtn">
-                        <form id="addPatientForm" class="patient-form" data-form-type="outpatient" novalidate>
+                        <form id="addPatientForm" class="patient-form" data-form-type="outpatient" novalidate enctype="multipart/form-data">
                             <input type="hidden" name="patient_type" value="Outpatient">
                             <input type="hidden" name="country" value="Philippines">
                             <input type="hidden" name="region" value="Region XII - SOCCSKSARGEN">
@@ -304,9 +304,11 @@
                                         <p class="section-subtitle">Complete these only if the patient is covered.</p>
                                     </div>
                                 </div>
+
+                                <h5 class="subsection-title">Patient HMO Details</h5>
                                 <div class="form-grid">
                                     <div>
-                                        <label class="form-label" for="insurance_provider">Insurance Provider</label>
+                                        <label class="form-label" for="insurance_provider">Provider</label>
                                         <select id="insurance_provider" name="insurance_provider" class="form-select">
                                             <option value="">Select provider...</option>
                                             <option value="Maxicare">Maxicare</option>
@@ -326,52 +328,88 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="insurance_card_number">Card Number</label>
-                                        <input type="text" id="insurance_card_number" name="insurance_card_number" class="form-input">
+                                        <label class="form-label" for="outpatient_membership_number">Membership Number</label>
+                                        <input type="text" id="outpatient_membership_number" name="membership_number" class="form-input">
                                     </div>
                                     <div>
-                                        <label class="form-label" for="insurance_validity">Validity</label>
-                                        <input type="date" id="insurance_validity" name="insurance_validity" class="form-input">
-                                    </div>
-                                </div>
-                                <div class="form-grid">
-                                    <div>
-                                        <label class="form-label" for="outpatient_hmo_member_id">HMO Member ID / Card Number</label>
-                                        <input type="text" id="outpatient_hmo_member_id" name="hmo_member_id" class="form-input">
+                                        <label class="form-label" for="outpatient_cardholder_name">Card Holder Name</label>
+                                        <input type="text" id="outpatient_cardholder_name" name="hmo_cardholder_name" class="form-input">
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_hmo_approval_code">HMO Approval Code / LOA Number</label>
-                                        <input type="text" id="outpatient_hmo_approval_code" name="hmo_approval_code" class="form-input">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="outpatient_hmo_cardholder">HMO Cardholder Name</label>
-                                        <input type="text" id="outpatient_hmo_cardholder" name="hmo_cardholder_name" class="form-input">
-                                    </div>
-                                </div>
-                                <div class="form-grid">
-                                    <div>
-                                        <label class="form-label" for="outpatient_hmo_coverage_type">HMO Coverage Type</label>
-                                        <select id="outpatient_hmo_coverage_type" name="hmo_coverage_type" class="form-select">
+                                        <label class="form-label" for="outpatient_member_type">Member Type</label>
+                                        <select id="outpatient_member_type" name="member_type" class="form-select">
                                             <option value="">Select...</option>
-                                            <option value="Outpatient">Outpatient</option>
-                                            <option value="Inpatient">Inpatient</option>
+                                            <option value="Principal">Principal</option>
+                                            <option value="Dependent">Dependent</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Child">Child</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_hmo_expiry">HMO Expiry Date</label>
-                                        <input type="date" id="outpatient_hmo_expiry" name="hmo_expiry_date" class="form-input">
+                                        <label class="form-label" for="outpatient_relationship">Relationship</label>
+                                        <select id="outpatient_relationship" name="relationship" class="form-select">
+                                            <option value="">Select...</option>
+                                            <option value="Self">Self</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Child">Child</option>
+                                            <option value="Parent">Parent</option>
+                                            <option value="Sibling">Sibling</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <h5 class="subsection-title">Plan Details</h5>
+                                <div class="form-grid">
+                                    <div>
+                                        <label class="form-label" for="outpatient_plan_name">Plan Name</label>
+                                        <input type="text" id="outpatient_plan_name" name="plan_name" class="form-input">
+                                    </div>
+                                    <div class="full">
+                                        <label class="form-label" id="outpatient_coverage_type_label">Coverage Type</label>
+                                        <div class="coverage-checkbox-group" role="group" aria-labelledby="outpatient_coverage_type_label">
+                                            <?php
+                                                $coverageOptions = ['Outpatient', 'Inpatient', 'ER', 'Dental', 'Optical', 'Maternity'];
+                                                foreach ($coverageOptions as $option): ?>
+                                                    <label class="checkbox-chip">
+                                                        <input type="checkbox" name="plan_coverage_types[]" value="<?= esc($option) ?>">
+                                                        <span><?= esc($option) ?></span>
+                                                    </label>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="outpatient_hmo_contact">HMO Contact Person (optional)</label>
-                                        <input type="text" id="outpatient_hmo_contact" name="hmo_contact_person" class="form-input">
+                                        <label class="form-label" for="outpatient_mbl">MBL</label>
+                                        <input type="number" min="0" step="0.01" id="outpatient_mbl" name="mbl" class="form-input" placeholder="Maximum Benefit Limit">
                                     </div>
-                                </div>
-                                <div class="form-grid">
                                     <div class="full">
-                                        <label class="form-label" for="outpatient_hmo_attachment">Attachment Upload (LOA / ID)</label>
-                                        <input type="file" id="outpatient_hmo_attachment" name="hmo_attachment" class="form-input">
+                                        <label class="form-label" for="outpatient_preexisting">Pre-existing Coverage</label>
+                                        <textarea id="outpatient_preexisting" name="pre_existing_coverage" class="form-input" rows="2" placeholder="Specify any pre-existing coverage conditions"></textarea>
                                     </div>
                                 </div>
+
+                                <h5 class="subsection-title">Validity</h5>
+                                <div class="form-grid">
+                                    <div>
+                                        <label class="form-label" for="outpatient_validity_start">Start Date</label>
+                                        <input type="date" id="outpatient_validity_start" name="coverage_start_date" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_validity_end">End Date</label>
+                                        <input type="date" id="outpatient_validity_end" name="coverage_end_date" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="outpatient_card_status">Card Status</label>
+                                        <select id="outpatient_card_status" name="card_status" class="form-select">
+                                            <option value="">Select...</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Expired">Expired</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Suspended">Suspended</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                             </div>
 
                             <div class="form-actions" style="display: flex; justify-content: flex-end; margin-top: 1rem;">
@@ -383,7 +421,7 @@
                         </form>
                     </section>
                     <section id="inpatientTab" class="patient-tabs__panel" role="tabpanel" aria-labelledby="inpatientTabBtn" hidden>
-                        <form id="addInpatientForm" class="patient-form" data-form-type="inpatient" novalidate>
+                        <form id="addInpatientForm" class="patient-form" data-form-type="inpatient" novalidate enctype="multipart/form-data">
                             <input type="hidden" name="patient_type" value="Inpatient">
                             <input type="hidden" name="country" value="Philippines">
                             <input type="hidden" name="region" value="Region XII - SOCCSKSARGEN">
@@ -754,9 +792,11 @@
                                         <p class="section-subtitle">Complete these only if the patient is covered.</p>
                                     </div>
                                 </div>
+
+                                <h5 class="subsection-title">Patient HMO Details</h5>
                                 <div class="form-grid">
                                     <div>
-                                        <label class="form-label" for="inpatient_insurance_provider">Insurance Provider</label>
+                                        <label class="form-label" for="inpatient_insurance_provider">Provider</label>
                                         <select id="inpatient_insurance_provider" name="insurance_provider" class="form-select">
                                             <option value="">Select provider...</option>
                                             <option value="Maxicare">Maxicare</option>
@@ -776,52 +816,86 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="inpatient_insurance_card_number">Card Number</label>
-                                        <input type="text" id="inpatient_insurance_card_number" name="insurance_card_number" class="form-input">
+                                        <label class="form-label" for="inpatient_membership_number">Membership Number</label>
+                                        <input type="text" id="inpatient_membership_number" name="membership_number" class="form-input">
                                     </div>
                                     <div>
-                                        <label class="form-label" for="inpatient_insurance_validity">Validity</label>
-                                        <input type="date" id="inpatient_insurance_validity" name="insurance_validity" class="form-input">
-                                    </div>
-                                </div>
-                                <div class="form-grid">
-                                    <div>
-                                        <label class="form-label" for="inpatient_hmo_member_id">HMO Member ID / Card Number</label>
-                                        <input type="text" id="inpatient_hmo_member_id" name="hmo_member_id" class="form-input">
+                                        <label class="form-label" for="inpatient_cardholder_name">Card Holder Name</label>
+                                        <input type="text" id="inpatient_cardholder_name" name="hmo_cardholder_name" class="form-input">
                                     </div>
                                     <div>
-                                        <label class="form-label" for="inpatient_hmo_approval_code">HMO Approval Code / LOA Number</label>
-                                        <input type="text" id="inpatient_hmo_approval_code" name="hmo_approval_code" class="form-input">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="inpatient_hmo_cardholder">HMO Cardholder Name</label>
-                                        <input type="text" id="inpatient_hmo_cardholder" name="hmo_cardholder_name" class="form-input">
-                                    </div>
-                                </div>
-                                <div class="form-grid">
-                                    <div>
-                                        <label class="form-label" for="inpatient_hmo_coverage_type">HMO Coverage Type</label>
-                                        <select id="inpatient_hmo_coverage_type" name="hmo_coverage_type" class="form-select">
+                                        <label class="form-label" for="inpatient_member_type">Member Type</label>
+                                        <select id="inpatient_member_type" name="member_type" class="form-select">
                                             <option value="">Select...</option>
-                                            <option value="Outpatient">Outpatient</option>
-                                            <option value="Inpatient">Inpatient</option>
+                                            <option value="Principal">Principal</option>
+                                            <option value="Dependent">Dependent</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Child">Child</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="inpatient_hmo_expiry">HMO Expiry Date</label>
-                                        <input type="date" id="inpatient_hmo_expiry" name="hmo_expiry_date" class="form-input">
+                                        <label class="form-label" for="inpatient_relationship">Relationship</label>
+                                        <select id="inpatient_relationship" name="relationship" class="form-select">
+                                            <option value="">Select...</option>
+                                            <option value="Self">Self</option>
+                                            <option value="Spouse">Spouse</option>
+                                            <option value="Child">Child</option>
+                                            <option value="Parent">Parent</option>
+                                            <option value="Sibling">Sibling</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <h5 class="subsection-title">Plan Details</h5>
+                                <div class="form-grid">
+                                    <div>
+                                        <label class="form-label" for="inpatient_plan_name">Plan Name</label>
+                                        <input type="text" id="inpatient_plan_name" name="plan_name" class="form-input">
+                                    </div>
+                                    <div class="full">
+                                        <label class="form-label" id="inpatient_coverage_type_label">Coverage Type</label>
+                                        <div class="coverage-checkbox-group" role="group" aria-labelledby="inpatient_coverage_type_label">
+                                            <?php foreach ($coverageOptions as $option): ?>
+                                                <label class="checkbox-chip">
+                                                    <input type="checkbox" name="plan_coverage_types[]" value="<?= esc($option) ?>">
+                                                    <span><?= esc($option) ?></span>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="inpatient_hmo_contact">HMO Contact Person (optional)</label>
-                                        <input type="text" id="inpatient_hmo_contact" name="hmo_contact_person" class="form-input">
+                                        <label class="form-label" for="inpatient_mbl">MBL</label>
+                                        <input type="number" min="0" step="0.01" id="inpatient_mbl" name="mbl" class="form-input" placeholder="Maximum Benefit Limit">
                                     </div>
-                                </div>
-                                <div class="form-grid">
                                     <div class="full">
-                                        <label class="form-label" for="inpatient_hmo_attachment">Attachment Upload (LOA / ID)</label>
-                                        <input type="file" id="inpatient_hmo_attachment" name="hmo_attachment" class="form-input">
+                                        <label class="form-label" for="inpatient_preexisting">Pre-existing Coverage</label>
+                                        <textarea id="inpatient_preexisting" name="pre_existing_coverage" class="form-input" rows="2" placeholder="Specify any pre-existing coverage conditions"></textarea>
                                     </div>
                                 </div>
+
+                                <h5 class="subsection-title">Validity</h5>
+                                <div class="form-grid">
+                                    <div>
+                                        <label class="form-label" for="inpatient_validity_start">Start Date</label>
+                                        <input type="date" id="inpatient_validity_start" name="coverage_start_date" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="inpatient_validity_end">End Date</label>
+                                        <input type="date" id="inpatient_validity_end" name="coverage_end_date" class="form-input">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="inpatient_card_status">Card Status</label>
+                                        <select id="inpatient_card_status" name="card_status" class="form-select">
+                                            <option value="">Select...</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Expired">Expired</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Suspended">Suspended</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                             </div>
 
                             <div class="form-actions" style="display: flex; justify-content: flex-end; margin-top: 1rem;">

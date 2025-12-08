@@ -272,10 +272,11 @@ const PatientUtils = {
      */
     displayFormErrors(errors, formElement) {
         // Clear previous errors
-        formElement.querySelectorAll('.is-invalid').forEach(el => {
+        formElement.querySelectorAll('.is-invalid, .error').forEach(el => {
             el.classList.remove('is-invalid');
+            el.classList.remove('error');
         });
-        formElement.querySelectorAll('.invalid-feedback').forEach(el => {
+        formElement.querySelectorAll('.invalid-feedback, .form-error').forEach(el => {
             el.textContent = '';
         });
         
@@ -285,20 +286,37 @@ const PatientUtils = {
             let feedback = null;
 
             if (input) {
-                // Try direct sibling first
-                const sibling = input.nextElementSibling;
-                if (sibling && sibling.classList && sibling.classList.contains('invalid-feedback')) {
-                    feedback = sibling;
-                } else if (input.parentElement) {
-                    // Fallback: look within parent container
-                    feedback = input.parentElement.querySelector('.invalid-feedback');
+                // First, try to find error element by ID (err_${field})
+                const errorById = document.getElementById(`err_${field}`);
+                if (errorById) {
+                    feedback = errorById;
+                } else {
+                    // Try direct sibling first
+                    const sibling = input.nextElementSibling;
+                    if (sibling && sibling.classList && 
+                        (sibling.classList.contains('invalid-feedback') || sibling.classList.contains('form-error'))) {
+                        feedback = sibling;
+                    } else if (input.parentElement) {
+                        // Fallback: look within parent container
+                        feedback = input.parentElement.querySelector('.invalid-feedback, .form-error');
+                    }
                 }
 
                 input.classList.add('is-invalid');
+                // Also add error class for styling
+                input.classList.add('error');
+            } else {
+                // If input not found, still try to find error element by ID
+                const errorById = document.getElementById(`err_${field}`);
+                if (errorById) {
+                    feedback = errorById;
+                }
             }
 
             if (feedback) {
-                feedback.textContent = message;
+                const errorMessage = Array.isArray(message) ? message[0] : message;
+                feedback.textContent = errorMessage;
+                feedback.style.display = 'block';
             }
         }
     },

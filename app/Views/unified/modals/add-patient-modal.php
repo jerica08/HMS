@@ -562,7 +562,24 @@
                                     </div>
                                     <div>
                                         <label class="form-label" for="admitting_doctor">Admitting Doctor*</label>
-                                        <input type="text" id="admitting_doctor" name="admitting_doctor" class="form-input" required>
+                                        <select id="admitting_doctor" name="admitting_doctor" class="form-select" required>
+                                            <option value="">Select doctor...</option>
+                                            <?php if (!empty($availableDoctors)): ?>
+                                                <?php foreach ($availableDoctors as $d): ?>
+                                                    <option value="<?= esc($d['staff_id'] ?? $d['id']) ?>" 
+                                                            data-specialization="<?= esc($d['specialization'] ?? '') ?>"
+                                                            data-doctor-name="<?= esc(trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''))) ?>">
+                                                        <?= esc(trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''))) ?>
+                                                        <?php if (!empty($d['specialization'])): ?>
+                                                            - <?= esc($d['specialization']) ?>
+                                                        <?php endif; ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <option value="">No doctors available</option>
+                                            <?php endif; ?>
+                                        </select>
+                                        <small id="err_admitting_doctor" class="form-error"></small>
                                     </div>
                                     <div>
                                         <label class="form-label" for="consent_uploaded">Consent Form Uploaded?</label>
@@ -698,6 +715,7 @@
                                             <option value="Semi-conscious">Semi-conscious</option>
                                             <option value="Unconscious">Unconscious</option>
                                         </select>
+                                        <small id="err_level_of_consciousness" class="form-error"></small>
                                     </div>
                                     <div>
                                         <label class="form-label" for="pain_level">Pain Level (0-10)</label>

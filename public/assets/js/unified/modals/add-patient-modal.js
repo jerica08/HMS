@@ -111,6 +111,7 @@ const AddPatientModal = {
     modal: null,
     form: null,
     doctorsCache: null,
+    admittingDoctorsCache: null,
     forms: {},
     tabButtons: null,
     formWrapper: null,
@@ -173,10 +174,13 @@ const AddPatientModal = {
         });
 
         // Date of birth change - update age display and pediatric logic
-        const dobInput = document.getElementById('date_of_birth');
-        const inpatientDobInput = document.getElementById('inpatient_date_of_birth');
-        if (dobInput) {
-            dobInput.addEventListener('change', () => this.handleDobChange());
+        // Outpatient form uses 'inpatient_date_of_birth' (incorrectly named)
+        const outpatientDobInput = document.getElementById('inpatient_date_of_birth');
+        // Inpatient form uses 'date_of_birth'
+        const inpatientDobInput = document.getElementById('date_of_birth');
+        
+        if (outpatientDobInput) {
+            outpatientDobInput.addEventListener('change', () => this.handleDobChange());
         }
         if (inpatientDobInput) {
             inpatientDobInput.addEventListener('change', () => this.handleInpatientDobChange());
@@ -219,6 +223,9 @@ const AddPatientModal = {
             });
         }
 
+        // Clear errors when user interacts with form fields
+        this.setupErrorClearing();
+
         // Close modal when clicking outside
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
@@ -247,6 +254,54 @@ const AddPatientModal = {
                 }
             });
         });
+    },
+
+    /**
+     * Setup error clearing when user interacts with form fields
+     */
+    setupErrorClearing() {
+        // Add event listeners to all form inputs/selects to clear errors on change
+        Object.values(this.forms).forEach(form => {
+            if (!form) return;
+            
+            // Get all inputs, selects, and textareas
+            const formFields = form.querySelectorAll('input, select, textarea');
+            formFields.forEach(field => {
+                // Clear error when user changes the field
+                field.addEventListener('change', () => {
+                    this.clearFieldError(field);
+                });
+                field.addEventListener('input', () => {
+                    this.clearFieldError(field);
+                });
+            });
+        });
+    },
+
+    /**
+     * Clear error for a specific field
+     */
+    clearFieldError(field) {
+        if (!field) return;
+        
+        // Remove error classes
+        field.classList.remove('is-invalid');
+        field.classList.remove('error');
+        
+        // Clear error message
+        const fieldName = field.getAttribute('name');
+        if (fieldName) {
+            const errorElement = document.getElementById(`err_${fieldName}`);
+            if (errorElement) {
+                errorElement.textContent = '';
+            }
+            
+            // Also check for error elements in parent
+            const parentError = field.parentElement?.querySelector('.form-error, .invalid-feedback');
+            if (parentError) {
+                parentError.textContent = '';
+            }
+        }
     },
 
     /**
@@ -280,7 +335,10 @@ const AddPatientModal = {
         Object.values(this.forms).forEach(form => {
             if (!form) return;
             form.reset();
-            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            form.querySelectorAll('.is-invalid, .error').forEach(el => {
+                el.classList.remove('is-invalid');
+                el.classList.remove('error');
+            });
             form.querySelectorAll('.invalid-feedback, .form-error').forEach(el => {
                 el.textContent = '';
             });
@@ -293,6 +351,14 @@ const AddPatientModal = {
         if (inpatientAge) {
             inpatientAge.value = '';
         }
+        const ageDisplay = document.getElementById('age_display');
+        if (ageDisplay) {
+            ageDisplay.value = '';
+        }
+        // Reset admitting doctors cache so it refreshes with current options
+        this.admittingDoctorsCache = null;
+        // Restore admitting doctor dropdown to show all doctors
+        this.restoreAdmittingDoctorOptions();
         this.resetAddressSelects();
         this.populateProvincesForAll();
     },
@@ -750,8 +816,8 @@ const AddPatientModal = {
      * Handle DOB change: update age display and filter doctors for newborns
      */
     handleDobChange() {
-        const dobInput = document.getElementById('date_of_birth');
-        const ageDisplay = document.getElementById('age_display');
+        const dobInput = document.getElementById('inpatient_date_of_birth');
+        const ageDisplay = document.getElementById('inpatient_age');
         if (!dobInput || !ageDisplay) return;
 
         const dobValue = dobInput.value;
@@ -774,23 +840,27 @@ const AddPatientModal = {
     },
 
     handleInpatientDobChange() {
-        const dobInput = document.getElementById('inpatient_date_of_birth');
-        const ageInput = document.getElementById('inpatient_age');
+        const dobInput = document.getElementById('date_of_birth');
+        const ageInput = document.getElementById('age_display');
         if (!dobInput || !ageInput) return;
 
         const dobValue = dobInput.value;
         if (!dobValue) {
             ageInput.value = '';
+            this.filterAdmittingDoctors(null);
             return;
         }
 
         const ageYears = this.calculateAgeYears(dobValue);
         if (ageYears === null) {
             ageInput.value = '';
+            this.filterAdmittingDoctors(null);
         } else if (ageYears < 1) {
             ageInput.value = 'Newborn / < 1 year';
+            this.filterAdmittingDoctors(ageYears);
         } else {
             ageInput.value = `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+            this.filterAdmittingDoctors(ageYears);
         }
     },
 
@@ -928,6 +998,103 @@ const AddPatientModal = {
             opt.textContent = optData.text;
             if (optData.department) {
                 opt.setAttribute('data-department', optData.department);
+            }
+            doctorSelect.appendChild(opt);
+        });
+    },
+
+    /**
+     * Filter admitting doctors based on patient age and specialization
+     */
+    filterAdmittingDoctors(ageYears) {
+        const doctorSelect = document.getElementById('admitting_doctor');
+        if (!doctorSelect) return;
+
+        // Cache all doctor options the first time (including specialization from data attribute)
+        if (!this.admittingDoctorsCache) {
+            this.admittingDoctorsCache = Array.from(doctorSelect.options).map(opt => ({
+                value: opt.value,
+                text: opt.textContent,
+                specialization: opt.getAttribute('data-specialization') || '',
+                doctorName: opt.getAttribute('data-doctor-name') || ''
+            }));
+        }
+
+        // If no age provided, restore full list
+        if (ageYears === null) {
+            this.restoreAdmittingDoctorOptions();
+            return;
+        }
+
+        const isPediatricAge = ageYears < 18;
+        const pediatricKeywords = ['pediatric', 'pediatrics', 'pediatrician', 'neonatal', 'neonatology'];
+
+        // Filter doctors based on age
+        const filtered = this.admittingDoctorsCache.filter(opt => {
+            // Always include the empty option
+            if (opt.value === '') return true;
+
+            const specialization = (opt.specialization || '').toLowerCase();
+            const text = (opt.text || '').toLowerCase();
+
+            // For pediatric patients (< 18), show pediatric doctors
+            if (isPediatricAge) {
+                return pediatricKeywords.some(k => 
+                    specialization.includes(k) || text.includes(k)
+                );
+            } else {
+                // For adult patients (>= 18), exclude pediatric-only doctors
+                return !pediatricKeywords.some(k => 
+                    specialization.includes(k) || text.includes(k)
+                );
+            }
+        });
+
+        // Update the dropdown
+        doctorSelect.innerHTML = '';
+        filtered.forEach(optData => {
+            const opt = document.createElement('option');
+            opt.value = optData.value;
+            opt.textContent = optData.text;
+            if (optData.specialization) {
+                opt.setAttribute('data-specialization', optData.specialization);
+            }
+            if (optData.doctorName) {
+                opt.setAttribute('data-doctor-name', optData.doctorName);
+            }
+            doctorSelect.appendChild(opt);
+        });
+
+        // If no doctors match, show a message
+        if (filtered.length <= 1 && filtered[0]?.value === '') {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = isPediatricAge 
+                ? 'No pediatric doctors available' 
+                : 'No adult doctors available';
+            opt.disabled = true;
+            opt.selected = true;
+            doctorSelect.appendChild(opt);
+        }
+    },
+
+    /**
+     * Restore all admitting doctor options
+     */
+    restoreAdmittingDoctorOptions() {
+        const doctorSelect = document.getElementById('admitting_doctor');
+        if (!doctorSelect || !this.admittingDoctorsCache) return;
+
+        doctorSelect.innerHTML = '';
+        this.admittingDoctorsCache.forEach(optData => {
+            const opt = document.createElement('option');
+            opt.value = optData.value;
+            opt.textContent = optData.text;
+            if (optData.specialization) {
+                opt.setAttribute('data-specialization', optData.specialization);
+            }
+            if (optData.doctorName) {
+                opt.setAttribute('data-doctor-name', optData.doctorName);
             }
             doctorSelect.appendChild(opt);
         });

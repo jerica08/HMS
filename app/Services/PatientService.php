@@ -54,6 +54,9 @@ class PatientService
             $this->db->table($this->patientTable)->insert($data);
             $newPatientId = (int) $this->db->insertID();
 
+            // Create emergency contact record
+            $this->createEmergencyContactRecord($newPatientId, $input);
+
             // Insert role-specific records (outpatient visit or inpatient admission tree)
             $this->persistRoleSpecificRecords($newPatientId, $input);
 
@@ -194,7 +197,22 @@ class PatientService
     public function getPatient($id)
     {
         try {
-            $patient = $this->db->table($this->patientTable)->where('patient_id', $id)->get()->getRowArray();
+            $builder = $this->db->table($this->patientTable . ' p');
+            
+            // Check if primary_doctor_id column exists and join to get doctor name
+            $hasPrimaryDoctor = $this->patientTableHasColumn('primary_doctor_id');
+            if ($hasPrimaryDoctor) {
+                // Join doctor table first, then staff to get doctor name
+                $builder->select('p.*, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
+                        ->join('doctor d', 'd.doctor_id = p.primary_doctor_id', 'left')
+                        ->join('staff s', 's.staff_id = d.staff_id', 'left');
+            } else {
+                $builder->select('p.*');
+            }
+            
+            $patient = $builder->where('p.patient_id', $id)
+                ->get()
+                ->getRowArray();
 
             if (!$patient) {
                 return [
@@ -207,6 +225,14 @@ class PatientService
             $patient['age'] = $patient['date_of_birth']
                 ? (new \DateTime())->diff(new \DateTime($patient['date_of_birth']))->y
                 : null;
+
+            // Ensure all address fields are included even if null
+            $addressFields = ['province', 'city', 'barangay', 'subdivision', 'house_number', 'zip_code'];
+            foreach ($addressFields as $field) {
+                if (!isset($patient[$field])) {
+                    $patient[$field] = null;
+                }
+            }
 
             return [
                 'status' => 'success',
@@ -447,10 +473,19 @@ class PatientService
                 return $this->getPatientsByRole($userRole, $staffId);
             }
 
-            $patients = $this->db->table($this->patientTable . ' p')
-                ->select('p.*, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
-                ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
-                ->orderBy('p.patient_id', 'DESC')
+            $builder = $this->db->table($this->patientTable . ' p');
+            
+            $hasPrimaryDoctor = $this->patientTableHasColumn('primary_doctor_id');
+            if ($hasPrimaryDoctor) {
+                // Join doctor table first, then staff to get doctor name
+                $builder->select('p.*, CONCAT(s.first_name, " ", s.last_name) as assigned_doctor_name')
+                        ->join('doctor d', 'd.doctor_id = p.primary_doctor_id', 'left')
+                        ->join('staff s', 's.staff_id = d.staff_id', 'left');
+            } else {
+                $builder->select('p.*');
+            }
+            
+            $patients = $builder->orderBy('p.patient_id', 'DESC')
                 ->get()
                 ->getResultArray();
             
@@ -479,13 +514,28 @@ class PatientService
             return [];
         }
 
-        $staffDoctors = $this->db->table('staff s')
-            ->select('s.staff_id, s.first_name, s.last_name')
-            ->join('roles r', 'r.role_id = s.role_id', 'inner')
-            ->where('r.slug', 'doctor')
-            ->orderBy('s.first_name', 'ASC')
-            ->get()
-            ->getResultArray();
+        // Check if doctor table exists and has specialization
+        $hasDoctorTable = $this->db->tableExists('doctor');
+        
+        if ($hasDoctorTable) {
+            $staffDoctors = $this->db->table('staff s')
+                ->select('s.staff_id, s.first_name, s.last_name, d.specialization, d.status')
+                ->join('roles r', 'r.role_id = s.role_id', 'inner')
+                ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
+                ->where('r.slug', 'doctor')
+                ->where('d.status', 'Active')
+                ->orderBy('s.first_name', 'ASC')
+                ->get()
+                ->getResultArray();
+        } else {
+            $staffDoctors = $this->db->table('staff s')
+                ->select('s.staff_id, s.first_name, s.last_name')
+                ->join('roles r', 'r.role_id = s.role_id', 'inner')
+                ->where('r.slug', 'doctor')
+                ->orderBy('s.first_name', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
 
         return $this->formatDoctorData($staffDoctors);
     }
@@ -502,6 +552,7 @@ class PatientService
             }
             $d['full_name'] = trim(($d['first_name'] ?? '') . ' ' . ($d['last_name'] ?? ''));
             $d['id'] = $d['staff_id'];
+            $d['specialization'] = $d['specialization'] ?? null;
             return $d;
         }, $doctors);
     }
@@ -573,19 +624,34 @@ class PatientService
             'middle_name' => $input['middle_name'] ?? null,
             'last_name' => $input['last_name'] ?? null,
             'gender' => ucfirst(strtolower($input['gender'] ?? '')),
+            'sex' => ucfirst(strtolower($input['gender'] ?? $input['sex'] ?? '')),
             'civil_status' => $input['civil_status'] ?? null,
             'date_of_birth' => $input['date_of_birth'] ?? null,
-            'contact_no' => $input['phone'] ?? ($input['contact_no'] ?? null),
+            'contact_no' => $input['phone'] ?? ($input['contact_no'] ?? ($input['contact_number'] ?? null)),
+            'contact_number' => $input['phone'] ?? ($input['contact_number'] ?? ($input['contact_no'] ?? null)),
             'email' => $input['email'] ?? null,
             'address' => $input['address'] ?? null,
+            'house_number' => $input['house_number'] ?? null,
+            'subdivision' => $input['subdivision'] ?? null,
             'province' => $input['province'] ?? null,
             'city' => $input['city'] ?? null,
             'barangay' => $input['barangay'] ?? null,
             'zip_code' => $input['zip_code'] ?? null,
             'insurance_provider' => $input['insurance_provider'] ?? null,
             'insurance_number' => $input['insurance_number'] ?? null,
-            'emergency_contact' => $input['emergency_contact_name'] ?? null,
-            'emergency_phone' => $input['emergency_contact_phone'] ?? null,
+            'insurance_card_number' => $input['insurance_card_number'] ?? null,
+            'insurance_validity' => $input['insurance_validity'] ?? null,
+            'hmo_member_id' => $input['hmo_member_id'] ?? null,
+            'hmo_approval_code' => $input['hmo_approval_code'] ?? null,
+            'hmo_cardholder_name' => $input['hmo_cardholder_name'] ?? null,
+            'hmo_coverage_type' => $input['hmo_coverage_type'] ?? null,
+            'hmo_expiry_date' => $input['hmo_expiry_date'] ?? null,
+            'hmo_contact_person' => $input['hmo_contact_person'] ?? null,
+            'hmo_attachment' => $input['hmo_attachment'] ?? null,
+            'emergency_contact' => $input['emergency_contact_name'] ?? ($input['emergency_contact'] ?? null),
+            'emergency_phone' => $input['emergency_contact_phone'] ?? ($input['emergency_phone'] ?? null),
+            'emergency_contact_name' => $input['emergency_contact_name'] ?? ($input['emergency_contact'] ?? null),
+            'emergency_contact_relationship' => $input['emergency_contact_relationship'] ?? null,
             'patient_type' => ucfirst(strtolower($input['patient_type'] ?? 'Outpatient')),
             'blood_group' => $input['blood_group'] ?? null,
             'medical_notes' => $input['medical_notes'] ?? null,
@@ -628,11 +694,52 @@ class PatientService
     private function sanitizePatientDataForTable(array $data): array
     {
         if (empty($this->patientTableColumns)) {
+            // If we can't get columns, return data as-is but log a warning
+            log_message('debug', 'PatientService: Could not load patient table columns, saving all provided fields');
             return $data;
         }
 
         $allowed = array_flip($this->patientTableColumns);
-        return array_intersect_key($data, $allowed);
+        $sanitized = array_intersect_key($data, $allowed);
+        
+        // Log any fields that were filtered out for debugging (only in debug mode)
+        $filteredOut = array_diff_key($data, $allowed);
+        if (!empty($filteredOut) && ENVIRONMENT === 'development') {
+            log_message('debug', 'PatientService: Filtered out fields that don\'t exist in table: ' . implode(', ', array_keys($filteredOut)));
+        }
+        
+        return $sanitized;
+    }
+
+    /**
+     * Create emergency contact record
+     */
+    private function createEmergencyContactRecord(int $patientId, array $input): void
+    {
+        if (!$this->db->tableExists('emergency_contacts')) {
+            return;
+        }
+
+        $contactName = $input['emergency_contact_name'] ?? $input['emergency_contact'] ?? null;
+        $contactPhone = $input['emergency_contact_phone'] ?? $input['emergency_phone'] ?? null;
+        $relationship = $input['emergency_contact_relationship'] ?? null;
+
+        if (!$contactName || !$contactPhone) {
+            return;
+        }
+
+        $contactData = [
+            'patient_id' => $patientId,
+            'name' => $contactName,
+            'relationship' => $relationship ?? 'Other',
+            'contact_number' => $contactPhone,
+        ];
+
+        try {
+            $this->db->table('emergency_contacts')->insert($contactData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to insert emergency contact for patient ' . $patientId . ': ' . $e->getMessage());
+        }
     }
 
     private function persistRoleSpecificRecords(int $patientId, array $input): void
@@ -650,6 +757,57 @@ class PatientService
 
         // Default: treat as outpatient visit
         $this->createOutpatientVisitRecord($patientId, $input);
+    }
+
+    /**
+     * Create outpatient visit record
+     */
+    private function createOutpatientVisitRecord(int $patientId, array $input): void
+    {
+        if (!$this->db->tableExists('outpatient_visits')) {
+            return;
+        }
+
+        // Get assigned doctor name if staff_id is provided
+        $assignedDoctor = null;
+        if (!empty($input['assigned_doctor'])) {
+            if (is_numeric($input['assigned_doctor'])) {
+                $assignedDoctor = $this->resolveDoctorFullName($input['assigned_doctor']);
+            } else {
+                $assignedDoctor = $input['assigned_doctor'];
+            }
+        }
+
+        $visitData = [
+            'patient_id' => $patientId,
+            'department' => $input['department'] ?? null,
+            'assigned_doctor' => $assignedDoctor,
+            'appointment_datetime' => $input['appointment_datetime'] ?? null,
+            'visit_type' => $input['visit_type'] ?? null,
+            'chief_complaint' => $input['chief_complaint'] ?? null,
+            'allergies' => $input['allergies'] ?? null,
+            'existing_conditions' => $input['existing_conditions'] ?? null,
+            'current_medications' => $input['current_medications'] ?? null,
+            'blood_pressure' => $input['blood_pressure'] ?? null,
+            'heart_rate' => $input['heart_rate'] ?? null,
+            'respiratory_rate' => $input['respiratory_rate'] ?? null,
+            'temperature' => $input['temperature'] ?? null,
+            'weight' => $input['weight_kg'] ?? $input['weight'] ?? null,
+            'height' => $input['height_cm'] ?? $input['height'] ?? null,
+            'payment_type' => $input['payment_type'] ?? null,
+        ];
+
+        try {
+            // Filter to only include columns that exist
+            $fields = $this->db->getFieldData('outpatient_visits');
+            $existingColumns = array_map(static fn($field) => $field->name ?? null, $fields);
+            $existingColumns = array_filter($existingColumns);
+
+            $visitData = array_intersect_key($visitData, array_flip($existingColumns));
+            $this->db->table('outpatient_visits')->insert($visitData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to insert outpatient visit for patient ' . $patientId . ': ' . $e->getMessage());
+        }
     }
 
     /**
@@ -690,6 +848,15 @@ class PatientService
             'admitting_diagnosis' => $input['admitting_diagnosis'] ?? null,
             'admitting_doctor'    => $input['admitting_doctor'] ?? null,
             'consent_signed'      => in_array($consent, ['1', 'true', 'yes', 'on'], true) ? 1 : 0,
+            'insurance_provider'  => $input['insurance_provider'] ?? null,
+            'insurance_card_number' => $input['insurance_card_number'] ?? null,
+            'insurance_validity'  => $input['insurance_validity'] ?? null,
+            'hmo_member_id'       => $input['hmo_member_id'] ?? null,
+            'hmo_approval_code'   => $input['hmo_approval_code'] ?? null,
+            'hmo_cardholder_name' => $input['hmo_cardholder_name'] ?? null,
+            'hmo_coverage_type'   => $input['hmo_coverage_type'] ?? null,
+            'hmo_expiry_date'     => $input['hmo_expiry_date'] ?? null,
+            'hmo_contact_person'  => $input['hmo_contact_person'] ?? null,
         ];
 
         // Filter admission data to only include columns that actually exist on inpatient_admissions
@@ -788,11 +955,24 @@ class PatientService
             }
         }
 
+        // Get room_type from input, handling both text and enum values
+        $roomType = $input['room_type'] ?? null;
+        if ($roomType && !in_array($roomType, ['Ward', 'Semi-Private', 'Private', 'Isolation', 'ICU'], true)) {
+            // Try to map common variations
+            $roomTypeMap = [
+                'ward' => 'Ward',
+                'semi-private' => 'Semi-Private',
+                'semi_private' => 'Semi-Private',
+                'private' => 'Private',
+                'isolation' => 'Isolation',
+                'icu' => 'ICU',
+            ];
+            $roomType = $roomTypeMap[strtolower($roomType)] ?? null;
+        }
+
         $roomData = [
             'admission_id' => $admissionId,
-            // room_type is stored as textual classification in this table; UI may provide
-            // an internal ID, so we default to null here to avoid ENUM conflicts.
-            'room_type' => null,
+            'room_type' => $roomType,
             'floor_number' => $input['floor_number'] ?? null,
             'room_number' => $input['room_number'] ?? null,
             'bed_number' => $input['bed_number'] ?? null,
@@ -912,6 +1092,7 @@ class PatientService
                 'inpatient_admissions' => $this->getPatientInpatientAdmissions($patientId),
                 'financial_records' => $this->getPatientFinancialRecords($patientId),
                 'vital_signs' => $this->getPatientVitalSigns($patientId),
+                'emergency_contacts' => $this->getPatientEmergencyContacts($patientId),
             ];
 
             return [
@@ -925,6 +1106,27 @@ class PatientService
                 'status' => 'error',
                 'message' => 'Failed to fetch patient records: ' . $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Get patient emergency contacts
+     */
+    private function getPatientEmergencyContacts($patientId)
+    {
+        try {
+            if (!$this->db->tableExists('emergency_contacts')) {
+                return [];
+            }
+
+            return $this->db->table('emergency_contacts')
+                ->where('patient_id', $patientId)
+                ->orderBy('contact_id', 'DESC')
+                ->get()
+                ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Error fetching patient emergency contacts: ' . $e->getMessage());
+            return [];
         }
     }
 

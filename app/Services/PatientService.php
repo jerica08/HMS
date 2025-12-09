@@ -57,6 +57,9 @@ class PatientService
             // Create emergency contact record
             $this->createEmergencyContactRecord($newPatientId, $input);
 
+            // Persist insurance/HMO details when provided
+            $this->persistInsuranceDetails($newPatientId, $input);
+
             // Insert role-specific records (outpatient visit or inpatient admission tree)
             $this->persistRoleSpecificRecords($newPatientId, $input);
 

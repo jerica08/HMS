@@ -158,71 +158,199 @@ class RoomService
             return ['success' => false, 'message' => 'Invalid room ID'];
         }
 
-        if (!$this->db->tableExists('room') || !$this->db->tableExists('room_assignment')) {
-            return ['success' => false, 'message' => 'Room or room_assignment table is missing'];
+        if (!$this->db->tableExists('room')) {
+            return ['success' => false, 'message' => 'Room table is missing'];
         }
 
-        $assignment = $this->db->table('room_assignment')
-            ->where('room_id', $roomId)
-            ->where('status', 'active')
-            ->orderBy('assignment_id', 'DESC')
-            ->get()
-            ->getRowArray();
+        // Check both room_assignment and inpatient_room_assignments tables
+        $assignment = null;
+        $assignmentType = null;
+
+        // First check room_assignment table
+        if ($this->db->tableExists('room_assignment')) {
+            $assignment = $this->db->table('room_assignment')
+                ->where('room_id', $roomId)
+                ->where('status', 'active')
+                ->orderBy('assignment_id', 'DESC')
+                ->get()
+                ->getRowArray();
+            
+            if ($assignment) {
+                $assignmentType = 'room_assignment';
+            }
+        }
+
+        // If not found, check inpatient_room_assignments table
+        if (!$assignment && $this->db->tableExists('inpatient_room_assignments')) {
+            $inpatientBuilder = $this->db->table('inpatient_room_assignments ira')
+                ->select('ira.*, ia.patient_id, ia.admission_id')
+                ->join('inpatient_admissions ia', 'ia.admission_id = ira.admission_id', 'inner')
+                ->where('ira.room_id', $roomId);
+            
+            // Check for discharge column - try different possible column names
+            if ($this->db->fieldExists('discharge_datetime', 'inpatient_admissions')) {
+                $inpatientBuilder->where('ia.discharge_datetime IS NULL', null, false);
+            } elseif ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
+                $inpatientBuilder->groupStart()
+                    ->where('ia.discharge_date IS NULL', null, false)
+                    ->orWhere('ia.discharge_date', '')
+                ->groupEnd();
+            } elseif ($this->db->fieldExists('status', 'inpatient_admissions')) {
+                $inpatientBuilder->where('ia.status', 'active');
+            }
+            // If no discharge/status column exists, just get the most recent (assume active)
+            
+            $inpatientAssignment = $inpatientBuilder
+                ->orderBy('ira.room_assignment_id', 'DESC')
+                ->get()
+                ->getRowArray();
+            
+            if ($inpatientAssignment) {
+                $assignment = $inpatientAssignment;
+                $assignmentType = 'inpatient_room_assignments';
+            }
+        }
 
         if (!$assignment) {
             return ['success' => false, 'message' => 'No active room assignment found for this room'];
         }
 
         $now = new \DateTime();
-        try {
-            $dateIn = new \DateTime($assignment['date_in']);
-        } catch (\Throwable $e) {
-            $dateIn = clone $now;
-        }
-
-        $interval = $dateIn->diff($now);
-        $totalDays = max(1, (int) $interval->days);
-        $totalHours = $totalDays * 24 + (int) $interval->h + (int) floor($interval->i / 60);
-
-        $updatePayload = [
-            'date_out'    => $now->format('Y-m-d H:i:s'),
-            'total_days'  => $totalDays,
-            'total_hours' => $totalHours,
-            'status'      => 'completed',
-        ];
-
-        if ($this->db->fieldExists('updated_at', 'room_assignment')) {
-            $updatePayload['updated_at'] = $now->format('Y-m-d H:i:s');
-        }
-
-        try {
-            $this->db->transStart();
-
-            $this->db->table('room_assignment')
-                ->where('assignment_id', $assignment['assignment_id'])
-                ->update($updatePayload);
-
-            $this->db->table('room')
-                ->where('room_id', $roomId)
-                ->update(['status' => 'available']);
-
-            $this->db->transComplete();
-
-            if ($this->db->transStatus() === false) {
-                throw new \RuntimeException('Failed to discharge room in transaction');
+        
+        // Handle room_assignment table
+        if ($assignmentType === 'room_assignment') {
+            try {
+                $dateIn = new \DateTime($assignment['date_in']);
+            } catch (\Throwable $e) {
+                $dateIn = clone $now;
             }
 
-            return [
-                'success' => true,
-                'message' => 'Room discharged successfully',
-                'assignment_id' => (int) $assignment['assignment_id'],
-                'patient_id' => (int) ($assignment['patient_id'] ?? 0),
-                'admission_id' => isset($assignment['admission_id']) ? (int) $assignment['admission_id'] : null,
+            $interval = $dateIn->diff($now);
+            $totalDays = max(1, (int) $interval->days);
+            $totalHours = $totalDays * 24 + (int) $interval->h + (int) floor($interval->i / 60);
+
+            $updatePayload = [
+                'date_out'    => $now->format('Y-m-d H:i:s'),
+                'total_days'  => $totalDays,
+                'total_hours' => $totalHours,
+                'status'      => 'completed',
             ];
+
+            if ($this->db->fieldExists('updated_at', 'room_assignment')) {
+                $updatePayload['updated_at'] = $now->format('Y-m-d H:i:s');
+            }
+
+            try {
+                $this->db->transStart();
+
+                $this->db->table('room_assignment')
+                    ->where('assignment_id', $assignment['assignment_id'])
+                    ->update($updatePayload);
+
+                $this->db->table('room')
+                    ->where('room_id', $roomId)
+                    ->update(['status' => 'available']);
+
+                $this->db->transComplete();
+
+                if ($this->db->transStatus() === false) {
+                    throw new \RuntimeException('Failed to discharge room in transaction');
+                }
+
+                return [
+                    'success' => true,
+                    'message' => 'Room discharged successfully',
+                    'assignment_id' => (int) $assignment['assignment_id'],
+                    'patient_id' => (int) ($assignment['patient_id'] ?? 0),
+                    'admission_id' => isset($assignment['admission_id']) ? (int) $assignment['admission_id'] : null,
+                ];
+            } catch (\Throwable $e) {
+                $this->db->transRollback();
+                log_message('error', 'RoomService::dischargeRoom failed: ' . $e->getMessage());
+                return ['success' => false, 'message' => 'Could not discharge room: ' . $e->getMessage()];
+            }
+        }
+
+        // Handle inpatient_room_assignments - just update room status
+        // The actual discharge should be handled through admission discharge
+        if ($assignmentType === 'inpatient_room_assignments') {
+            try {
+                $this->db->table('room')
+                    ->where('room_id', $roomId)
+                    ->update(['status' => 'available']);
+
+                return [
+                    'success' => true,
+                    'message' => 'Room status updated to available',
+                    'assignment_id' => (int) ($assignment['room_assignment_id'] ?? 0),
+                    'patient_id' => (int) ($assignment['patient_id'] ?? 0),
+                    'admission_id' => isset($assignment['admission_id']) ? (int) $assignment['admission_id'] : null,
+                ];
+            } catch (\Throwable $e) {
+                log_message('error', 'RoomService::dischargeRoom (inpatient) failed: ' . $e->getMessage());
+                return ['success' => false, 'message' => 'Could not update room status: ' . $e->getMessage()];
+            }
+        }
+
+        return ['success' => false, 'message' => 'Unknown assignment type'];
+    }
+
+    /**
+     * Update room status to available when patient is discharged
+     * This is called when an inpatient admission is discharged
+     */
+    public function freeRoomForAdmission(int $admissionId): bool
+    {
+        if (!$this->db->tableExists('inpatient_room_assignments') || !$this->db->tableExists('room')) {
+            return false;
+        }
+
+        try {
+            // Get room assignments for this admission
+            $assignments = $this->db->table('inpatient_room_assignments')
+                ->where('admission_id', $admissionId)
+                ->where('room_id IS NOT NULL', null, false)
+                ->get()
+                ->getResultArray();
+
+            foreach ($assignments as $assignment) {
+                $roomId = (int) ($assignment['room_id'] ?? 0);
+                if ($roomId > 0) {
+                    // Check if there are other active assignments for this room
+                    $otherBuilder = $this->db->table('inpatient_room_assignments ira')
+                        ->select('ira.room_assignment_id')
+                        ->join('inpatient_admissions ia', 'ia.admission_id = ira.admission_id', 'inner')
+                        ->where('ira.room_id', $roomId)
+                        ->where('ira.room_assignment_id !=', $assignment['room_assignment_id']);
+                    
+                    // Check for discharge column - try different possible column names
+                    if ($this->db->fieldExists('discharge_datetime', 'inpatient_admissions')) {
+                        $otherBuilder->where('ia.discharge_datetime IS NULL', null, false);
+                    } elseif ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
+                        $otherBuilder->groupStart()
+                            ->where('ia.discharge_date IS NULL', null, false)
+                            ->orWhere('ia.discharge_date', '')
+                        ->groupEnd();
+                    } elseif ($this->db->fieldExists('status', 'inpatient_admissions')) {
+                        $otherBuilder->where('ia.status', 'active');
+                    }
+                    // If no discharge/status column exists, check all assignments
+                    
+                    $otherAssignments = $otherBuilder->countAllResults();
+
+                    // Only set to available if no other active assignments
+                    if ($otherAssignments === 0) {
+                        $this->db->table('room')
+                            ->where('room_id', $roomId)
+                            ->update(['status' => 'available']);
+                    }
+                }
+            }
+
+            return true;
         } catch (\Throwable $e) {
-            $this->db->transRollback();
-            log_message('error', 'RoomService::dischargeRoom failed: ' . $e->getMessage());
-            return ['success' => false, 'message' => 'Could not discharge room: ' . $e->getMessage()];
+            log_message('error', 'RoomService::freeRoomForAdmission failed: ' . $e->getMessage());
+            return false;
         }
     }
 

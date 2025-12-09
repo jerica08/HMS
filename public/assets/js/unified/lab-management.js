@@ -73,12 +73,14 @@
             const patientName = order.patient_name || `${order.first_name || ''} ${order.last_name || ''}`.trim() || 'Unknown';
             const testLabel = order.test_name || order.test_code || 'N/A';
             const priority = order.priority || 'routine';
-            const status = (order.status === 'ordered') ? 'in_progress' : (order.status || 'ordered');
+            // Use actual status from database, don't auto-change to 'in_progress'
+            const status = order.status || 'ordered';
 
             let badgeClass = 'badge-info';
             if (status === 'completed') badgeClass = 'badge-success';
             else if (status === 'in_progress') badgeClass = 'badge-warning';
             else if (status === 'cancelled') badgeClass = 'badge-danger';
+            else if (status === 'ordered') badgeClass = 'badge-secondary';
 
             const canAct = ['admin', 'doctor', 'laboratorist', 'it_staff'].includes(userRole);
             const canEdit = ['admin', 'doctor', 'it_staff'].includes(userRole);
@@ -99,8 +101,8 @@
                 actions.push(`<button class="btn btn-warning" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.editOrder(${labOrderId})" title="Edit Lab Order"><i class="fas fa-edit"></i> Edit</button>`);
             }
             
-            // Complete button - for non-completed, non-cancelled orders
-            if (canAct && statusLower !== 'completed' && statusLower !== 'cancelled') {
+            // Complete button - for 'in_progress' status only
+            if (canAct && statusLower === 'in_progress') {
                 actions.push(`<button class="btn btn-success" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${labOrderId}, 'completed')" title="Mark as Completed"><i class="fas fa-check"></i> Complete</button>`);
             }
             
@@ -133,8 +135,14 @@
     async function updateStatus(labOrderId, status) {
         if (!labOrderId || !status) return;
 
-        const confirmText = `Change status of lab order #${labOrderId} to ${status.replace('_', ' ')}?`;
-        if (!window.confirm(confirmText)) return;
+        // Special handling for 'in_progress' status
+        if (status === 'in_progress') {
+            const confirmText = `Start lab test #${labOrderId}? For outpatients, payment must be verified before starting.`;
+            if (!window.confirm(confirmText)) return;
+        } else {
+            const confirmText = `Change status of lab order #${labOrderId} to ${status.replace('_', ' ')}?`;
+            if (!window.confirm(confirmText)) return;
+        }
 
         try {
             const res = await fetch(baseUrl + 'labs/' + labOrderId + '/status', {
@@ -145,7 +153,21 @@
             });
             const data = await res.json();
 
-            alert(data.message || (data.success ? 'Status updated' : 'Failed to update status'));
+            // Show error message if payment is required
+            if (!data.success && data.requires_payment) {
+                alert(data.message || 'Payment required before starting lab test for outpatients.');
+                if (data.billing_id) {
+                    const goToBilling = window.confirm('Would you like to go to Financial Management to process payment?');
+                    if (goToBilling) {
+                        // Navigate to financial management if available
+                        const financialUrl = baseUrl + 'financial-management';
+                        window.location.href = financialUrl;
+                    }
+                }
+            } else {
+                alert(data.message || (data.success ? 'Status updated' : 'Failed to update status'));
+            }
+            
             if (data.success) {
                 fetchLabOrders();
             }

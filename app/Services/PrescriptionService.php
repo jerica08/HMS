@@ -514,7 +514,7 @@ class PrescriptionService
             }
 
             $dbStatus = $this->mapStatus($status);
-            $validStatuses = ['queued', 'verifying', 'ready', 'dispensed', 'cancelled'];
+            $validStatuses = ['in_progress', 'queued', 'verifying', 'ready', 'dispensed', 'cancelled'];
             
             if (!in_array($dbStatus, $validStatuses)) {
                 return ['success' => false, 'message' => 'Invalid status'];
@@ -795,13 +795,14 @@ class PrescriptionService
     private function mapStatus($status)
     {
         $statusMap = [
-            'active' => 'queued',
-            'pending' => 'queued',
+            'active' => 'in_progress',
+            'pending' => 'in_progress',
             'ready' => 'ready',
             'completed' => 'dispensed',
             'cancelled' => 'cancelled',
             'verifying' => 'verifying',
-            'queued' => 'queued',
+            'queued' => 'in_progress',
+            'in_progress' => 'in_progress',
             'dispensed' => 'dispensed'
         ];
         return $statusMap[$status] ?? $status;

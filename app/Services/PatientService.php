@@ -50,9 +50,33 @@ class PatientService
         $this->db->transBegin();
 
         try {
+            // Log data being inserted in development mode for debugging
+            if (ENVIRONMENT === 'development') {
+                log_message('debug', 'PatientService: Attempting to insert patient data: ' . json_encode($data));
+            }
+            
             // Insert main patient record
-            $this->db->table($this->patientTable)->insert($data);
+            $insertResult = $this->db->table($this->patientTable)->insert($data);
+            
+            if (!$insertResult) {
+                // Get database error
+                $error = $this->db->error();
+                $errorMessage = 'Unknown database error';
+                if (!empty($error)) {
+                    $errorMessage = is_array($error) 
+                        ? ($error['message'] ?? json_encode($error))
+                        : (string)$error;
+                }
+                log_message('error', 'PatientService: Insert failed - ' . $errorMessage);
+                throw new \RuntimeException('Failed to insert patient record: ' . $errorMessage);
+            }
+            
             $newPatientId = (int) $this->db->insertID();
+            
+            if (!$newPatientId) {
+                log_message('error', 'PatientService: Insert succeeded but no patient ID returned');
+                throw new \RuntimeException('Failed to get inserted patient ID');
+            }
 
             // Create emergency contact record
             $this->createEmergencyContactRecord($newPatientId, $input);
@@ -85,11 +109,23 @@ class PatientService
                 $this->db->transRollback();
             }
 
-            log_message('error', 'Failed to insert patient (transaction): ' . $e->getMessage());
+            $errorMessage = $e->getMessage();
+            log_message('error', 'Failed to insert patient (transaction): ' . $errorMessage);
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+
+            // Return more detailed error message in development, generic in production
+            $message = ENVIRONMENT === 'development' 
+                ? 'Database error: ' . $errorMessage
+                : 'Database error: Unable to save patient. Please check the logs for details.';
 
             return [
                 'status' => 'error',
-                'message' => 'Database error',
+                'message' => $message,
+                'error_details' => ENVIRONMENT === 'development' ? [
+                    'message' => $errorMessage,
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ] : null,
             ];
         }
     }
@@ -237,6 +273,40 @@ class PatientService
                 }
             }
 
+            // Get current room assignment if patient is an inpatient
+            if ($this->db->tableExists('inpatient_room_assignments') && $this->db->tableExists('inpatient_admissions')) {
+                $assignmentBuilder = $this->db->table('inpatient_room_assignments ira')
+                    ->select('ira.room_type, ira.floor_number, ira.room_number, ira.bed_number, ira.daily_rate')
+                    ->join('inpatient_admissions ia', 'ia.admission_id = ira.admission_id', 'inner')
+                    ->where('ia.patient_id', $id);
+                
+                // Check for discharge column - try different possible column names
+                if ($this->db->fieldExists('discharge_datetime', 'inpatient_admissions')) {
+                    $assignmentBuilder->where('ia.discharge_datetime IS NULL', null, false);
+                } elseif ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
+                    $assignmentBuilder->groupStart()
+                        ->where('ia.discharge_date IS NULL', null, false)
+                        ->orWhere('ia.discharge_date', '')
+                    ->groupEnd();
+                } elseif ($this->db->fieldExists('status', 'inpatient_admissions')) {
+                    $assignmentBuilder->where('ia.status', 'active');
+                }
+                // If no discharge/status column exists, just get the most recent (assume active)
+                
+                $currentAssignment = $assignmentBuilder
+                    ->orderBy('ira.room_assignment_id', 'DESC')
+                    ->get()
+                    ->getRowArray();
+
+                if ($currentAssignment) {
+                    $patient['room_type'] = $currentAssignment['room_type'] ?? null;
+                    $patient['floor_number'] = $currentAssignment['floor_number'] ?? null;
+                    $patient['room_number'] = $currentAssignment['room_number'] ?? null;
+                    $patient['bed_number'] = $currentAssignment['bed_number'] ?? null;
+                    $patient['daily_rate'] = $currentAssignment['daily_rate'] ?? null;
+                }
+            }
+
             return [
                 'status' => 'success',
                 'patient' => $patient,
@@ -277,11 +347,14 @@ class PatientService
             'province' => $input['province'],
             'city' => $input['city'],
             'barangay' => $input['barangay'],
+            'subdivision' => $input['subdivision'] ?? null,
+            'house_number' => $input['house_number'] ?? null,
             'zip_code' => $input['zip_code'],
             'insurance_provider' => $input['insurance_provider'] ?? null,
             'insurance_number' => $input['insurance_number'] ?? null,
             'emergency_contact' => $input['emergency_contact_name'],
             'emergency_phone' => $input['emergency_contact_phone'],
+            'emergency_contact_relationship' => $input['emergency_contact_relationship'] ?? null,
             'patient_type' => ucfirst(strtolower($input['patient_type'] ?? 'Outpatient')),
             'blood_group' => $input['blood_group'] ?? null,
             'medical_notes' => $input['medical_notes'] ?? null,
@@ -745,6 +818,139 @@ class PatientService
         }
     }
 
+    /**
+     * Persist insurance/HMO details to insurance_details table
+     */
+    private function persistInsuranceDetails(int $patientId, array $input): void
+    {
+        if (!$this->db->tableExists('insurance_details')) {
+            return;
+        }
+
+        // Check if we have any insurance information
+        $hasInsurance = (
+            !empty($input['insurance_provider'] ?? null) ||
+            !empty($input['insurance_number'] ?? null) ||
+            !empty($input['insurance_card_number'] ?? null) ||
+            !empty($input['hmo_member_id'] ?? null) ||
+            !empty($input['hmo_cardholder_name'] ?? null)
+        );
+
+        if (!$hasInsurance) {
+            return;
+        }
+
+        // Get patient name for card holder if not provided
+        $cardHolderName = $input['hmo_cardholder_name'] ?? 
+                         $input['insurance_cardholder_name'] ?? 
+                         trim(($input['first_name'] ?? '') . ' ' . ($input['last_name'] ?? ''));
+
+        if (empty($cardHolderName)) {
+            // Try to get from database
+            try {
+                $patientTable = $this->resolvePatientTableName();
+                $patient = $this->db->table($patientTable)
+                    ->select('first_name, last_name')
+                    ->where('patient_id', $patientId)
+                    ->get()
+                    ->getRowArray();
+                
+                if ($patient) {
+                    $cardHolderName = trim(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? ''));
+                }
+            } catch (\Throwable $e) {
+                log_message('error', 'Failed to fetch patient name for insurance details: ' . $e->getMessage());
+            }
+        }
+
+        // Determine provider
+        $provider = $input['insurance_provider'] ?? 
+                   $input['hmo_provider'] ?? 
+                   'Unknown';
+
+        // Determine membership number
+        $membershipNumber = $input['hmo_member_id'] ?? 
+                          $input['insurance_number'] ?? 
+                          $input['insurance_card_number'] ?? 
+                          '';
+
+        // Determine plan name (default if not provided)
+        $planName = $input['hmo_plan_name'] ?? 
+                   $input['insurance_plan'] ?? 
+                   'Standard Plan';
+
+        // Determine coverage type (JSON array)
+        $coverageType = null;
+        $patientType = strtolower($input['patient_type'] ?? 'outpatient');
+        if ($patientType === 'inpatient') {
+            $coverageType = json_encode(['inpatient']);
+        } else {
+            $coverageType = json_encode(['outpatient']);
+        }
+
+        // Determine dates
+        $hmoExpiryDate = $input['hmo_expiry_date'] ?? null;
+        $insuranceValidity = $input['insurance_validity'] ?? null;
+        $hmoStartDate = $input['hmo_start_date'] ?? null;
+        
+        // Calculate start date
+        if ($hmoStartDate) {
+            $startDate = $hmoStartDate;
+        } elseif ($insuranceValidity) {
+            $startDate = $insuranceValidity;
+        } elseif ($hmoExpiryDate) {
+            // If we only have expiry date, calculate start date as 1 year before
+            $startDate = date('Y-m-d', strtotime($hmoExpiryDate . ' -1 year'));
+        } else {
+            $startDate = date('Y-m-d');
+        }
+        
+        // Calculate end date
+        if ($hmoExpiryDate) {
+            $endDate = $hmoExpiryDate;
+        } elseif ($insuranceValidity) {
+            $endDate = $insuranceValidity;
+        } else {
+            $endDate = date('Y-m-d', strtotime('+1 year'));
+        }
+
+        // Prepare insurance detail data
+        $insuranceData = [
+            'patient_id' => $patientId,
+            'provider' => $provider,
+            'membership_number' => $membershipNumber ?: 'N/A',
+            'card_holder_name' => $cardHolderName ?: 'Unknown',
+            'member_type' => $input['hmo_member_type'] ?? 'Principal',
+            'relationship' => $input['hmo_relationship'] ?? null,
+            'plan_name' => $planName,
+            'coverage_type' => $coverageType,
+            'mbl' => $input['hmo_mbl'] ?? $input['mbl'] ?? null,
+            'pre_existing_coverage' => $input['pre_existing_coverage'] ?? null,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'card_status' => $input['card_status'] ?? 'Active',
+            'created_at' => date('Y-m-d H:i:s'),
+        ];
+
+        // Filter to only include columns that exist in the table
+        try {
+            $fields = $this->db->getFieldData('insurance_details');
+            $existingColumns = array_map(static fn($field) => $field->name ?? null, $fields);
+            $existingColumns = array_filter($existingColumns);
+            $insuranceData = array_intersect_key($insuranceData, array_flip($existingColumns));
+        } catch (\Throwable $e) {
+            log_message('warning', 'Failed to get insurance_details table columns: ' . $e->getMessage());
+        }
+
+        try {
+            $this->db->table('insurance_details')->insert($insuranceData);
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to insert insurance details for patient ' . $patientId . ': ' . $e->getMessage());
+            log_message('error', 'Insurance data attempted: ' . json_encode($insuranceData));
+            // Don't throw - insurance details are optional, so we continue even if this fails
+        }
+    }
+
     private function persistRoleSpecificRecords(int $patientId, array $input): void
     {
         if (! $patientId) {
@@ -973,12 +1179,55 @@ class PatientService
             $roomType = $roomTypeMap[strtolower($roomType)] ?? null;
         }
 
+        $roomNumber = $input['room_number'] ?? null;
+        $floorNumber = $input['floor_number'] ?? null;
+        $bedNumber = $input['bed_number'] ?? null;
+        $roomId = null;
+
+        // Look up room_id from room table if room_number is provided
+        if ($roomNumber && $this->db->tableExists('room')) {
+            $roomBuilder = $this->db->table('room')
+                ->where('room_number', $roomNumber);
+
+            // Match floor_number if provided
+            if ($floorNumber) {
+                $roomBuilder->where('floor_number', $floorNumber);
+            }
+
+            $room = $roomBuilder->get()->getRowArray();
+
+            if ($room && isset($room['room_id'])) {
+                $roomId = (int) $room['room_id'];
+
+                // Validate room is available or can be assigned
+                $roomStatus = $room['status'] ?? 'available';
+                if ($roomStatus === 'maintenance') {
+                    log_message('warning', "Attempted to assign patient to room {$roomNumber} which is under maintenance");
+                    // Continue anyway, but log the warning
+                }
+
+                // Update room status to 'occupied' if it's available
+                if ($roomStatus === 'available') {
+                    try {
+                        $this->db->table('room')
+                            ->where('room_id', $roomId)
+                            ->update(['status' => 'occupied']);
+                    } catch (\Throwable $e) {
+                        log_message('error', 'Failed to update room status to occupied: ' . $e->getMessage());
+                    }
+                }
+            } else {
+                log_message('warning', "Room {$roomNumber} on floor {$floorNumber} not found in room table");
+            }
+        }
+
         $roomData = [
             'admission_id' => $admissionId,
+            'room_id' => $roomId,
             'room_type' => $roomType,
-            'floor_number' => $input['floor_number'] ?? null,
-            'room_number' => $input['room_number'] ?? null,
-            'bed_number' => $input['bed_number'] ?? null,
+            'floor_number' => $floorNumber,
+            'room_number' => $roomNumber,
+            'bed_number' => $bedNumber,
             'daily_rate' => $normalizedDailyRate,
         ];
 
@@ -987,11 +1236,22 @@ class PatientService
             $roomAssignmentId = (int) $this->db->insertID();
 
             // Auto-add room charge to billing if room assignment was created successfully
-            if ($roomAssignmentId > 0 && (!empty($input['room_number']) || !empty($input['room_type']))) {
+            if ($roomAssignmentId > 0 && (!empty($roomNumber) || !empty($roomType))) {
                 $this->addRoomChargeToBilling($admissionId, $roomAssignmentId, $normalizedDailyRate);
             }
         } catch (\Throwable $e) {
             log_message('error', 'Failed to insert inpatient room assignment for admission ' . $admissionId . ': ' . $e->getMessage());
+            
+            // Rollback room status if assignment failed
+            if ($roomId && $this->db->tableExists('room')) {
+                try {
+                    $this->db->table('room')
+                        ->where('room_id', $roomId)
+                        ->update(['status' => 'available']);
+                } catch (\Throwable $rollbackError) {
+                    log_message('error', 'Failed to rollback room status: ' . $rollbackError->getMessage());
+                }
+            }
         }
     }
 

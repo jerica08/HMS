@@ -528,12 +528,71 @@ class FinancialService
 
         try {
             $this->db->table('billing_accounts')->where('billing_id', $billingId)->update(['status' => $status]);
+            
+            // If status is being set to 'paid', automatically update lab order status from 'ordered' to 'in_progress'
+            if (strtolower($status) === 'paid') {
+                $this->updateLabOrderStatusAfterPayment($billingId);
+            }
+            
             return $this->db->affectedRows() > 0
                 ? ['success' => true, 'message' => 'Billing account status updated']
                 : ['success' => false, 'message' => 'Billing account not found or status unchanged'];
         } catch (\Exception $e) {
             log_message('error', 'FinancialService::updateBillingAccountStatus error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error updating billing account status'];
+        }
+    }
+    
+    /**
+     * Update lab order status from 'ordered' to 'in_progress' after payment is completed
+     */
+    private function updateLabOrderStatusAfterPayment(int $billingId): void
+    {
+        try {
+            // Check if billing_items table exists and has lab_order_id field
+            if (!$this->db->tableExists('billing_items') || !$this->db->fieldExists('lab_order_id', 'billing_items')) {
+                return;
+            }
+
+            // Check if lab_orders table exists
+            if (!$this->db->tableExists('lab_orders')) {
+                return;
+            }
+
+            // Find all lab orders linked to this billing account
+            $billingItems = $this->db->table('billing_items')
+                ->where('billing_id', $billingId)
+                ->where('lab_order_id IS NOT NULL')
+                ->where('lab_order_id !=', 0)
+                ->get()
+                ->getResultArray();
+
+            if (empty($billingItems)) {
+                return;
+            }
+
+            // Get unique lab order IDs
+            $labOrderIds = array_unique(array_filter(array_column($billingItems, 'lab_order_id')));
+
+            if (empty($labOrderIds)) {
+                return;
+            }
+
+            // Update lab orders with status 'ordered' to 'in_progress'
+            $this->db->table('lab_orders')
+                ->whereIn('lab_order_id', $labOrderIds)
+                ->where('status', 'ordered')
+                ->update([
+                    'status' => 'in_progress',
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            $updatedCount = $this->db->affectedRows();
+            if ($updatedCount > 0) {
+                log_message('info', "Updated {$updatedCount} lab order(s) from 'ordered' to 'in_progress' after payment for billing ID {$billingId}");
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'FinancialService::updateLabOrderStatusAfterPayment error: ' . $e->getMessage());
         }
     }
 

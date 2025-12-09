@@ -35,12 +35,14 @@ class LabService
 
     /**
      * List lab orders based on role and optional filters.
+     * For outpatients: only shows lab orders that have been paid.
+     * For inpatients: shows all lab orders (billed later).
      */
     public function getLabOrdersByRole(string $userRole, ?int $staffId = null, array $filters = []): array
     {
         try {
             if (!$this->db->tableExists('lab_orders')) {
-                return [];
+return [];
             }
 
             $builder = $this->buildLabOrderQuery($userRole, $staffId);
@@ -69,16 +71,34 @@ class LabService
 
             $orders = $builder->orderBy('lo.ordered_at', 'DESC')->get()->getResultArray();
 
-            foreach ($orders as &$o) {
+            // Filter out unpaid outpatient lab orders
+            $filteredOrders = [];
+            foreach ($orders as $o) {
                 $o['patient_name'] = trim(($o['first_name'] ?? '') . ' ' . ($o['last_name'] ?? ''));
                 
                 // Add patient type for each order
                 if (!empty($o['patient_id'])) {
                     $o['patient_type'] = $this->getPatientType((int)$o['patient_id']);
                 }
+                
+                // For outpatients: only include if paid
+                // For inpatients: include all (no payment check needed)
+                $patientType = strtolower($o['patient_type'] ?? 'outpatient');
+                $labOrderId = (int)($o['lab_order_id'] ?? 0);
+                
+                if ($patientType === 'outpatient' && $labOrderId > 0) {
+                    // Only include if lab order is paid
+                    if ($this->isLabOrderPaid($labOrderId)) {
+                        $filteredOrders[] = $o;
+                    }
+                    // Skip unpaid outpatient lab orders - they won't appear in the table
+                } else {
+                    // Include all inpatient lab orders (no payment check)
+                    $filteredOrders[] = $o;
+                }
             }
 
-            return $orders;
+            return $filteredOrders;
         } catch (\Throwable $e) {
             log_message('error', 'LabService::getLabOrdersByRole error: ' . $e->getMessage());
             return [];
@@ -196,6 +216,13 @@ class LabService
             $patientType = $this->getPatientType($patientId);
             if (strtolower($patientType) === 'outpatient') {
                 $this->addLabOrderToBillingForOutpatient($id, $patientId, $data['test_code'], $staffId);
+                return [
+                    'success' => true, 
+                    'message' => 'Lab order created successfully. For outpatients, the lab order will appear in the lab table after payment is processed.', 
+                    'lab_order_id' => $id,
+                    'requires_payment' => true,
+                    'patient_type' => 'outpatient'
+                ];
             }
 
             return ['success' => true, 'message' => 'Lab order created successfully', 'lab_order_id' => $id];

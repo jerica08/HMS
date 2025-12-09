@@ -7,6 +7,7 @@
         </div>
         
         <form id="addPrescriptionForm">
+            <input type="hidden" id="edit_prescription_id" name="prescription_id" value="">
             <div class="hms-modal-body">
                 <div class="form-grid">
                     <div>

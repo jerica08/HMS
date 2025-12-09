@@ -981,8 +981,70 @@ class PatientService
 
         try {
             $this->db->table('inpatient_room_assignments')->insert($roomData);
+            $roomAssignmentId = (int) $this->db->insertID();
+
+            // Auto-add room charge to billing if room assignment was created successfully
+            if ($roomAssignmentId > 0 && (!empty($input['room_number']) || !empty($input['room_type']))) {
+                $this->addRoomChargeToBilling($admissionId, $roomAssignmentId, $normalizedDailyRate);
+            }
         } catch (\Throwable $e) {
             log_message('error', 'Failed to insert inpatient room assignment for admission ' . $admissionId . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Add room charge to billing account when patient is admitted with room assignment
+     */
+    private function addRoomChargeToBilling(int $admissionId, int $roomAssignmentId, ?float $dailyRate = null): void
+    {
+        try {
+            // Get patient ID from admission
+            $admission = $this->db->table('inpatient_admissions')
+                ->where('admission_id', $admissionId)
+                ->get()
+                ->getRowArray();
+
+            if (!$admission || empty($admission['patient_id'])) {
+                log_message('warning', "Cannot add room charge to billing: Admission {$admissionId} not found or has no patient_id");
+                return;
+            }
+
+            $patientId = (int) $admission['patient_id'];
+            $staffId = (int) (session()->get('staff_id') ?? 0);
+
+            // Check if FinancialService is available
+            if (!class_exists(\App\Services\FinancialService::class)) {
+                log_message('warning', 'FinancialService not available for auto-billing room charge');
+                return;
+            }
+
+            $financialService = new \App\Services\FinancialService();
+
+            // Get or create billing account for this patient and admission
+            $account = $financialService->getOrCreateBillingAccountForPatient($patientId, $admissionId, $staffId);
+            if (!$account || empty($account['billing_id'])) {
+                log_message('warning', "Failed to get/create billing account for patient {$patientId}, admission {$admissionId}");
+                return;
+            }
+
+            $billingId = (int) $account['billing_id'];
+
+            // Add room charge to billing (quantity = 1 day initially, can be updated on discharge)
+            $result = $financialService->addItemFromInpatientRoomAssignment(
+                $billingId,
+                $roomAssignmentId,
+                $dailyRate,
+                $staffId,
+                1 // Initial quantity: 1 day
+            );
+
+            if (!empty($result['success'])) {
+                log_message('info', "Room charge added to billing account {$billingId} for admission {$admissionId}");
+            } else {
+                log_message('warning', "Failed to add room charge to billing: " . ($result['message'] ?? 'Unknown error'));
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to add room charge to billing for admission ' . $admissionId . ': ' . $e->getMessage());
         }
     }
 

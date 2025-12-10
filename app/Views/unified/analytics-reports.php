@@ -11,6 +11,12 @@
     <link rel="stylesheet" href="<?= base_url('assets/css/unified/analytics-reports.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Ensure Chart.js is loaded before initializing
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js library failed to load');
+        }
+    </script>
 </head>
 <body class="<?= esc($userRole) ?>">
 
@@ -31,16 +37,16 @@
             </h1>
             <div class="page-actions">
                 <?php if (in_array('generate_reports', $permissions)): ?>
-                    <button class="btn btn-primary" onclick="AnalyticsManager.openReportModal()">
+                    <button type="button" class="btn btn-primary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.openReportModal();}">
                         <i class="fas fa-file-pdf"></i> Generate Report
                     </button>
                 <?php endif; ?>
                 <?php if (in_array('export', $permissions)): ?>
-                    <button class="btn btn-secondary" onclick="AnalyticsManager.exportData()">
+                    <button type="button" class="btn btn-secondary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.exportData();}">
                         <i class="fas fa-download"></i> Export
                     </button>
                 <?php endif; ?>
-                <button class="btn btn-secondary" onclick="AnalyticsManager.refreshData()">
+                <button type="button" class="btn btn-secondary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.refreshData();}">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
@@ -70,7 +76,7 @@
                         <input type="date" id="endDate" class="form-input">
                     </div>
                     
-                    <button type="button" id="applyFilters" class="btn btn-primary" onclick="AnalyticsManager.applyFilters()">
+                    <button type="button" id="applyFilters" class="btn btn-primary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.applyFilters();}">
                         <i class="fas fa-filter"></i> Apply
                     </button>
                 </div>
@@ -80,64 +86,239 @@
             <div class="dashboard-overview">
                 <?php if ($userRole === 'admin' || $userRole === 'accountant' || $userRole === 'it_staff'): ?>
                     <!-- Total Patients Card -->
-                    <div class="overview-card">
+                    <div class="overview-card enhanced-card">
                         <div class="card-header-modern">
                             <div class="card-icon-modern blue"><i class="fas fa-users"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Patients</h3>
+                                <p class="card-subtitle">All registered patients</p>
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
                                 <div class="metric-value"><?= number_format($analytics['patient_analytics']['total_patients'] ?? 0) ?></div>
+                                <div class="metric-trend">
+                                    <span class="trend-indicator positive">
+                                        <i class="fas fa-arrow-up"></i> <?= number_format($analytics['patient_analytics']['new_patients'] ?? 0) ?> new
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="metric-breakdown">
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Active</span>
+                                    <span class="breakdown-value"><?= number_format($analytics['patient_analytics']['active_patients'] ?? 0) ?></span>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Total Appointments Card -->
-                    <div class="overview-card">
+                    <div class="overview-card enhanced-card">
                         <div class="card-header-modern">
                             <div class="card-icon-modern purple"><i class="fas fa-calendar-check"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Appointments</h3>
+                                <p class="card-subtitle">This period</p>
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
                                 <div class="metric-value"><?= number_format($analytics['appointment_analytics']['total_appointments'] ?? 0) ?></div>
+                                <?php 
+                                $appointmentsByStatus = $analytics['appointment_analytics']['appointments_by_status'] ?? [];
+                                $completedCount = 0;
+                                foreach ($appointmentsByStatus as $status) {
+                                    if (strtolower($status['status'] ?? '') === 'completed') {
+                                        $completedCount = $status['count'] ?? 0;
+                                        break;
+                                    }
+                                }
+                                $completionRate = ($analytics['appointment_analytics']['total_appointments'] ?? 0) > 0 
+                                    ? round(($completedCount / ($analytics['appointment_analytics']['total_appointments'] ?? 1)) * 100, 1) 
+                                    : 0;
+                                ?>
+                                <div class="metric-trend">
+                                    <span class="trend-indicator <?= $completionRate >= 70 ? 'positive' : 'neutral' ?>">
+                                        <i class="fas fa-check-circle"></i> <?= $completionRate ?>% completed
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Total Revenue Card -->
-                    <div class="overview-card">
+                    <div class="overview-card enhanced-card">
                         <div class="card-header-modern">
                             <div class="card-icon-modern green"><i class="fas fa-dollar-sign"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Revenue</h3>
+                                <p class="card-subtitle">This period</p>
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
                                 <div class="metric-value">₱<?= number_format($analytics['financial_analytics']['total_revenue'] ?? 0, 2) ?></div>
+                                <div class="metric-trend">
+                                    <span class="trend-indicator positive">
+                                        <i class="fas fa-arrow-up"></i> Net: ₱<?= number_format($analytics['financial_analytics']['net_profit'] ?? 0, 2) ?>
+                                    </span>
+                                </div>
                             </div>
+                            <?php if (isset($analytics['financial_analytics']['outstanding_bills']) && $analytics['financial_analytics']['outstanding_bills'] > 0): ?>
+                            <div class="metric-breakdown">
+                                <div class="breakdown-item warning">
+                                    <span class="breakdown-label">Outstanding</span>
+                                    <span class="breakdown-value">₱<?= number_format($analytics['financial_analytics']['outstanding_bills'], 2) ?></span>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     
                     <!-- Active Staff Card -->
-                    <div class="overview-card">
+                    <div class="overview-card enhanced-card">
                         <div class="card-header-modern">
                             <div class="card-icon-modern orange"><i class="fas fa-user-md"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Active Staff</h3>
+                                <p class="card-subtitle">Currently working</p>
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value"><?= number_format($analytics['staff_analytics']['active_staff'] ?? 0) ?></div>
+                                <div class="metric-value"><?= number_format($analytics['staff_analytics']['total_staff'] ?? $analytics['staff_analytics']['active_staff'] ?? 0) ?></div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Lab Tests Card -->
+                    <?php if (isset($analytics['lab_analytics'])): ?>
+                    <div class="overview-card enhanced-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern blue"><i class="fas fa-flask"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Lab Tests</h3>
+                                <p class="card-subtitle">Orders this period</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value"><?= number_format($analytics['lab_analytics']['total_orders'] ?? 0) ?></div>
+                                <?php 
+                                $labStatus = $analytics['lab_analytics']['orders_by_status'] ?? [];
+                                $completedLab = 0;
+                                foreach ($labStatus as $status) {
+                                    if (strtolower($status['status'] ?? '') === 'completed') {
+                                        $completedLab = $status['count'] ?? 0;
+                                        break;
+                                    }
+                                }
+                                ?>
+                                <div class="metric-trend">
+                                    <span class="trend-indicator positive">
+                                        <i class="fas fa-check"></i> <?= $completedLab ?> completed
+                                    </span>
+                                </div>
+                            </div>
+                            <?php if (isset($analytics['lab_analytics']['revenue']) && $analytics['lab_analytics']['revenue'] > 0): ?>
+                            <div class="metric-breakdown">
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Revenue</span>
+                                    <span class="breakdown-value">₱<?= number_format($analytics['lab_analytics']['revenue'], 2) ?></span>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Prescriptions Card -->
+                    <?php if (isset($analytics['prescription_analytics'])): ?>
+                    <div class="overview-card enhanced-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern green"><i class="fas fa-pills"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Prescriptions</h3>
+                                <p class="card-subtitle">Issued this period</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value"><?= number_format($analytics['prescription_analytics']['total_prescriptions'] ?? 0) ?></div>
+                            </div>
+                            <?php if (isset($analytics['prescription_analytics']['revenue']) && $analytics['prescription_analytics']['revenue'] > 0): ?>
+                            <div class="metric-breakdown">
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Revenue</span>
+                                    <span class="breakdown-value">₱<?= number_format($analytics['prescription_analytics']['revenue'], 2) ?></span>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Room Occupancy Card -->
+                    <?php if (isset($analytics['room_analytics'])): ?>
+                    <div class="overview-card enhanced-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern purple"><i class="fas fa-bed"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Room Occupancy</h3>
+                                <p class="card-subtitle">Current status</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value"><?= number_format($analytics['room_analytics']['occupancy_rate'] ?? 0, 1) ?>%</div>
+                                <div class="metric-trend">
+                                    <span class="trend-indicator">
+                                        <?= number_format($analytics['room_analytics']['occupied_rooms'] ?? 0) ?> / <?= number_format($analytics['room_analytics']['total_rooms'] ?? 0) ?> rooms
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="occupancy-bar">
+                                <div class="occupancy-fill" style="width: <?= min(100, $analytics['room_analytics']['occupancy_rate'] ?? 0) ?>%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Total Expenses Card -->
+                    <?php if (isset($analytics['financial_analytics']['total_expenses'])): ?>
+                    <div class="overview-card enhanced-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern red"><i class="fas fa-arrow-down"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Total Expenses</h3>
+                                <p class="card-subtitle">This period</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value">₱<?= number_format($analytics['financial_analytics']['total_expenses'] ?? 0, 2) ?></div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Resources Card -->
+                    <?php if (isset($analytics['resource_analytics'])): ?>
+                    <div class="overview-card enhanced-card">
+                        <div class="card-header-modern">
+                            <div class="card-icon-modern orange"><i class="fas fa-boxes"></i></div>
+                            <div class="card-info">
+                                <h3 class="card-title-modern">Resources</h3>
+                                <p class="card-subtitle">Equipment & supplies</p>
+                            </div>
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric">
+                                <div class="metric-value"><?= number_format($analytics['resource_analytics']['total_resources'] ?? 0) ?></div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 <?php elseif ($userRole === 'doctor'): ?>
                     <!-- My Patients Card -->
                     <div class="overview-card">
@@ -286,21 +467,191 @@
                 <div class="charts-section">
                     <!-- Full Width Chart -->
                     <div class="chart-container full-width">
-                        <div class="chart-header"></div>
-                        <canvas id="appointmentTrendsChart" height="80"></canvas>
+                        <div class="chart-header">
+                            <div>
+                                <h3 class="chart-title">Appointment Trends</h3>
+                                <p class="chart-subtitle">Daily appointment count over time</p>
+                            </div>
+                            <span class="chart-period">Last 30 days</span>
+                        </div>
+                        <div style="position: relative; height: 350px;">
+                            <canvas id="appointmentTrendsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Revenue Trend Chart -->
+                    <div class="chart-container full-width">
+                        <div class="chart-header">
+                            <div>
+                                <h3 class="chart-title">Revenue & Expenses Trend</h3>
+                                <p class="chart-subtitle">Monthly financial overview</p>
+                            </div>
+                            <span class="chart-period">Monthly</span>
+                        </div>
+                        <div style="position: relative; height: 350px;">
+                            <canvas id="revenueTrendChart"></canvas>
+                        </div>
                     </div>
 
                     <!-- Two Column Charts -->
                     <div class="charts-row">
                         <div class="chart-container">
-                            <div class="chart-header"></div>
-                            <canvas id="patientTypeChart"></canvas>
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Patient Distribution</h3>
+                                    <p class="chart-subtitle">By patient type</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="patientTypeChart"></canvas>
+                            </div>
                         </div>
                         <div class="chart-container">
-                            <div class="chart-header"></div>
-                            <canvas id="appointmentStatusChart"></canvas>
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Appointment Status</h3>
+                                    <p class="chart-subtitle">Status breakdown</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="appointmentStatusChart"></canvas>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Financial Overview Charts -->
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Expenses by Category</h3>
+                                    <p class="chart-subtitle">Category breakdown</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="expensesChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Payment Methods</h3>
+                                    <p class="chart-subtitle">Revenue by payment type</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="paymentMethodsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Analytics Charts -->
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Patient Age Distribution</h3>
+                                    <p class="chart-subtitle">By age groups</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="patientAgeChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Appointment Types</h3>
+                                    <p class="chart-subtitle">By appointment type</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="appointmentTypeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Staff & Lab Charts -->
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Staff Distribution</h3>
+                                    <p class="chart-subtitle">By role</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="staffRoleChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Lab Tests by Category</h3>
+                                    <p class="chart-subtitle">Test category breakdown</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="labCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prescription & Resource Charts -->
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Prescription Status</h3>
+                                    <p class="chart-subtitle">Status breakdown</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="prescriptionStatusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <div>
+                                    <h3 class="chart-title">Resources by Category</h3>
+                                    <p class="chart-subtitle">Resource distribution</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="resourceCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Room Type Chart -->
+                    <?php if (isset($analytics['room_analytics']['rooms_by_type']) && !empty($analytics['room_analytics']['rooms_by_type'])): ?>
+                    <div class="chart-container full-width">
+                        <div class="chart-header">
+                            <div>
+                                <h3 class="chart-title">Room Distribution by Type</h3>
+                                <p class="chart-subtitle">Current room assignments</p>
+                            </div>
+                        </div>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="roomTypeChart"></canvas>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Peak Hours Chart -->
+                    <?php if (isset($analytics['appointment_analytics']['peak_hours']) && !empty($analytics['appointment_analytics']['peak_hours'])): ?>
+                    <div class="chart-container full-width">
+                        <div class="chart-header">
+                            <div>
+                                <h3 class="chart-title">Peak Appointment Hours</h3>
+                                <p class="chart-subtitle">Busiest hours of the day</p>
+                            </div>
+                        </div>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="peakHoursChart"></canvas>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                 </div>
                 <?php elseif ($userRole === 'doctor'): ?>
@@ -310,13 +661,17 @@
                             <div class="chart-header">
                                 <h3 class="chart-title">My Appointments</h3>
                             </div>
-                            <canvas id="doctorAppointmentsChart"></canvas>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="doctorAppointmentsChart"></canvas>
+                            </div>
                         </div>
                         <div class="chart-container">
                             <div class="chart-header">
                                 <h3 class="chart-title">Patient Growth</h3>
                             </div>
-                            <canvas id="patientGrowthChart"></canvas>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="patientGrowthChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -332,7 +687,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Generate Report</h2>
-                <button class="close-btn" onclick="AnalyticsManager.closeReportModal()">&times;</button>
+                <button type="button" class="close-btn" onclick="if(window.AnalyticsManager){window.AnalyticsManager.closeReportModal();}">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="reportForm">
@@ -343,8 +698,11 @@
                             <option value="patient_summary">Patient Summary</option>
                             <option value="appointment_summary">Appointment Summary</option>
                             <option value="financial_summary">Financial Summary</option>
+                            <option value="lab_summary">Lab Test Summary</option>
+                            <option value="prescription_summary">Prescription Summary</option>
                             <?php if ($userRole === 'admin' || $userRole === 'it_staff'): ?>
                             <option value="staff_performance">Staff Performance</option>
+                            <option value="room_utilization">Room Utilization</option>
                             <?php endif; ?>
                             <?php if ($userRole === 'doctor'): ?>
                             <option value="doctor_performance">My Performance</option>
@@ -371,8 +729,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="AnalyticsManager.closeReportModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="AnalyticsManager.generateReport()">
+                <button type="button" class="btn btn-secondary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.closeReportModal();}">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.generateReport();}">
                     <i class="fas fa-file-pdf"></i> Generate
                 </button>
             </div>
@@ -412,8 +770,36 @@
                 container.style.display = 'none';
             }
         }
+
+        // Pass analytics data from PHP to JavaScript
+        window.analyticsData = <?= json_encode($analytics ?? []) ?>;
+        
+        // Ensure AnalyticsManager is available after script loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a bit for the script to load
+            setTimeout(function() {
+                if (typeof AnalyticsManager === 'undefined' && typeof window.AnalyticsManager === 'undefined') {
+                    console.error('AnalyticsManager not loaded. Please check the script path.');
+                } else {
+                    // Initialize charts with the data we already have
+                    if (window.AnalyticsManager && window.analyticsData) {
+                        // Trigger chart rendering
+                        if (typeof Chart !== 'undefined') {
+                            window.AnalyticsManager.renderCharts();
+                        } else {
+                            // Wait for Chart.js
+                            setTimeout(function() {
+                                if (typeof Chart !== 'undefined' && window.AnalyticsManager) {
+                                    window.AnalyticsManager.renderCharts();
+                                }
+                            }, 500);
+                        }
+                    }
+                }
+            }, 100);
+        });
     </script>
-    <script src="<?= base_url('assets/js/unified/analytics-reports.js') ?>"></script>
+    <script src="<?= base_url('assets/js/unified/analytics-reports.js') ?>" defer></script>
 
     <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
         <script>

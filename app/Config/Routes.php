@@ -164,17 +164,20 @@ $routes->get('pharmacist/patient-records', 'PatientManagement::patientRecords', 
 $routes->get('laboratorist/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:laboratorist']);
 
 // Patient Management API Routes
+// Nurses can only add vital signs - they need minimal view access to select patients and view records
 $routes->get('patients/api', 'PatientManagement::getPatientsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('patients/(:num)', 'PatientManagement::getPatient/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('patients/(:num)/records', 'PatientManagement::getPatientRecordsAPI/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,laboratorist,receptionist,accountant,it_staff']);
 $routes->get('patient-management/records/(:num)', 'PatientManagement::getPatientRecordsAPI/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,laboratorist,receptionist,accountant,it_staff']);
+// Only nurses, doctors, and admins can record vital signs
 $routes->post('patients/(:num)/vital-signs', 'PatientManagement::recordVitalSigns/$1', ['filter' => 'roleauth:admin,doctor,nurse']);
 $routes->post('patient-management/vital-signs', 'PatientManagement::recordVitalSigns', ['filter' => 'roleauth:admin,doctor,nurse']);
-$routes->get('patients/doctors', 'PatientManagement::getDoctorsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->get('patients/doctors', 'PatientManagement::getDoctorsAPI', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
 $routes->post('patients/create', 'PatientManagement::createPatient', ['filter' => 'roleauth:admin,receptionist,it_staff']);
 $routes->put('patients/(:num)', 'PatientManagement::updatePatient/$1', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
 $routes->post('patients/(:num)', 'PatientManagement::updatePatient/$1', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
-$routes->post('patients/(:num)/status', 'PatientManagement::updatePatientStatus/$1', ['filter' => 'roleauth:admin,doctor,nurse,it_staff']);
+// Removed nurse from patient status update - nurses can only add vital signs
+$routes->post('patients/(:num)/status', 'PatientManagement::updatePatientStatus/$1', ['filter' => 'roleauth:admin,doctor,it_staff']);
 $routes->post('patients/(:num)/assign-doctor', 'PatientManagement::assignDoctor/$1', ['filter' => 'roleauth:admin,receptionist,it_staff']);
 $routes->delete('patients/(:num)', 'PatientManagement::deletePatient/$1', ['filter' => 'roleauth:admin,it_staff']);
 

@@ -32,7 +32,8 @@ class PermissionManager
             'reports' => ['view']
         ],
         'nurse' => [
-            'patients' => ['view', 'edit', 'view_assigned'],
+            'patients' => ['view', 'view_assigned'], // Nurses can only view patients to add vital signs, no edit
+            'vital_signs' => ['create'], // Nurses can only add vital signs
             'resources' => ['view', 'view_assigned'],
             'shifts' => ['view', 'view_department'],
             'prescriptions' => ['view', 'create_draft', 'view_assigned'] // Nurses can create draft prescriptions

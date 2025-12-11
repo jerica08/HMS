@@ -171,8 +171,11 @@ return [];
     public function createLabOrder(array $data, string $userRole, ?int $staffId = null): array
     {
         try {
-            if (!in_array($userRole, ['admin', 'doctor', 'it_staff'], true)) {
-                return ['success' => false, 'message' => 'Permission denied'];
+            // Only doctors and optionally nurses can create lab orders
+            // Doctors: Yes (main requester)
+            // Nurses: Optional (depends on policy - currently disabled, can be enabled if needed)
+            if (!in_array($userRole, ['doctor', 'nurse'], true)) {
+                return ['success' => false, 'message' => 'Permission denied. Only doctors can create lab orders.'];
             }
 
             if (!$this->db->tableExists('lab_orders')) {
@@ -191,6 +194,13 @@ return [];
 
             $doctorId = $data['doctor_id'] ?? $staffId;
             $patientId = (int) $data['patient_id'];
+
+            // For doctors: validate that patient is assigned to them
+            if ($userRole === 'doctor' && $staffId) {
+                if (!$this->isPatientAssignedToDoctor($patientId, $staffId)) {
+                    return ['success' => false, 'message' => 'You can only create lab orders for patients assigned to you.', 'errors' => ['patient_id' => 'Patient is not assigned to you']];
+                }
+            }
 
             $insert = [
                 'patient_id'     => $patientId,
@@ -368,8 +378,10 @@ return [];
     public function updateLabOrder(int $labOrderId, array $data, string $userRole, ?int $staffId = null): array
     {
         try {
-            if (!in_array($userRole, ['admin', 'doctor', 'it_staff'], true)) {
-                return ['success' => false, 'message' => 'Permission denied'];
+            // Only doctors can update their own lab orders (basic fields like test_code, test_name, priority)
+            // Lab staff process labs through updateStatus, not updateLabOrder
+            if ($userRole !== 'doctor') {
+                return ['success' => false, 'message' => 'Permission denied. Only doctors can update lab orders.'];
             }
 
             if (!$this->db->tableExists('lab_orders')) {
@@ -427,12 +439,10 @@ return [];
                 return ['success' => false, 'message' => 'Lab order not found'];
             }
 
-            // Permission: doctor can only update own orders; admin/it_staff/laboratorist have full access
-            if ($userRole === 'doctor' && (!$staffId || (int) $order['doctor_id'] !== (int) $staffId)) {
-                return ['success' => false, 'message' => 'You can only update your own lab orders'];
-            }
-            if (!in_array($userRole, ['admin', 'it_staff', 'laboratorist', 'doctor'], true)) {
-                return ['success' => false, 'message' => 'Permission denied'];
+            // Permission: Only laboratorist can process labs (update status)
+            // Doctors cannot update status - they can only create orders
+            if (!in_array($userRole, ['laboratorist'], true)) {
+                return ['success' => false, 'message' => 'Permission denied. Only lab staff can process lab orders.'];
             }
 
             // Check payment requirement for outpatients when changing to 'in_progress'
@@ -852,6 +862,55 @@ return [];
         } catch (\Throwable $e) {
             log_message('error', 'LabService::deleteLabOrder error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Failed to delete lab order'];
+        }
+    }
+
+    /**
+     * Check if a patient is assigned to a doctor
+     * @param int $patientId Patient ID
+     * @param int $staffId Doctor's staff_id
+     * @return bool True if patient is assigned to the doctor
+     */
+    private function isPatientAssignedToDoctor($patientId, $staffId)
+    {
+        try {
+            // Get doctor_id from staff_id
+            $doctorRecord = $this->db->table('doctor')
+                ->select('doctor_id')
+                ->where('staff_id', $staffId)
+                ->get()
+                ->getRowArray();
+            
+            if (!$doctorRecord || empty($doctorRecord['doctor_id'])) {
+                return false;
+            }
+            
+            $doctorId = $doctorRecord['doctor_id'];
+            
+            // Check both 'patient' and 'patients' table names
+            $patientTable = $this->db->tableExists('patient') ? 'patient' : ($this->db->tableExists('patients') ? 'patients' : null);
+            
+            if (!$patientTable) {
+                return false;
+            }
+            
+            // Check if primary_doctor_id column exists
+            if (!$this->db->fieldExists('primary_doctor_id', $patientTable)) {
+                // If column doesn't exist, allow access (backward compatibility)
+                return true;
+            }
+            
+            // Check if patient's primary_doctor_id matches doctor_id
+            $patient = $this->db->table($patientTable)
+                ->select('primary_doctor_id')
+                ->where('patient_id', $patientId)
+                ->get()
+                ->getRowArray();
+            
+            return $patient && isset($patient['primary_doctor_id']) && (int)$patient['primary_doctor_id'] === (int)$doctorId;
+        } catch (\Throwable $e) {
+            log_message('error', 'LabService::isPatientAssignedToDoctor error: ' . $e->getMessage());
+            return false;
         }
     }
 }

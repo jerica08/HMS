@@ -708,23 +708,23 @@ class ShiftManagement extends BaseController
                 ]);
             } else {
                 // Delete single shift (backward compatibility)
-                $db->table('staff_schedule')
-                    ->where('id', (int) $id)
-                    ->delete();
+            $db->table('staff_schedule')
+                ->where('id', (int) $id)
+                ->delete();
 
-                if ($db->affectedRows() > 0) {
-                    return $this->response->setJSON([
-                        'status' => 'success',
-                        'message' => 'Shift deleted successfully',
-                        'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                    ]);
-                }
-
-                return $this->response->setStatusCode(404)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Shift not found or already deleted',
+            if ($db->affectedRows() > 0) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Shift deleted successfully',
                     'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
                 ]);
+            }
+
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'Shift not found or already deleted',
+                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+            ]);
             }
 
         } catch (\Throwable $e) {

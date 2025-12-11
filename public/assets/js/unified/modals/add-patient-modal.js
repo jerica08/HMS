@@ -314,6 +314,8 @@ const AddPatientModal = {
             this.resetForm();
             this.switchTab('outpatientTab');
             await this.loadDoctors();
+            // Ensure all doctors are shown for outpatient form
+            this.restoreDoctorOptions();
         }
     },
 
@@ -359,6 +361,8 @@ const AddPatientModal = {
         this.admittingDoctorsCache = null;
         // Restore admitting doctor dropdown to show all doctors
         this.restoreAdmittingDoctorOptions();
+        // Restore all doctors for outpatient form
+        this.restoreDoctorOptions();
         this.resetAddressSelects();
         this.populateProvincesForAll();
     },
@@ -912,6 +916,7 @@ const AddPatientModal = {
 
     /**
      * Apply pediatric logic: for newborns, filter doctors to pediatricians and show previous pediatrician field
+     * For outpatients: always show all doctors regardless of age
      */
     applyPediatricLogic(ageYears) {
         const doctorSelect = document.getElementById('assigned_doctor');
@@ -936,6 +941,18 @@ const AddPatientModal = {
             }));
         }
 
+        // For outpatients: always show all doctors regardless of age
+        // Check if we're on the outpatient form by checking activeFormKey or form context
+        const isOutpatientForm = this.activeFormKey === 'outpatient' || 
+                                 (this.form && this.form.id === 'addPatientForm');
+        
+        if (isOutpatientForm) {
+            // Always restore all doctors for outpatients
+            this.restoreDoctorOptions();
+            return;
+        }
+
+        // For inpatients: apply pediatric filtering logic
         // If not pediatric age, restore full list
         if (!isPediatricAge) {
             this.restoreDoctorOptions();
@@ -1338,6 +1355,10 @@ AddPatientModal.switchTab = function(targetPanelId) {
     const form = targetPanel.querySelector('form[data-form-type]');
     if (form) {
         this.setActiveFormByType(form.dataset.formType || 'outpatient');
+        // Restore all doctors when switching to outpatient tab
+        if ((form.dataset.formType || 'outpatient').toLowerCase() === 'outpatient') {
+            this.restoreDoctorOptions();
+        }
     }
 };
 

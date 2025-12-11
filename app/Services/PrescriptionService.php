@@ -150,6 +150,17 @@ class PrescriptionService
                 ];
             }
 
+            // For doctors: validate that patient is assigned to them
+            if ($userRole === 'doctor' && $staffId) {
+                if (!$this->isPatientAssignedToDoctor($data['patient_id'], $staffId)) {
+                    return [
+                        'success' => false,
+                        'message' => 'You can only create prescriptions for patients assigned to you.',
+                        'errors'  => ['patient_id' => 'Patient is not assigned to you']
+                    ];
+                }
+            }
+
             // Validate items array for multi-medicine support
             if (empty($data['items']) || !is_array($data['items'])) {
                 return [
@@ -613,9 +624,32 @@ class PrescriptionService
                 $selectFields[] = 'p.patient_type';
             }
             
-            $patients = $this->db->table($tableName . ' p')
-                ->select($selectFields)
-                ->orderBy('p.first_name', 'ASC')
+            $builder = $this->db->table($tableName . ' p')
+                ->select($selectFields);
+            
+            // For doctors: filter by primary_doctor_id
+            if ($userRole === 'doctor' && $staffId) {
+                $hasPrimaryDoctor = $this->db->fieldExists('primary_doctor_id', $tableName);
+                if ($hasPrimaryDoctor) {
+                    // Get doctor_id from doctor table using staff_id
+                    $doctorInfo = $this->db->table('doctor')
+                        ->select('doctor_id')
+                        ->where('staff_id', $staffId)
+                        ->get()
+                        ->getRowArray();
+                    
+                    $doctorId = $doctorInfo['doctor_id'] ?? null;
+                    
+                    if ($doctorId) {
+                        $builder->where('p.primary_doctor_id', $doctorId);
+                    } else {
+                        // If doctor record not found, return empty list
+                        $builder->where('1=0');
+                    }
+                }
+            }
+            
+            $patients = $builder->orderBy('p.first_name', 'ASC')
                 ->get()
                 ->getResultArray();
             
@@ -1079,6 +1113,55 @@ class PrescriptionService
         } catch (\Throwable $e) {
             log_message('error', 'PrescriptionService::getActiveAdmissionId error: ' . $e->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Check if a patient is assigned to a doctor
+     * @param int $patientId Patient ID
+     * @param int $staffId Doctor's staff_id
+     * @return bool True if patient is assigned to the doctor
+     */
+    private function isPatientAssignedToDoctor($patientId, $staffId)
+    {
+        try {
+            // Get doctor_id from staff_id
+            $doctorRecord = $this->db->table('doctor')
+                ->select('doctor_id')
+                ->where('staff_id', $staffId)
+                ->get()
+                ->getRowArray();
+            
+            if (!$doctorRecord || empty($doctorRecord['doctor_id'])) {
+                return false;
+            }
+            
+            $doctorId = $doctorRecord['doctor_id'];
+            
+            // Check both 'patient' and 'patients' table names
+            $patientTable = $this->db->tableExists('patient') ? 'patient' : ($this->db->tableExists('patients') ? 'patients' : null);
+            
+            if (!$patientTable) {
+                return false;
+            }
+            
+            // Check if primary_doctor_id column exists
+            if (!$this->db->fieldExists('primary_doctor_id', $patientTable)) {
+                // If column doesn't exist, allow access (backward compatibility)
+                return true;
+            }
+            
+            // Check if patient's primary_doctor_id matches doctor_id
+            $patient = $this->db->table($patientTable)
+                ->select('primary_doctor_id')
+                ->where('patient_id', $patientId)
+                ->get()
+                ->getRowArray();
+            
+            return $patient && isset($patient['primary_doctor_id']) && (int)$patient['primary_doctor_id'] === (int)$doctorId;
+        } catch (\Throwable $e) {
+            log_message('error', 'PrescriptionService::isPatientAssignedToDoctor error: ' . $e->getMessage());
+            return false;
         }
     }
 }

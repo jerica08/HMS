@@ -322,25 +322,55 @@ class DashboardService
 
         try {
             // Patient statistics
-            if ($this->db->tableExists('patient')) {
-                $stats['my_patients'] = $this->db->table('patient')
-                    ->where('primary_doctor_id', $staffId)
-                    ->countAllResults();
+            // Check both 'patient' and 'patients' table names
+            $patientTable = $this->db->tableExists('patient') ? 'patient' : ($this->db->tableExists('patients') ? 'patients' : null);
+            
+            if ($patientTable && $this->db->tableExists('doctor')) {
+                // Get doctor_id for this staff_id
+                $doctorRecord = $this->db->table('doctor')
+                    ->select('doctor_id')
+                    ->where('staff_id', $staffId)
+                    ->get()
+                    ->getRowArray();
+                
+                $doctorId = $doctorRecord['doctor_id'] ?? null;
+                
+                if ($doctorId) {
+                    // Check if primary_doctor_id column exists
+                    $hasPrimaryDoctorColumn = $this->db->fieldExists('primary_doctor_id', $patientTable);
+                    
+                    if ($hasPrimaryDoctorColumn) {
+                        $stats['my_patients'] = $this->db->table($patientTable)
+                            ->where('primary_doctor_id', $doctorId)
+                            ->countAllResults();
 
-                $stats['new_patients_week'] = $this->db->table('patient')
-                    ->where('primary_doctor_id', $staffId)
-                    ->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))
-                    ->countAllResults();
+                        $stats['new_patients_week'] = $this->db->table($patientTable)
+                            ->where('primary_doctor_id', $doctorId)
+                            ->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))
+                            ->countAllResults();
 
-                $stats['critical_patients'] = $this->db->table('patient')
-                    ->where('primary_doctor_id', $staffId)
-                    ->where('patient_type', 'emergency')
-                    ->countAllResults();
+                        $stats['critical_patients'] = $this->db->table($patientTable)
+                            ->where('primary_doctor_id', $doctorId)
+                            ->where('patient_type', 'emergency')
+                            ->countAllResults();
 
-                $stats['monthly_patients'] = $this->db->table('patient')
-                    ->where('primary_doctor_id', $staffId)
-                    ->where('date_registered >=', date('Y-m-d', strtotime('-30 days')))
-                    ->countAllResults();
+                        $stats['monthly_patients'] = $this->db->table($patientTable)
+                            ->where('primary_doctor_id', $doctorId)
+                            ->where('date_registered >=', date('Y-m-d', strtotime('-30 days')))
+                            ->countAllResults();
+                    } else {
+                        // Fallback: no primary_doctor_id column
+                        $stats['my_patients'] = 0;
+                        $stats['new_patients_week'] = 0;
+                        $stats['critical_patients'] = 0;
+                        $stats['monthly_patients'] = 0;
+                    }
+                } else {
+                    $stats['my_patients'] = 0;
+                    $stats['new_patients_week'] = 0;
+                    $stats['critical_patients'] = 0;
+                    $stats['monthly_patients'] = 0;
+                }
             } else {
                 $stats['my_patients'] = 0;
                 $stats['new_patients_week'] = 0;
@@ -356,25 +386,109 @@ class DashboardService
         }
 
         try {
-            // Prescriptions
-            if ($this->db->tableExists('prescriptions')) {
-                $stats['prescriptions_pending'] = $this->db->table('prescriptions')
-                    ->where('doctor_id', $staffId)
-                    ->where('status', 'active')
-                    ->countAllResults();
+            // Prescriptions statistics
+            if ($this->db->tableExists('prescriptions') && $this->db->tableExists('users')) {
+                // Check if doctor_id column exists (legacy support)
+                $hasDoctorIdColumn = $this->db->fieldExists('doctor_id', 'prescriptions');
+                $hasCreatedByColumn = $this->db->fieldExists('created_by', 'prescriptions');
+                
+                if ($hasDoctorIdColumn && $hasCreatedByColumn) {
+                    // Both columns exist - check both doctor_id and created_by
+                    // Use a subquery to avoid double counting when both conditions match
+                    $baseQuery = $this->db->table('prescriptions p')
+                        ->join('users u', 'u.user_id = p.created_by', 'left')
+                        ->groupStart()
+                            ->where('p.doctor_id', $staffId)
+                            ->orWhere('u.staff_id', $staffId)
+                        ->groupEnd();
+                    
+                    $stats['prescriptions_total'] = (clone $baseQuery)->countAllResults();
 
-                $stats['prescriptions_today'] = $this->db->table('prescriptions')
-                    ->where('doctor_id', $staffId)
-                    ->where('DATE(created_at)', $today)
-                    ->countAllResults();
+                    $stats['prescriptions_today'] = (clone $baseQuery)
+                        ->where('p.created_at >=', $today . ' 00:00:00')
+                        ->where('p.created_at <=', $today . ' 23:59:59')
+                        ->countAllResults();
+
+                    // For status filtering, check both old and new status values
+                    $stats['prescriptions_active'] = (clone $baseQuery)
+                        ->whereIn('p.status', ['active', 'queued', 'verifying', 'ready'])
+                        ->countAllResults();
+
+                    $stats['prescriptions_completed'] = (clone $baseQuery)
+                        ->whereIn('p.status', ['completed', 'dispensed'])
+                        ->countAllResults();
+                } elseif ($hasDoctorIdColumn) {
+                    // Only doctor_id column exists
+                    $stats['prescriptions_total'] = $this->db->table('prescriptions')
+                        ->where('doctor_id', $staffId)
+                        ->countAllResults();
+
+                    $stats['prescriptions_today'] = $this->db->table('prescriptions')
+                        ->where('doctor_id', $staffId)
+                        ->where('created_at >=', $today . ' 00:00:00')
+                        ->where('created_at <=', $today . ' 23:59:59')
+                        ->countAllResults();
+
+                    // For status filtering, check both old and new status values
+                    $stats['prescriptions_active'] = $this->db->table('prescriptions')
+                        ->where('doctor_id', $staffId)
+                        ->whereIn('status', ['active', 'queued', 'verifying', 'ready'])
+                        ->countAllResults();
+
+                    $stats['prescriptions_completed'] = $this->db->table('prescriptions')
+                        ->where('doctor_id', $staffId)
+                        ->whereIn('status', ['completed', 'dispensed'])
+                        ->countAllResults();
+                } elseif ($hasCreatedByColumn) {
+                    // Modern: use created_by (user_id) and join with users to get staff_id
+                    $stats['prescriptions_total'] = $this->db->table('prescriptions p')
+                        ->join('users u', 'u.user_id = p.created_by', 'inner')
+                        ->where('u.staff_id', $staffId)
+                        ->countAllResults();
+
+                    $stats['prescriptions_today'] = $this->db->table('prescriptions p')
+                        ->join('users u', 'u.user_id = p.created_by', 'inner')
+                        ->where('u.staff_id', $staffId)
+                        ->where('p.created_at >=', $today . ' 00:00:00')
+                        ->where('p.created_at <=', $today . ' 23:59:59')
+                        ->countAllResults();
+
+                    // For status filtering, check both 'active' and 'queued' (new status values)
+                    $stats['prescriptions_active'] = $this->db->table('prescriptions p')
+                        ->join('users u', 'u.user_id = p.created_by', 'inner')
+                        ->where('u.staff_id', $staffId)
+                        ->whereIn('p.status', ['active', 'queued', 'verifying', 'ready'])
+                        ->countAllResults();
+
+                    $stats['prescriptions_completed'] = $this->db->table('prescriptions p')
+                        ->join('users u', 'u.user_id = p.created_by', 'inner')
+                        ->where('u.staff_id', $staffId)
+                        ->whereIn('p.status', ['completed', 'dispensed'])
+                        ->countAllResults();
+                } else {
+                    // No linking column found
+                    $stats['prescriptions_total'] = 0;
+                    $stats['prescriptions_today'] = 0;
+                    $stats['prescriptions_active'] = 0;
+                    $stats['prescriptions_completed'] = 0;
+                }
+
+                // Keep backward compatibility
+                $stats['prescriptions_pending'] = $stats['prescriptions_active'] ?? 0;
             } else {
-                $stats['prescriptions_pending'] = 0;
+                $stats['prescriptions_total'] = 0;
                 $stats['prescriptions_today'] = 0;
+                $stats['prescriptions_active'] = 0;
+                $stats['prescriptions_completed'] = 0;
+                $stats['prescriptions_pending'] = 0;
             }
         } catch (\Exception $e) {
             log_message('error', 'Prescriptions stats error: ' . $e->getMessage());
-            $stats['prescriptions_pending'] = 0;
+            $stats['prescriptions_total'] = 0;
             $stats['prescriptions_today'] = 0;
+            $stats['prescriptions_active'] = 0;
+            $stats['prescriptions_completed'] = 0;
+            $stats['prescriptions_pending'] = 0;
         }
 
         return $stats;

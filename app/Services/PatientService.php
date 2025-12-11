@@ -657,7 +657,14 @@ class PatientService
                 return $doctorRecord['doctor_id'] ?? null;
             }
 
-            // Fallback to first available doctor from doctor table
+            // Check patient type - do not auto-assign for outpatients
+            $patientType = strtolower($input['patient_type'] ?? 'outpatient');
+            if ($patientType === 'outpatient') {
+                // For outpatients, do not automatically assign a doctor
+                return null;
+            }
+
+            // Fallback to first available doctor from doctor table (for inpatients and other types)
             $firstDoctor = $this->db->table('doctor d')
                 ->select('d.doctor_id')
                 ->join('staff s', 's.staff_id = d.staff_id', 'inner')

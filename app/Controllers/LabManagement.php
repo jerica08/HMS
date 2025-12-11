@@ -97,9 +97,35 @@ class LabManagement extends BaseController
                 log_message('debug', 'Could not check patient_type field: ' . $e->getMessage());
             }
 
-            $patients = $db->table($tableName . ' p')
-                ->select($selectFields)
-                ->orderBy('p.first_name', 'ASC')
+            $builder = $db->table($tableName . ' p')
+                ->select($selectFields);
+            
+            // For doctors: filter by primary_doctor_id
+            $userRole = session()->get('role');
+            $staffId = session()->get('staff_id');
+            
+            if ($userRole === 'doctor' && $staffId) {
+                $hasPrimaryDoctor = $db->fieldExists('primary_doctor_id', $tableName);
+                if ($hasPrimaryDoctor) {
+                    // Get doctor_id from doctor table using staff_id
+                    $doctorInfo = $db->table('doctor')
+                        ->select('doctor_id')
+                        ->where('staff_id', $staffId)
+                        ->get()
+                        ->getRowArray();
+                    
+                    $doctorId = $doctorInfo['doctor_id'] ?? null;
+                    
+                    if ($doctorId) {
+                        $builder->where('p.primary_doctor_id', $doctorId);
+                    } else {
+                        // If doctor record not found, return empty list
+                        $builder->where('1=0');
+                    }
+                }
+            }
+            
+            $patients = $builder->orderBy('p.first_name', 'ASC')
                 ->orderBy('p.last_name', 'ASC')
                 ->get()
                 ->getResultArray();

@@ -27,6 +27,17 @@ class AppointmentService
             return ['success' => false, 'message' => 'Validation failed', 'errors' => $validation->getErrors()];
         }
 
+        // For doctors: validate that patient is assigned to them
+        if ($userRole === 'doctor' && $staffId) {
+            if (!$this->isPatientAssignedToDoctor($input['patient_id'], $staffId)) {
+                return [
+                    'success' => false,
+                    'message' => 'You can only create appointments for patients assigned to you.',
+                    'errors' => ['patient_id' => 'Patient is not assigned to you']
+                ];
+            }
+        }
+
         $data = $this->prepareAppointmentData($input, $doctorId, $userRole);
         $appointmentDate = $data['appointment_date'] ?? null;
         if (!$appointmentDate || ($timestamp = strtotime($appointmentDate)) === false) {

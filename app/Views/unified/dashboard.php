@@ -288,24 +288,48 @@
                     </div>
                 </div>
 
+                <!-- My Prescriptions Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
-                        <div class="card-icon-modern purple" aria-hidden="true">
-                            <i class="fas fa-prescription"></i>
+                        <div class="card-icon-modern blue" aria-hidden="true">
+                            <i class="fas fa-prescription-bottle"></i>
                         </div>
                         <div class="card-info">
-                            <h3 class="card-title-modern">Prescriptions</h3>
-                            <p class="card-subtitle">Prescription management</p>
+                            <h3 class="card-title-modern">My Prescriptions</h3>
+                            <p class="card-subtitle">Issued prescriptions</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue"><?= esc($stats['prescriptions_pending'] ?? 0) ?></div>
-                            <div class="metric-label">Pending</div>
+                            <div class="metric-value blue"><?= esc($stats['prescriptions_total'] ?? 0) ?></div>
+                            <div class="metric-label">Total</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-value green"><?= esc($stats['prescriptions_today'] ?? 0) ?></div>
+                            <div class="metric-value orange"><?= esc($stats['prescriptions_today'] ?? 0) ?></div>
                             <div class="metric-label">Today</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prescription Status Card -->
+                <div class="overview-card" tabindex="0">
+                    <div class="card-header-modern">
+                        <div class="card-icon-modern green" aria-hidden="true">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title-modern">Prescription Status</h3>
+                            <p class="card-subtitle">Current status</p>
+                        </div>
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric">
+                            <div class="metric-value green"><?= esc($stats['prescriptions_active'] ?? 0) ?></div>
+                            <div class="metric-label">Active</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value purple"><?= esc($stats['prescriptions_completed'] ?? 0) ?></div>
+                            <div class="metric-label">Completed</div>
                         </div>
                     </div>
                 </div>

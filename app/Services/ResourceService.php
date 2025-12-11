@@ -54,11 +54,16 @@ class ResourceService
 
             $quantity = (int)($data['quantity'] ?? 1);
             
+            // Don't allow creating resources with quantity 0 - they would be immediately deleted
+            if ($quantity === 0) {
+                return ['success' => false, 'message' => 'Cannot create resource with quantity 0. Resources are automatically removed when stock runs out.'];
+            }
+            
             $resourceData = [
                 'equipment_name' => trim($data['equipment_name'] ?? ''),
                 'category' => $data['category'] ?? '',
                 'quantity' => $quantity,
-                'status' => $data['status'] ?? ($quantity === 0 ? 'Stock Out' : 'Stock In'),
+                'status' => $data['status'] ?? 'Stock In',
                 'location' => trim($data['location'] ?? ''),
                 'batch_number' => trim($data['batch_number'] ?? ''),
                 'expiry_date' => !empty($data['expiry_date']) ? $data['expiry_date'] : null,
@@ -143,17 +148,31 @@ class ResourceService
                 }
             }
 
-            // Automatically update status based on quantity changes
+            // Automatically delete resource when quantity reaches 0 (unless assigned to staff)
             $currentQuantity = (int)($resource['quantity'] ?? 0);
             $newQuantity = isset($updateData['quantity']) ? (int)$updateData['quantity'] : $currentQuantity;
             $assignedToStaff = !empty($resource['assigned_to_staff_id']);
             
+            // Check if quantity is being set to 0 and resource is not assigned to staff
+            if (isset($updateData['quantity']) && $newQuantity === 0 && !$assignedToStaff) {
+                // Automatically delete the resource when stock runs out
+                if ($this->resourceModel->delete($resourceId)) {
+                    return [
+                        'success' => true, 
+                        'message' => 'Resource automatically removed - stock is out',
+                        'deleted' => true
+                    ];
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to remove resource'
+                    ];
+                }
+            }
+            
             // Only auto-update status if quantity is being changed and status is not explicitly set
-            if (isset($updateData['quantity']) && !isset($updateData['status'])) {
-                if ($newQuantity === 0) {
-                    // When quantity reaches 0, automatically set status to 'Stock Out'
-                    $updateData['status'] = 'Stock Out';
-                } elseif ($newQuantity > 0 && !$assignedToStaff) {
+            if (isset($updateData['quantity']) && !isset($updateData['status']) && $newQuantity > 0) {
+                if ($newQuantity > 0 && !$assignedToStaff) {
                     // When quantity becomes > 0 and not assigned to staff, set status to 'Stock In'
                     // Only change if it was previously 'Stock Out' due to zero quantity
                     if (($resource['status'] ?? '') === 'Stock Out' && $currentQuantity === 0) {
@@ -194,11 +213,9 @@ class ResourceService
                 return ['success' => false, 'message' => 'Resource not found'];
             }
 
-            // Allow deletion of stock out resources if quantity is 0
-            // Only prevent deletion if stock is out but quantity > 0 (assigned to staff)
-            if (($resource['status'] ?? '') === 'Stock Out' && ($resource['quantity'] ?? 0) > 0) {
-                return ['success' => false, 'message' => 'Cannot delete resource that is currently assigned or in use'];
-            }
+            // Resources with quantity 0 are automatically deleted, so manual deletion is only needed
+            // for resources that are assigned to staff or have quantity > 0
+            // Allow deletion of any resource (automatic deletion only happens when quantity reaches 0)
 
             return $this->resourceModel->delete($resourceId)
                 ? ['success' => true, 'message' => 'Resource deleted successfully']

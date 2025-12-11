@@ -235,9 +235,11 @@ class ResourceModel extends Model
 
     /**
      * Release resource assignment
-     * Automatically sets status based on quantity:
+     * Automatically deletes resource if quantity is 0:
+     * - If quantity = 0, automatically deletes the resource (stock is out)
      * - If quantity > 0, sets status to 'Stock In'
-     * - If quantity = 0, keeps status as 'Stock Out'
+     * 
+     * @return bool|int Returns false on failure, true on update, or resource ID if deleted
      */
     public function releaseAssignment($resourceId)
     {
@@ -247,20 +249,27 @@ class ResourceModel extends Model
         }
 
         $quantity = (int)($resource['quantity'] ?? 0);
-        $status = $quantity > 0 ? 'Stock In' : 'Stock Out';
+        
+        // Automatically delete resource if quantity is 0 when releasing assignment
+        if ($quantity === 0) {
+            return $this->delete($resourceId) ? $resourceId : false;
+        }
 
+        // If quantity > 0, set status to 'Stock In'
         return $this->update($resourceId, [
             'assigned_to_staff_id' => null,
-            'status' => $status,
+            'status' => 'Stock In',
             'updated_at' => date('Y-m-d H:i:s')
         ]);
     }
 
     /**
      * Update resource quantity safely (prevent negative)
-     * Automatically updates status based on quantity:
-     * - Sets status to 'Stock Out' when quantity reaches 0
+     * Automatically deletes resource when quantity reaches 0 (unless assigned to staff):
+     * - Deletes resource when quantity reaches 0 and not assigned to staff
      * - Sets status to 'Stock In' when quantity becomes > 0 (if not assigned to staff)
+     * 
+     * @return bool|int Returns false on failure, true on update, or resource ID if deleted
      */
     public function updateQuantity($resourceId, $quantityChange, $operation = 'add')
     {
@@ -278,23 +287,24 @@ class ResourceModel extends Model
             $newQuantity = max(0, $currentQuantity - $quantityChange);
         }
 
+        // Automatically delete resource when quantity reaches 0 (unless assigned to staff)
+        if ($newQuantity === 0 && !$assignedToStaff) {
+            // Delete the resource automatically when stock runs out
+            return $this->delete($resourceId) ? $resourceId : false;
+        }
+
         $updateData = [
             'quantity' => $newQuantity,
             'updated_at' => date('Y-m-d H:i:s')
         ];
 
-        // Automatically update status based on quantity
-        if ($newQuantity === 0) {
-            // When quantity reaches 0, set status to 'Stock Out'
-            $updateData['status'] = 'Stock Out';
-        } elseif ($newQuantity > 0 && !$assignedToStaff) {
-            // When quantity becomes > 0 and not assigned to staff, set status to 'Stock In'
+        // When quantity becomes > 0 and not assigned to staff, set status to 'Stock In'
+        if ($newQuantity > 0 && !$assignedToStaff) {
             // Only change if it was previously 'Stock Out' due to zero quantity
             if (($resource['status'] ?? '') === 'Stock Out' && $currentQuantity === 0) {
                 $updateData['status'] = 'Stock In';
             }
         }
-        // If assigned to staff, don't change status automatically
 
         return $this->update($resourceId, $updateData);
     }

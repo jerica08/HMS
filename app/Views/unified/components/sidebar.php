@@ -44,7 +44,6 @@ $moduleMappings = [
     'resources' => [
         'admin' => ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resource Management'],
         'doctor' => ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resources'],
-        'nurse' => ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resources'],
         'pharmacist' => ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resources'],
         'laboratorist' => ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resources'],
         'it_staff' => ['url' => 'admin/resource-management', 'icon' => 'fas fa-hospital', 'label' => 'Resource Management'],
@@ -52,14 +51,12 @@ $moduleMappings = [
     'shifts' => [
         'admin' => ['url' => 'admin/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule Management'],
         'doctor' => ['url' => 'doctor/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'My Schedule'],
-        'nurse' => ['url' => 'nurse/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'My Schedule'],
         'receptionist' => ['url' => 'admin/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule Management'],
         'it_staff' => ['url' => 'admin/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule Management'],
     ],
     'prescriptions' => [
         'admin' => ['url' => 'admin/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         'doctor' => ['url' => 'doctor/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
-        'nurse' => ['url' => 'nurse/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         'pharmacist' => ['url' => 'pharmacist/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
     ],
     'reports' => [
@@ -76,9 +73,6 @@ $moduleMappings = [
     'system' => [
         'admin' => ['url' => 'admin/system-settings', 'icon' => 'fas fa-cogs', 'label' => 'System Settings'],
         'it_staff' => ['url' => 'it-staff/system-settings', 'icon' => 'fas fa-cogs', 'label' => 'System Settings'],
-    ],
-    'vital_signs' => [
-        'nurse' => ['url' => 'nurse/patients', 'icon' => 'fas fa-heartbeat', 'label' => 'Vital Signs'],
     ],
 ];
 
@@ -133,12 +127,22 @@ foreach ($moduleMappings as $module => $roleMappings) {
 }
 
 // Add additional modules (these may not have explicit permissions in PermissionManager)
-// Labs - available if user has patients or prescriptions permission
+// Labs - available if user has patients or prescriptions permission (nurses excluded from prescriptions check)
 $labsPermissionActions = ($userRole === 'nurse') ? ['view', 'view_all', 'view_own'] : ['view', 'view_all', 'view_assigned', 'view_own'];
-if (PermissionManager::hasAnyPermission($userRole, 'patients', $labsPermissionActions) || 
-    PermissionManager::hasAnyPermission($userRole, 'prescriptions', $labsPermissionActions)) {
-    if (isset($additionalModules['labs'][$userRole])) {
-        $navigationItems[] = array_merge($additionalModules['labs'][$userRole], ['module' => 'labs']);
+if ($userRole === 'nurse') {
+    // Nurses can access labs if they have patients permission (no prescriptions check)
+    if (PermissionManager::hasAnyPermission($userRole, 'patients', $labsPermissionActions)) {
+        if (isset($additionalModules['labs'][$userRole])) {
+            $navigationItems[] = array_merge($additionalModules['labs'][$userRole], ['module' => 'labs']);
+        }
+    }
+} else {
+    // Other roles can access labs if they have patients or prescriptions permission
+    if (PermissionManager::hasAnyPermission($userRole, 'patients', $labsPermissionActions) || 
+        PermissionManager::hasAnyPermission($userRole, 'prescriptions', $labsPermissionActions)) {
+        if (isset($additionalModules['labs'][$userRole])) {
+            $navigationItems[] = array_merge($additionalModules['labs'][$userRole], ['module' => 'labs']);
+        }
     }
 }
 

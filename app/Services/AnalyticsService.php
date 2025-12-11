@@ -98,7 +98,7 @@ class AnalyticsService
         $dateRange = $this->getDateRange($filters);
         
         return [
-            'department_patients' => $this->getNurseDepartmentStats($nurseId, $dateRange),
+            'patients' => $this->getNursePatientStats($nurseId, $dateRange),
             'medication_tracking' => $this->getMedicationTrackingStats($nurseId, $dateRange),
             'shift_analytics' => $this->getShiftAnalytics($nurseId, $dateRange)
         ];
@@ -785,42 +785,26 @@ class AnalyticsService
         }
     }
 
-    private function getNurseDepartmentStats(int $nurseId, array $dateRange): array
+    private function getNursePatientStats(int $nurseId, array $dateRange): array
     {
-        // Get nurse's department and count patients
+        // Nurses can see all patients (view_all permission)
         try {
-            $nurse = $this->db->table('staff')->where('staff_id', $nurseId)->get()->getRow();
-            if (!$nurse) {
-                return ['total' => 0, 'active' => 0];
-            }
-
             $patientTable = $this->patientTable;
             
-            // Check if department column exists in patient table
-            $totalPatients = 0;
-            $activePatients = 0;
-            
-            if ($this->db->fieldExists('department', $patientTable)) {
-                $totalPatients = $this->db->table($patientTable . ' p')
-                    ->join('staff s', 's.department = p.department', 'left')
-                    ->where('s.department', $nurse->department)
-                    ->countAllResults();
+            $totalPatients = $this->db->table($patientTable)->countAllResults();
 
-                if ($this->db->fieldExists('status', $patientTable)) {
-                    $activePatients = $this->db->table($patientTable . ' p')
-                        ->join('staff s', 's.department = p.department', 'left')
-                        ->where('s.department', $nurse->department)
-                        ->where('p.status', 'Active')
-                        ->countAllResults();
-                } else {
-                    $activePatients = $totalPatients;
-                }
+            $activePatients = 0;
+            if ($this->db->fieldExists('status', $patientTable)) {
+                $activePatients = $this->db->table($patientTable)
+                    ->where('status', 'Active')
+                    ->countAllResults();
+            } else {
+                $activePatients = $totalPatients;
             }
 
             return [
                 'total' => $totalPatients,
-                'active' => $activePatients,
-                'department' => $nurse->department
+                'active' => $activePatients
             ];
         } catch (\Exception $e) {
             return ['total' => 0, 'active' => 0];
@@ -830,24 +814,17 @@ class AnalyticsService
     private function getMedicationTrackingStats(int $nurseId, array $dateRange): array
     {
         try {
-            // Get prescriptions assigned to nurse's department
-            $nurse = $this->db->table('staff')->where('staff_id', $nurseId)->get()->getRow();
-            if (!$nurse) {
-                return ['administered' => 0, 'pending' => 0, 'scheduled' => 0, 'total' => 0];
-            }
-
+            // Nurses can see all prescriptions (view_all permission)
             // Count prescriptions by status
             $administered = 0;
             $pending = 0;
             $scheduled = 0;
 
             if ($this->db->tableExists('prescriptions')) {
-                // Get prescriptions for patients in nurse's department
+                // Get all prescriptions (no department filtering)
                 $prescriptions = $this->db->table('prescriptions p')
-                    ->join('patient pt', 'pt.patient_id = p.patient_id', 'left')
-                    ->where('pt.department', $nurse->department)
-                    ->where('p.date_issued >=', $dateRange['start'])
-                    ->where('p.date_issued <=', $dateRange['end'])
+                    ->where('p.created_at >=', $dateRange['start'])
+                    ->where('p.created_at <=', $dateRange['end'])
                     ->get()
                     ->getResultArray();
 

@@ -364,13 +364,13 @@
                             <i class="fas fa-hospital"></i>
                         </div>
                         <div class="card-info">
-                            <h3 class="card-title-modern">Department Patients</h3>
+                            <h3 class="card-title-modern">Patients</h3>
                             <p class="card-subtitle">Patient overview</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
-                            <div class="metric-value blue"><?= esc($stats['department_patients'] ?? 0) ?></div>
+                            <div class="metric-value blue"><?= esc($stats['total_patients'] ?? 0) ?></div>
                             <div class="metric-label">Total</div>
                         </div>
                         <div class="metric">

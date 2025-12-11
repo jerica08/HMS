@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Services\AppointmentService;
 use App\Services\FinancialService;
+use App\Libraries\PermissionManager;
 
 class AppointmentManagement extends BaseController
 {
@@ -60,11 +61,11 @@ class AppointmentManagement extends BaseController
      */
     public function createAppointment()
     {
-        // Check permissions - only admin, doctor, and receptionist can create appointments
-        if (!in_array($this->userRole, ['admin', 'doctor', 'receptionist'])) {
+        // Check permissions using PermissionManager
+        if (!PermissionManager::hasPermission($this->userRole, 'appointments', 'create')) {
             return $this->response->setStatusCode(403)->setJSON([
                 'status'  => 'error',
-                'message' => 'You do not have permission to create appointments. Only administrators, doctors, and receptionists can create appointments.',
+                'message' => 'You do not have permission to create appointments.',
             ]);
         }
 
@@ -85,13 +86,14 @@ class AppointmentManagement extends BaseController
                 'appointment_date' => $input['appointment_date'] ?? null,
                 'appointment_time' => $input['appointment_time'] ?? null,
                 'reason' => $input['reason'] ?? $input['notes'] ?? null,
-                // Allow admin and receptionist to update doctor_id
-                'doctor_id' => (in_array($this->userRole, ['admin', 'receptionist']) && !empty($input['doctor_id'])) ? (int)$input['doctor_id'] : null
+                // Allow roles with assign_doctor permission to update doctor_id
+                'doctor_id' => (PermissionManager::hasPermission($this->userRole, 'patients', 'assign_doctor') && !empty($input['doctor_id'])) ? (int)$input['doctor_id'] : null
             ], fn($v) => $v !== null);
             $updateData['updated_at'] = date('Y-m-d H:i:s');
             
             $builder = $this->db->table('appointments');
-            if ($this->userRole === 'doctor') {
+            // Filter by doctor_id if user has view_own permission
+            if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
                 $builder->where('doctor_id', $this->staffId);
             }
             $result = $builder->where('id', $appointmentId)->update($updateData);
@@ -122,7 +124,8 @@ class AppointmentManagement extends BaseController
     public function getAppointmentsAPI()
     {
         $filters = [];
-        if ($this->userRole === 'doctor') {
+        // Filter by doctor_id if user has view_own permission
+        if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
             $filters['doctor_id'] = $this->staffId;
         }
         foreach (['date', 'status', 'patient_id'] as $key) {
@@ -130,8 +133,8 @@ class AppointmentManagement extends BaseController
                 $filters[$key] = $value;
             }
         }
-        // Admin and accountant can filter by doctor_id
-        if (in_array($this->userRole, ['admin', 'accountant']) && ($doctorId = $this->request->getGet('doctor_id'))) {
+        // Roles with view_all permission can filter by doctor_id
+        if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_all') && ($doctorId = $this->request->getGet('doctor_id'))) {
             $filters['doctor_id'] = $doctorId;
         }
         $result = $this->appointmentService->getAppointments($filters);
@@ -144,7 +147,8 @@ class AppointmentManagement extends BaseController
             return $this->jsonResponse('error', 'Permission denied');
         }
         $filters = ['patient_id' => $patientId];
-        if ($this->userRole === 'doctor') {
+        // Filter by doctor_id if user has view_own permission
+        if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
             $filters['doctor_id'] = $this->staffId;
         }
         $result = $this->appointmentService->getAppointments($filters);
@@ -399,8 +403,8 @@ class AppointmentManagement extends BaseController
     {
         $filters = [];
         
-        // Role-based filtering
-        if ($this->userRole === 'doctor') {
+        // Role-based filtering - filter by doctor_id if user has view_own permission
+        if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
             $filters['doctor_id'] = $this->staffId;
         }
         
@@ -432,10 +436,10 @@ class AppointmentManagement extends BaseController
             $builder = $this->db->table('appointments');
             
             // Apply role-based filtering
-            if ($this->userRole === 'doctor') {
+            if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
                 $builder->where('doctor_id', $this->staffId);
             } elseif ($this->userRole === 'nurse') {
-                // Filter by department
+                // Filter by department for nurses
                 $builder->join('staff', 'staff.staff_id = appointments.doctor_id')
                         ->join('staff as nurse_staff', 'nurse_staff.staff_id = ' . $this->staffId)
                         ->where('staff.department = nurse_staff.department');
@@ -495,39 +499,54 @@ class AppointmentManagement extends BaseController
     {
         $role = $this->userRole;
         return [
-            'canCreate' => in_array($role, ['admin', 'receptionist', 'doctor']),
-            'canEdit' => in_array($role, ['admin', 'receptionist', 'doctor']),
-            'canDelete' => $role === 'admin',
-            'canViewAll' => in_array($role, ['admin', 'receptionist', 'accountant']),
-            'canUpdateStatus' => in_array($role, ['admin', 'doctor']),
-            'canSchedule' => in_array($role, ['admin', 'receptionist', 'doctor']),
-            'canReschedule' => in_array($role, ['admin', 'receptionist', 'doctor']),
-            'canAddToBill' => in_array($role, ['admin', 'accountant'])
+            'canCreate' => PermissionManager::hasPermission($role, 'appointments', 'create'),
+            'canEdit' => PermissionManager::hasPermission($role, 'appointments', 'edit'),
+            'canDelete' => PermissionManager::hasPermission($role, 'appointments', 'delete'),
+            'canViewAll' => PermissionManager::hasPermission($role, 'appointments', 'view_all'),
+            'canUpdateStatus' => PermissionManager::hasPermission($role, 'appointments', 'edit'),
+            'canSchedule' => PermissionManager::hasPermission($role, 'appointments', 'create'),
+            'canReschedule' => PermissionManager::hasPermission($role, 'appointments', 'reschedule'),
+            'canAddToBill' => PermissionManager::hasPermission($role, 'billing', 'create') || PermissionManager::hasPermission($role, 'billing', 'process')
         ];
     }
 
     private function canViewAppointment($appointmentId)
     {
-        return match($this->userRole) {
-            'admin', 'receptionist', 'accountant' => true,
-            'doctor' => !empty($this->db->table('appointments')->where('id', $appointmentId)->where('doctor_id', $this->staffId)->get()->getRow()),
-            default => false
-        };
+        // Check if user has view_all permission
+        if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_all')) {
+            return true;
+        }
+        // Check if user has view_own permission and owns the appointment
+        if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
+            return !empty($this->db->table('appointments')->where('id', $appointmentId)->where('doctor_id', $this->staffId)->get()->getRow());
+        }
+        return false;
     }
 
     private function canEditAppointment($appointmentId)
     {
-        return match($this->userRole) {
-            'admin', 'receptionist' => true,
-            'doctor' => $this->canViewAppointment($appointmentId),
-            'nurse' => $this->isAppointmentInNurseDepartment($appointmentId),
-            default => false
-        };
+        // Check if user has edit permission
+        if (!PermissionManager::hasPermission($this->userRole, 'appointments', 'edit')) {
+            return false;
+        }
+        // If user has view_all, they can edit
+        if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_all')) {
+            return true;
+        }
+        // If user has view_own, check if they own the appointment
+        if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
+            return $this->canViewAppointment($appointmentId);
+        }
+        // Special case for nurses
+        if ($this->userRole === 'nurse') {
+            return $this->isAppointmentInNurseDepartment($appointmentId);
+        }
+        return false;
     }
 
     private function canDeleteAppointment($appointmentId)
     {
-        return $this->userRole === 'admin';
+        return PermissionManager::hasPermission($this->userRole, 'appointments', 'delete');
     }
 
     private function getPageTitle()

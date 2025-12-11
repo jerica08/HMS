@@ -210,12 +210,25 @@ class PatientManagement extends BaseController
                 ]);
             }
 
-            // Get nurse_id if user is a nurse
+            // Get nurse_id if user is a nurse - connect to nurse table via staff_id
             $nurseId = null;
             if ($this->userRole === 'nurse' && $this->staffId) {
-                $nurseModel = new \App\Models\NurseModel();
-                $nurse = $nurseModel->getNurseByStaffId($this->staffId);
-                $nurseId = $nurse['nurse_id'] ?? null;
+                // Check if nurse table exists (singular 'nurse' as per migration)
+                if ($this->db->tableExists('nurse')) {
+                    $nurse = $this->db->table('nurse')
+                        ->where('staff_id', $this->staffId)
+                        ->get()
+                        ->getRowArray();
+                    $nurseId = $nurse['nurse_id'] ?? null;
+                } elseif ($this->db->tableExists('nurses')) {
+                    // Fallback to plural if it exists
+                    $nurse = $this->db->table('nurses')
+                        ->where('staff_id', $this->staffId)
+                        ->get()
+                        ->getRowArray();
+                    $nurseId = $nurse['nurse_id'] ?? null;
+                }
+                // If table doesn't exist or nurse record not found, nurse_id will remain null
             }
 
             // Prepare vital signs data
@@ -265,9 +278,8 @@ class PatientManagement extends BaseController
                 ]);
             }
 
-            // Insert vital signs
-            $nurseModel = new \App\Models\NurseModel();
-            $result = $nurseModel->recordVitals($vitalData);
+            // Insert vital signs directly (nurse_id can be NULL if nurses table doesn't exist)
+            $result = $this->db->table('vital_signs')->insert($vitalData);
 
             if ($result) {
                 return $this->response->setJSON([

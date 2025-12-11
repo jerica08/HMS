@@ -19,7 +19,32 @@ class NurseModel extends Model
     // Get nurse by staff ID
     public function getNurseByStaffId($staffId)
     {
-        return $this->where('staff_id', $staffId)->first();
+        // Check if table exists (could be 'nurse' or 'nurses')
+        $tableName = null;
+        if ($this->db->tableExists('nurse')) {
+            $tableName = 'nurse';
+        } elseif ($this->db->tableExists('nurses')) {
+            $tableName = 'nurses';
+        }
+        
+        if (!$tableName) {
+            return null; // Table doesn't exist
+        }
+        
+        // Temporarily set table name if different
+        $originalTable = $this->table;
+        if ($tableName !== $this->table) {
+            $this->table = $tableName;
+        }
+        
+        try {
+            $result = $this->where('staff_id', $staffId)->first();
+            $this->table = $originalTable; // Restore original
+            return $result;
+        } catch (\Exception $e) {
+            $this->table = $originalTable; // Restore original
+            return null;
+        }
     }
 
     // Get assigned patients for a nurse

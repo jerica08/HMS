@@ -36,7 +36,6 @@ class PermissionManager
             'vital_signs' => ['create'], // Nurses can only add vital signs
             'resources' => ['view', 'view_all'],
             'shifts' => ['view', 'view_department'],
-            'prescriptions' => ['view', 'create_draft', 'view_all'] // Nurses can create draft prescriptions
         ],
         'pharmacist' => [
             'prescriptions' => ['view', 'edit', 'fulfill', 'view_all'],

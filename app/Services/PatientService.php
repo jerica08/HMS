@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use CodeIgniter\Database\ConnectionInterface;
+use App\Libraries\PermissionManager;
 
 class PatientService
 {
@@ -148,64 +149,40 @@ class PatientService
                 $builder->select('p.*');
             }
 
-            switch ($userRole) {
-                case 'admin':
-                case 'it_staff':
-                    // Admin and IT staff can see all patients
-                    break;
+            // Use PermissionManager to determine view scope
+            // Check if user has view permission for patients
+            if (!PermissionManager::hasAnyPermission($userRole, 'patients', ['view', 'view_all', 'view_assigned', 'view_own'])) {
+                $builder->where('1=0'); // No permission, show no patients
+            } elseif (PermissionManager::hasPermission($userRole, 'patients', 'view_all')) {
+                // Users with view_all can see all patients (admin, receptionist, nurse, it_staff)
+                // No additional filtering needed
+            } elseif (PermissionManager::hasPermission($userRole, 'patients', 'view_own')) {
+                // Doctors can see only their assigned patients
+                if ($hasPrimaryDoctor && $staffId) {
+                    // Get doctor_id from doctor table using staff_id
+                    $doctorInfo = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
+                    $doctorId = $doctorInfo['doctor_id'] ?? null;
                     
-                case 'doctor':
-                    // Doctors can see only their assigned patients
-                    if ($hasPrimaryDoctor) {
-                        // Get doctor_id from doctor table using staff_id
-                        $doctorInfo = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
-                        $doctorId = $doctorInfo['doctor_id'] ?? null;
-                        
-                        if ($doctorId) {
-                            $builder->where('p.primary_doctor_id', $doctorId);
-                        } else {
-                            $builder->where('1=0'); // Show no patients if doctor record not found
-                        }
-                    }
-                    break;
-                    
-                case 'nurse':
-                    // Nurses can see patients in their department
-                    $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                    $department = $nurseInfo['department'] ?? null;
-                    
-                    if ($department) {
-                        $builder->join('staff doc', 'doc.staff_id = p.primary_doctor_id', 'left')
-                               ->where('doc.department', $department);
+                    if ($doctorId) {
+                        $builder->where('p.primary_doctor_id', $doctorId);
                     } else {
-                        // If no department, show no patients
-                        $builder->where('1=0');
+                        $builder->where('1=0'); // Show no patients if doctor record not found
                     }
-                    break;
-                    
-                case 'receptionist':
-                    // Receptionists can see all patients for scheduling purposes
-                    break;
-                    
-                case 'pharmacist':
+                }
+            } else {
+                // For roles like pharmacist and laboratorist who have view but need specific filtering
+                if ($userRole === 'pharmacist') {
                     // Pharmacists can see patients with prescriptions
                     $builder->join('prescription pr', 'pr.patient_id = p.patient_id', 'inner')
                            ->groupBy('p.patient_id');
-                    break;
-                    
-                case 'laboratorist':
+                } elseif ($userRole === 'laboratorist') {
                     // Laboratorists can see patients with lab tests
                     $builder->join('lab_test lt', 'lt.patient_id = p.patient_id', 'inner')
                            ->groupBy('p.patient_id');
-                    break;
-                    
-                case 'accountant':
-                    // Accountants can see all patients for billing
-                    break;
-                    
-                default:
+                } else {
                     // Other roles see no patients
                     $builder->where('1=0');
+                }
             }
 
             $patients = $builder->orderBy('p.patient_id', 'DESC')
@@ -454,24 +431,13 @@ class PatientService
                     break;
 
                 case 'nurse':
-                    $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
-                    $department = $nurseInfo['department'] ?? null;
-
-                    if ($department) {
-                        $stats = [
-                            'department_patients' => $this->db->table($this->patientTable . ' p')
-                                ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
-                                ->where('s.department', $department)
-                                ->countAllResults(),
-                            'active_patients' => $this->countPatientFieldValue('status', 'Active', ['s.department' => $department])
-                                ? $this->db->table($this->patientTable . ' p')
-                                    ->join('staff s', 's.staff_id = p.primary_doctor_id', 'left')
-                                    ->where('s.department', $department)
-                                    ->where('p.status', 'Active')
-                                    ->countAllResults()
-                                : 0,
-                        ];
-                    }
+                    // Nurses can see all patients (view_all permission)
+                    $stats = [
+                        'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
+                        'active_patients' => $this->countPatientFieldValue('status', 'Active'),
+                        'new_patients_today' => $this->db->table($this->patientTable)->where('date_registered', date('Y-m-d'))->countAllResults(),
+                        'new_patients_week' => $this->db->table($this->patientTable)->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))->countAllResults(),
+                    ];
                     break;
 
                 case 'receptionist':

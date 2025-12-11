@@ -379,22 +379,22 @@
                         </div>
                     </div>
                 <?php elseif ($userRole === 'nurse'): ?>
-                    <!-- Department Patients Card -->
+                    <!-- Patients Card -->
                     <div class="overview-card">
                         <div class="card-header-modern">
                             <div class="card-icon-modern blue"><i class="fas fa-hospital"></i></div>
                             <div class="card-info">
-                                <h3 class="card-title-modern">Department Patients</h3>
+                                <h3 class="card-title-modern">Patients</h3>
                                 <p class="card-subtitle">Patient care</p>
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
-                                <div class="metric-value blue"><?= $analytics['department_patients']['total'] ?? 0 ?></div>
+                                <div class="metric-value blue"><?= $analytics['patients']['total'] ?? 0 ?></div>
                                 <div class="metric-label">Total</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-value green"><?= $analytics['department_patients']['active'] ?? 0 ?></div>
+                                <div class="metric-value green"><?= $analytics['patients']['active'] ?? 0 ?></div>
                                 <div class="metric-label">Active</div>
                             </div>
                         </div>

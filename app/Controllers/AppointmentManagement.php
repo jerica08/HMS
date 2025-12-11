@@ -92,7 +92,7 @@ class AppointmentManagement extends BaseController
             if ($this->userRole === 'doctor') {
                 $builder->where('doctor_id', $this->staffId);
             }
-            $result = $builder->where('appointment_id', $appointmentId)->update($updateData);
+            $result = $builder->where('id', $appointmentId)->update($updateData);
             return $this->jsonResponse($result ? 'success' : 'error', $result ? 'Appointment updated successfully' : 'Failed to update appointment');
         } catch (\Throwable $e) {
             log_message('error', 'Update appointment error: ' . $e->getMessage());
@@ -128,7 +128,8 @@ class AppointmentManagement extends BaseController
                 $filters[$key] = $value;
             }
         }
-        if ($this->userRole === 'admin' && ($doctorId = $this->request->getGet('doctor_id'))) {
+        // Admin and accountant can filter by doctor_id
+        if (in_array($this->userRole, ['admin', 'accountant']) && ($doctorId = $this->request->getGet('doctor_id'))) {
             $filters['doctor_id'] = $doctorId;
         }
         $result = $this->appointmentService->getAppointments($filters);
@@ -150,10 +151,45 @@ class AppointmentManagement extends BaseController
 
     public function updateAppointmentStatus($appointmentId)
     {
-        if (!$this->canEditAppointment($appointmentId)) {
-            return $this->jsonResponse('error', 'Permission denied');
+        try {
+            if (!$this->canEditAppointment($appointmentId)) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'status' => 'error',
+                    'success' => false,
+                    'message' => 'Permission denied',
+                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                ]);
+            }
+            
+            $status = $this->request->getPost('status');
+            if (empty($status)) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'success' => false,
+                    'message' => 'Status is required',
+                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                ]);
+            }
+            
+            $result = $this->appointmentService->updateAppointmentStatus($appointmentId, $status, $this->userRole, $this->staffId);
+            
+            $statusCode = $result['success'] ? 200 : 422;
+            return $this->response->setStatusCode($statusCode)->setJSON([
+                'status' => $result['success'] ? 'success' : 'error',
+                'success' => $result['success'],
+                'message' => $result['message'] ?? 'Status update failed',
+                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'AppointmentManagement::updateAppointmentStatus error: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'success' => false,
+                'message' => 'Failed to update appointment status: ' . $e->getMessage(),
+                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+            ]);
         }
-        return $this->response->setJSON($this->appointmentService->updateAppointmentStatus($appointmentId, $this->request->getPost('status'), $this->userRole, $this->staffId));
     }
 
     /**
@@ -460,19 +496,19 @@ class AppointmentManagement extends BaseController
             'canCreate' => in_array($role, ['admin', 'receptionist', 'doctor']),
             'canEdit' => in_array($role, ['admin', 'receptionist', 'doctor']),
             'canDelete' => $role === 'admin',
-            'canViewAll' => in_array($role, ['admin', 'receptionist']),
-            'canUpdateStatus' => in_array($role, ['admin', 'doctor', 'nurse']),
+            'canViewAll' => in_array($role, ['admin', 'receptionist', 'accountant']),
+            'canUpdateStatus' => in_array($role, ['admin', 'doctor']),
             'canSchedule' => in_array($role, ['admin', 'receptionist', 'doctor']),
-            'canReschedule' => in_array($role, ['admin', 'receptionist', 'doctor'])
+            'canReschedule' => in_array($role, ['admin', 'receptionist', 'doctor']),
+            'canAddToBill' => in_array($role, ['admin', 'accountant'])
         ];
     }
 
     private function canViewAppointment($appointmentId)
     {
         return match($this->userRole) {
-            'admin', 'receptionist' => true,
-            'doctor' => !empty($this->db->table('appointments')->where('appointment_id', $appointmentId)->where('doctor_id', $this->staffId)->get()->getRow()),
-            'nurse' => $this->isAppointmentInNurseDepartment($appointmentId),
+            'admin', 'receptionist', 'accountant' => true,
+            'doctor' => !empty($this->db->table('appointments')->where('id', $appointmentId)->where('doctor_id', $this->staffId)->get()->getRow()),
             default => false
         };
     }
@@ -621,7 +657,7 @@ class AppointmentManagement extends BaseController
             return !empty($this->db->table('appointments a')
                 ->join('staff ns', 'ns.staff_id', $this->staffId)
                 ->join('staff ds', 'ds.staff_id = a.doctor_id')
-                ->where('a.appointment_id', $appointmentId)
+                ->where('a.id', $appointmentId)
                 ->where('ns.department = ds.department')
                 ->get()->getRow());
         } catch (\Throwable $e) {

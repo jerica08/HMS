@@ -190,19 +190,19 @@ $routes->get('api/geo/barangays', 'GeoDataController::barangays', ['filter' => '
 // Appointment Management Views - Role-specific entry points
 $routes->get('admin/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('doctor/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:doctor']);
-$routes->get('nurse/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:nurse']);
 $routes->get('receptionist/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:receptionist']);
+$routes->get('accountant/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:accountant']);
 
 // Appointment Management API Routes
-$routes->get('appointments/api', 'AppointmentManagement::getAppointmentsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist']);
+$routes->get('appointments/api', 'AppointmentManagement::getAppointmentsAPI', ['filter' => 'roleauth:admin,doctor,receptionist,accountant']);
 $routes->get('appointments/patients', 'AppointmentManagement::getPatientsList', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->get('appointments/doctors', 'AppointmentManagement::getDoctorsList', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->get('appointments/available-doctors', 'AppointmentManagement::getAvailableDoctorsByDate', ['filter' => 'roleauth:admin,doctor,receptionist']);
-$routes->get('appointments/(:num)', 'AppointmentManagement::getAppointment/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist']);
+$routes->get('appointments/(:num)', 'AppointmentManagement::getAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist,accountant']);
 $routes->post('appointments/create', 'AppointmentManagement::createAppointment', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->put('appointments/(:num)', 'AppointmentManagement::updateAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->post('appointments/(:num)', 'AppointmentManagement::updateAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
-$routes->post('appointments/(:num)/status', 'AppointmentManagement::updateAppointmentStatus/$1', ['filter' => 'roleauth:admin,doctor,nurse']);
+$routes->post('appointments/(:num)/status', 'AppointmentManagement::updateAppointmentStatus/$1', ['filter' => 'roleauth:admin,doctor']);
 $routes->post('appointments/(:num)/bill', 'AppointmentManagement::addToBilling/$1', ['filter' => 'roleauth:admin,accountant']);
 $routes->delete('appointments/(:num)', 'AppointmentManagement::deleteAppointment/$1', ['filter' => 'roleauth:admin']);
 

@@ -601,6 +601,16 @@ class ShiftManager {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    formatWeekday(weekday) {
+        // Use ShiftModalUtils if available, otherwise use local implementation
+        if (window.ShiftModalUtils && typeof window.ShiftModalUtils.formatWeekday === 'function') {
+            return window.ShiftModalUtils.formatWeekday(weekday);
+        }
+        // Fallback implementation
+        const labels = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'};
+        return labels[parseInt(weekday, 10)] || 'N/A';
+    }
 }
 
 // Global dismiss function for schedule notifications

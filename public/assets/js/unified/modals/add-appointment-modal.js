@@ -150,7 +150,19 @@ window.AddAppointmentModal = {
     async handleSubmit(e) {
         e.preventDefault();
         const form = e.target;
-        const data = AppointmentModalUtils.collectFormData(form);
+        let data = AppointmentModalUtils.collectFormData(form);
+        
+        // Map fields for doctor role (backend expects different field names, with defaults like admin)
+        if (this.config.userRole === 'doctor') {
+            data = {
+                patient_id: data.patient_id,
+                date: data.appointment_date || data.date,
+                time: '09:00:00', // Default time like admin/receptionist
+                type: data.appointment_type || data.type,
+                duration: 30, // Default duration like admin/receptionist
+                reason: data.notes || data.reason || ''
+            };
+        }
         
         try {
             this.showLoading(true);
@@ -174,7 +186,20 @@ window.AddAppointmentModal = {
             } else {
                 this.showNotification(result.message || 'Failed to save appointment', 'error');
                 if (result.errors) {
-                    AppointmentModalUtils.displayErrors(result.errors, 'appointment_');
+                    // Map backend field names to form field names for display
+                    const mappedErrors = {};
+                    for (const [field, message] of Object.entries(result.errors)) {
+                        let formField = field;
+                        if (this.config.userRole === 'doctor') {
+                            // Map backend field names to form field names
+                            if (field === 'date') formField = 'appointment_date';
+                            else if (field === 'type') formField = 'appointment_type';
+                            // time and duration are no longer in the form, so skip those errors
+                            else if (field === 'time' || field === 'duration') continue;
+                        }
+                        mappedErrors[formField] = message;
+                    }
+                    AppointmentModalUtils.displayErrors(mappedErrors, 'appointment_');
                 }
             }
         } catch (error) {

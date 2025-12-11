@@ -46,6 +46,9 @@
                             <option value="Consultation">Consultation</option>
                             <option value="Follow-up">Follow-up</option>
                             <option value="Check-up">Check-up</option>
+                            <?php if (($userRole ?? '') === 'doctor'): ?>
+                            <option value="Emergency">Emergency</option>
+                            <?php endif; ?>
                         </select>
                         <small id="err_appointment_type" style="color:#dc2626"></small>
                     </div>

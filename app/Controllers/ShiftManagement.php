@@ -212,19 +212,49 @@ class ShiftManagement extends BaseController
             $db = \Config\Database::connect();
 
             // Base query: schedules for doctors only
+            // For doctors viewing their own schedule, use LEFT JOIN so schedules show even if doctor record missing
+            // For admin/others, use INNER JOIN to only show schedules for actual doctors
+            $joinType = ($this->userRole === 'doctor' && !empty($this->staffId)) ? 'left' : 'inner';
+            
             $builder = $db->table('staff_schedule ss')
                 ->select('ss.id, ss.staff_id, ss.weekday, ss.start_time, ss.end_time, ss.status, '
                     . "CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS doctor_name, "
-                    . 'd.specialization')
-                ->join('doctor d', 'd.staff_id = ss.staff_id', 'inner')
+                    . 'COALESCE(d.specialization, "") AS specialization')
                 ->join('staff s', 's.staff_id = ss.staff_id', 'left')
+                ->join('doctor d', 'd.staff_id = ss.staff_id', $joinType)
                 ->where('ss.status', 'active');
 
             // Role-based filtering
             if ($this->userRole === 'doctor' && !empty($this->staffId)) {
                 // Doctor sees only their own schedules
+                // Use LEFT JOIN for doctor table so schedules still show even if doctor record is missing
                 $builder->where('ss.staff_id', $this->staffId);
+            } elseif (in_array($this->userRole, ['admin', 'it_staff', 'receptionist'])) {
+                // Admin/IT/Receptionist see all schedules, but only for doctors
+                // Keep INNER JOIN to only show schedules for staff who are doctors
+                // (doctor table join is already INNER, so this is handled)
             }
+
+            // Apply filters from query parameters
+            $filters = $this->request->getGet();
+            if (!empty($filters['date'])) {
+                // For date filtering, we'd need to check if the weekday matches
+                // This is a simplified version - you might want to enhance this
+            }
+            if (!empty($filters['status'])) {
+                $builder->where('ss.status', $filters['status']);
+            }
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $builder->groupStart()
+                    ->like("CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))", $search)
+                    ->orLike('d.specialization', $search)
+                    ->groupEnd();
+            }
+
+            // Order by weekday and time for better display
+            $builder->orderBy('ss.weekday', 'ASC')
+                ->orderBy('ss.start_time', 'ASC');
 
             $result = $builder->get()->getResultArray();
 
@@ -237,7 +267,7 @@ class ShiftManagement extends BaseController
             log_message('error', 'ShiftManagement::getShiftsAPI error: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
                 'status'  => 'error',
-                'message' => 'Failed to load schedule',
+                'message' => 'Failed to load schedule: ' . $e->getMessage(),
             ]);
         }
     }

@@ -119,8 +119,15 @@ class AppointmentService
             
             if ($updated && $this->db->affectedRows() > 0) {
                 // Automatically add to billing when appointment is completed
+                // Wrap in try-catch to prevent billing errors from blocking status update
                 if ($status === 'completed') {
-                    $this->addAppointmentToBilling($id, $appointment, $staffId);
+                    try {
+                        $this->addAppointmentToBilling($id, $appointment, $staffId);
+                    } catch (\Throwable $billingError) {
+                        // Log the billing error but don't fail the status update
+                        log_message('error', 'Failed to add appointment to billing: ' . $billingError->getMessage());
+                        // Status update was successful, so return success even if billing failed
+                    }
                 }
                 
                 return ['success' => true, 'message' => 'Appointment status updated successfully'];
@@ -129,6 +136,7 @@ class AppointmentService
             return ['success' => false, 'message' => 'Appointment not found or no permission to update'];
         } catch (\Throwable $e) {
             log_message('error', 'Failed to update appointment status: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
         }
     }
@@ -341,12 +349,12 @@ class AppointmentService
         ];
 
         if ($userRole === 'doctor') {
-            // Doctor-specific validation (from Appointments controller)
+            // Doctor-specific validation - same as admin/receptionist (time and duration have defaults)
             $baseRules['date'] = 'required|valid_date';
-            $baseRules['time'] = 'required';
             $baseRules['type'] = 'required|in_list[Consultation,Follow-up,Check-up,Emergency]';
-            $baseRules['duration'] = 'required|numeric|greater_than[0]';
-            unset($baseRules['appointment_date'], $baseRules['appointment_time']);
+            // time and duration are optional (will use defaults)
+            // Unset admin/receptionist field names since doctors use different field names
+            unset($baseRules['appointment_date'], $baseRules['appointment_time'], $baseRules['appointment_type']);
         } else {
             // Receptionist/Admin validation for unified modal
             $baseRules['doctor_id'] = 'required|numeric';
@@ -360,10 +368,10 @@ class AppointmentService
         $baseData = ['patient_id' => $input['patient_id'], 'doctor_id' => $doctorId, 'status' => 'scheduled', 'created_at' => date('Y-m-d H:i:s')];
         if ($userRole === 'doctor') {
             $baseData['appointment_date'] = $input['date'];
-            $baseData['appointment_time'] = $input['time'];
+            $baseData['appointment_time'] = $input['time'] ?? '09:00:00'; // Default time like admin/receptionist
             $baseData['appointment_type'] = $input['type'];
             $baseData['reason'] = $input['reason'] ?? null;
-            $baseData['duration'] = $input['duration'];
+            $baseData['duration'] = $input['duration'] ?? 30; // Default duration like admin/receptionist
         } else {
             $baseData['appointment_date'] = $input['appointment_date'];
             $baseData['appointment_time'] = '09:00:00';

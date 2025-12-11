@@ -33,7 +33,6 @@ class PermissionManager
         ],
         'nurse' => [
             'patients' => ['view', 'edit', 'view_assigned'],
-            'appointments' => ['view', 'view_assigned'],
             'resources' => ['view', 'view_assigned'],
             'shifts' => ['view', 'view_department'],
             'prescriptions' => ['view', 'create_draft', 'view_assigned'] // Nurses can create draft prescriptions
@@ -45,19 +44,17 @@ class PermissionManager
         ],
         'accountant' => [
             'patients' => ['view'],
-            'appointments' => ['view'],
+            'appointments' => ['view', 'view_all'], // View-only for billing purposes
             'billing' => ['view', 'create', 'edit', 'process'],
             'reports' => ['view', 'generate', 'export']
         ],
         'laboratorist' => [
             'patients' => ['view'],
-            'appointments' => ['view'],
             'resources' => ['view', 'view_assigned'],
             'reports' => ['view', 'generate']
         ],
         'it_staff' => [
             'patients' => ['view', 'create', 'edit', 'delete', 'assign_doctor', 'view_all'],
-            'appointments' => ['view', 'create', 'edit', 'delete', 'reschedule', 'view_all'],
             'staff' => ['view', 'create', 'edit', 'delete', 'manage_roles'],
             'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
             'resources' => ['view', 'create', 'edit', 'delete', 'view_all'],

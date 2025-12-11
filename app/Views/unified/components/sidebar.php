@@ -45,7 +45,6 @@ elseif ($userRole === 'nurse') {
     $navigationItems = [
         ['url' => 'nurse/dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
         ['url' => 'nurse/patients', 'icon' => 'fas fa-users', 'label' => 'Patients'],
-        ['url' => 'nurse/appointments', 'icon' => 'fas fa-calendar-alt', 'label' => 'Appointments'],
         ['url' => 'nurse/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         ['url' => 'unified/patient-records', 'icon' => 'fas fa-folder-open', 'label' => 'Patient Records'],
         //['url' => 'nurse/lab-results', 'icon' => 'fas fa-flask', 'label' => 'Lab Results'],
@@ -90,6 +89,7 @@ elseif ($userRole === 'laboratorist') {
 elseif ($userRole === 'accountant') {
     $navigationItems = [
         ['url' => 'accountant/dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
+        ['url' => 'accountant/appointments', 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
         ['url' => 'accountant/billing', 'icon' => 'fas fa-file-invoice-dollar', 'label' => 'Billing Management'],
         ['url' => 'accountant/financial', 'icon' => 'fas fa-dollar-sign', 'label' => 'Financial Reports'],
         ['url' => 'accountant/analytics', 'icon' => 'fas fa-chart-bar', 'label' => 'Analytics'],

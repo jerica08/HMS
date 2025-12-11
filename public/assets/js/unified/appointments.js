@@ -894,23 +894,40 @@
         }
 
         const baseUrlMeta = document.querySelector('meta[name="base-url"]');
-        const baseUrl = baseUrlMeta ? baseUrlMeta.content : '';
+        let baseUrl = baseUrlMeta ? baseUrlMeta.content : '';
+        // Remove trailing slash if present to avoid double slashes
+        if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
+        }
         const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfHashMeta = document.querySelector('meta[name="csrf-hash"]');
         const csrfToken = csrfTokenMeta ? csrfTokenMeta.content : '';
+        const csrfHash = csrfHashMeta ? csrfHashMeta.content : '';
 
         const url = `${baseUrl}/appointments/${appointmentId}/status`;
         const body = new URLSearchParams();
         body.append('status', 'completed');
+        // Add CSRF token to body (CodeIgniter expects it in the body or header)
+        if (csrfToken && csrfHash) {
+            body.append(csrfToken, csrfHash);
+        }
 
         fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': csrfHash || csrfToken
             },
             body: body.toString()
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.message || `HTTP error! status: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
         .then(result => {
             if (result.success || result.status === 'success') {
                 showAppointmentsNotification(result.message || 'Appointment marked as completed.', 'success');
@@ -923,7 +940,7 @@
         })
         .catch(error => {
             console.error('Error updating appointment status:', error);
-            showAppointmentsNotification('Failed to update appointment status. Please try again.', 'error');
+            showAppointmentsNotification('Failed to update appointment status: ' + (error.message || 'Please try again.'), 'error');
         });
     }
 

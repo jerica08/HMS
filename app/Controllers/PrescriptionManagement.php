@@ -326,13 +326,14 @@ class PrescriptionManagement extends BaseController
     }
 
     /**
-     * Get available doctors for prescription assignment (admin only)
+     * Get available doctors for prescription assignment
+     * Admin can assign doctors, Nurses need doctors for draft approval
      */
     public function getAvailableDoctorsAPI()
     {
         try {
-            // Only admin can assign doctors
-            if ($this->userRole !== 'admin') {
+            // Admin and nurses can access doctors list
+            if (!in_array($this->userRole, ['admin', 'nurse'])) {
                 return $this->response->setStatusCode(403)->setJSON([
                     'status' => 'error',
                     'message' => 'Access denied'
@@ -418,7 +419,10 @@ class PrescriptionManagement extends BaseController
 
     private function canCreatePrescription()
     {
-        return $this->permissionManager->hasPermission($this->userRole, 'prescriptions', 'create');
+        // Doctors can create prescriptions (primary prescribers)
+        // Nurses can create draft prescriptions (needs doctor approval)
+        return $this->permissionManager->hasPermission($this->userRole, 'prescriptions', 'create') ||
+               $this->permissionManager->hasPermission($this->userRole, 'prescriptions', 'create_draft');
     }
 
     private function canEditPrescription()
@@ -512,7 +516,8 @@ class PrescriptionManagement extends BaseController
             ['status' => 'ready'],
             ['status' => 'completed'],
             ['status' => 'cancelled'],
-            ['status' => 'expired']
+            ['status' => 'expired'],
+            ['status' => 'draft'] // Draft status for nurse-created prescriptions
         ];
     }
 

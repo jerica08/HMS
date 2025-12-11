@@ -12,7 +12,7 @@ class PermissionManager
             'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
             'resources' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'shifts' => ['view', 'create', 'edit', 'delete'],
-            'prescriptions' => ['view', 'edit', 'delete', 'view_all'], // Removed 'create' - admins should not medically prescribe
+            'prescriptions' => ['view', 'create', 'edit', 'delete', 'view_all'], // Admin can create prescriptions
             'reports' => ['view', 'generate', 'export'],
             'system' => ['settings', 'backup', 'maintenance']
         ],

@@ -22,6 +22,25 @@
                         <input type="date" id="add_prescriptionDate" name="date_issued" class="form-input" required value="<?= date('Y-m-d') ?>">
                         <small id="err_add_prescriptionDate" style="color:#dc2626"></small>
                     </div>
+                    <?php if (($userRole ?? '') === 'nurse'): ?>
+                    <div>
+                        <label class="form-label" for="add_doctorSelect">Assign Doctor*</label>
+                        <select id="add_doctorSelect" name="doctor_id" class="form-select" required>
+                            <option value="">Select Doctor...</option>
+                        </select>
+                        <small class="form-text" style="color:#6b7280">Draft prescriptions require doctor approval</small>
+                        <small id="err_add_doctorSelect" style="color:#dc2626"></small>
+                    </div>
+                    <?php elseif (($userRole ?? '') === 'admin'): ?>
+                    <div>
+                        <label class="form-label" for="add_doctorSelect">Assign Doctor (Optional)</label>
+                        <select id="add_doctorSelect" name="doctor_id" class="form-select">
+                            <option value="">Select Doctor (Optional)...</option>
+                        </select>
+                        <small class="form-text" style="color:#6b7280">Leave empty to use your own staff ID, or select a doctor to assign this prescription</small>
+                        <small id="err_add_doctorSelect" style="color:#dc2626"></small>
+                    </div>
+                    <?php endif; ?>
                     
                     <div class="full">
                         <label class="form-label">Medicines*</label>
@@ -68,14 +87,26 @@
                             <button type="button" class="btn btn-secondary" id="addMedicineRowBtn"><i class="fas fa-plus"></i> Add Medicine</button>
                         </div>
                     </div>
+                    <?php if (($userRole ?? '') !== 'nurse'): ?>
                     <div>
                         <label class="form-label" for="add_prescriptionStatus">Status</label>
                         <select id="add_prescriptionStatus" name="status" class="form-select">
-                            <?php foreach ($statuses ?? [['status' => 'active'], ['status' => 'pending'], ['status' => 'ready'], ['status' => 'completed'], ['status' => 'cancelled']] as $status): ?>
+                            <?php 
+                            $defaultStatuses = [['status' => 'active'], ['status' => 'pending'], ['status' => 'ready'], ['status' => 'completed'], ['status' => 'cancelled']];
+                            foreach ($statuses ?? $defaultStatuses as $status): 
+                            ?>
                                 <option value="<?= esc($status['status']) ?>" <?= ($status['status'] === 'active') ? 'selected' : '' ?>><?= esc(ucfirst($status['status'])) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <?php else: ?>
+                    <input type="hidden" id="add_prescriptionStatus" name="status" value="draft">
+                    <div>
+                        <label class="form-label">Status</label>
+                        <input type="text" class="form-input" value="Draft (Pending Doctor Approval)" readonly style="background-color: #f3f4f6; color: #6b7280;">
+                        <small class="form-text" style="color:#6b7280">Nurse-created prescriptions are automatically set to draft status</small>
+                    </div>
+                    <?php endif; ?>
                     <div class="full">
                         <label class="form-label" for="add_prescriptionNotes">Notes</label>
                         <textarea id="add_prescriptionNotes" name="notes" class="form-input" rows="3" placeholder="Additional instructions or notes..."></textarea>

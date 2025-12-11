@@ -222,9 +222,9 @@ $routes->get('receptionist/prescriptions', 'PrescriptionManagement::index', ['fi
 $routes->get('prescriptions/api', 'PrescriptionManagement::getPrescriptionsAPI', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,receptionist,it_staff']);
 $routes->get('prescriptions/(:num)', 'PrescriptionManagement::getPrescription/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,receptionist,it_staff']);
 $routes->get('prescriptions/available-patients', 'PrescriptionManagement::getAvailablePatientsAPI', ['filter' => 'roleauth:admin,doctor,it_staff']);
-$routes->get('prescriptions/available-doctors', 'PrescriptionManagement::getAvailableDoctorsAPI', ['filter' => 'roleauth:admin']);
+$routes->get('prescriptions/available-doctors', 'PrescriptionManagement::getAvailableDoctorsAPI', ['filter' => 'roleauth:admin,nurse']);
 $routes->get('prescriptions/available-medications', 'PrescriptionManagement::getAvailableMedicationsAPI', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
-$routes->post('prescriptions/create', 'PrescriptionManagement::create', ['filter' => 'roleauth:doctor,nurse']);
+$routes->post('prescriptions/create', 'PrescriptionManagement::create', ['filter' => 'roleauth:admin,doctor,nurse']);
 $routes->post('prescriptions/update', 'PrescriptionManagement::update', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
 $routes->post('prescriptions/delete', 'PrescriptionManagement::delete', ['filter' => 'roleauth:admin,doctor']);
 $routes->post('prescriptions/(:num)/status', 'PrescriptionManagement::updateStatus/$1', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);

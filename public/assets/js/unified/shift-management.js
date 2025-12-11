@@ -595,59 +595,40 @@ class ShiftManager {
         setTimeout(() => { notification.style.transform = 'translateX(100%)'; setTimeout(() => notification.remove(), 300); }, 5000);
     }
 
-
-    formatDate(dateString) {
-        if (!dateString) return '-';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch (e) {
-            return dateString;
-        }
-    }
-
-    formatTime(timeString) {
-        if (!timeString) return '-';
-        try {
-            const [hours, minutes] = timeString.split(':');
-            const date = new Date();
-            date.setHours(parseInt(hours), parseInt(minutes));
-            return date.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-        } catch (e) {
-            return timeString;
-        }
-    }
-
-    formatWeekday(weekday) {
-        return ShiftModalUtils.formatWeekday(weekday);
-    }
-
-    formatSlot(slot) {
-        if (!slot) return 'N/A';
-        const map = {'morning': 'Morning', 'afternoon': 'Afternoon', 'night': 'Night', 'all_day': 'All Day'};
-        return map[slot] || slot;
-    }
-
     escapeHtml(text) {
-        if (typeof text !== 'string') return text;
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.shiftManager = new ShiftManager();
-});
+// Global dismiss function for schedule notifications
+function dismissScheduleNotification() {
+    const container = document.getElementById('scheduleNotification');
+    if (container) {
+        container.style.display = 'none';
+        if (window.shiftManager && window.shiftManager.config) {
+            // Clear any timeout if exists
+            if (window.shiftManager.notificationTimeout) {
+                clearTimeout(window.shiftManager.notificationTimeout);
+            }
+        }
+    }
+}
+
+// Initialize ShiftManager when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.getElementById('createShiftBtn') || document.querySelector('.shift-table')) {
+            window.shiftManager = new ShiftManager();
+        }
+    });
+} else {
+    if (document.getElementById('createShiftBtn') || document.querySelector('.shift-table')) {
+        window.shiftManager = new ShiftManager();
+    }
+}
 
 // Global functions for backward compatibility
 window.editShift = (id) => window.shiftManager?.editShift(id);

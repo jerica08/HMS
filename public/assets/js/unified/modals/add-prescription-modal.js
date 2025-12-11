@@ -46,7 +46,16 @@ window.AddPrescriptionModal = {
     getConfig() {
         const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-        return { baseUrl: baseUrl.replace(/\/$/, ''), csrfToken, endpoints: { create: `${baseUrl}prescriptions/create` } };
+        const userRole = document.querySelector('meta[name="user-role"]')?.content || '';
+        return { 
+            baseUrl: baseUrl.replace(/\/$/, ''), 
+            csrfToken, 
+            userRole,
+            endpoints: { 
+                create: `${baseUrl}prescriptions/create`,
+                availableDoctors: `${baseUrl}prescriptions/available-doctors`
+            } 
+        };
     },
     
     async open() {
@@ -55,6 +64,10 @@ window.AddPrescriptionModal = {
             PrescriptionModalUtils.openModal('addPrescriptionModal');
             await this.loadAvailablePatients();
             await this.loadAvailableMedications();
+            // Load doctors for admin and nurses
+            if (this.config.userRole === 'admin' || this.config.userRole === 'nurse') {
+                await this.loadAvailableDoctors();
+            }
         }
     },
     
@@ -64,6 +77,10 @@ window.AddPrescriptionModal = {
             PrescriptionModalUtils.openModal('addPrescriptionModal');
             await this.loadAvailablePatients();
             await this.loadAvailableMedications();
+            // Load doctors for admin and nurses
+            if (this.config.userRole === 'admin' || this.config.userRole === 'nurse') {
+                await this.loadAvailableDoctors();
+            }
             this.populateForm(prescription);
         }
     },
@@ -75,11 +92,13 @@ window.AddPrescriptionModal = {
         const dateInput = document.getElementById('add_prescriptionDate');
         const statusSelect = document.getElementById('add_prescriptionStatus');
         const notesTextarea = document.getElementById('add_prescriptionNotes');
+        const doctorSelect = document.getElementById('add_doctorSelect');
         
         if (patientSelect) patientSelect.value = prescription.patient_id || prescription.pat_id || '';
         if (dateInput) dateInput.value = prescription.created_at ? prescription.created_at.split('T')[0] : '';
         if (statusSelect) statusSelect.value = prescription.status || 'active';
         if (notesTextarea) notesTextarea.value = prescription.notes || '';
+        if (doctorSelect) doctorSelect.value = prescription.doctor_id || prescription.prescriber_id || '';
         
         const medicinesBody = document.getElementById('addMedicinesTableBody');
         if (medicinesBody) {
@@ -222,6 +241,42 @@ window.AddPrescriptionModal = {
         }
         
         this.populateAllMedicationSelects();
+    },
+    
+    async loadAvailableDoctors() {
+        const doctorSelect = document.getElementById('add_doctorSelect');
+        if (!doctorSelect) return;
+        
+        try {
+            doctorSelect.innerHTML = '<option value="">Loading doctors...</option>';
+            doctorSelect.disabled = true;
+            
+            const response = await fetch(`${this.config.baseUrl}/prescriptions/available-doctors`);
+            const data = await response.json();
+            
+            if (data.status === 'success' && Array.isArray(data.data)) {
+                const defaultOption = this.config.userRole === 'nurse' 
+                    ? '<option value="">Select Doctor...</option>'
+                    : '<option value="">Select Doctor (Optional)...</option>';
+                doctorSelect.innerHTML = defaultOption;
+                
+                data.data.forEach(doctor => {
+                    const option = document.createElement('option');
+                    option.value = doctor.staff_id;
+                    const name = `Dr. ${doctor.first_name} ${doctor.last_name}`;
+                    const specialization = doctor.specialization ? ` - ${doctor.specialization}` : '';
+                    option.textContent = `${name}${specialization}`;
+                    doctorSelect.appendChild(option);
+                });
+            } else {
+                doctorSelect.innerHTML = '<option value="">No doctors available</option>';
+            }
+        } catch (error) {
+            console.error('Error loading doctors:', error);
+            doctorSelect.innerHTML = '<option value="">Error loading doctors</option>';
+        } finally {
+            doctorSelect.disabled = false;
+        }
     },
     
     populateAllMedicationSelects() {

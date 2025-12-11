@@ -126,9 +126,12 @@ class PrescriptionService
     public function createPrescription($data, $userRole, $staffId = null)
     {
         try {
-            // Validate permissions
-            if (!$this->permissionManager->hasPermission($userRole, 'prescriptions', 'create')) {
-                return ['success' => false, 'message' => 'Permission denied'];
+            // Validate permissions - admin, doctors can create, nurses can create drafts
+            $canCreate = $this->permissionManager->hasPermission($userRole, 'prescriptions', 'create');
+            $canCreateDraft = $this->permissionManager->hasPermission($userRole, 'prescriptions', 'create_draft');
+            
+            if (!$canCreate && !$canCreateDraft) {
+                return ['success' => false, 'message' => 'Permission denied. Only administrators, doctors, and nurses can create prescriptions.'];
             }
 
             // Basic header validation
@@ -210,8 +213,28 @@ class PrescriptionService
             
             $patientName = $patient ? ($patient['first_name'] . ' ' . $patient['last_name']) : 'Unknown';
 
-            // Get prescriber name
-            $prescriberId = ($userRole === 'doctor') ? $staffId : ($data['doctor_id'] ?? $staffId);
+            // Get prescriber/doctor information
+            // For admin and doctors: use their own staff_id or specified doctor_id
+            // For nurses: require doctor_id to be specified (for draft approval)
+            if ($userRole === 'doctor') {
+                $prescriberId = $staffId;
+            } elseif ($userRole === 'admin') {
+                // Admin can specify a doctor_id or use their own if they're a doctor
+                $prescriberId = !empty($data['doctor_id']) ? (int) $data['doctor_id'] : $staffId;
+            } elseif ($userRole === 'nurse') {
+                // Nurses must specify a doctor for draft prescriptions
+                if (empty($data['doctor_id'])) {
+                    return [
+                        'success' => false,
+                        'message' => 'Doctor assignment is required for draft prescriptions. Please select a doctor to approve this prescription.',
+                        'errors' => ['doctor_id' => 'Doctor is required']
+                    ];
+                }
+                $prescriberId = (int) $data['doctor_id'];
+            } else {
+                $prescriberId = $data['doctor_id'] ?? $staffId;
+            }
+            
             $prescriber = $this->db->table('staff')
                 ->select('first_name, last_name')
                 ->where('staff_id', $prescriberId)
@@ -234,7 +257,16 @@ class PrescriptionService
             // logic disabled here to avoid incorrect reservations. It can be
             // reworked later on a per-item basis if needed.
 
-            $status = $this->mapStatus($data['status'] ?? 'active');
+            // Determine status based on role:
+            // - Admin and Doctors create active prescriptions (primary prescribers)
+            // - Nurses create draft prescriptions (needs doctor approval)
+            $defaultStatus = ($userRole === 'nurse') ? 'draft' : 'active';
+            $status = $this->mapStatus($data['status'] ?? $defaultStatus);
+            
+            // Ensure nurses can only create drafts
+            if ($userRole === 'nurse' && $status !== 'draft') {
+                $status = 'draft';
+            }
 
             // Use first item to build a legacy summary for list views
             $firstItem          = $items[0];
@@ -255,6 +287,7 @@ class PrescriptionService
 
             // Check if prescription_id column exists (legacy support) and set it to avoid unique constraint violation
             $hasPrescriptionIdColumn = $this->db->fieldExists('prescription_id', 'prescriptions');
+            $hasDoctorIdColumn = $this->db->fieldExists('doctor_id', 'prescriptions');
             
             $prescriptionData = [
                 'rx_number'    => trim($rxNumber),
@@ -279,6 +312,11 @@ class PrescriptionService
             // Set prescription_id if column exists (for legacy database structure)
             if ($hasPrescriptionIdColumn) {
                 $prescriptionData['prescription_id'] = trim($rxNumber);
+            }
+            
+            // Set doctor_id if column exists (for doctor assignment, especially for nurse drafts)
+            if ($hasDoctorIdColumn) {
+                $prescriptionData['doctor_id'] = $prescriberId;
             }
 
             // Insert header + items in a transaction
@@ -803,7 +841,8 @@ class PrescriptionService
             'verifying' => 'verifying',
             'queued' => 'in_progress',
             'in_progress' => 'in_progress',
-            'dispensed' => 'dispensed'
+            'dispensed' => 'dispensed',
+            'draft' => 'draft' // Draft status for nurse-created prescriptions awaiting doctor approval
         ];
         return $statusMap[$status] ?? $status;
     }

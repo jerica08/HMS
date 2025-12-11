@@ -82,6 +82,7 @@
                 </div>
             </div>
 
+            <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
             <!-- Statistics Overview -->
             <div class="dashboard-overview">
                 <?php if ($userRole === 'admin' || $userRole === 'accountant' || $userRole === 'it_staff'): ?>
@@ -461,6 +462,7 @@
                 <?php endif; ?>
 
             </div>
+            <?php endif; ?>
 
             <!-- Charts Section -->
                 <?php if ($userRole === 'admin' || $userRole === 'accountant' || $userRole === 'it_staff'): ?>

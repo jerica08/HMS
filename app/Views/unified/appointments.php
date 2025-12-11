@@ -39,6 +39,7 @@
             </div>
         </div>
 
+        <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
         <br />
 
         <!-- Statistics Overview -->
@@ -68,6 +69,7 @@
                     </div>
                 </div>
             </div>
+        <?php endif; ?>
 
             <!-- Filters and Search -->
             <div class="controls-section" style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">

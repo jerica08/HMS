@@ -91,6 +91,7 @@
 
         <!-- Tab Content: Lab Orders -->
         <div id="tabLabOrders" class="lab-tab-content active">
+            <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
             <div class="dashboard-overview">
                 <div class="overview-card">
                     <div class="card-header-modern">
@@ -116,6 +117,7 @@
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
             <br />
 

@@ -187,6 +187,7 @@
             </div>
         </header>
 
+        <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
         <section class="dashboard-overview" role="region" aria-label="dashboard overview cards">
             <article class="overview-card" tabindex="0">
                 <div class="card-header-modern">
@@ -231,6 +232,7 @@
                 </div>
             </article>
         </section>
+        <?php endif; ?>
 
         <div class="patient-records-container">
             <!-- Patients List -->

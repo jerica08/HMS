@@ -65,6 +65,7 @@
 
             <br>
 
+            <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
             <!-- ============================
                  DASHBOARD CARDS 
             ============================== -->
@@ -184,6 +185,7 @@
                 </div>
 
             </div>
+            <?php endif; ?>
 
             <!-- Search + Filters -->
             <div class="controls-section">

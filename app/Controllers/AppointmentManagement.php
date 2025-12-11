@@ -84,7 +84,9 @@ class AppointmentManagement extends BaseController
             $updateData = array_filter([
                 'appointment_date' => $input['appointment_date'] ?? null,
                 'appointment_time' => $input['appointment_time'] ?? null,
-                'reason' => $input['reason'] ?? $input['notes'] ?? null
+                'reason' => $input['reason'] ?? $input['notes'] ?? null,
+                // Allow admin and receptionist to update doctor_id
+                'doctor_id' => (in_array($this->userRole, ['admin', 'receptionist']) && !empty($input['doctor_id'])) ? (int)$input['doctor_id'] : null
             ], fn($v) => $v !== null);
             $updateData['updated_at'] = date('Y-m-d H:i:s');
             

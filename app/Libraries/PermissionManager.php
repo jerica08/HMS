@@ -22,21 +22,21 @@ class PermissionManager
             'resources' => ['view', 'view_assigned'],
             'shifts' => ['view', 'edit', 'view_own', 'edit_own'],
             'prescriptions' => ['view', 'create', 'edit', 'view_own'],
-            'reports' => ['view', 'generate_own']
+        
         ],
         'receptionist' => [
             'patients' => ['view', 'create', 'edit', 'assign_doctor', 'view_all'],
             'appointments' => ['view', 'create', 'edit', 'reschedule', 'view_all'],
             'resources' => ['view'],
             'shifts' => ['view', 'view_all'],
-            'reports' => ['view']
+           
         ],
         'nurse' => [
-            'patients' => ['view', 'view_assigned'], // Nurses can only view patients to add vital signs, no edit
+            'patients' => ['view', 'view_all'], // Nurses can view all patients to add vital signs, no edit
             'vital_signs' => ['create'], // Nurses can only add vital signs
-            'resources' => ['view', 'view_assigned'],
+            'resources' => ['view', 'view_all'],
             'shifts' => ['view', 'view_department'],
-            'prescriptions' => ['view', 'create_draft', 'view_assigned'] // Nurses can create draft prescriptions
+            'prescriptions' => ['view', 'create_draft', 'view_all'] // Nurses can create draft prescriptions
         ],
         'pharmacist' => [
             'prescriptions' => ['view', 'edit', 'fulfill', 'view_all'],

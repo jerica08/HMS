@@ -16,7 +16,7 @@
                         </select>
                         <small id="err_appointment_patient" style="color:#dc2626"></small>
                     </div>
-                    <?php if ($userRole === 'admin'): ?>
+                    <?php if (in_array($userRole, ['admin', 'receptionist'])): ?>
                     <div>
                         <label class="form-label" for="appointment_doctor">Doctor*</label>
                         <select id="appointment_doctor" name="doctor_id" class="form-select" required>

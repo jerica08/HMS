@@ -1,4 +1,4 @@
-<?php
+k<?php
 
 /**
  * Sidebar Helper Functions

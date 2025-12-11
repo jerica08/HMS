@@ -14,7 +14,7 @@
                             <option value="">Select Patient...</option>
                         </select>
                     </div>
-                    <?php if ($userRole === 'admin'): ?>
+                    <?php if (in_array($userRole, ['admin', 'receptionist'])): ?>
                     <div>
                         <label class="form-label" for="view_appointment_doctor">Doctor*</label>
                         <select id="view_appointment_doctor" class="form-select" disabled>

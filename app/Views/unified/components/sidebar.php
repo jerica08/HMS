@@ -31,13 +31,12 @@ if ($userRole === 'admin') {
 elseif ($userRole === 'doctor') {
     $navigationItems = [
         ['url' => 'doctor/dashboard', 'icon' => 'fas fa-tachometer-alt', 'label' => 'Dashboard'],
-        ['url' => 'doctor/patient-management', 'icon' => 'fas fa-users', 'label' => 'Patient Management'],
-        ['url' => 'doctor/appointments', 'icon' => 'fas fa-calendar-alt', 'label' => 'Appointments'],
+        ['url' => 'doctor/patient-management', 'icon' => 'fas fa-user-injured', 'label' => 'Patient Management'],
+        ['url' => 'unified/patient-records', 'icon' => 'fas fa-folder-open', 'label' => 'Patient Records (EHR)'],
+        ['url' => 'doctor/appointments', 'icon' => 'fas fa-calendar-check', 'label' => 'Appointments'],
         ['url' => 'doctor/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         ['url' => 'doctor/labs', 'icon' => 'fas fa-flask', 'label' => 'Lab Orders'],
-        ['url' => 'doctor/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule'],
-        ['url' => 'unified/patient-records', 'icon' => 'fas fa-folder-open', 'label' => 'Patient Records'],
-        //['url' => 'doctor/schedule', 'icon' => 'fas fa-clock', 'label' => 'My Schedule'],
+        ['url' => 'doctor/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'My Schedule'],
     ];
 }
 

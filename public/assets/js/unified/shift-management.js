@@ -64,7 +64,13 @@ class ShiftManager {
     bindModalEvents() {
         const createBtn = document.getElementById('createShiftBtn');
         if (createBtn) {
-            createBtn.addEventListener('click', () => this.openCreateModal());
+            // Only allow creation if user has permission
+            if (this.canCreateShift()) {
+                createBtn.addEventListener('click', () => this.openCreateModal());
+            } else {
+                // Hide button if user doesn't have permission
+                createBtn.style.display = 'none';
+            }
         }
         
         // Initialize modals
@@ -405,7 +411,17 @@ class ShiftManager {
         this.loadShifts();
     }
 
+    canCreateShift() {
+        const userRole = this.config.userRole;
+        return ['admin', 'it_staff'].includes(userRole);
+    }
+
     openCreateModal() {
+        // Double-check permission before opening modal
+        if (!this.canCreateShift()) {
+            alert('You do not have permission to create schedules. Only administrators and IT staff can create schedules.');
+            return;
+        }
         if (window.AddShiftModal) {
             window.AddShiftModal.open();
         }

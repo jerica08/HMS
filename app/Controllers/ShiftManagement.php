@@ -247,6 +247,15 @@ class ShiftManagement extends BaseController
      */
     public function create()
     {
+        // Check permissions - only admin and it_staff can create schedules
+        if (!in_array($this->userRole, ['admin', 'it_staff'])) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status'  => 'error',
+                'message' => 'You do not have permission to create schedules. Only administrators and IT staff can create schedules.',
+                'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
+            ]);
+        }
+
         try {
             $input = $this->request->getJSON(true) ?? $this->request->getPost();
 

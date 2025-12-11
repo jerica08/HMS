@@ -171,7 +171,7 @@ $routes->get('patient-management/records/(:num)', 'PatientManagement::getPatient
 $routes->post('patients/(:num)/vital-signs', 'PatientManagement::recordVitalSigns/$1', ['filter' => 'roleauth:admin,doctor,nurse']);
 $routes->post('patient-management/vital-signs', 'PatientManagement::recordVitalSigns', ['filter' => 'roleauth:admin,doctor,nurse']);
 $routes->get('patients/doctors', 'PatientManagement::getDoctorsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
-$routes->post('patients/create', 'PatientManagement::createPatient', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
+$routes->post('patients/create', 'PatientManagement::createPatient', ['filter' => 'roleauth:admin,receptionist,it_staff']);
 $routes->put('patients/(:num)', 'PatientManagement::updatePatient/$1', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
 $routes->post('patients/(:num)', 'PatientManagement::updatePatient/$1', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
 $routes->post('patients/(:num)/status', 'PatientManagement::updatePatientStatus/$1', ['filter' => 'roleauth:admin,doctor,nurse,it_staff']);
@@ -224,7 +224,7 @@ $routes->get('prescriptions/(:num)', 'PrescriptionManagement::getPrescription/$1
 $routes->get('prescriptions/available-patients', 'PrescriptionManagement::getAvailablePatientsAPI', ['filter' => 'roleauth:admin,doctor,it_staff']);
 $routes->get('prescriptions/available-doctors', 'PrescriptionManagement::getAvailableDoctorsAPI', ['filter' => 'roleauth:admin']);
 $routes->get('prescriptions/available-medications', 'PrescriptionManagement::getAvailableMedicationsAPI', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
-$routes->post('prescriptions/create', 'PrescriptionManagement::create', ['filter' => 'roleauth:admin,doctor,it_staff']);
+$routes->post('prescriptions/create', 'PrescriptionManagement::create', ['filter' => 'roleauth:doctor,nurse']);
 $routes->post('prescriptions/update', 'PrescriptionManagement::update', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
 $routes->post('prescriptions/delete', 'PrescriptionManagement::delete', ['filter' => 'roleauth:admin,doctor']);
 $routes->post('prescriptions/(:num)/status', 'PrescriptionManagement::updateStatus/$1', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);

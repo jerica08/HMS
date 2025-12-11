@@ -26,8 +26,8 @@
             <?= esc($title ?? 'Schedule Management') ?>
         </h1>
         <div class="page-actions">
-            <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift"><i class="fas fa-plus"></i> Add Schedule</button>
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
+                <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift"><i class="fas fa-plus"></i> Add Schedule</button>
                 <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download"></i> Export</button>
             <?php endif; ?>
         </div>

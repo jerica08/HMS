@@ -29,14 +29,27 @@ window.AddAppointmentModal = {
         
         const scheduleBtn = document.getElementById('scheduleAppointmentBtn');
         if (scheduleBtn) {
-            scheduleBtn.addEventListener('click', () => this.open());
+            scheduleBtn.addEventListener('click', () => {
+                // Check permission before opening modal
+                if (this.canCreateAppointment()) {
+                    this.open();
+                } else {
+                    alert('You do not have permission to create appointments. Only administrators, doctors, and receptionists can create appointments.');
+                }
+            });
         }
     },
     
     getConfig() {
         const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-        return { baseUrl: baseUrl.replace(/\/$/, ''), csrfToken, endpoints: { create: `${baseUrl}appointments/create`, update: `${baseUrl}appointments` } };
+        const userRole = document.querySelector('meta[name="user-role"]')?.content || '';
+        return { baseUrl: baseUrl.replace(/\/$/, ''), csrfToken, userRole, endpoints: { create: `${baseUrl}appointments/create`, update: `${baseUrl}appointments` } };
+    },
+    
+    canCreateAppointment() {
+        const userRole = this.config?.userRole || document.querySelector('meta[name="user-role"]')?.content || '';
+        return ['admin', 'doctor', 'receptionist'].includes(userRole);
     },
     
     open() {

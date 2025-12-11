@@ -12,12 +12,12 @@ class PermissionManager
             'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
             'resources' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'shifts' => ['view', 'create', 'edit', 'delete'],
-            'prescriptions' => ['view', 'create', 'edit', 'delete', 'view_all'],
+            'prescriptions' => ['view', 'edit', 'delete', 'view_all'], // Removed 'create' - admins should not medically prescribe
             'reports' => ['view', 'generate', 'export'],
             'system' => ['settings', 'backup', 'maintenance']
         ],
         'doctor' => [
-            'patients' => ['view', 'create', 'edit', 'view_assigned'],
+            'patients' => ['view', 'edit', 'view_assigned'],
             'appointments' => ['view', 'create', 'edit', 'reschedule', 'view_own'],
             'resources' => ['view', 'view_assigned'],
             'shifts' => ['view', 'edit', 'view_own', 'edit_own'],
@@ -36,7 +36,7 @@ class PermissionManager
             'appointments' => ['view', 'view_assigned'],
             'resources' => ['view', 'view_assigned'],
             'shifts' => ['view', 'view_department'],
-            'prescriptions' => ['view', 'view_assigned']
+            'prescriptions' => ['view', 'create_draft', 'view_assigned'] // Nurses can create draft prescriptions
         ],
         'pharmacist' => [
             'prescriptions' => ['view', 'edit', 'fulfill', 'view_all'],
@@ -62,7 +62,7 @@ class PermissionManager
             'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
             'resources' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'shifts' => ['view', 'create', 'edit', 'delete'],
-            'prescriptions' => ['view', 'create', 'edit', 'delete', 'view_all'],
+            'prescriptions' => ['view', 'edit', 'delete', 'view_all'], // Removed 'create' - IT staff should not medically prescribe
             'reports' => ['view', 'generate', 'export'],
             'system' => ['settings', 'backup', 'maintenance', 'database_management']
         ]

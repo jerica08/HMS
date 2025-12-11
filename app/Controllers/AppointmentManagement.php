@@ -60,6 +60,14 @@ class AppointmentManagement extends BaseController
      */
     public function createAppointment()
     {
+        // Check permissions - only admin, doctor, and receptionist can create appointments
+        if (!in_array($this->userRole, ['admin', 'doctor', 'receptionist'])) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status'  => 'error',
+                'message' => 'You do not have permission to create appointments. Only administrators, doctors, and receptionists can create appointments.',
+            ]);
+        }
+
         $input = $this->request->getJSON(true) ?? $this->request->getPost();
         return $this->response->setJSON($this->appointmentService->createAppointment($input, $this->userRole, $this->staffId));
     }

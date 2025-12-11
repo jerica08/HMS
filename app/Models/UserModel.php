@@ -31,7 +31,7 @@ class UserModel extends Model
                      staff.employee_id, staff.first_name, staff.last_name, staff.gender, 
                      staff.dob, staff.contact_no, staff.email as staff_email, 
                      staff.address, staff.department')
-            ->join('staff', 'staff.staff_id = users.staff_id', 'left')
+            ->join('staff', 'staff.staff_id = users.staff_id', 'inner')
             ->where('users.user_id', $userId)
             ->first();
     }
@@ -41,7 +41,7 @@ class UserModel extends Model
     {
         return $this->select('users.user_id, users.username, users.email as email, users.role, users.status,
                               staff.employee_id, staff.first_name, staff.last_name, staff.department')
-                    ->join('staff', 'staff.staff_id = users.staff_id', 'left')
+                    ->join('staff', 'staff.staff_id = users.staff_id', 'inner')
                     ->orderBy('users.user_id', 'DESC')
                     ->findAll();
     }

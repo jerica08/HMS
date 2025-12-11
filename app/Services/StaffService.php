@@ -319,6 +319,13 @@ class StaffService
                 }
             }
 
+            // Delete associated user account if it exists
+            $userDeleted = $this->db->table('users')->where('staff_id', $id)->delete();
+            if ($userDeleted) {
+                log_message('info', "Deleted user account for staff_id: {$id}");
+            }
+
+            // Delete the staff member
             $result = $this->db->table('staff')->where('staff_id', $id)->delete();
             $this->db->transComplete();
 
@@ -326,7 +333,12 @@ class StaffService
                 return ['success' => false, 'message' => 'Failed to delete staff member'];
             }
 
-            return ['success' => true, 'message' => 'Staff member deleted successfully'];
+            $message = 'Staff member deleted successfully';
+            if ($userDeleted) {
+                $message .= ' (associated user account also deleted)';
+            }
+
+            return ['success' => true, 'message' => $message];
         } catch (\Throwable $e) {
             log_message('error', 'Failed to delete staff: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];

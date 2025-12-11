@@ -70,18 +70,27 @@ class UserManagement extends BaseController
     public function resetPassword($userId = null)
     {
         try {
-            $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^*';
-            $tempPassword = '';
-            for ($i = 0; $i < 12; $i++) {
-                $tempPassword .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+            // Get userId from URL parameter first, then from request
+            $userId = $userId ?? $this->request->getPost('user_id') ?? ($this->request->getJSON(true)['user_id'] ?? null);
+            $requestData = $this->request->getPost() ?: $this->request->getJSON(true) ?? [];
+            $newPassword = $requestData['new_password'] ?? null;
+            
+            if (!$userId) {
+                throw new \Exception('User ID is required');
             }
             
-            $result = $this->userService->resetPassword($userId, $tempPassword, $this->userRole);
-            session()->setFlashdata('success', $result['message'] . ' Temporary password: ' . $tempPassword);
-            return redirect()->to($this->getRedirectUrl($this->userRole));
+            if (!$newPassword) {
+                throw new \Exception('New password is required');
+            }
+            
+            if (strlen($newPassword) < 6) {
+                throw new \Exception('Password must be at least 6 characters long');
+            }
+            
+            $result = $this->userService->resetPassword($userId, $newPassword, $this->userRole);
+            return $this->handleResponse($result, 'reset');
         } catch (\Exception $e) {
-            session()->setFlashdata('error', $e->getMessage());
-            return redirect()->to($this->getRedirectUrl($this->userRole));
+            return $this->handleError($e, 'reset');
         }
     }
 

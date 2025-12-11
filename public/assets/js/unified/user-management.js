@@ -35,6 +35,9 @@ class UserManager {
         if (window.EditUserModal) {
             window.EditUserModal.init();
         }
+        if (window.ResetPasswordModal) {
+            window.ResetPasswordModal.init();
+        }
     }
 
     async restoreUser(userId) {
@@ -149,7 +152,6 @@ class UserManager {
                 const roleCell = cells[1].querySelector('.role-badge');
                 const deptCell = cells[2];
                 const statusCell = cells[3];
-                const lastLoginCell = cells[4];
                 
                 return {
                     user_id: parseInt(userId),
@@ -159,8 +161,7 @@ class UserManager {
                     username: idCell?.textContent.replace('ID: ', '').trim() || '',
                     role: roleCell?.textContent.trim() || '',
                     department: deptCell?.textContent.trim() || '',
-                    status: statusCell?.textContent.trim().toLowerCase() || 'active',
-                    last_login: lastLoginCell?.textContent.trim() === 'Never' ? null : lastLoginCell?.textContent.trim()
+                    status: statusCell?.textContent.trim().toLowerCase() || 'active'
                 };
             });
             
@@ -245,7 +246,7 @@ class UserManager {
         if (this.filteredUsers.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 2rem;">
+                    <td colspan="5" style="text-align: center; padding: 2rem;">
                         <i class="fas fa-users" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
                         <p>No users found.</p>
                         ${this.hasActiveFilters() ? `
@@ -271,10 +272,6 @@ class UserManager {
         
         // Normalize status value
         const statusValue = (user.status || 'active').toLowerCase();
-
-        // Format last login
-        const lastLogin = user.last_login ? 
-            UserUtils.formatDateTime(user.last_login) : 'Never';
 
         // Determine role class (slug) and display label (name)
         const roleSlug = user.role || user.role_slug || '';
@@ -313,7 +310,6 @@ class UserManager {
                         ${UserUtils.escapeHtml(statusValue.charAt(0).toUpperCase() + statusValue.slice(1))}
                     </span>
                 </td>
-                <td>${lastLogin}</td>
                 <td>
                     <div class="action-buttons">
                         <button class="btn btn-warning btn-small action-btn" 
@@ -366,26 +362,11 @@ class UserManager {
             return;
         }
 
-        const fullName = UserUtils.formatFullName(user.first_name, user.last_name);
-        
-        if (!confirm(`Are you sure you want to reset the password for "${fullName}"? A new temporary password will be generated.`)) {
-            return;
-        }
-
-        try {
-            const response = await UserUtils.makeRequest(
-                UserConfig.getUrl(`${UserConfig.endpoints.userResetPassword}/${userId}`),
-                { method: 'POST' }
-            );
-
-            if (response.status === 'success') {
-                UserUtils.showNotification(response.message, 'success');
-            } else {
-                throw new Error(response.message || 'Failed to reset password');
-            }
-        } catch (error) {
-            console.error('Error resetting password:', error);
-            UserUtils.showNotification('Failed to reset password: ' + error.message, 'error');
+        // Open the reset password modal
+        if (window.ResetPasswordModal) {
+            window.ResetPasswordModal.open(userId);
+        } else {
+            UserUtils.showNotification('Reset password modal not available', 'error');
         }
     }
 
@@ -419,7 +400,7 @@ class UserManager {
     generateCSV() {
         const headers = [
             'User ID', 'Username', 'First Name', 'Last Name', 'Email',
-            'Role', 'Department', 'Status', 'Created At', 'Last Login'
+            'Role', 'Department', 'Status', 'Created At'
         ];
 
         const rows = this.filteredUsers.map(user => [
@@ -431,8 +412,7 @@ class UserManager {
             user.role || '',
             user.department || '',
             user.status || '',
-            user.created_at || '',
-            user.last_login || ''
+            user.created_at || ''
         ]);
 
         const csvContent = [headers, ...rows]

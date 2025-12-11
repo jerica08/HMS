@@ -162,7 +162,6 @@
                         <th scope="col">Role</th>
                         <th scope="col">Department</th>
                         <th scope="col">Status</th>
-                        <th scope="col">Last Login</th>
                         <th scope="col">Actions</th>
                     </tr>
                 </thead>
@@ -203,7 +202,6 @@
                                         <?= esc(ucfirst($status)) ?>
                                     </span>
                                 </td>
-                                <td><?= esc($user['last_login'] ?? 'Never') ?></td>
                                 <td>
                                     <div class="action-buttons">
                                         <?php if ($permissions['canEdit'] ?? false): ?>
@@ -218,7 +216,7 @@
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 2rem;">
+                            <td colspan="5" style="text-align: center; padding: 2rem;">
                                 <i class="fas fa-users" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
                                 <p>No users found.</p>
                                 <?php if (($permissions['canCreate'] ?? false)): ?>
@@ -239,6 +237,7 @@
         <?= $this->include('unified/modals/add-user-modal') ?>
         <?= $this->include('unified/modals/view-user-modal') ?>
         <?= $this->include('unified/modals/edit-user-modal') ?>
+        <?= $this->include('unified/modals/reset-password-modal') ?>
 
         <!-- Scripts -->
         <script src="<?= base_url('assets/js/unified/user-utils.js') ?>"></script>
@@ -246,4 +245,5 @@
         <script src="<?= base_url('assets/js/unified/modals/add-user-modal.js') ?>"></script>
         <script src="<?= base_url('assets/js/unified/modals/view-user-modal.js') ?>"></script>
         <script src="<?= base_url('assets/js/unified/modals/edit-user-modal.js') ?>"></script>
+        <script src="<?= base_url('assets/js/unified/modals/reset-password-modal.js') ?>"></script>
         <script src="<?= base_url('assets/js/unified/user-management.js') ?>"></script>

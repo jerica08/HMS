@@ -24,7 +24,7 @@ class UserService
     {
         return $this->db->table('users u')
             ->select('u.*, s.first_name, s.last_name, d.name as department, s.employee_id, rl.slug as role_slug, rl.name as role_name')
-            ->join('staff s', 's.staff_id = u.staff_id', 'left')
+            ->join('staff s', 's.staff_id = u.staff_id', 'inner') // Changed to inner join to exclude orphaned users
             ->join('department d', 'd.department_id = s.department_id', 'left')
             ->join('roles rl', 'rl.role_id = u.role_id', 'left');
     }
@@ -104,19 +104,34 @@ class UserService
     {
         try {
             if (in_array($userRole, ['admin', 'it_staff'])) {
+                // Count only users with valid staff records (using INNER JOIN)
+                $totalUsersQuery = $this->db->table('users u')
+                    ->join('staff s', 's.staff_id = u.staff_id', 'inner');
+                
+                $activeUsersQuery = $this->db->table('users u')
+                    ->join('staff s', 's.staff_id = u.staff_id', 'inner')
+                    ->where('u.status', 'active');
+                
+                // Count admin users by joining with roles table
+                $adminUsersQuery = $this->db->table('users u')
+                    ->join('staff s', 's.staff_id = u.staff_id', 'inner')
+                    ->join('roles rl', 'rl.role_id = u.role_id', 'inner')
+                    ->where('rl.slug', 'admin');
+                
                 return [
-                    'total_users' => $this->userBuilder->countAllResults(),
-                    'active_users' => $this->userBuilder->where('status', 'active')->countAllResults(),
-                    'admin_users' => $this->userBuilder->where('role', 'admin')->countAllResults(),
-                    'doctor_users' => $this->userBuilder->where('role', 'doctor')->countAllResults(),
-                    'nurse_users' => $this->userBuilder->where('role', 'nurse')->countAllResults(),
-                    'new_users_month' => $this->userBuilder->where('created_at >=', date('Y-m-01'))->countAllResults(),
+                    'total_users' => $totalUsersQuery->countAllResults(false),
+                    'active_users' => $activeUsersQuery->countAllResults(false),
+                    'admin_users' => $adminUsersQuery->countAllResults(false),
+                    'new_users_month' => $this->db->table('users u')
+                        ->join('staff s', 's.staff_id = u.staff_id', 'inner')
+                        ->where('u.created_at >=', date('Y-m-01'))
+                        ->countAllResults(false),
                 ];
             } elseif ($userRole === 'doctor' && $staffId) {
                 $doctorInfo = $this->staffBuilder->where('staff_id', $staffId)->get()->getRowArray();
                 $department = $doctorInfo['department'] ?? null;
                 if ($department) {
-                    $deptUsers = $this->db->table('users u')->join('staff s', 's.staff_id = u.staff_id', 'left')->where('s.department', $department);
+                    $deptUsers = $this->db->table('users u')->join('staff s', 's.staff_id = u.staff_id', 'inner')->where('s.department', $department);
                     return [
                         'department_users' => $deptUsers->countAllResults(false),
                         'department_active' => $deptUsers->where('u.status', 'active')->countAllResults(),
@@ -125,9 +140,17 @@ class UserService
                 return ['department_users' => 0, 'department_active' => 0];
             }
             
+            // Default stats for other roles
+            $totalUsersQuery = $this->db->table('users u')
+                ->join('staff s', 's.staff_id = u.staff_id', 'inner');
+            
+            $activeUsersQuery = $this->db->table('users u')
+                ->join('staff s', 's.staff_id = u.staff_id', 'inner')
+                ->where('u.status', 'active');
+            
             return [
-                'total_users' => $this->userBuilder->countAllResults(),
-                'active_users' => $this->userBuilder->where('status', 'active')->countAllResults(),
+                'total_users' => $totalUsersQuery->countAllResults(false),
+                'active_users' => $activeUsersQuery->countAllResults(false),
             ];
         } catch (\Throwable $e) {
             log_message('error', 'UserService getUserStats error: ' . $e->getMessage());

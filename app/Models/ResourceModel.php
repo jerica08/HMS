@@ -35,7 +35,7 @@ class ResourceModel extends Model
     protected $validationRules = [
         'equipment_name' => 'required|min_length[2]|max_length[255]',
         'category' => 'required|in_list[Medical Equipment,Medical Supplies,Diagnostic Equipment,Lab Equipment,Pharmacy Equipment,Medications,Office Equipment,IT Equipment,Furniture,Vehicles,Other]',
-        'quantity' => 'required|integer|greater_than[0]',
+        'quantity' => 'required|integer|greater_than_equal_to[0]',
         'status' => 'required|in_list[Stock In,Stock Out]',
         'location' => 'permit_empty|max_length[255]',
         'batch_number' => 'permit_empty|max_length[100]',
@@ -56,7 +56,7 @@ class ResourceModel extends Model
         ],
         'quantity' => [
             'required' => 'Quantity is required.',
-            'greater_than' => 'Quantity must be greater than 0.'
+            'greater_than_equal_to' => 'Quantity must be 0 or greater.'
         ]
     ];
 
@@ -235,18 +235,32 @@ class ResourceModel extends Model
 
     /**
      * Release resource assignment
+     * Automatically sets status based on quantity:
+     * - If quantity > 0, sets status to 'Stock In'
+     * - If quantity = 0, keeps status as 'Stock Out'
      */
     public function releaseAssignment($resourceId)
     {
+        $resource = $this->find($resourceId);
+        if (!$resource) {
+            return false;
+        }
+
+        $quantity = (int)($resource['quantity'] ?? 0);
+        $status = $quantity > 0 ? 'Stock In' : 'Stock Out';
+
         return $this->update($resourceId, [
             'assigned_to_staff_id' => null,
-            'status' => 'Stock In',
+            'status' => $status,
             'updated_at' => date('Y-m-d H:i:s')
         ]);
     }
 
     /**
      * Update resource quantity safely (prevent negative)
+     * Automatically updates status based on quantity:
+     * - Sets status to 'Stock Out' when quantity reaches 0
+     * - Sets status to 'Stock In' when quantity becomes > 0 (if not assigned to staff)
      */
     public function updateQuantity($resourceId, $quantityChange, $operation = 'add')
     {
@@ -256,6 +270,7 @@ class ResourceModel extends Model
         }
 
         $currentQuantity = (int)($resource['quantity'] ?? 0);
+        $assignedToStaff = !empty($resource['assigned_to_staff_id']);
         
         if ($operation === 'add') {
             $newQuantity = $currentQuantity + $quantityChange;
@@ -263,10 +278,25 @@ class ResourceModel extends Model
             $newQuantity = max(0, $currentQuantity - $quantityChange);
         }
 
-        return $this->update($resourceId, [
+        $updateData = [
             'quantity' => $newQuantity,
             'updated_at' => date('Y-m-d H:i:s')
-        ]);
+        ];
+
+        // Automatically update status based on quantity
+        if ($newQuantity === 0) {
+            // When quantity reaches 0, set status to 'Stock Out'
+            $updateData['status'] = 'Stock Out';
+        } elseif ($newQuantity > 0 && !$assignedToStaff) {
+            // When quantity becomes > 0 and not assigned to staff, set status to 'Stock In'
+            // Only change if it was previously 'Stock Out' due to zero quantity
+            if (($resource['status'] ?? '') === 'Stock Out' && $currentQuantity === 0) {
+                $updateData['status'] = 'Stock In';
+            }
+        }
+        // If assigned to staff, don't change status automatically
+
+        return $this->update($resourceId, $updateData);
     }
 }
 

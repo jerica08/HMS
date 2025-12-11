@@ -52,11 +52,13 @@ class ResourceService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
+            $quantity = (int)($data['quantity'] ?? 1);
+            
             $resourceData = [
                 'equipment_name' => trim($data['equipment_name'] ?? ''),
                 'category' => $data['category'] ?? '',
-                'quantity' => (int)($data['quantity'] ?? 1),
-                'status' => $data['status'] ?? 'Stock In',
+                'quantity' => $quantity,
+                'status' => $data['status'] ?? ($quantity === 0 ? 'Stock Out' : 'Stock In'),
                 'location' => trim($data['location'] ?? ''),
                 'batch_number' => trim($data['batch_number'] ?? ''),
                 'expiry_date' => !empty($data['expiry_date']) ? $data['expiry_date'] : null,
@@ -141,6 +143,25 @@ class ResourceService
                 }
             }
 
+            // Automatically update status based on quantity changes
+            $currentQuantity = (int)($resource['quantity'] ?? 0);
+            $newQuantity = isset($updateData['quantity']) ? (int)$updateData['quantity'] : $currentQuantity;
+            $assignedToStaff = !empty($resource['assigned_to_staff_id']);
+            
+            // Only auto-update status if quantity is being changed and status is not explicitly set
+            if (isset($updateData['quantity']) && !isset($updateData['status'])) {
+                if ($newQuantity === 0) {
+                    // When quantity reaches 0, automatically set status to 'Stock Out'
+                    $updateData['status'] = 'Stock Out';
+                } elseif ($newQuantity > 0 && !$assignedToStaff) {
+                    // When quantity becomes > 0 and not assigned to staff, set status to 'Stock In'
+                    // Only change if it was previously 'Stock Out' due to zero quantity
+                    if (($resource['status'] ?? '') === 'Stock Out' && $currentQuantity === 0) {
+                        $updateData['status'] = 'Stock In';
+                    }
+                }
+            }
+
             if (empty($updateData)) {
                 return ['success' => false, 'message' => 'No changes provided'];
             }
@@ -173,8 +194,10 @@ class ResourceService
                 return ['success' => false, 'message' => 'Resource not found'];
             }
 
-            if (($resource['status'] ?? '') === 'Stock Out') {
-                return ['success' => false, 'message' => 'Cannot delete resource that is currently stock out'];
+            // Allow deletion of stock out resources if quantity is 0
+            // Only prevent deletion if stock is out but quantity > 0 (assigned to staff)
+            if (($resource['status'] ?? '') === 'Stock Out' && ($resource['quantity'] ?? 0) > 0) {
+                return ['success' => false, 'message' => 'Cannot delete resource that is currently assigned or in use'];
             }
 
             return $this->resourceModel->delete($resourceId)

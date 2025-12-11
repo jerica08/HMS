@@ -131,13 +131,26 @@ class ShiftManager {
         document.addEventListener('click', (e) => {
             const actions = {
                 '.btn-edit': (btn) => this.editShift(btn.dataset.shiftId),
-                '.btn-delete': (btn) => this.deleteShift(btn.dataset.shiftId),
+                '.btn-delete': (btn) => {
+                    // Check if we have multiple IDs (for deleting all weekdays)
+                    if (btn.dataset.shiftIds) {
+                        try {
+                            const ids = JSON.parse(btn.dataset.shiftIds);
+                            this.deleteShift(ids);
+                        } catch (err) {
+                            // Fallback to single ID if parsing fails
+                            this.deleteShift(btn.dataset.shiftId);
+                        }
+                    } else {
+                        this.deleteShift(btn.dataset.shiftId);
+                    }
+                },
                 '.btn-status': (btn) => this.updateShiftStatus(btn.dataset.shiftId, btn.dataset.status)
             };
             
             for (const [selector, handler] of Object.entries(actions)) {
                 const btn = e.target.matches(selector) ? e.target : e.target.closest(selector);
-                if (btn && btn.dataset.shiftId) {
+                if (btn && (btn.dataset.shiftId || btn.dataset.shiftIds)) {
                     handler(btn);
                     break;
                 }
@@ -149,20 +162,35 @@ class ShiftManager {
         try {
             this.showLoading(true);
             
-            const url = new URL(this.config.endpoints.shifts, window.location.origin);
+            // Construct URL - use the endpoint directly as it's already constructed with baseUrl
+            let urlString = this.config.endpoints.shifts;
             
-            // Add filters to URL
+            // Build query string from filters
+            const params = new URLSearchParams();
             Object.keys(this.filters).forEach(key => {
                 if (this.filters[key]) {
-                    url.searchParams.append(key, this.filters[key]);
+                    params.append(key, this.filters[key]);
                 }
             });
+            
+            // Append query string if there are filters
+            if (params.toString()) {
+                urlString += (urlString.includes('?') ? '&' : '?') + params.toString();
+            }
 
-            const response = await fetch(url);
+            console.log('Loading shifts from:', urlString);
+            const response = await fetch(urlString);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            console.log('Shifts API response:', data);
 
             if (data.status === 'success') {
                 this.shifts = data.data || [];
+                console.log('Loaded shifts:', this.shifts.length, this.shifts);
                 this.renderShifts();
                 this.updateCalendar();
             } else {
@@ -170,7 +198,7 @@ class ShiftManager {
             }
         } catch (error) {
             console.error('Error loading shifts:', error);
-            this.showError('Failed to load shifts');
+            this.showError('Failed to load shifts: ' + error.message);
         } finally {
             this.showLoading(false);
         }
@@ -183,10 +211,10 @@ class ShiftManager {
         if (this.shifts.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="empty-state">
-                        <i class="fas fa-calendar-times"></i>
-                        <h3>No shifts found</h3>
-                        <p>No shifts match your current filters.</p>
+                    <td colspan="5" class="empty-state" style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-calendar-times" style="font-size: 2rem; color: #d1d5db; margin-bottom: 1rem;"></i>
+                        <h3 style="color: #6b7280; margin: 0.5rem 0;">No shifts found</h3>
+                        <p style="color: #9ca3af;">No shifts match your current filters.</p>
                     </td>
                 </tr>
             `;
@@ -269,6 +297,10 @@ class ShiftManager {
         // one underlying schedule entry; edit/delete will operate on that
         // specific entry while the UI shows the combined weekdays.
         const primaryId = shift.primaryId || shift.id;
+        
+        // For delete, use all IDs to delete all weekdays at once
+        const allIds = (shift.ids && shift.ids.length > 0) ? shift.ids : [shift.id];
+        const idsJson = JSON.stringify(allIds);
 
         return `
             <tr class="fade-in">
@@ -292,7 +324,7 @@ class ShiftManager {
                             </button>
                         ` : ''}
                         ${canDelete ? `
-                            <button type="button" class="btn btn-sm btn-delete" data-shift-id="${primaryId}" title="Delete Shift">
+                            <button type="button" class="btn btn-sm btn-delete" data-shift-ids='${idsJson}' title="Delete All Weekdays">
                                 <i class="fas fa-trash"></i>
                             </button>
                         ` : ''}
@@ -443,8 +475,16 @@ class ShiftManager {
     }
 
 
-    async deleteShift(shiftId) {
-        if (!confirm('Are you sure you want to delete this shift? This action cannot be undone.')) {
+    async deleteShift(shiftIdOrIds) {
+        // Handle both single ID and array of IDs
+        const ids = Array.isArray(shiftIdOrIds) ? shiftIdOrIds : [shiftIdOrIds];
+        const count = ids.length;
+        
+        const confirmMessage = count > 1 
+            ? `Are you sure you want to delete all ${count} weekday entries for this schedule? This action cannot be undone.`
+            : 'Are you sure you want to delete this shift? This action cannot be undone.';
+        
+        if (!confirm(confirmMessage)) {
             return;
         }
 
@@ -456,7 +496,7 @@ class ShiftManager {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
-                    id: shiftId,
+                    id: count === 1 ? ids[0] : ids, // Send single ID or array
                     [this.config.csrfToken]: this.config.csrfHash
                 })
             });
@@ -464,7 +504,10 @@ class ShiftManager {
             const data = await response.json();
 
             if (data.status === 'success') {
-                this.showSuccess('Shift deleted successfully');
+                const successMessage = count > 1 
+                    ? `Successfully deleted ${count} weekday entries`
+                    : 'Shift deleted successfully';
+                this.showSuccess(successMessage);
                 this.loadShifts();
             } else {
                 this.showError(data.message || 'Failed to delete shift');
@@ -630,12 +673,14 @@ function dismissScheduleNotification() {
 // Initialize ShiftManager when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        if (document.getElementById('createShiftBtn') || document.querySelector('.shift-table')) {
+        // Initialize if schedule table exists (for all roles including doctors)
+        if (document.getElementById('shiftsTableBody') || document.getElementById('createShiftBtn') || document.querySelector('.shift-table')) {
             window.shiftManager = new ShiftManager();
         }
     });
 } else {
-    if (document.getElementById('createShiftBtn') || document.querySelector('.shift-table')) {
+    // Initialize if schedule table exists (for all roles including doctors)
+    if (document.getElementById('shiftsTableBody') || document.getElementById('createShiftBtn') || document.querySelector('.shift-table')) {
         window.shiftManager = new ShiftManager();
     }
 }

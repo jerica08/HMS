@@ -246,61 +246,136 @@ class DashboardService
     {
         $stats = [];
         $today = date('Y-m-d');
+        $staffId = (int) $staffId; // Ensure it's an integer
 
-        // Today's appointments
-        $stats['today_appointments'] = $this->db->table('appointments')
-            ->where('doctor_id', $staffId)
-            ->where('appointment_date', $today)
-            ->countAllResults();
+        // Initialize schedule stats first (most important for the widget)
+        $stats['my_schedule_today'] = 0;
+        $stats['my_schedule_total'] = 0;
+        $stats['my_schedule_this_week'] = 0;
 
-        $stats['completed_today'] = $this->db->table('appointments')
-            ->where('doctor_id', $staffId)
-            ->where('appointment_date', $today)
-            ->where('status', 'completed')
-            ->countAllResults();
+        // My Schedule stats - calculate these first and wrap in try-catch to ensure they always work
+        if (!empty($staffId)) {
+            try {
+                $todayWeekday = date('N'); // 1 = Monday, 7 = Sunday
+                $stats['my_schedule_today'] = $this->db->table('staff_schedule')
+                    ->where('staff_id', $staffId)
+                    ->where('status', 'active')
+                    ->where('weekday', $todayWeekday)
+                    ->countAllResults();
+                
+                $stats['my_schedule_total'] = $this->db->table('staff_schedule')
+                    ->where('staff_id', $staffId)
+                    ->where('status', 'active')
+                    ->countAllResults();
+                
+                // Get upcoming shifts for this week
+                $stats['my_schedule_this_week'] = $this->db->table('staff_schedule')
+                    ->where('staff_id', $staffId)
+                    ->where('status', 'active')
+                    ->whereIn('weekday', [1, 2, 3, 4, 5, 6, 7])
+                    ->countAllResults();
+            } catch (\Exception $e) {
+                log_message('error', 'Schedule stats error: ' . $e->getMessage());
+                // Keep default values of 0
+            }
+        }
 
-        $stats['pending_today'] = $this->db->table('appointments')
-            ->where('doctor_id', $staffId)
-            ->where('appointment_date', $today)
-            ->whereIn('status', ['scheduled', 'in-progress'])
-            ->countAllResults();
+        // Other stats - wrap in try-catch to prevent failures from breaking the whole method
+        try {
+            // Today's appointments
+            if ($this->db->tableExists('appointments')) {
+                $stats['today_appointments'] = $this->db->table('appointments')
+                    ->where('doctor_id', $staffId)
+                    ->where('appointment_date', $today)
+                    ->countAllResults();
 
-        // Patient statistics
-        $stats['my_patients'] = $this->db->table('patient')
-            ->where('primary_doctor_id', $staffId)
-            ->countAllResults();
+                $stats['completed_today'] = $this->db->table('appointments')
+                    ->where('doctor_id', $staffId)
+                    ->where('appointment_date', $today)
+                    ->where('status', 'completed')
+                    ->countAllResults();
 
-        $stats['new_patients_week'] = $this->db->table('patient')
-            ->where('primary_doctor_id', $staffId)
-            ->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))
-            ->countAllResults();
+                $stats['pending_today'] = $this->db->table('appointments')
+                    ->where('doctor_id', $staffId)
+                    ->where('appointment_date', $today)
+                    ->whereIn('status', ['scheduled', 'in-progress'])
+                    ->countAllResults();
 
-        $stats['critical_patients'] = $this->db->table('patient')
-            ->where('primary_doctor_id', $staffId)
-            ->where('patient_type', 'emergency')
-            ->countAllResults();
+                // Weekly stats
+                $stats['weekly_appointments'] = $this->db->table('appointments')
+                    ->where('doctor_id', $staffId)
+                    ->where('appointment_date >=', date('Y-m-d', strtotime('-7 days')))
+                    ->countAllResults();
+            } else {
+                $stats['today_appointments'] = 0;
+                $stats['completed_today'] = 0;
+                $stats['pending_today'] = 0;
+                $stats['weekly_appointments'] = 0;
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Appointments stats error: ' . $e->getMessage());
+            $stats['today_appointments'] = 0;
+            $stats['completed_today'] = 0;
+            $stats['pending_today'] = 0;
+            $stats['weekly_appointments'] = 0;
+        }
 
-        // Prescriptions
-        $stats['prescriptions_pending'] = $this->db->table('prescriptions')
-            ->where('doctor_id', $staffId)
-            ->where('status', 'active')
-            ->countAllResults();
+        try {
+            // Patient statistics
+            if ($this->db->tableExists('patient')) {
+                $stats['my_patients'] = $this->db->table('patient')
+                    ->where('primary_doctor_id', $staffId)
+                    ->countAllResults();
 
-        $stats['prescriptions_today'] = $this->db->table('prescriptions')
-            ->where('doctor_id', $staffId)
-            ->where('DATE(created_at)', $today)
-            ->countAllResults();
+                $stats['new_patients_week'] = $this->db->table('patient')
+                    ->where('primary_doctor_id', $staffId)
+                    ->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))
+                    ->countAllResults();
 
-        // Weekly stats
-        $stats['weekly_appointments'] = $this->db->table('appointments')
-            ->where('doctor_id', $staffId)
-            ->where('appointment_date >=', date('Y-m-d', strtotime('-7 days')))
-            ->countAllResults();
+                $stats['critical_patients'] = $this->db->table('patient')
+                    ->where('primary_doctor_id', $staffId)
+                    ->where('patient_type', 'emergency')
+                    ->countAllResults();
 
-        $stats['monthly_patients'] = $this->db->table('patient')
-            ->where('primary_doctor_id', $staffId)
-            ->where('date_registered >=', date('Y-m-d', strtotime('-30 days')))
-            ->countAllResults();
+                $stats['monthly_patients'] = $this->db->table('patient')
+                    ->where('primary_doctor_id', $staffId)
+                    ->where('date_registered >=', date('Y-m-d', strtotime('-30 days')))
+                    ->countAllResults();
+            } else {
+                $stats['my_patients'] = 0;
+                $stats['new_patients_week'] = 0;
+                $stats['critical_patients'] = 0;
+                $stats['monthly_patients'] = 0;
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Patient stats error: ' . $e->getMessage());
+            $stats['my_patients'] = 0;
+            $stats['new_patients_week'] = 0;
+            $stats['critical_patients'] = 0;
+            $stats['monthly_patients'] = 0;
+        }
+
+        try {
+            // Prescriptions
+            if ($this->db->tableExists('prescriptions')) {
+                $stats['prescriptions_pending'] = $this->db->table('prescriptions')
+                    ->where('doctor_id', $staffId)
+                    ->where('status', 'active')
+                    ->countAllResults();
+
+                $stats['prescriptions_today'] = $this->db->table('prescriptions')
+                    ->where('doctor_id', $staffId)
+                    ->where('DATE(created_at)', $today)
+                    ->countAllResults();
+            } else {
+                $stats['prescriptions_pending'] = 0;
+                $stats['prescriptions_today'] = 0;
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Prescriptions stats error: ' . $e->getMessage());
+            $stats['prescriptions_pending'] = 0;
+            $stats['prescriptions_today'] = 0;
+        }
 
         return $stats;
     }

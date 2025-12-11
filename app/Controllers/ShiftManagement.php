@@ -211,28 +211,27 @@ class ShiftManagement extends BaseController
         try {
             $db = \Config\Database::connect();
 
-            // Base query: schedules for doctors only
-            // For doctors viewing their own schedule, use LEFT JOIN so schedules show even if doctor record missing
-            // For admin/others, use INNER JOIN to only show schedules for actual doctors
-            $joinType = ($this->userRole === 'doctor' && !empty($this->staffId)) ? 'left' : 'inner';
-            
-            $builder = $db->table('staff_schedule ss')
-                ->select('ss.id, ss.staff_id, ss.weekday, ss.start_time, ss.end_time, ss.status, '
-                    . "CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS doctor_name, "
-                    . 'COALESCE(d.specialization, "") AS specialization')
-                ->join('staff s', 's.staff_id = ss.staff_id', 'left')
-                ->join('doctor d', 'd.staff_id = ss.staff_id', $joinType)
-                ->where('ss.status', 'active');
-
-            // Role-based filtering
-            if ($this->userRole === 'doctor' && !empty($this->staffId)) {
-                // Doctor sees only their own schedules
-                // Use LEFT JOIN for doctor table so schedules still show even if doctor record is missing
-                $builder->where('ss.staff_id', $this->staffId);
-            } elseif (in_array($this->userRole, ['admin', 'it_staff', 'receptionist'])) {
+            // For doctors and nurses viewing their own schedule, don't require doctor table join
+            // This ensures schedules show even if doctor record is missing
+            if (in_array($this->userRole, ['doctor', 'nurse']) && !empty($this->staffId)) {
+                // Doctor/Nurse sees only their own schedules - use LEFT JOINs to ensure schedules show
+                $builder = $db->table('staff_schedule ss')
+                    ->select('ss.id, ss.staff_id, ss.weekday, ss.start_time, ss.end_time, ss.status, '
+                        . "COALESCE(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')), 'Staff') AS doctor_name, "
+                        . 'COALESCE(d.specialization, "") AS specialization')
+                    ->join('staff s', 's.staff_id = ss.staff_id', 'left')
+                    ->join('doctor d', 'd.staff_id = ss.staff_id', 'left')
+                    ->where('ss.status', 'active')
+                    ->where('ss.staff_id', $this->staffId);
+            } else {
                 // Admin/IT/Receptionist see all schedules, but only for doctors
-                // Keep INNER JOIN to only show schedules for staff who are doctors
-                // (doctor table join is already INNER, so this is handled)
+                $builder = $db->table('staff_schedule ss')
+                    ->select('ss.id, ss.staff_id, ss.weekday, ss.start_time, ss.end_time, ss.status, '
+                        . "CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS doctor_name, "
+                        . 'COALESCE(d.specialization, "") AS specialization')
+                    ->join('staff s', 's.staff_id = ss.staff_id', 'left')
+                    ->join('doctor d', 'd.staff_id = ss.staff_id', 'inner')
+                    ->where('ss.status', 'active');
             }
 
             // Apply filters from query parameters
@@ -257,6 +256,26 @@ class ShiftManagement extends BaseController
                 ->orderBy('ss.start_time', 'ASC');
 
             $result = $builder->get()->getResultArray();
+            
+            // Log for debugging
+            log_message('debug', 'ShiftManagement::getShiftsAPI - User: ' . $this->userRole . ', Staff ID: ' . $this->staffId . ', Results: ' . count($result));
+            if (count($result) > 0) {
+                log_message('debug', 'ShiftManagement::getShiftsAPI - Sample result: ' . json_encode($result[0]));
+            } else {
+                // If no results for doctor, check if schedules exist at all
+                if ($this->userRole === 'doctor' && !empty($this->staffId)) {
+                    $totalSchedules = $db->table('staff_schedule')
+                        ->where('staff_id', $this->staffId)
+                        ->countAllResults();
+                    log_message('debug', 'ShiftManagement::getShiftsAPI - Total schedules for staff_id ' . $this->staffId . ': ' . $totalSchedules);
+                    
+                    $activeSchedules = $db->table('staff_schedule')
+                        ->where('staff_id', $this->staffId)
+                        ->where('status', 'active')
+                        ->countAllResults();
+                    log_message('debug', 'ShiftManagement::getShiftsAPI - Active schedules for staff_id ' . $this->staffId . ': ' . $activeSchedules);
+                }
+            }
 
             return $this->response->setJSON([
                 'status' => 'success',
@@ -265,6 +284,7 @@ class ShiftManagement extends BaseController
 
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::getShiftsAPI error: ' . $e->getMessage());
+            log_message('error', 'ShiftManagement::getShiftsAPI stack trace: ' . $e->getTraceAsString());
             return $this->response->setStatusCode(500)->setJSON([
                 'status'  => 'error',
                 'message' => 'Failed to load schedule: ' . $e->getMessage(),
@@ -401,7 +421,7 @@ class ShiftManagement extends BaseController
     }
 
     /**
-     * Update a shift
+     * Update a shift (handles multiple weekdays - can add, update, or remove weekdays)
      */
     public function update()
     {
@@ -417,17 +437,28 @@ class ShiftManagement extends BaseController
             }
 
             $id = (int) $input['id'];
-
             $db = \Config\Database::connect();
 
-            // Build fields we allow to be updated from the schedule edit form
-            $data = [];
+            // Get the base shift to determine staff_id, start_time, end_time, status
+            $baseShift = $db->table('staff_schedule')
+                ->where('id', $id)
+                ->get()
+                ->getRowArray();
 
-            // Doctor/staff change (optional)
-            if (!empty($input['staff_id']) || !empty($input['doctor_id'])) {
-                $staffId = $input['staff_id'] ?? $input['doctor_id'];
+            if (!$baseShift) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Shift not found',
+                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                ]);
+            }
 
-                // Ensure provided staff_id belongs to a doctor
+            // Determine staff_id (from input or existing)
+            $staffId = !empty($input['staff_id']) ? (int) $input['staff_id'] : 
+                      (!empty($input['doctor_id']) ? (int) $input['doctor_id'] : (int) $baseShift['staff_id']);
+
+            // Validate staff_id is a doctor if changed
+            if ($staffId !== (int) $baseShift['staff_id']) {
                 $isDoctor = $db->table('doctor')
                     ->where('staff_id', $staffId)
                     ->countAllResults() > 0;
@@ -439,60 +470,178 @@ class ShiftManagement extends BaseController
                         'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
                     ]);
                 }
-
-                $data['staff_id'] = (int) $staffId;
             }
 
-            if (isset($input['weekday']) && $input['weekday'] !== '') {
-                $data['weekday'] = (int) $input['weekday'];
-            }
-
-            if (isset($input['start_time']) && $input['start_time'] !== '') {
-                $data['start_time'] = $input['start_time'];
-            }
-
-            if (isset($input['end_time']) && $input['end_time'] !== '') {
-                $data['end_time'] = $input['end_time'];
-            }
-
+            // Get time and status values (from input or existing)
+            $startTime = !empty($input['start_time']) ? $input['start_time'] : $baseShift['start_time'];
+            $endTime = !empty($input['end_time']) ? $input['end_time'] : $baseShift['end_time'];
+            $status = 'active';
             if (!empty($input['status'])) {
-                
-                $status = strtolower($input['status']);
+                $statusLower = strtolower($input['status']);
+                $status = (in_array($statusLower, ['scheduled', 'active'], true)) ? 'active' : 'inactive';
+            } else {
+                $status = $baseShift['status'] ?? 'active';
+            }
 
-                if (in_array($status, ['scheduled', 'active'], true)) {
-                    $data['status'] = 'active';
-                } else {
-                   
-                    $data['status'] = 'inactive';
+            // Handle weekdays array from form
+            $submittedWeekdays = [];
+            if (isset($input['weekdays']) && is_array($input['weekdays'])) {
+                $submittedWeekdays = array_map('intval', $input['weekdays']);
+                $submittedWeekdays = array_filter($submittedWeekdays, function($wd) { 
+                    return $wd >= 1 && $wd <= 7; 
+                });
+            } elseif (isset($input['weekday']) && $input['weekday'] !== '') {
+                $submittedWeekdays = [(int) $input['weekday']];
+            }
+
+            // Get original weekday IDs and weekdays for comparison
+            $originalIds = [];
+            $originalWeekdays = [];
+            
+            if (isset($input['original_ids']) && is_array($input['original_ids'])) {
+                $originalIds = array_map('intval', $input['original_ids']);
+            } else {
+                // Fallback: find all related shifts with same staff_id, start_time, end_time, status
+                $relatedShifts = $db->table('staff_schedule')
+                    ->where('staff_id', $baseShift['staff_id'])
+                    ->where('start_time', $baseShift['start_time'])
+                    ->where('end_time', $baseShift['end_time'])
+                    ->where('status', $baseShift['status'] ?? 'active')
+                    ->get()
+                    ->getResultArray();
+                
+                $originalIds = array_column($relatedShifts, 'id');
+                $originalWeekdays = array_column($relatedShifts, 'weekday');
+            }
+
+            // Get original weekdays from input or from database using original IDs
+            if (isset($input['original_weekdays']) && is_array($input['original_weekdays']) && !empty($input['original_weekdays'])) {
+                $originalWeekdays = array_map('intval', $input['original_weekdays']);
+            } elseif (!empty($originalIds)) {
+                // Fetch weekdays from database using the original IDs
+                $originalShifts = $db->table('staff_schedule')
+                    ->whereIn('id', $originalIds)
+                    ->get()
+                    ->getResultArray();
+                $originalWeekdays = array_column($originalShifts, 'weekday');
+            } else {
+                // Last fallback: use the base shift's weekday
+                $originalWeekdays = [$baseShift['weekday']];
+                $originalIds = [$baseShift['id']];
+            }
+
+            // Find weekdays to delete (in original but not in submitted)
+            $weekdaysToDelete = array_diff($originalWeekdays, $submittedWeekdays);
+            
+            // Find weekdays to add (in submitted but not in original)
+            $weekdaysToAdd = array_diff($submittedWeekdays, $originalWeekdays);
+            
+            // Find weekdays to update (in both, but time/status might have changed)
+            $weekdaysToUpdate = array_intersect($originalWeekdays, $submittedWeekdays);
+
+            $deletedCount = 0;
+            $addedCount = 0;
+            $updatedCount = 0;
+
+            // Delete weekdays that were unchecked
+            if (!empty($weekdaysToDelete) && !empty($originalIds)) {
+                // Find IDs of shifts to delete by matching weekday
+                $shiftsToDelete = $db->table('staff_schedule')
+                    ->whereIn('id', $originalIds)
+                    ->whereIn('weekday', $weekdaysToDelete)
+                    ->get()
+                    ->getResultArray();
+                
+                $idsToDelete = array_column($shiftsToDelete, 'id');
+                
+                if (!empty($idsToDelete)) {
+                    $db->table('staff_schedule')
+                        ->whereIn('id', $idsToDelete)
+                        ->delete();
+                    $deletedCount = $db->affectedRows();
                 }
             }
 
-            // Always update timestamp
-            $data['updated_at'] = date('Y-m-d H:i:s');
-
-            if (empty($data)) {
-                return $this->response->setStatusCode(422)->setJSON([
-                    'status' => 'error',
-                    'message' => 'No valid fields provided for update',
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                ]);
+            // Update existing weekdays (time/status changes)
+            if (!empty($weekdaysToUpdate)) {
+                $updateData = [];
+                if ($staffId !== (int) $baseShift['staff_id']) {
+                    $updateData['staff_id'] = $staffId;
+                }
+                if ($startTime !== $baseShift['start_time']) {
+                    $updateData['start_time'] = $startTime;
+                }
+                if ($endTime !== $baseShift['end_time']) {
+                    $updateData['end_time'] = $endTime;
+                }
+                if ($status !== ($baseShift['status'] ?? 'active')) {
+                    $updateData['status'] = $status;
+                }
+                
+                if (!empty($updateData)) {
+                    $updateData['updated_at'] = date('Y-m-d H:i:s');
+                    
+                    // Update all matching shifts
+                    $shiftsToUpdate = $db->table('staff_schedule')
+                        ->whereIn('id', $originalIds)
+                        ->whereIn('weekday', $weekdaysToUpdate)
+                        ->update($updateData);
+                    
+                    $updatedCount = $db->affectedRows();
+                }
             }
 
-            $db->table('staff_schedule')
-                ->where('id', $id)
-                ->update($data);
+            // Add new weekdays
+            if (!empty($weekdaysToAdd)) {
+                $baseData = [
+                    'staff_id' => $staffId,
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'status' => $status,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
 
-            if ($db->affectedRows() === 0) {
-                return $this->response->setStatusCode(404)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Shift not found or no changes detected',
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                ]);
+                foreach ($weekdaysToAdd as $weekday) {
+                    // Check if schedule already exists to avoid duplicates
+                    $existing = $db->table('staff_schedule')
+                        ->where('staff_id', $staffId)
+                        ->where('weekday', $weekday)
+                        ->where('start_time', $startTime)
+                        ->where('end_time', $endTime)
+                        ->where('status', $status)
+                        ->countAllResults();
+
+                    if ($existing === 0) {
+                        $scheduleData = $baseData;
+                        $scheduleData['weekday'] = $weekday;
+                        $db->table('staff_schedule')->insert($scheduleData);
+                        if ($db->affectedRows() > 0) {
+                            $addedCount++;
+                        }
+                    }
+                }
             }
+
+            // Build response message
+            $messages = [];
+            if ($deletedCount > 0) {
+                $messages[] = "Deleted {$deletedCount} weekday(s)";
+            }
+            if ($updatedCount > 0) {
+                $messages[] = "Updated {$updatedCount} weekday(s)";
+            }
+            if ($addedCount > 0) {
+                $messages[] = "Added {$addedCount} weekday(s)";
+            }
+            
+            $message = !empty($messages) 
+                ? 'Shift updated successfully. ' . implode(', ', $messages) . '.'
+                : 'Shift updated successfully';
 
             return $this->response->setJSON([
                 'status' => 'success',
-                'message' => 'Shift updated successfully',
+                'message' => $message,
                 'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
             ]);
 
@@ -507,7 +656,7 @@ class ShiftManagement extends BaseController
     }
 
     /**
-     * Delete a shift
+     * Delete a shift or multiple shifts (all weekdays)
      */
     public function delete()
     {
@@ -525,24 +674,58 @@ class ShiftManagement extends BaseController
 
             $db = \Config\Database::connect();
 
-            // Delete from staff_schedule since we now store schedules there
-            $db->table('staff_schedule')
-                ->where('id', (int) $id)
-                ->delete();
+            // Handle both single ID and array of IDs (for deleting all weekdays)
+            if (is_array($id)) {
+                // Delete multiple shifts (all weekdays for a schedule)
+                $ids = array_map('intval', $id);
+                $ids = array_filter($ids, function($id) { return $id > 0; });
+                
+                if (empty($ids)) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Invalid shift IDs provided',
+                        'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                    ]);
+                }
 
-            if ($db->affectedRows() > 0) {
-                return $this->response->setJSON([
-                    'status' => 'success',
-                    'message' => 'Shift deleted successfully',
+                $deletedCount = $db->table('staff_schedule')
+                    ->whereIn('id', $ids)
+                    ->delete();
+
+                if ($deletedCount > 0) {
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'message' => "Successfully deleted {$deletedCount} schedule entry(ies)",
+                        'deleted_count' => $deletedCount,
+                        'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                    ]);
+                }
+
+                return $this->response->setStatusCode(404)->setJSON([
+                    'status' => 'error',
+                    'message' => 'No shifts found or already deleted',
+                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                ]);
+            } else {
+                // Delete single shift (backward compatibility)
+                $db->table('staff_schedule')
+                    ->where('id', (int) $id)
+                    ->delete();
+
+                if ($db->affectedRows() > 0) {
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'message' => 'Shift deleted successfully',
+                        'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
+                    ]);
+                }
+
+                return $this->response->setStatusCode(404)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Shift not found or already deleted',
                     'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
                 ]);
             }
-
-            return $this->response->setStatusCode(404)->setJSON([
-                'status' => 'error',
-                'message' => 'Shift not found or already deleted',
-                'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-            ]);
 
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::delete error: ' . $e->getMessage());
@@ -674,7 +857,7 @@ class ShiftManagement extends BaseController
         return match($this->userRole) {
             'admin' => ['title' => 'Schedule Management', 'subtitle' => 'Manage all staff schedules and shifts', 'redirectUrl' => 'admin/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin'],
             'doctor' => ['title' => 'My Schedule', 'subtitle' => 'View and manage your work schedule', 'redirectUrl' => 'doctor/dashboard', 'showSidebar' => true, 'sidebarType' => 'doctor'],
-            'nurse' => ['title' => 'Department Schedule', 'subtitle' => 'View department work schedules', 'redirectUrl' => 'nurse/dashboard', 'showSidebar' => true, 'sidebarType' => 'nurse'],
+            'nurse' => ['title' => 'My Schedule', 'subtitle' => 'View your work schedule', 'redirectUrl' => 'nurse/dashboard', 'showSidebar' => true, 'sidebarType' => 'nurse'],
             'receptionist' => ['title' => 'Schedule Overview', 'subtitle' => 'View staff schedules for coordination', 'redirectUrl' => 'receptionist/dashboard', 'showSidebar' => true, 'sidebarType' => 'receptionist'],
             'it_staff' => ['title' => 'Schedule Management', 'subtitle' => 'System administration of staff schedules', 'redirectUrl' => 'it-staff/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin'],
             default => ['title' => 'Schedule Management', 'subtitle' => 'Manage all staff schedules and shifts', 'redirectUrl' => 'admin/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin']

@@ -47,8 +47,8 @@ elseif ($userRole === 'nurse') {
         ['url' => 'nurse/patients', 'icon' => 'fas fa-users', 'label' => 'Patients'],
         ['url' => 'nurse/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],
         ['url' => 'unified/patient-records', 'icon' => 'fas fa-folder-open', 'label' => 'Patient Records'],
+        ['url' => 'nurse/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'My Schedule'],
         //['url' => 'nurse/lab-results', 'icon' => 'fas fa-flask', 'label' => 'Lab Results'],
-        //['url' => 'nurse/schedule', 'icon' => 'fas fa-clock', 'label' => 'My Schedule'],
     ];
 }
 

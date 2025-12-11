@@ -33,6 +33,12 @@
             $stats = $dashboardStats ?? [];
             $userRole = $userRole ?? 'admin';
             
+            // Debug: Log stats for doctor role
+            if ($userRole === 'doctor') {
+                log_message('debug', 'Doctor dashboard - Stats keys: ' . implode(', ', array_keys($stats)));
+                log_message('debug', 'Doctor dashboard - Schedule stats: total=' . ($stats['my_schedule_total'] ?? 'missing') . ', today=' . ($stats['my_schedule_today'] ?? 'missing') . ', week=' . ($stats['my_schedule_this_week'] ?? 'missing'));
+            }
+            
             if ($userRole === 'admin' || $userRole === 'it_staff'): ?>
                 <!-- Total Patients Card -->
                 <div class="overview-card" tabindex="0">
@@ -190,6 +196,46 @@
 
             <?php elseif ($userRole === 'doctor'): ?>
                 <!-- Doctor Dashboard Cards -->
+                <!-- DEBUG: User role is doctor, stats available: <?= isset($stats) ? 'yes' : 'no' ?> -->
+                
+                <!-- My Schedule Card - MOVED TO TOP FOR TESTING -->
+                <?php 
+                // Ensure stats exist and have schedule data
+                $scheduleTotal = isset($stats['my_schedule_total']) ? (int)$stats['my_schedule_total'] : 0;
+                $scheduleToday = isset($stats['my_schedule_today']) ? (int)$stats['my_schedule_today'] : 0;
+                $scheduleWeek = isset($stats['my_schedule_this_week']) ? (int)$stats['my_schedule_this_week'] : 0;
+                ?>
+                <div class="overview-card" tabindex="0" style="cursor: pointer;" onclick="window.location.href='<?= base_url('doctor/schedule') ?>'">
+                    <div class="card-header-modern">
+                        <div class="card-icon-modern blue" aria-hidden="true">
+                            <i class="fas fa-calendar-days"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title-modern">My Schedule</h3>
+                            <p class="card-subtitle">Work schedule overview</p>
+                        </div>
+                    </div>
+                    <div class="card-metrics">
+                        <div class="metric">
+                            <div class="metric-value blue"><?= esc($scheduleTotal) ?></div>
+                            <div class="metric-label">Total Shifts</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value orange"><?= esc($scheduleToday) ?></div>
+                            <div class="metric-label">Today</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value green"><?= esc($scheduleWeek) ?></div>
+                            <div class="metric-label">This Week</div>
+                        </div>
+                    </div>
+                    <div style="padding: 0.75rem; border-top: 1px solid #e5e7eb; margin-top: 0.5rem;">
+                        <a href="<?= base_url('doctor/schedule') ?>" class="btn btn-primary btn-small" style="width: 100%; text-align: center; display: inline-block; text-decoration: none; padding: 0.5rem;">
+                            <i class="fas fa-eye"></i> View Full Schedule
+                        </a>
+                    </div>
+                </div>
+                
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
                         <div class="card-icon-modern blue" aria-hidden="true">

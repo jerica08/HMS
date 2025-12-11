@@ -81,6 +81,7 @@ window.EditShiftModal = {
         // If the shift already has a weekdays array, use it
         // Otherwise, find all related shifts (same doctor, time, status) to build weekdays array
         let shift = baseShift;
+        let relatedShifts = [];
         
         if (!Array.isArray(shift.weekdays) || shift.weekdays.length === 0) {
             // Find all shifts with the same doctor, start_time, end_time, and status
@@ -89,7 +90,7 @@ window.EditShiftModal = {
             const endTime = shift.end_time || shift.end || '';
             const status = shift.status || '';
             
-            const relatedShifts = window.shiftManager.shifts.filter(s => {
+            relatedShifts = window.shiftManager.shifts.filter(s => {
                 const sStaffId = s.staff_id || s.doctor_id || '';
                 const sStartTime = s.start_time || s.start || '';
                 const sEndTime = s.end_time || s.end || '';
@@ -114,6 +115,33 @@ window.EditShiftModal = {
                 ...baseShift,
                 weekdays: weekdays.sort((a, b) => a - b)
             };
+        } else {
+            // If weekdays already exist, still need to find related shifts for IDs
+            const staffId = shift.staff_id || shift.doctor_id || '';
+            const startTime = shift.start_time || shift.start || '';
+            const endTime = shift.end_time || shift.end || '';
+            const status = shift.status || '';
+            
+            relatedShifts = window.shiftManager.shifts.filter(s => {
+                const sStaffId = s.staff_id || s.doctor_id || '';
+                const sStartTime = s.start_time || s.start || '';
+                const sEndTime = s.end_time || s.end || '';
+                const sStatus = s.status || '';
+                
+                return sStaffId === staffId && 
+                       sStartTime === startTime && 
+                       sEndTime === endTime && 
+                       sStatus === status;
+            });
+        }
+        
+        // Store original shift IDs for all related weekdays (for deletion tracking)
+        if (!shift.ids || !Array.isArray(shift.ids) || shift.ids.length === 0) {
+            shift.ids = relatedShifts.map(s => s.id).filter(id => id);
+            // Fallback to base shift ID if no related shifts found
+            if (shift.ids.length === 0 && shift.id) {
+                shift.ids = [shift.id];
+            }
         }
         
         this.currentShift = shift;
@@ -180,6 +208,15 @@ window.EditShiftModal = {
         e.preventDefault();
         const form = e.target;
         const data = ShiftModalUtils.collectFormData(form);
+        
+        // Include original shift IDs and weekdays for comparison
+        if (this.currentShift) {
+            // Store original weekday IDs and weekday values for deletion tracking
+            data.original_ids = this.currentShift.ids || [this.currentShift.id];
+            data.original_weekdays = this.currentShift.weekdays || 
+                (this.currentShift.weekday ? [this.currentShift.weekday] : []);
+        }
+        
         data[this.config.csrfToken] = this.config.csrfHash;
 
         try {

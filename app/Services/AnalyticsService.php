@@ -7,15 +7,11 @@ use CodeIgniter\Database\ConnectionInterface;
 class AnalyticsService
 {
     protected $db;
-<<<<<<< HEAD
     protected $patientTable;
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
     public function __construct(ConnectionInterface $db = null)
     {
         $this->db = $db ?? \Config\Database::connect();
-<<<<<<< HEAD
         $this->patientTable = $this->resolvePatientTableName();
     }
 
@@ -31,8 +27,6 @@ class AnalyticsService
         }
         // Default fallback
         return 'patient';
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     /**
@@ -72,15 +66,11 @@ class AnalyticsService
             'patient_analytics' => $this->getPatientAnalytics($dateRange),
             'appointment_analytics' => $this->getAppointmentAnalytics($dateRange),
             'financial_analytics' => $this->getFinancialAnalytics($dateRange),
-<<<<<<< HEAD
             'staff_analytics' => $this->getStaffAnalytics($dateRange),
             'lab_analytics' => $this->getLabAnalytics($dateRange),
             'prescription_analytics' => $this->getPrescriptionAnalytics($dateRange),
             'room_analytics' => $this->getRoomAnalytics($dateRange),
             'resource_analytics' => $this->getResourceAnalytics($dateRange)
-=======
-            'staff_analytics' => $this->getStaffAnalytics($dateRange)
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         ];
     }
 
@@ -108,11 +98,7 @@ class AnalyticsService
         $dateRange = $this->getDateRange($filters);
         
         return [
-<<<<<<< HEAD
             'patients' => $this->getNursePatientStats($nurseId, $dateRange),
-=======
-            'department_patients' => $this->getNurseDepartmentStats($nurseId, $dateRange),
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'medication_tracking' => $this->getMedicationTrackingStats($nurseId, $dateRange),
             'shift_analytics' => $this->getShiftAnalytics($nurseId, $dateRange)
         ];
@@ -137,7 +123,6 @@ class AnalyticsService
      */
     private function getPatientAnalytics(array $dateRange): array
     {
-<<<<<<< HEAD
         // Use resolved table name
         $patientTable = $this->patientTable;
         
@@ -172,25 +157,6 @@ class AnalyticsService
         }
 
         $patientsByAge = $this->db->table($patientTable)
-=======
-        $totalPatients = $this->db->table('patient')->countAllResults();
-        $newPatients = $this->db->table('patient')
-            ->where('date_registered >=', $dateRange['start'])
-            ->where('date_registered <=', $dateRange['end'])
-            ->countAllResults();
-        
-        $activePatients = $this->db->table('patient')
-            ->where('status', 'Active')
-            ->countAllResults();
-
-        $patientsByType = $this->db->table('patient')
-            ->select('patient_type, COUNT(*) as count')
-            ->groupBy('patient_type')
-            ->get()
-            ->getResultArray();
-
-        $patientsByAge = $this->db->table('patient')
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             ->select('
                 CASE 
                     WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) < 18 THEN "Under 18"
@@ -215,7 +181,6 @@ class AnalyticsService
     }
 
     /**
-<<<<<<< HEAD
      * Get appointment analytics with peak hours
      */
     private function getAppointmentAnalytics(array $dateRange): array
@@ -397,102 +362,15 @@ class AnalyticsService
                 log_message('error', 'Error getting outstanding bills: ' . $e->getMessage());
             }
         }
-=======
-     * Get appointment analytics
-     */
-    private function getAppointmentAnalytics(array $dateRange): array
-    {
-        $totalAppointments = $this->db->table('appointments')
-            ->where('appointment_date >=', $dateRange['start'])
-            ->where('appointment_date <=', $dateRange['end'])
-            ->countAllResults();
-
-        $appointmentsByStatus = $this->db->table('appointments')
-            ->select('status, COUNT(*) as count')
-            ->where('appointment_date >=', $dateRange['start'])
-            ->where('appointment_date <=', $dateRange['end'])
-            ->groupBy('status')
-            ->get()
-            ->getResultArray();
-
-        $appointmentsByType = $this->db->table('appointments')
-            ->select('appointment_type, COUNT(*) as count')
-            ->where('appointment_date >=', $dateRange['start'])
-            ->where('appointment_date <=', $dateRange['end'])
-            ->groupBy('appointment_type')
-            ->get()
-            ->getResultArray();
-
-        $dailyAppointments = $this->db->table('appointments')
-            ->select('DATE(appointment_date) as date, COUNT(*) as count')
-            ->where('appointment_date >=', $dateRange['start'])
-            ->where('appointment_date <=', $dateRange['end'])
-            ->groupBy('DATE(appointment_date)')
-            ->orderBy('date')
-            ->get()
-            ->getResultArray();
-
-        return [
-            'total_appointments' => $totalAppointments,
-            'appointments_by_status' => $appointmentsByStatus,
-            'appointments_by_type' => $appointmentsByType,
-            'daily_appointments' => $dailyAppointments
-        ];
-    }
-
-    /**
-     * Get financial analytics
-     */
-    private function getFinancialAnalytics(array $dateRange): array
-    {
-        $totalRevenue = $this->db->table('payments')
-            ->selectSum('amount')
-            ->where('payment_date >=', $dateRange['start'])
-            ->where('payment_date <=', $dateRange['end'])
-            ->where('status', 'completed')
-            ->get()
-            ->getRow()
-            ->amount ?? 0;
-
-        $totalExpenses = $this->db->table('expenses')
-            ->selectSum('amount')
-            ->where('expense_date >=', $dateRange['start'])
-            ->where('expense_date <=', $dateRange['end'])
-            ->get()
-            ->getRow()
-            ->amount ?? 0;
-
-        $revenueByMonth = $this->db->table('payments')
-            ->select('DATE_FORMAT(payment_date, "%Y-%m") as month, SUM(amount) as revenue')
-            ->where('payment_date >=', $dateRange['start'])
-            ->where('payment_date <=', $dateRange['end'])
-            ->where('status', 'completed')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->getResultArray();
-
-        $expensesByCategory = $this->db->table('expenses')
-            ->select('category, SUM(amount) as total')
-            ->where('expense_date >=', $dateRange['start'])
-            ->where('expense_date <=', $dateRange['end'])
-            ->groupBy('category')
-            ->get()
-            ->getResultArray();
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         return [
             'total_revenue' => (float)$totalRevenue,
             'total_expenses' => (float)$totalExpenses,
             'net_profit' => (float)$totalRevenue - (float)$totalExpenses,
             'revenue_by_month' => $revenueByMonth,
-<<<<<<< HEAD
             'expenses_by_category' => $expensesByCategory,
             'revenue_by_payment_method' => $revenueByPaymentMethod,
             'outstanding_bills' => (float)$outstandingBills
-=======
-            'expenses_by_category' => $expensesByCategory
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         ];
     }
 
@@ -501,7 +379,6 @@ class AnalyticsService
      */
     private function getStaffAnalytics(array $dateRange): array
     {
-<<<<<<< HEAD
         if (!$this->db->tableExists('staff')) {
             return [
                 'total_staff' => 0,
@@ -556,29 +433,6 @@ class AnalyticsService
                 'staff_by_department' => []
             ];
         }
-=======
-        $totalStaff = $this->db->table('staff')->where('status', 'active')->countAllResults();
-        
-        $staffByRole = $this->db->table('staff')
-            ->select('role, COUNT(*) as count')
-            ->where('status', 'active')
-            ->groupBy('role')
-            ->get()
-            ->getResultArray();
-
-        $staffByDepartment = $this->db->table('staff')
-            ->select('department, COUNT(*) as count')
-            ->where('status', 'active')
-            ->groupBy('department')
-            ->get()
-            ->getResultArray();
-
-        return [
-            'total_staff' => $totalStaff,
-            'staff_by_role' => $staffByRole,
-            'staff_by_department' => $staffByDepartment
-        ];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     /**
@@ -598,15 +452,12 @@ class AnalyticsService
                     return $this->generateStaffPerformanceReport($filters);
                 case 'doctor_performance':
                     return $this->generateDoctorPerformanceReport($userId, $filters);
-<<<<<<< HEAD
                 case 'lab_summary':
                     return $this->generateLabSummaryReport($filters);
                 case 'prescription_summary':
                     return $this->generatePrescriptionSummaryReport($filters);
                 case 'room_utilization':
                     return $this->generateRoomUtilizationReport($filters);
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 default:
                     return ['success' => false, 'message' => 'Invalid report type'];
             }
@@ -639,7 +490,6 @@ class AnalyticsService
 
     private function getDoctorPatientStats(int $doctorId, array $dateRange): array
     {
-<<<<<<< HEAD
         $patientTable = $this->patientTable;
         $dateColumn = $this->db->fieldExists('date_registered', $patientTable) ? 'date_registered' : 'created_at';
         
@@ -658,17 +508,6 @@ class AnalyticsService
                 ->where($dateColumn . ' <=', $dateRange['end'])
                 ->countAllResults();
         }
-=======
-        $totalPatients = $this->db->table('patient')
-            ->where('primary_doctor_id', $doctorId)
-            ->countAllResults();
-
-        $newPatients = $this->db->table('patient')
-            ->where('primary_doctor_id', $doctorId)
-            ->where('date_registered >=', $dateRange['start'])
-            ->where('date_registered <=', $dateRange['end'])
-            ->countAllResults();
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         return [
             'total_patients' => $totalPatients,
@@ -678,7 +517,6 @@ class AnalyticsService
 
     private function getDoctorAppointmentStats(int $doctorId, array $dateRange): array
     {
-<<<<<<< HEAD
         if (!$this->db->tableExists('appointments')) {
             return [
                 'total_appointments' => 0,
@@ -717,31 +555,10 @@ class AnalyticsService
                 'completion_rate' => 0
             ];
         }
-=======
-        $totalAppointments = $this->db->table('appointments')
-            ->where('doctor_id', $doctorId)
-            ->where('appointment_date >=', $dateRange['start'])
-            ->where('appointment_date <=', $dateRange['end'])
-            ->countAllResults();
-
-        $completedAppointments = $this->db->table('appointments')
-            ->where('doctor_id', $doctorId)
-            ->where('status', 'completed')
-            ->where('appointment_date >=', $dateRange['start'])
-            ->where('appointment_date <=', $dateRange['end'])
-            ->countAllResults();
-
-        return [
-            'total_appointments' => $totalAppointments,
-            'completed_appointments' => $completedAppointments,
-            'completion_rate' => $totalAppointments > 0 ? round(($completedAppointments / $totalAppointments) * 100, 2) : 0
-        ];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     private function getDoctorRevenueStats(int $doctorId, array $dateRange): array
     {
-<<<<<<< HEAD
         $revenue = 0;
         
         if ($this->db->tableExists('payments') && $this->db->tableExists('bills')) {
@@ -762,18 +579,6 @@ class AnalyticsService
                 log_message('error', 'Error getting doctor revenue: ' . $e->getMessage());
             }
         }
-=======
-        $revenue = $this->db->table('payments p')
-            ->join('bills b', 'b.bill_id = p.bill_id')
-            ->selectSum('p.amount')
-            ->where('b.doctor_id', $doctorId)
-            ->where('p.payment_date >=', $dateRange['start'])
-            ->where('p.payment_date <=', $dateRange['end'])
-            ->where('p.status', 'completed')
-            ->get()
-            ->getRow()
-            ->amount ?? 0;
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         return [
             'total_revenue' => (float)$revenue
@@ -850,7 +655,6 @@ class AnalyticsService
         return ['success' => true, 'report' => $data];
     }
 
-<<<<<<< HEAD
     private function generateLabSummaryReport(array $filters): array
     {
         $dateRange = $this->getDateRange($filters);
@@ -893,8 +697,6 @@ class AnalyticsService
         return ['success' => true, 'report' => $data];
     }
 
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     // Missing methods implementation
     private function getDoctorSatisfactionStats(int $doctorId, array $dateRange): array
     {
@@ -908,7 +710,6 @@ class AnalyticsService
 
     private function getDoctorMonthlyPerformance(int $doctorId, array $dateRange): array
     {
-<<<<<<< HEAD
         try {
             // Get appointments per month
             $appointmentsPerMonth = [];
@@ -1004,40 +805,6 @@ class AnalyticsService
             return [
                 'total' => $totalPatients,
                 'active' => $activePatients
-=======
-        // Placeholder implementation - can be enhanced with actual performance metrics
-        return [
-            'appointments_per_month' => 0,
-            'revenue_per_month' => 0,
-            'patient_growth' => 0
-        ];
-    }
-
-    private function getNurseDepartmentStats(int $nurseId, array $dateRange): array
-    {
-        // Get nurse's department and count patients
-        try {
-            $nurse = $this->db->table('staff')->where('staff_id', $nurseId)->get()->getRow();
-            if (!$nurse) {
-                return ['total' => 0, 'active' => 0];
-            }
-
-            $totalPatients = $this->db->table('patient p')
-                ->join('staff s', 's.department = p.department', 'left')
-                ->where('s.department', $nurse->department)
-                ->countAllResults();
-
-            $activePatients = $this->db->table('patient p')
-                ->join('staff s', 's.department = p.department', 'left')
-                ->where('s.department', $nurse->department)
-                ->where('p.status', 'Active')
-                ->countAllResults();
-
-            return [
-                'total' => $totalPatients,
-                'active' => $activePatients,
-                'department' => $nurse->department
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             ];
         } catch (\Exception $e) {
             return ['total' => 0, 'active' => 0];
@@ -1046,7 +813,6 @@ class AnalyticsService
 
     private function getMedicationTrackingStats(int $nurseId, array $dateRange): array
     {
-<<<<<<< HEAD
         try {
             // Nurses can see all prescriptions (view_all permission)
             // Count prescriptions by status
@@ -1088,19 +854,10 @@ class AnalyticsService
                 'total' => 0
             ];
         }
-=======
-        // Placeholder implementation - can be enhanced with actual medication tracking
-        return [
-            'administered' => 0,
-            'pending' => 0,
-            'scheduled' => 0
-        ];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     private function getShiftAnalytics(int $nurseId, array $dateRange): array
     {
-<<<<<<< HEAD
         try {
             if (!$this->db->tableExists('shifts')) {
                 return [
@@ -1153,20 +910,11 @@ class AnalyticsService
                 'overtime_hours' => 0
             ];
         }
-=======
-        // Placeholder implementation - can be enhanced with actual shift data
-        return [
-            'hours_worked' => 0,
-            'shifts_completed' => 0,
-            'overtime_hours' => 0
-        ];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     private function getRegistrationStats(array $dateRange): array
     {
         try {
-<<<<<<< HEAD
             $patientTable = $this->patientTable;
             $dateColumn = $this->db->fieldExists('date_registered', $patientTable) ? 'date_registered' : 'created_at';
             
@@ -1177,15 +925,6 @@ class AnalyticsService
 
             $todayRegistrations = $this->db->table($patientTable)
                 ->where('DATE(' . $dateColumn . ')', date('Y-m-d'))
-=======
-            $newRegistrations = $this->db->table('patient')
-                ->where('date_registered >=', $dateRange['start'])
-                ->where('date_registered <=', $dateRange['end'])
-                ->countAllResults();
-
-            $todayRegistrations = $this->db->table('patient')
-                ->where('DATE(date_registered)', date('Y-m-d'))
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 ->countAllResults();
 
             return [
@@ -1222,7 +961,6 @@ class AnalyticsService
 
     private function getDailyActivityStats(array $dateRange): array
     {
-<<<<<<< HEAD
         try {
             // Count various activities
             $appointments = $this->db->table('appointments')
@@ -1521,13 +1259,4 @@ class AnalyticsService
         }
     }
 
-=======
-        // Placeholder implementation - can be enhanced with actual activity tracking
-        return [
-            'total_activities' => 0,
-            'peak_hour' => '10:00',
-            'busiest_day' => date('Y-m-d')
-        ];
-    }
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 }

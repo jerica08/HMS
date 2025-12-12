@@ -158,7 +158,6 @@ class RoomService
             return ['success' => false, 'message' => 'Invalid room ID'];
         }
 
-<<<<<<< HEAD
         if (!$this->db->tableExists('room')) {
             return ['success' => false, 'message' => 'Room table is missing'];
         }
@@ -211,25 +210,12 @@ class RoomService
                 $assignmentType = 'inpatient_room_assignments';
             }
         }
-=======
-        if (!$this->db->tableExists('room') || !$this->db->tableExists('room_assignment')) {
-            return ['success' => false, 'message' => 'Room or room_assignment table is missing'];
-        }
-
-        $assignment = $this->db->table('room_assignment')
-            ->where('room_id', $roomId)
-            ->where('status', 'active')
-            ->orderBy('assignment_id', 'DESC')
-            ->get()
-            ->getRowArray();
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         if (!$assignment) {
             return ['success' => false, 'message' => 'No active room assignment found for this room'];
         }
 
         $now = new \DateTime();
-<<<<<<< HEAD
         
         // Handle room_assignment table
         if ($assignmentType === 'room_assignment') {
@@ -365,57 +351,6 @@ class RoomService
         } catch (\Throwable $e) {
             log_message('error', 'RoomService::freeRoomForAdmission failed: ' . $e->getMessage());
             return false;
-=======
-        try {
-            $dateIn = new \DateTime($assignment['date_in']);
-        } catch (\Throwable $e) {
-            $dateIn = clone $now;
-        }
-
-        $interval = $dateIn->diff($now);
-        $totalDays = max(1, (int) $interval->days);
-        $totalHours = $totalDays * 24 + (int) $interval->h + (int) floor($interval->i / 60);
-
-        $updatePayload = [
-            'date_out'    => $now->format('Y-m-d H:i:s'),
-            'total_days'  => $totalDays,
-            'total_hours' => $totalHours,
-            'status'      => 'completed',
-        ];
-
-        if ($this->db->fieldExists('updated_at', 'room_assignment')) {
-            $updatePayload['updated_at'] = $now->format('Y-m-d H:i:s');
-        }
-
-        try {
-            $this->db->transStart();
-
-            $this->db->table('room_assignment')
-                ->where('assignment_id', $assignment['assignment_id'])
-                ->update($updatePayload);
-
-            $this->db->table('room')
-                ->where('room_id', $roomId)
-                ->update(['status' => 'available']);
-
-            $this->db->transComplete();
-
-            if ($this->db->transStatus() === false) {
-                throw new \RuntimeException('Failed to discharge room in transaction');
-            }
-
-            return [
-                'success' => true,
-                'message' => 'Room discharged successfully',
-                'assignment_id' => (int) $assignment['assignment_id'],
-                'patient_id' => (int) ($assignment['patient_id'] ?? 0),
-                'admission_id' => isset($assignment['admission_id']) ? (int) $assignment['admission_id'] : null,
-            ];
-        } catch (\Throwable $e) {
-            $this->db->transRollback();
-            log_message('error', 'RoomService::dischargeRoom failed: ' . $e->getMessage());
-            return ['success' => false, 'message' => 'Could not discharge room: ' . $e->getMessage()];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
     }
 

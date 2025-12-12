@@ -70,7 +70,6 @@ class UserManagement extends BaseController
     public function resetPassword($userId = null)
     {
         try {
-<<<<<<< HEAD
             // Get userId from URL parameter first, then from request
             $userId = $userId ?? $this->request->getPost('user_id') ?? ($this->request->getJSON(true)['user_id'] ?? null);
             $requestData = $this->request->getPost() ?: $this->request->getJSON(true) ?? [];
@@ -92,20 +91,6 @@ class UserManagement extends BaseController
             return $this->handleResponse($result, 'reset');
         } catch (\Exception $e) {
             return $this->handleError($e, 'reset');
-=======
-            $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^*';
-            $tempPassword = '';
-            for ($i = 0; $i < 12; $i++) {
-                $tempPassword .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-            }
-            
-            $result = $this->userService->resetPassword($userId, $tempPassword, $this->userRole);
-            session()->setFlashdata('success', $result['message'] . ' Temporary password: ' . $tempPassword);
-            return redirect()->to($this->getRedirectUrl($this->userRole));
-        } catch (\Exception $e) {
-            session()->setFlashdata('error', $e->getMessage());
-            return redirect()->to($this->getRedirectUrl($this->userRole));
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
     }
 

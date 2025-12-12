@@ -211,7 +211,6 @@ class ShiftManagement extends BaseController
         try {
             $db = \Config\Database::connect();
 
-<<<<<<< HEAD
             // For doctors and nurses viewing their own schedule, don't require doctor table join
             // This ensures schedules show even if doctor record is missing
             if (in_array($this->userRole, ['doctor', 'nurse']) && !empty($this->staffId)) {
@@ -277,24 +276,6 @@ class ShiftManagement extends BaseController
                     log_message('debug', 'ShiftManagement::getShiftsAPI - Active schedules for staff_id ' . $this->staffId . ': ' . $activeSchedules);
                 }
             }
-=======
-            // Base query: schedules for doctors only
-            $builder = $db->table('staff_schedule ss')
-                ->select('ss.id, ss.staff_id, ss.weekday, ss.start_time, ss.end_time, ss.status, '
-                    . "CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS doctor_name, "
-                    . 'd.specialization')
-                ->join('doctor d', 'd.staff_id = ss.staff_id', 'inner')
-                ->join('staff s', 's.staff_id = ss.staff_id', 'left')
-                ->where('ss.status', 'active');
-
-            // Role-based filtering
-            if ($this->userRole === 'doctor' && !empty($this->staffId)) {
-                // Doctor sees only their own schedules
-                $builder->where('ss.staff_id', $this->staffId);
-            }
-
-            $result = $builder->get()->getResultArray();
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             return $this->response->setJSON([
                 'status' => 'success',
@@ -303,16 +284,10 @@ class ShiftManagement extends BaseController
 
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::getShiftsAPI error: ' . $e->getMessage());
-<<<<<<< HEAD
             log_message('error', 'ShiftManagement::getShiftsAPI stack trace: ' . $e->getTraceAsString());
             return $this->response->setStatusCode(500)->setJSON([
                 'status'  => 'error',
                 'message' => 'Failed to load schedule: ' . $e->getMessage(),
-=======
-            return $this->response->setStatusCode(500)->setJSON([
-                'status'  => 'error',
-                'message' => 'Failed to load schedule',
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             ]);
         }
     }
@@ -322,7 +297,6 @@ class ShiftManagement extends BaseController
      */
     public function create()
     {
-<<<<<<< HEAD
         // Check permissions - only admin and it_staff can create schedules
         if (!in_array($this->userRole, ['admin', 'it_staff'])) {
             return $this->response->setStatusCode(403)->setJSON([
@@ -332,8 +306,6 @@ class ShiftManagement extends BaseController
             ]);
         }
 
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         try {
             $input = $this->request->getJSON(true) ?? $this->request->getPost();
 
@@ -449,11 +421,7 @@ class ShiftManagement extends BaseController
     }
 
     /**
-<<<<<<< HEAD
      * Update a shift (handles multiple weekdays - can add, update, or remove weekdays)
-=======
-     * Update a shift
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
      */
     public function update()
     {
@@ -469,7 +437,6 @@ class ShiftManagement extends BaseController
             }
 
             $id = (int) $input['id'];
-<<<<<<< HEAD
             $db = \Config\Database::connect();
 
             // Get the base shift to determine staff_id, start_time, end_time, status
@@ -492,19 +459,6 @@ class ShiftManagement extends BaseController
 
             // Validate staff_id is a doctor if changed
             if ($staffId !== (int) $baseShift['staff_id']) {
-=======
-
-            $db = \Config\Database::connect();
-
-            // Build fields we allow to be updated from the schedule edit form
-            $data = [];
-
-            // Doctor/staff change (optional)
-            if (!empty($input['staff_id']) || !empty($input['doctor_id'])) {
-                $staffId = $input['staff_id'] ?? $input['doctor_id'];
-
-                // Ensure provided staff_id belongs to a doctor
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 $isDoctor = $db->table('doctor')
                     ->where('staff_id', $staffId)
                     ->countAllResults() > 0;
@@ -516,7 +470,6 @@ class ShiftManagement extends BaseController
                         'csrf'    => ['name' => csrf_token(), 'value' => csrf_hash()],
                     ]);
                 }
-<<<<<<< HEAD
             }
 
             // Get time and status values (from input or existing)
@@ -689,62 +642,6 @@ class ShiftManagement extends BaseController
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => $message,
-=======
-
-                $data['staff_id'] = (int) $staffId;
-            }
-
-            if (isset($input['weekday']) && $input['weekday'] !== '') {
-                $data['weekday'] = (int) $input['weekday'];
-            }
-
-            if (isset($input['start_time']) && $input['start_time'] !== '') {
-                $data['start_time'] = $input['start_time'];
-            }
-
-            if (isset($input['end_time']) && $input['end_time'] !== '') {
-                $data['end_time'] = $input['end_time'];
-            }
-
-            if (!empty($input['status'])) {
-                
-                $status = strtolower($input['status']);
-
-                if (in_array($status, ['scheduled', 'active'], true)) {
-                    $data['status'] = 'active';
-                } else {
-                   
-                    $data['status'] = 'inactive';
-                }
-            }
-
-            // Always update timestamp
-            $data['updated_at'] = date('Y-m-d H:i:s');
-
-            if (empty($data)) {
-                return $this->response->setStatusCode(422)->setJSON([
-                    'status' => 'error',
-                    'message' => 'No valid fields provided for update',
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                ]);
-            }
-
-            $db->table('staff_schedule')
-                ->where('id', $id)
-                ->update($data);
-
-            if ($db->affectedRows() === 0) {
-                return $this->response->setStatusCode(404)->setJSON([
-                    'status' => 'error',
-                    'message' => 'Shift not found or no changes detected',
-                    'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
-                ]);
-            }
-
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Shift updated successfully',
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
             ]);
 
@@ -759,11 +656,7 @@ class ShiftManagement extends BaseController
     }
 
     /**
-<<<<<<< HEAD
      * Delete a shift or multiple shifts (all weekdays)
-=======
-     * Delete a shift
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
      */
     public function delete()
     {
@@ -781,7 +674,6 @@ class ShiftManagement extends BaseController
 
             $db = \Config\Database::connect();
 
-<<<<<<< HEAD
             // Handle both single ID and array of IDs (for deleting all weekdays)
             if (is_array($id)) {
                 // Delete multiple shifts (all weekdays for a schedule)
@@ -816,9 +708,6 @@ class ShiftManagement extends BaseController
                 ]);
             } else {
                 // Delete single shift (backward compatibility)
-=======
-            // Delete from staff_schedule since we now store schedules there
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             $db->table('staff_schedule')
                 ->where('id', (int) $id)
                 ->delete();
@@ -836,10 +725,7 @@ class ShiftManagement extends BaseController
                 'message' => 'Shift not found or already deleted',
                 'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
             ]);
-<<<<<<< HEAD
             }
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         } catch (\Throwable $e) {
             log_message('error', 'ShiftManagement::delete error: ' . $e->getMessage());
@@ -971,11 +857,7 @@ class ShiftManagement extends BaseController
         return match($this->userRole) {
             'admin' => ['title' => 'Schedule Management', 'subtitle' => 'Manage all staff schedules and shifts', 'redirectUrl' => 'admin/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin'],
             'doctor' => ['title' => 'My Schedule', 'subtitle' => 'View and manage your work schedule', 'redirectUrl' => 'doctor/dashboard', 'showSidebar' => true, 'sidebarType' => 'doctor'],
-<<<<<<< HEAD
             'nurse' => ['title' => 'My Schedule', 'subtitle' => 'View your work schedule', 'redirectUrl' => 'nurse/dashboard', 'showSidebar' => true, 'sidebarType' => 'nurse'],
-=======
-            'nurse' => ['title' => 'Department Schedule', 'subtitle' => 'View department work schedules', 'redirectUrl' => 'nurse/dashboard', 'showSidebar' => true, 'sidebarType' => 'nurse'],
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'receptionist' => ['title' => 'Schedule Overview', 'subtitle' => 'View staff schedules for coordination', 'redirectUrl' => 'receptionist/dashboard', 'showSidebar' => true, 'sidebarType' => 'receptionist'],
             'it_staff' => ['title' => 'Schedule Management', 'subtitle' => 'System administration of staff schedules', 'redirectUrl' => 'it-staff/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin'],
             default => ['title' => 'Schedule Management', 'subtitle' => 'Manage all staff schedules and shifts', 'redirectUrl' => 'admin/dashboard', 'showSidebar' => true, 'sidebarType' => 'admin']

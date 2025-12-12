@@ -46,7 +46,6 @@ $defaultDepts = ['Administration','Emergency','Cardiology','Intensive Care Unit'
     <small id="<?= $prefix ?>err_email" style="color:#dc2626"></small>
 </div>
 <div>
-<<<<<<< HEAD
     <label class="form-label" for="<?= $prefix ?>department">Department</label>
     <select id="<?= $prefix ?>department" name="department" class="form-select">
         <option value="">Select department</option>
@@ -59,20 +58,6 @@ $defaultDepts = ['Administration','Emergency','Cardiology','Intensive Care Unit'
                 <option value="<?= esc($name) ?>"><?= esc($name) ?></option>
             <?php endforeach; ?>
         <?php endif; ?>
-=======
-    <label class="form-label" for="<?= $prefix ?>department_type">Department Type</label>
-    <select id="<?= $prefix ?>department_type" name="department_type" class="form-select" onchange="loadDepartmentsByType('<?= $prefix ?>')">
-        <option value="">Select department type</option>
-        <option value="Medical">Medical Department</option>
-        <option value="Non-Medical">Non-Medical Department</option>
-    </select>
-    <small id="<?= $prefix ?>err_department_type" style="color:#dc2626"></small>
-</div>
-<div>
-    <label class="form-label" for="<?= $prefix ?>department">Department</label>
-    <select id="<?= $prefix ?>department" name="department" class="form-select" disabled>
-        <option value="">Select department type first</option>
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     </select>
     <?php if ($prefix === ''): ?><input type="hidden" id="department_id" name="department_id" value=""><?php endif; ?>
     <small id="<?= $prefix ?>err_department" style="color:#dc2626"></small>

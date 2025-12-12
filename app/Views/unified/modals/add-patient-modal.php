@@ -289,13 +289,9 @@
                                         <select id="payment_type" name="payment_type" class="form-select" required>
                                             <option value="">Select...</option>
                                             <option value="Cash">Cash</option>
-<<<<<<< HEAD
                                             <option value="HMO / Insurance">HMO / Insurance</option>
                                             <option value="PhilHealth">PhilHealth</option>
                                             <option value="Company Account">Company Account</option>
-=======
-                                            <option value="with HMO / Insurance">HMO</option>
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                         </select>
                                     </div>
                                 </div>
@@ -382,13 +378,10 @@
                                             <?php endforeach; ?>
                                         </div>
                                     </div>
-<<<<<<< HEAD
                                     <div>
                                         <label class="form-label" for="outpatient_mbl">MBL</label>
                                         <input type="number" min="0" step="0.01" id="outpatient_mbl" name="mbl" class="form-input" placeholder="Maximum Benefit Limit">
                                     </div>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                     <div class="full">
                                         <label class="form-label" for="outpatient_preexisting">Pre-existing Coverage</label>
                                         <textarea id="outpatient_preexisting" name="pre_existing_coverage" class="form-input" rows="2" placeholder="Specify any pre-existing coverage conditions"></textarea>
@@ -607,7 +600,6 @@
                                     </div>
                                     <div>
                                         <label class="form-label" for="admitting_doctor">Admitting Doctor*</label>
-<<<<<<< HEAD
                                         <select id="admitting_doctor" name="admitting_doctor" class="form-select" required>
                                             <option value="">Select doctor...</option>
                                             <?php if (!empty($availableDoctors)): ?>
@@ -625,9 +617,6 @@
                                                 <option value="">No doctors available</option>
                                             <?php endif; ?>
                                         </select>
-=======
-                                        <input type="text" id="admitting_doctor" name="admitting_doctor" class="form-input" placeholder="Enter admitting doctor name" required>
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                         <small id="err_admitting_doctor" class="form-error"></small>
                                     </div>
                                     <div>
@@ -875,13 +864,10 @@
                                             <?php endforeach; ?>
                                         </div>
                                     </div>
-<<<<<<< HEAD
                                     <div>
                                         <label class="form-label" for="inpatient_mbl">MBL</label>
                                         <input type="number" min="0" step="0.01" id="inpatient_mbl" name="mbl" class="form-input" placeholder="Maximum Benefit Limit">
                                     </div>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                     <div class="full">
                                         <label class="form-label" for="inpatient_preexisting">Pre-existing Coverage</label>
                                         <textarea id="inpatient_preexisting" name="pre_existing_coverage" class="form-input" rows="2" placeholder="Specify any pre-existing coverage conditions"></textarea>

@@ -54,38 +54,11 @@ class StaffManagement extends BaseController
         $staffResult = $this->staffService->getStaffByRole($this->userRole, $this->staffId);
         $stats = $this->staffService->getStaffStats($this->userRole, $this->staffId);
         
-<<<<<<< HEAD
         // Load departments from department table for dynamic dropdowns (id + name)
         $departments = $this->db->table('department')
             ->select('department_id, name')
             ->orderBy('name','ASC')
             ->get()->getResultArray();
-=======
-        // Load departments from both medical and non-medical tables
-        $departments = [];
-        
-        // Load medical departments
-        if ($this->db->tableExists('medical_departments')) {
-            $medicalDepts = $this->db->table('medical_departments')
-                ->select('medical_department_id as department_id, name, "Medical" as department_type')
-                ->where('status', 'Active')
-                ->orderBy('name','ASC')
-                ->get()
-                ->getResultArray();
-            $departments = array_merge($departments, $medicalDepts);
-        }
-        
-        // Load non-medical departments
-        if ($this->db->tableExists('non_medical_departments')) {
-            $nonMedicalDepts = $this->db->table('non_medical_departments')
-                ->select('non_medical_department_id as department_id, name, "Non-Medical" as department_type')
-                ->where('status', 'Active')
-                ->orderBy('name','ASC')
-                ->get()
-                ->getResultArray();
-            $departments = array_merge($departments, $nonMedicalDepts);
-        }
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         $data = [
             'title' => $this->getPageTitle(),
@@ -237,45 +210,6 @@ class StaffManagement extends BaseController
         }
     }
 
-<<<<<<< HEAD
-=======
-    /**
-     * Get departments by type (Medical/Non-Medical)
-     */
-    public function getDepartmentsByType()
-    {
-        $type = $this->request->getGet('type');
-        if (empty($type) || !in_array($type, ['Medical', 'Non-Medical'])) {
-            return $this->jsonResponse(['status' => 'error', 'message' => 'Valid department type is required'], 400);
-        }
-
-        try {
-            $departments = [];
-            
-            if ($type === 'Medical' && $this->db->tableExists('medical_departments')) {
-                $departments = $this->db->table('medical_departments')
-                    ->select('medical_department_id as department_id, name, "Medical" as department_type')
-                    ->where('status', 'Active')
-                    ->orderBy('name','ASC')
-                    ->get()
-                    ->getResultArray();
-            } elseif ($type === 'Non-Medical' && $this->db->tableExists('non_medical_departments')) {
-                $departments = $this->db->table('non_medical_departments')
-                    ->select('non_medical_department_id as department_id, name, "Non-Medical" as department_type')
-                    ->where('status', 'Active')
-                    ->orderBy('name','ASC')
-                    ->get()
-                    ->getResultArray();
-            }
-
-            return $this->jsonResponse(['status' => 'success', 'data' => $departments]);
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to fetch departments by type: ' . $e->getMessage());
-            return $this->jsonResponse(['status' => 'error', 'message' => 'Failed to load departments'], 500);
-        }
-    }
-
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     // ===================================================================
     // UNIFIED STAFF MANAGEMENT HELPER METHODS
     // ===================================================================

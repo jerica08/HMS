@@ -91,13 +91,7 @@
 
         <!-- Tab Content: Lab Orders -->
         <div id="tabLabOrders" class="lab-tab-content active">
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
             <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
->>>>>>> Stashed changes
             <div class="dashboard-overview">
                 <div class="overview-card">
                     <div class="card-header-modern">
@@ -123,13 +117,7 @@
                     </div>
                 </div>
             </div>
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
             <?php endif; ?>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
->>>>>>> Stashed changes
 
             <br />
 

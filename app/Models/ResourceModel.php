@@ -35,11 +35,7 @@ class ResourceModel extends Model
     protected $validationRules = [
         'equipment_name' => 'required|min_length[2]|max_length[255]',
         'category' => 'required|in_list[Medical Equipment,Medical Supplies,Diagnostic Equipment,Lab Equipment,Pharmacy Equipment,Medications,Office Equipment,IT Equipment,Furniture,Vehicles,Other]',
-<<<<<<< HEAD
         'quantity' => 'required|integer|greater_than_equal_to[0]',
-=======
-        'quantity' => 'required|integer|greater_than[0]',
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         'status' => 'required|in_list[Stock In,Stock Out]',
         'location' => 'permit_empty|max_length[255]',
         'batch_number' => 'permit_empty|max_length[100]',
@@ -60,11 +56,7 @@ class ResourceModel extends Model
         ],
         'quantity' => [
             'required' => 'Quantity is required.',
-<<<<<<< HEAD
             'greater_than_equal_to' => 'Quantity must be 0 or greater.'
-=======
-            'greater_than' => 'Quantity must be greater than 0.'
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         ]
     ];
 
@@ -243,7 +235,6 @@ class ResourceModel extends Model
 
     /**
      * Release resource assignment
-<<<<<<< HEAD
      * Automatically deletes resource if quantity is 0:
      * - If quantity = 0, automatically deletes the resource (stock is out)
      * - If quantity > 0, sets status to 'Stock In'
@@ -265,11 +256,6 @@ class ResourceModel extends Model
         }
 
         // If quantity > 0, set status to 'Stock In'
-=======
-     */
-    public function releaseAssignment($resourceId)
-    {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         return $this->update($resourceId, [
             'assigned_to_staff_id' => null,
             'status' => 'Stock In',
@@ -279,14 +265,11 @@ class ResourceModel extends Model
 
     /**
      * Update resource quantity safely (prevent negative)
-<<<<<<< HEAD
      * Automatically deletes resource when quantity reaches 0 (unless assigned to staff):
      * - Deletes resource when quantity reaches 0 and not assigned to staff
      * - Sets status to 'Stock In' when quantity becomes > 0 (if not assigned to staff)
      * 
      * @return bool|int Returns false on failure, true on update, or resource ID if deleted
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
      */
     public function updateQuantity($resourceId, $quantityChange, $operation = 'add')
     {
@@ -296,10 +279,7 @@ class ResourceModel extends Model
         }
 
         $currentQuantity = (int)($resource['quantity'] ?? 0);
-<<<<<<< HEAD
         $assignedToStaff = !empty($resource['assigned_to_staff_id']);
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         
         if ($operation === 'add') {
             $newQuantity = $currentQuantity + $quantityChange;
@@ -307,7 +287,6 @@ class ResourceModel extends Model
             $newQuantity = max(0, $currentQuantity - $quantityChange);
         }
 
-<<<<<<< HEAD
         // Automatically delete resource when quantity reaches 0 (unless assigned to staff)
         if ($newQuantity === 0 && !$assignedToStaff) {
             // Delete the resource automatically when stock runs out
@@ -328,12 +307,6 @@ class ResourceModel extends Model
         }
 
         return $this->update($resourceId, $updateData);
-=======
-        return $this->update($resourceId, [
-            'quantity' => $newQuantity,
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 }
 

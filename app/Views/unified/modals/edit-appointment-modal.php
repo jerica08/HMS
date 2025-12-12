@@ -16,11 +16,7 @@
                         </select>
                         <small id="err_edit_appointment_patient" style="color:#dc2626"></small>
                     </div>
-<<<<<<< HEAD
                     <?php if (in_array($userRole, ['admin', 'receptionist'])): ?>
-=======
-                    <?php if ($userRole === 'admin'): ?>
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     <div>
                         <label class="form-label" for="edit_appointment_doctor">Doctor*</label>
                         <select id="edit_appointment_doctor" name="doctor_id" class="form-select" required>

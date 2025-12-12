@@ -5,10 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Services\AppointmentService;
 use App\Services\FinancialService;
-<<<<<<< HEAD
 use App\Libraries\PermissionManager;
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
 class AppointmentManagement extends BaseController
 {
@@ -64,7 +61,6 @@ class AppointmentManagement extends BaseController
      */
     public function createAppointment()
     {
-<<<<<<< HEAD
         // Check permissions using PermissionManager
         if (!PermissionManager::hasPermission($this->userRole, 'appointments', 'create')) {
             return $this->response->setStatusCode(403)->setJSON([
@@ -73,8 +69,6 @@ class AppointmentManagement extends BaseController
             ]);
         }
 
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         $input = $this->request->getJSON(true) ?? $this->request->getPost();
         return $this->response->setJSON($this->appointmentService->createAppointment($input, $this->userRole, $this->staffId));
     }
@@ -91,29 +85,18 @@ class AppointmentManagement extends BaseController
             $updateData = array_filter([
                 'appointment_date' => $input['appointment_date'] ?? null,
                 'appointment_time' => $input['appointment_time'] ?? null,
-<<<<<<< HEAD
                 'reason' => $input['reason'] ?? $input['notes'] ?? null,
                 // Allow roles with assign_doctor permission to update doctor_id
                 'doctor_id' => (PermissionManager::hasPermission($this->userRole, 'patients', 'assign_doctor') && !empty($input['doctor_id'])) ? (int)$input['doctor_id'] : null
-=======
-                'reason' => $input['reason'] ?? $input['notes'] ?? null
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             ], fn($v) => $v !== null);
             $updateData['updated_at'] = date('Y-m-d H:i:s');
             
             $builder = $this->db->table('appointments');
-<<<<<<< HEAD
             // Filter by doctor_id if user has view_own permission
             if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
                 $builder->where('doctor_id', $this->staffId);
             }
             $result = $builder->where('id', $appointmentId)->update($updateData);
-=======
-            if ($this->userRole === 'doctor') {
-                $builder->where('doctor_id', $this->staffId);
-            }
-            $result = $builder->where('appointment_id', $appointmentId)->update($updateData);
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             return $this->jsonResponse($result ? 'success' : 'error', $result ? 'Appointment updated successfully' : 'Failed to update appointment');
         } catch (\Throwable $e) {
             log_message('error', 'Update appointment error: ' . $e->getMessage());
@@ -141,12 +124,8 @@ class AppointmentManagement extends BaseController
     public function getAppointmentsAPI()
     {
         $filters = [];
-<<<<<<< HEAD
         // Filter by doctor_id if user has view_own permission
         if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
-=======
-        if ($this->userRole === 'doctor') {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             $filters['doctor_id'] = $this->staffId;
         }
         foreach (['date', 'status', 'patient_id'] as $key) {
@@ -154,12 +133,8 @@ class AppointmentManagement extends BaseController
                 $filters[$key] = $value;
             }
         }
-<<<<<<< HEAD
         // Roles with view_all permission can filter by doctor_id
         if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_all') && ($doctorId = $this->request->getGet('doctor_id'))) {
-=======
-        if ($this->userRole === 'admin' && ($doctorId = $this->request->getGet('doctor_id'))) {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             $filters['doctor_id'] = $doctorId;
         }
         $result = $this->appointmentService->getAppointments($filters);
@@ -172,12 +147,8 @@ class AppointmentManagement extends BaseController
             return $this->jsonResponse('error', 'Permission denied');
         }
         $filters = ['patient_id' => $patientId];
-<<<<<<< HEAD
         // Filter by doctor_id if user has view_own permission
         if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
-=======
-        if ($this->userRole === 'doctor') {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             $filters['doctor_id'] = $this->staffId;
         }
         $result = $this->appointmentService->getAppointments($filters);
@@ -186,7 +157,6 @@ class AppointmentManagement extends BaseController
 
     public function updateAppointmentStatus($appointmentId)
     {
-<<<<<<< HEAD
         try {
             if (!$this->canEditAppointment($appointmentId)) {
                 return $this->response->setStatusCode(403)->setJSON([
@@ -226,12 +196,6 @@ class AppointmentManagement extends BaseController
                 'csrf' => ['name' => csrf_token(), 'value' => csrf_hash()]
             ]);
         }
-=======
-        if (!$this->canEditAppointment($appointmentId)) {
-            return $this->jsonResponse('error', 'Permission denied');
-        }
-        return $this->response->setJSON($this->appointmentService->updateAppointmentStatus($appointmentId, $this->request->getPost('status'), $this->userRole, $this->staffId));
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     /**
@@ -439,13 +403,8 @@ class AppointmentManagement extends BaseController
     {
         $filters = [];
         
-<<<<<<< HEAD
         // Role-based filtering - filter by doctor_id if user has view_own permission
         if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
-=======
-        // Role-based filtering
-        if ($this->userRole === 'doctor') {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             $filters['doctor_id'] = $this->staffId;
         }
         
@@ -477,17 +436,10 @@ class AppointmentManagement extends BaseController
             $builder = $this->db->table('appointments');
             
             // Apply role-based filtering
-<<<<<<< HEAD
             if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_own') && $this->staffId) {
                 $builder->where('doctor_id', $this->staffId);
             } elseif ($this->userRole === 'nurse') {
                 // Filter by department for nurses
-=======
-            if ($this->userRole === 'doctor') {
-                $builder->where('doctor_id', $this->staffId);
-            } elseif ($this->userRole === 'nurse') {
-                // Filter by department
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 $builder->join('staff', 'staff.staff_id = appointments.doctor_id')
                         ->join('staff as nurse_staff', 'nurse_staff.staff_id = ' . $this->staffId)
                         ->where('staff.department = nurse_staff.department');
@@ -547,7 +499,6 @@ class AppointmentManagement extends BaseController
     {
         $role = $this->userRole;
         return [
-<<<<<<< HEAD
             'canCreate' => PermissionManager::hasPermission($role, 'appointments', 'create'),
             'canEdit' => PermissionManager::hasPermission($role, 'appointments', 'edit'),
             'canDelete' => PermissionManager::hasPermission($role, 'appointments', 'delete'),
@@ -556,21 +507,11 @@ class AppointmentManagement extends BaseController
             'canSchedule' => PermissionManager::hasPermission($role, 'appointments', 'create'),
             'canReschedule' => PermissionManager::hasPermission($role, 'appointments', 'reschedule'),
             'canAddToBill' => PermissionManager::hasPermission($role, 'billing', 'create') || PermissionManager::hasPermission($role, 'billing', 'process')
-=======
-            'canCreate' => in_array($role, ['admin', 'receptionist', 'doctor']),
-            'canEdit' => in_array($role, ['admin', 'receptionist', 'doctor']),
-            'canDelete' => $role === 'admin',
-            'canViewAll' => in_array($role, ['admin', 'receptionist']),
-            'canUpdateStatus' => in_array($role, ['admin', 'doctor', 'nurse']),
-            'canSchedule' => in_array($role, ['admin', 'receptionist', 'doctor']),
-            'canReschedule' => in_array($role, ['admin', 'receptionist', 'doctor'])
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         ];
     }
 
     private function canViewAppointment($appointmentId)
     {
-<<<<<<< HEAD
         // Check if user has view_all permission
         if (PermissionManager::hasPermission($this->userRole, 'appointments', 'view_all')) {
             return true;
@@ -580,19 +521,10 @@ class AppointmentManagement extends BaseController
             return !empty($this->db->table('appointments')->where('id', $appointmentId)->where('doctor_id', $this->staffId)->get()->getRow());
         }
         return false;
-=======
-        return match($this->userRole) {
-            'admin', 'receptionist' => true,
-            'doctor' => !empty($this->db->table('appointments')->where('appointment_id', $appointmentId)->where('doctor_id', $this->staffId)->get()->getRow()),
-            'nurse' => $this->isAppointmentInNurseDepartment($appointmentId),
-            default => false
-        };
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     private function canEditAppointment($appointmentId)
     {
-<<<<<<< HEAD
         // Check if user has edit permission
         if (!PermissionManager::hasPermission($this->userRole, 'appointments', 'edit')) {
             return false;
@@ -610,23 +542,11 @@ class AppointmentManagement extends BaseController
             return $this->isAppointmentInNurseDepartment($appointmentId);
         }
         return false;
-=======
-        return match($this->userRole) {
-            'admin', 'receptionist' => true,
-            'doctor' => $this->canViewAppointment($appointmentId),
-            'nurse' => $this->isAppointmentInNurseDepartment($appointmentId),
-            default => false
-        };
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     private function canDeleteAppointment($appointmentId)
     {
-<<<<<<< HEAD
         return PermissionManager::hasPermission($this->userRole, 'appointments', 'delete');
-=======
-        return $this->userRole === 'admin';
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     private function getPageTitle()
@@ -666,7 +586,6 @@ class AppointmentManagement extends BaseController
                 $selectFields .= ', p.patient_type';
             }
             
-<<<<<<< HEAD
             $builder = $this->db->table($tableName . ' p')
                 ->select($selectFields);
             
@@ -696,11 +615,6 @@ class AppointmentManagement extends BaseController
             }
             
             $patients = $builder->orderBy('p.first_name', 'ASC')
-=======
-            $patients = $this->db->table($tableName . ' p')
-                ->select($selectFields)
-                ->orderBy('p.first_name', 'ASC')
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 ->get()
                 ->getResultArray();
             
@@ -790,11 +704,7 @@ class AppointmentManagement extends BaseController
             return !empty($this->db->table('appointments a')
                 ->join('staff ns', 'ns.staff_id', $this->staffId)
                 ->join('staff ds', 'ds.staff_id = a.doctor_id')
-<<<<<<< HEAD
                 ->where('a.id', $appointmentId)
-=======
-                ->where('a.appointment_id', $appointmentId)
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 ->where('ns.department = ds.department')
                 ->get()->getRow());
         } catch (\Throwable $e) {

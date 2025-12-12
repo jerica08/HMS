@@ -81,10 +81,7 @@ window.EditShiftModal = {
         // If the shift already has a weekdays array, use it
         // Otherwise, find all related shifts (same doctor, time, status) to build weekdays array
         let shift = baseShift;
-<<<<<<< HEAD
         let relatedShifts = [];
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         
         if (!Array.isArray(shift.weekdays) || shift.weekdays.length === 0) {
             // Find all shifts with the same doctor, start_time, end_time, and status
@@ -93,11 +90,7 @@ window.EditShiftModal = {
             const endTime = shift.end_time || shift.end || '';
             const status = shift.status || '';
             
-<<<<<<< HEAD
             relatedShifts = window.shiftManager.shifts.filter(s => {
-=======
-            const relatedShifts = window.shiftManager.shifts.filter(s => {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 const sStaffId = s.staff_id || s.doctor_id || '';
                 const sStartTime = s.start_time || s.start || '';
                 const sEndTime = s.end_time || s.end || '';
@@ -122,7 +115,6 @@ window.EditShiftModal = {
                 ...baseShift,
                 weekdays: weekdays.sort((a, b) => a - b)
             };
-<<<<<<< HEAD
         } else {
             // If weekdays already exist, still need to find related shifts for IDs
             const staffId = shift.staff_id || shift.doctor_id || '';
@@ -150,8 +142,6 @@ window.EditShiftModal = {
             if (shift.ids.length === 0 && shift.id) {
                 shift.ids = [shift.id];
             }
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
         
         this.currentShift = shift;
@@ -218,7 +208,6 @@ window.EditShiftModal = {
         e.preventDefault();
         const form = e.target;
         const data = ShiftModalUtils.collectFormData(form);
-<<<<<<< HEAD
         
         // Include original shift IDs and weekdays for comparison
         if (this.currentShift) {
@@ -228,8 +217,6 @@ window.EditShiftModal = {
                 (this.currentShift.weekday ? [this.currentShift.weekday] : []);
         }
         
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         data[this.config.csrfToken] = this.config.csrfHash;
 
         try {

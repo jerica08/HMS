@@ -64,7 +64,6 @@ class ShiftManager {
     bindModalEvents() {
         const createBtn = document.getElementById('createShiftBtn');
         if (createBtn) {
-<<<<<<< HEAD
             // Only allow creation if user has permission
             if (this.canCreateShift()) {
                 createBtn.addEventListener('click', () => this.openCreateModal());
@@ -72,9 +71,6 @@ class ShiftManager {
                 // Hide button if user doesn't have permission
                 createBtn.style.display = 'none';
             }
-=======
-            createBtn.addEventListener('click', () => this.openCreateModal());
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
         
         // Initialize modals
@@ -135,7 +131,6 @@ class ShiftManager {
         document.addEventListener('click', (e) => {
             const actions = {
                 '.btn-edit': (btn) => this.editShift(btn.dataset.shiftId),
-<<<<<<< HEAD
                 '.btn-delete': (btn) => {
                     // Check if we have multiple IDs (for deleting all weekdays)
                     if (btn.dataset.shiftIds) {
@@ -150,19 +145,12 @@ class ShiftManager {
                         this.deleteShift(btn.dataset.shiftId);
                     }
                 },
-=======
-                '.btn-delete': (btn) => this.deleteShift(btn.dataset.shiftId),
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 '.btn-status': (btn) => this.updateShiftStatus(btn.dataset.shiftId, btn.dataset.status)
             };
             
             for (const [selector, handler] of Object.entries(actions)) {
                 const btn = e.target.matches(selector) ? e.target : e.target.closest(selector);
-<<<<<<< HEAD
                 if (btn && (btn.dataset.shiftId || btn.dataset.shiftIds)) {
-=======
-                if (btn && btn.dataset.shiftId) {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     handler(btn);
                     break;
                 }
@@ -174,7 +162,6 @@ class ShiftManager {
         try {
             this.showLoading(true);
             
-<<<<<<< HEAD
             // Construct URL - use the endpoint directly as it's already constructed with baseUrl
             let urlString = this.config.endpoints.shifts;
             
@@ -204,22 +191,6 @@ class ShiftManager {
             if (data.status === 'success') {
                 this.shifts = data.data || [];
                 console.log('Loaded shifts:', this.shifts.length, this.shifts);
-=======
-            const url = new URL(this.config.endpoints.shifts, window.location.origin);
-            
-            // Add filters to URL
-            Object.keys(this.filters).forEach(key => {
-                if (this.filters[key]) {
-                    url.searchParams.append(key, this.filters[key]);
-                }
-            });
-
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.status === 'success') {
-                this.shifts = data.data || [];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 this.renderShifts();
                 this.updateCalendar();
             } else {
@@ -227,11 +198,7 @@ class ShiftManager {
             }
         } catch (error) {
             console.error('Error loading shifts:', error);
-<<<<<<< HEAD
             this.showError('Failed to load shifts: ' + error.message);
-=======
-            this.showError('Failed to load shifts');
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         } finally {
             this.showLoading(false);
         }
@@ -244,17 +211,10 @@ class ShiftManager {
         if (this.shifts.length === 0) {
             tbody.innerHTML = `
                 <tr>
-<<<<<<< HEAD
                     <td colspan="5" class="empty-state" style="text-align: center; padding: 2rem;">
                         <i class="fas fa-calendar-times" style="font-size: 2rem; color: #d1d5db; margin-bottom: 1rem;"></i>
                         <h3 style="color: #6b7280; margin: 0.5rem 0;">No shifts found</h3>
                         <p style="color: #9ca3af;">No shifts match your current filters.</p>
-=======
-                    <td colspan="7" class="empty-state">
-                        <i class="fas fa-calendar-times"></i>
-                        <h3>No shifts found</h3>
-                        <p>No shifts match your current filters.</p>
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     </td>
                 </tr>
             `;
@@ -337,13 +297,10 @@ class ShiftManager {
         // one underlying schedule entry; edit/delete will operate on that
         // specific entry while the UI shows the combined weekdays.
         const primaryId = shift.primaryId || shift.id;
-<<<<<<< HEAD
         
         // For delete, use all IDs to delete all weekdays at once
         const allIds = (shift.ids && shift.ids.length > 0) ? shift.ids : [shift.id];
         const idsJson = JSON.stringify(allIds);
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         return `
             <tr class="fade-in">
@@ -367,11 +324,7 @@ class ShiftManager {
                             </button>
                         ` : ''}
                         ${canDelete ? `
-<<<<<<< HEAD
                             <button type="button" class="btn btn-sm btn-delete" data-shift-ids='${idsJson}' title="Delete All Weekdays">
-=======
-                            <button type="button" class="btn btn-sm btn-delete" data-shift-id="${primaryId}" title="Delete Shift">
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                 <i class="fas fa-trash"></i>
                             </button>
                         ` : ''}
@@ -490,7 +443,6 @@ class ShiftManager {
         this.loadShifts();
     }
 
-<<<<<<< HEAD
     canCreateShift() {
         const userRole = this.config.userRole;
         return ['admin', 'it_staff'].includes(userRole);
@@ -502,9 +454,6 @@ class ShiftManager {
             alert('You do not have permission to create schedules. Only administrators and IT staff can create schedules.');
             return;
         }
-=======
-    openCreateModal() {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         if (window.AddShiftModal) {
             window.AddShiftModal.open();
         }
@@ -526,7 +475,6 @@ class ShiftManager {
     }
 
 
-<<<<<<< HEAD
     async deleteShift(shiftIdOrIds) {
         // Handle both single ID and array of IDs
         const ids = Array.isArray(shiftIdOrIds) ? shiftIdOrIds : [shiftIdOrIds];
@@ -537,10 +485,6 @@ class ShiftManager {
             : 'Are you sure you want to delete this shift? This action cannot be undone.';
         
         if (!confirm(confirmMessage)) {
-=======
-    async deleteShift(shiftId) {
-        if (!confirm('Are you sure you want to delete this shift? This action cannot be undone.')) {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             return;
         }
 
@@ -552,11 +496,7 @@ class ShiftManager {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
-<<<<<<< HEAD
                     id: count === 1 ? ids[0] : ids, // Send single ID or array
-=======
-                    id: shiftId,
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     [this.config.csrfToken]: this.config.csrfHash
                 })
             });
@@ -564,14 +504,10 @@ class ShiftManager {
             const data = await response.json();
 
             if (data.status === 'success') {
-<<<<<<< HEAD
                 const successMessage = count > 1 
                     ? `Successfully deleted ${count} weekday entries`
                     : 'Shift deleted successfully';
                 this.showSuccess(successMessage);
-=======
-                this.showSuccess('Shift deleted successfully');
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 this.loadShifts();
             } else {
                 this.showError(data.message || 'Failed to delete shift');
@@ -702,59 +638,12 @@ class ShiftManager {
         setTimeout(() => { notification.style.transform = 'translateX(100%)'; setTimeout(() => notification.remove(), 300); }, 5000);
     }
 
-<<<<<<< HEAD
     escapeHtml(text) {
         if (!text) return '';
-=======
-
-    formatDate(dateString) {
-        if (!dateString) return '-';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch (e) {
-            return dateString;
-        }
-    }
-
-    formatTime(timeString) {
-        if (!timeString) return '-';
-        try {
-            const [hours, minutes] = timeString.split(':');
-            const date = new Date();
-            date.setHours(parseInt(hours), parseInt(minutes));
-            return date.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-        } catch (e) {
-            return timeString;
-        }
-    }
-
-    formatWeekday(weekday) {
-        return ShiftModalUtils.formatWeekday(weekday);
-    }
-
-    formatSlot(slot) {
-        if (!slot) return 'N/A';
-        const map = {'morning': 'Morning', 'afternoon': 'Afternoon', 'night': 'Night', 'all_day': 'All Day'};
-        return map[slot] || slot;
-    }
-
-    escapeHtml(text) {
-        if (typeof text !== 'string') return text;
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-<<<<<<< HEAD
 
     formatWeekday(weekday) {
         // Use ShiftModalUtils if available, otherwise use local implementation
@@ -795,14 +684,6 @@ if (document.readyState === 'loading') {
         window.shiftManager = new ShiftManager();
     }
 }
-=======
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.shiftManager = new ShiftManager();
-});
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
 // Global functions for backward compatibility
 window.editShift = (id) => window.shiftManager?.editShift(id);

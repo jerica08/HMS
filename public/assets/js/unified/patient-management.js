@@ -239,7 +239,6 @@ class PatientManager {
                 <td>${registeredDate}</td>
                 <td>
                     <div class="action-buttons">
-<<<<<<< HEAD
                         ${this.canEdit() ? `
                             <button class="btn btn-warning btn-small action-btn" 
                                     data-action="edit" 
@@ -248,14 +247,6 @@ class PatientManager {
                                 <i class="fas fa-edit" aria-hidden="true"></i> Edit
                             </button>
                         ` : ''}
-=======
-                        <button class="btn btn-warning btn-small action-btn" 
-                                data-action="edit" 
-                                data-patient-id="${patient.patient_id}"
-                                aria-label="Edit Patient ${PatientUtils.escapeHtml(fullName)}">
-                            <i class="fas fa-edit" aria-hidden="true"></i> Edit
-                        </button>
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         <button class="btn btn-primary btn-small action-btn" 
                                 data-action="view" 
                                 data-patient-id="${patient.patient_id}"

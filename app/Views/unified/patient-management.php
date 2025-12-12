@@ -46,13 +46,7 @@
             <?php endif; ?>
         </div>
         
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
         <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
->>>>>>> Stashed changes
         <br />
         <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
@@ -113,97 +107,9 @@
                         </div>
                     </div>
                 </div>
-<<<<<<< Updated upstream
-            <?php elseif ($userRole === 'receptionist'): ?>
-                <!-- Total Patients Card -->
-                <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern blue">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Total Patients</h3>
-                            <p class="card-subtitle">All Registered</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $patientStats['total_patients'] ?? 0 ?></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- New Registrations Card -->
-                <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple"><i class="fas fa-user-plus"></i></div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">New Registrations</h3>
-                            <p class="card-subtitle">Today vs This Week</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $patientStats['new_patients_today'] ?? 0 ?></div>
-                            <div class="metric-label">Today</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value green"><?= $patientStats['new_patients_week'] ?? 0 ?></div>
-                            <div class="metric-label">This Week</div>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
-=======
-<<<<<<< HEAD
             <?php endif; ?>
         </div>
         <?php endif; ?>
-=======
-            <?php elseif ($userRole === 'receptionist'): ?>
-                <!-- Total Patients Card -->
-                <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern blue">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">Total Patients</h3>
-                            <p class="card-subtitle">All Registered</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $patientStats['total_patients'] ?? 0 ?></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- New Registrations Card -->
-                <div class="overview-card" tabindex="0">
-                    <div class="card-header-modern">
-                        <div class="card-icon-modern purple"><i class="fas fa-user-plus"></i></div>
-                        <div class="card-info">
-                            <h3 class="card-title-modern">New Registrations</h3>
-                            <p class="card-subtitle">Today vs This Week</p>
-                        </div>
-                    </div>
-                    <div class="card-metrics">
-                        <div class="metric">
-                            <div class="metric-value blue"><?= $patientStats['new_patients_today'] ?? 0 ?></div>
-                            <div class="metric-label">Today</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-value green"><?= $patientStats['new_patients_week'] ?? 0 ?></div>
-                            <div class="metric-label">This Week</div>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
->>>>>>> Stashed changes
 
         <div class="patient-table-container">
             <div class="table-header">

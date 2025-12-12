@@ -27,7 +27,6 @@ class AppointmentService
             return ['success' => false, 'message' => 'Validation failed', 'errors' => $validation->getErrors()];
         }
 
-<<<<<<< HEAD
         // For doctors: validate that patient is assigned to them
         if ($userRole === 'doctor' && $staffId) {
             if (!$this->isPatientAssignedToDoctor($input['patient_id'], $staffId)) {
@@ -39,8 +38,6 @@ class AppointmentService
             }
         }
 
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         $data = $this->prepareAppointmentData($input, $doctorId, $userRole);
         $appointmentDate = $data['appointment_date'] ?? null;
         if (!$appointmentDate || ($timestamp = strtotime($appointmentDate)) === false) {
@@ -133,7 +130,6 @@ class AppointmentService
             
             if ($updated && $this->db->affectedRows() > 0) {
                 // Automatically add to billing when appointment is completed
-<<<<<<< HEAD
                 // Wrap in try-catch to prevent billing errors from blocking status update
                 if ($status === 'completed') {
                     try {
@@ -143,10 +139,6 @@ class AppointmentService
                         log_message('error', 'Failed to add appointment to billing: ' . $billingError->getMessage());
                         // Status update was successful, so return success even if billing failed
                     }
-=======
-                if ($status === 'completed') {
-                    $this->addAppointmentToBilling($id, $appointment, $staffId);
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 }
                 
                 return ['success' => true, 'message' => 'Appointment status updated successfully'];
@@ -155,10 +147,7 @@ class AppointmentService
             return ['success' => false, 'message' => 'Appointment not found or no permission to update'];
         } catch (\Throwable $e) {
             log_message('error', 'Failed to update appointment status: ' . $e->getMessage());
-<<<<<<< HEAD
             log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
         }
     }
@@ -371,21 +360,12 @@ class AppointmentService
         ];
 
         if ($userRole === 'doctor') {
-<<<<<<< HEAD
             // Doctor-specific validation - same as admin/receptionist (time and duration have defaults)
             $baseRules['date'] = 'required|valid_date';
             $baseRules['type'] = 'required|in_list[Consultation,Follow-up,Check-up,Emergency]';
             // time and duration are optional (will use defaults)
             // Unset admin/receptionist field names since doctors use different field names
             unset($baseRules['appointment_date'], $baseRules['appointment_time'], $baseRules['appointment_type']);
-=======
-            // Doctor-specific validation (from Appointments controller)
-            $baseRules['date'] = 'required|valid_date';
-            $baseRules['time'] = 'required';
-            $baseRules['type'] = 'required|in_list[Consultation,Follow-up,Check-up,Emergency]';
-            $baseRules['duration'] = 'required|numeric|greater_than[0]';
-            unset($baseRules['appointment_date'], $baseRules['appointment_time']);
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         } else {
             // Receptionist/Admin validation for unified modal
             $baseRules['doctor_id'] = 'required|numeric';
@@ -399,17 +379,10 @@ class AppointmentService
         $baseData = ['patient_id' => $input['patient_id'], 'doctor_id' => $doctorId, 'status' => 'scheduled', 'created_at' => date('Y-m-d H:i:s')];
         if ($userRole === 'doctor') {
             $baseData['appointment_date'] = $input['date'];
-<<<<<<< HEAD
             $baseData['appointment_time'] = $input['time'] ?? '09:00:00'; // Default time like admin/receptionist
             $baseData['appointment_type'] = $input['type'];
             $baseData['reason'] = $input['reason'] ?? null;
             $baseData['duration'] = $input['duration'] ?? 30; // Default duration like admin/receptionist
-=======
-            $baseData['appointment_time'] = $input['time'];
-            $baseData['appointment_type'] = $input['type'];
-            $baseData['reason'] = $input['reason'] ?? null;
-            $baseData['duration'] = $input['duration'];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         } else {
             $baseData['appointment_date'] = $input['appointment_date'];
             $baseData['appointment_time'] = '09:00:00';
@@ -427,7 +400,6 @@ class AppointmentService
             ->join('patients p', 'p.patient_id = a.patient_id', 'left')
             ->join('staff s', 's.staff_id = a.doctor_id', 'left');
     }
-<<<<<<< HEAD
 
     /**
      * Check if a patient is assigned to a doctor
@@ -477,6 +449,4 @@ class AppointmentService
             return false;
         }
     }
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 }

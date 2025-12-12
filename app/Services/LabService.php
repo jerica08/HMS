@@ -35,21 +35,14 @@ class LabService
 
     /**
      * List lab orders based on role and optional filters.
-<<<<<<< HEAD
      * For outpatients: only shows lab orders that have been paid.
      * For inpatients: shows all lab orders (billed later).
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
      */
     public function getLabOrdersByRole(string $userRole, ?int $staffId = null, array $filters = []): array
     {
         try {
             if (!$this->db->tableExists('lab_orders')) {
-<<<<<<< HEAD
 return [];
-=======
-                return [];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             }
 
             $builder = $this->buildLabOrderQuery($userRole, $staffId);
@@ -78,20 +71,15 @@ return [];
 
             $orders = $builder->orderBy('lo.ordered_at', 'DESC')->get()->getResultArray();
 
-<<<<<<< HEAD
             // Filter out unpaid outpatient lab orders
             $filteredOrders = [];
             foreach ($orders as $o) {
-=======
-            foreach ($orders as &$o) {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 $o['patient_name'] = trim(($o['first_name'] ?? '') . ' ' . ($o['last_name'] ?? ''));
                 
                 // Add patient type for each order
                 if (!empty($o['patient_id'])) {
                     $o['patient_type'] = $this->getPatientType((int)$o['patient_id']);
                 }
-<<<<<<< HEAD
                 
                 // For outpatients: only include if paid
                 // For inpatients: include all (no payment check needed)
@@ -111,11 +99,6 @@ return [];
             }
 
             return $filteredOrders;
-=======
-            }
-
-            return $orders;
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         } catch (\Throwable $e) {
             log_message('error', 'LabService::getLabOrdersByRole error: ' . $e->getMessage());
             return [];
@@ -188,16 +171,11 @@ return [];
     public function createLabOrder(array $data, string $userRole, ?int $staffId = null): array
     {
         try {
-<<<<<<< HEAD
             // Only doctors and optionally nurses can create lab orders
             // Doctors: Yes (main requester)
             // Nurses: Optional (depends on policy - currently disabled, can be enabled if needed)
             if (!in_array($userRole, ['doctor', 'nurse'], true)) {
                 return ['success' => false, 'message' => 'Permission denied. Only doctors can create lab orders.'];
-=======
-            if (!in_array($userRole, ['admin', 'doctor', 'it_staff'], true)) {
-                return ['success' => false, 'message' => 'Permission denied'];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             }
 
             if (!$this->db->tableExists('lab_orders')) {
@@ -217,7 +195,6 @@ return [];
             $doctorId = $data['doctor_id'] ?? $staffId;
             $patientId = (int) $data['patient_id'];
 
-<<<<<<< HEAD
             // For doctors: validate that patient is assigned to them
             if ($userRole === 'doctor' && $staffId) {
                 if (!$this->isPatientAssignedToDoctor($patientId, $staffId)) {
@@ -225,8 +202,6 @@ return [];
                 }
             }
 
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             $insert = [
                 'patient_id'     => $patientId,
                 'doctor_id'      => (int) $doctorId,
@@ -251,7 +226,6 @@ return [];
             $patientType = $this->getPatientType($patientId);
             if (strtolower($patientType) === 'outpatient') {
                 $this->addLabOrderToBillingForOutpatient($id, $patientId, $data['test_code'], $staffId);
-<<<<<<< HEAD
                 return [
                     'success' => true, 
                     'message' => 'Lab order created successfully. For outpatients, the lab order will appear in the lab table after payment is processed.', 
@@ -259,8 +233,6 @@ return [];
                     'requires_payment' => true,
                     'patient_type' => 'outpatient'
                 ];
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             }
 
             return ['success' => true, 'message' => 'Lab order created successfully', 'lab_order_id' => $id];
@@ -406,15 +378,10 @@ return [];
     public function updateLabOrder(int $labOrderId, array $data, string $userRole, ?int $staffId = null): array
     {
         try {
-<<<<<<< HEAD
             // Only doctors can update their own lab orders (basic fields like test_code, test_name, priority)
             // Lab staff process labs through updateStatus, not updateLabOrder
             if ($userRole !== 'doctor') {
                 return ['success' => false, 'message' => 'Permission denied. Only doctors can update lab orders.'];
-=======
-            if (!in_array($userRole, ['admin', 'doctor', 'it_staff'], true)) {
-                return ['success' => false, 'message' => 'Permission denied'];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             }
 
             if (!$this->db->tableExists('lab_orders')) {
@@ -472,19 +439,10 @@ return [];
                 return ['success' => false, 'message' => 'Lab order not found'];
             }
 
-<<<<<<< HEAD
             // Permission: Only laboratorist can process labs (update status)
             // Doctors cannot update status - they can only create orders
             if (!in_array($userRole, ['laboratorist'], true)) {
                 return ['success' => false, 'message' => 'Permission denied. Only lab staff can process lab orders.'];
-=======
-            // Permission: doctor can only update own orders; admin/it_staff/laboratorist have full access
-            if ($userRole === 'doctor' && (!$staffId || (int) $order['doctor_id'] !== (int) $staffId)) {
-                return ['success' => false, 'message' => 'You can only update your own lab orders'];
-            }
-            if (!in_array($userRole, ['admin', 'it_staff', 'laboratorist', 'doctor'], true)) {
-                return ['success' => false, 'message' => 'Permission denied'];
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             }
 
             // Check payment requirement for outpatients when changing to 'in_progress'
@@ -906,7 +864,6 @@ return [];
             return ['success' => false, 'message' => 'Failed to delete lab order'];
         }
     }
-<<<<<<< HEAD
 
     /**
      * Check if a patient is assigned to a doctor
@@ -956,7 +913,5 @@ return [];
             return false;
         }
     }
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 }
 

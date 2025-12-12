@@ -25,20 +25,6 @@ window.EditStaffModal = {
                     if (dobErrEl) dobErrEl.textContent = dobErrors.date_of_birth || '';
                 });
             }
-<<<<<<< HEAD
-=======
-
-            const contactEl = document.getElementById('e_contact_no');
-            if (contactEl && !contactEl.__boundContactValidation) {
-                contactEl.__boundContactValidation = true;
-                contactEl.addEventListener('input', () => {
-                    const contactErrors = {};
-                    StaffModalUtils.validateContactNumber(contactEl.value, contactErrors, 'e_');
-                    const contactErrEl = document.getElementById('e_err_contact_no');
-                    if (contactErrEl) contactErrEl.textContent = contactErrors.contact_no || '';
-                });
-            }
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             StaffModalUtils.toggleRoleFields('e_');
         }
         
@@ -176,10 +162,6 @@ window.EditStaffModal = {
                 clientErrors.designation = 'Designation is required.';
             }
             StaffModalUtils.validateRoleFields(formData, clientErrors);
-<<<<<<< HEAD
-=======
-            StaffModalUtils.validateContactNumber(formData.contact_no, clientErrors, 'e_');
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             if (Object.keys(clientErrors).length) {
                 StaffModalUtils.displayErrors(clientErrors, 'e_');

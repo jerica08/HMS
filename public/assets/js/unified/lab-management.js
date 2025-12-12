@@ -73,28 +73,18 @@
             const patientName = order.patient_name || `${order.first_name || ''} ${order.last_name || ''}`.trim() || 'Unknown';
             const testLabel = order.test_name || order.test_code || 'N/A';
             const priority = order.priority || 'routine';
-<<<<<<< HEAD
             // Use actual status from database, don't auto-change to 'in_progress'
             const status = order.status || 'ordered';
-=======
-            const status = (order.status === 'ordered') ? 'in_progress' : (order.status || 'ordered');
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             let badgeClass = 'badge-info';
             if (status === 'completed') badgeClass = 'badge-success';
             else if (status === 'in_progress') badgeClass = 'badge-warning';
             else if (status === 'cancelled') badgeClass = 'badge-danger';
-<<<<<<< HEAD
             else if (status === 'ordered') badgeClass = 'badge-secondary';
 
             const canAct = ['admin', 'doctor', 'laboratorist', 'it_staff'].includes(userRole);
             const canEdit = ['admin', 'doctor', 'it_staff'].includes(userRole);
             const canComplete = ['laboratorist'].includes(userRole); // Only lab staff can complete lab orders
-=======
-
-            const canAct = ['admin', 'doctor', 'laboratorist', 'it_staff'].includes(userRole);
-            const canEdit = ['admin', 'doctor', 'it_staff'].includes(userRole);
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             const canDelete = userRole === 'admin';
             const labOrderId = order.lab_order_id;
             const currentStatus = order.status || 'ordered';
@@ -112,13 +102,8 @@
                 actions.push(`<button class="btn btn-warning" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.editOrder(${labOrderId})" title="Edit Lab Order"><i class="fas fa-edit"></i> Edit</button>`);
             }
             
-<<<<<<< HEAD
             // Complete button - only for laboratorist (lab staff) when status is 'in_progress'
             if (canComplete && statusLower === 'in_progress') {
-=======
-            // Complete button - for non-completed, non-cancelled orders
-            if (canAct && statusLower !== 'completed' && statusLower !== 'cancelled') {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 actions.push(`<button class="btn btn-success" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="LabUI.updateStatus(${labOrderId}, 'completed')" title="Mark as Completed"><i class="fas fa-check"></i> Complete</button>`);
             }
             
@@ -151,7 +136,6 @@
     async function updateStatus(labOrderId, status) {
         if (!labOrderId || !status) return;
 
-<<<<<<< HEAD
         // Special handling for 'in_progress' status
         if (status === 'in_progress') {
             const confirmText = `Start lab test #${labOrderId}? For outpatients, payment must be verified before starting.`;
@@ -160,10 +144,6 @@
             const confirmText = `Change status of lab order #${labOrderId} to ${status.replace('_', ' ')}?`;
             if (!window.confirm(confirmText)) return;
         }
-=======
-        const confirmText = `Change status of lab order #${labOrderId} to ${status.replace('_', ' ')}?`;
-        if (!window.confirm(confirmText)) return;
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         try {
             const res = await fetch(baseUrl + 'labs/' + labOrderId + '/status', {
@@ -174,7 +154,6 @@
             });
             const data = await res.json();
 
-<<<<<<< HEAD
             // Show error message if payment is required
             if (!data.success && data.requires_payment) {
                 alert(data.message || 'Payment required before starting lab test for outpatients.');
@@ -190,9 +169,6 @@
                 alert(data.message || (data.success ? 'Status updated' : 'Failed to update status'));
             }
             
-=======
-            alert(data.message || (data.success ? 'Status updated' : 'Failed to update status'));
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             if (data.success) {
                 fetchLabOrders();
             }

@@ -894,7 +894,6 @@
         }
 
         const baseUrlMeta = document.querySelector('meta[name="base-url"]');
-<<<<<<< HEAD
         let baseUrl = baseUrlMeta ? baseUrlMeta.content : '';
         // Remove trailing slash if present to avoid double slashes
         if (baseUrl.endsWith('/')) {
@@ -904,28 +903,19 @@
         const csrfHashMeta = document.querySelector('meta[name="csrf-hash"]');
         const csrfToken = csrfTokenMeta ? csrfTokenMeta.content : '';
         const csrfHash = csrfHashMeta ? csrfHashMeta.content : '';
-=======
-        const baseUrl = baseUrlMeta ? baseUrlMeta.content : '';
-        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-        const csrfToken = csrfTokenMeta ? csrfTokenMeta.content : '';
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         const url = `${baseUrl}/appointments/${appointmentId}/status`;
         const body = new URLSearchParams();
         body.append('status', 'completed');
-<<<<<<< HEAD
         // Add CSRF token to body (CodeIgniter expects it in the body or header)
         if (csrfToken && csrfHash) {
             body.append(csrfToken, csrfHash);
         }
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-<<<<<<< HEAD
                 'X-CSRF-Token': csrfHash || csrfToken
             },
             body: body.toString()
@@ -938,13 +928,6 @@
             }
             return response.json();
         })
-=======
-                'X-CSRF-Token': csrfToken
-            },
-            body: body.toString()
-        })
-        .then(response => response.json())
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         .then(result => {
             if (result.success || result.status === 'success') {
                 showAppointmentsNotification(result.message || 'Appointment marked as completed.', 'success');
@@ -957,11 +940,7 @@
         })
         .catch(error => {
             console.error('Error updating appointment status:', error);
-<<<<<<< HEAD
             showAppointmentsNotification('Failed to update appointment status: ' + (error.message || 'Please try again.'), 'error');
-=======
-            showAppointmentsNotification('Failed to update appointment status. Please try again.', 'error');
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         });
     }
 

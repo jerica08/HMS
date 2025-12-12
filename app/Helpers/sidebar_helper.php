@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 k<?php
-=======
-<?php
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
 /**
  * Sidebar Helper Functions

@@ -31,13 +31,7 @@
                 <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download"></i> Export</button>
             <?php endif; ?>
         </div>
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
         <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
->>>>>>> Stashed changes
         <br />
 
         <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
@@ -115,13 +109,7 @@
                 </div>
             <?php endif; ?>
         </div>
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
         <?php endif; ?>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
->>>>>>> Stashed changes
 
         <!-- Filters and Search -->
         <div class="controls-section" style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -176,10 +164,6 @@
                         <th scope="col">Role</th>
                         <th scope="col">Department</th>
                         <th scope="col">Status</th>
-<<<<<<< HEAD
-=======
-                        <th scope="col">Last Login</th>
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         <th scope="col">Actions</th>
                     </tr>
                 </thead>
@@ -220,10 +204,6 @@
                                         <?= esc(ucfirst($status)) ?>
                                     </span>
                                 </td>
-<<<<<<< HEAD
-=======
-                                <td><?= esc($user['last_login'] ?? 'Never') ?></td>
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                 <td>
                                     <div class="action-buttons">
                                         <?php if ($permissions['canEdit'] ?? false): ?>
@@ -238,11 +218,7 @@
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-<<<<<<< HEAD
                             <td colspan="5" style="text-align: center; padding: 2rem;">
-=======
-                            <td colspan="6" style="text-align: center; padding: 2rem;">
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                 <i class="fas fa-users" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;" aria-hidden="true"></i>
                                 <p>No users found.</p>
                                 <?php if (($permissions['canCreate'] ?? false)): ?>
@@ -263,10 +239,7 @@
         <?= $this->include('unified/modals/add-user-modal') ?>
         <?= $this->include('unified/modals/view-user-modal') ?>
         <?= $this->include('unified/modals/edit-user-modal') ?>
-<<<<<<< HEAD
         <?= $this->include('unified/modals/reset-password-modal') ?>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         <!-- Scripts -->
         <script src="<?= base_url('assets/js/unified/user-utils.js') ?>"></script>
@@ -274,8 +247,5 @@
         <script src="<?= base_url('assets/js/unified/modals/add-user-modal.js') ?>"></script>
         <script src="<?= base_url('assets/js/unified/modals/view-user-modal.js') ?>"></script>
         <script src="<?= base_url('assets/js/unified/modals/edit-user-modal.js') ?>"></script>
-<<<<<<< HEAD
         <script src="<?= base_url('assets/js/unified/modals/reset-password-modal.js') ?>"></script>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         <script src="<?= base_url('assets/js/unified/user-management.js') ?>"></script>

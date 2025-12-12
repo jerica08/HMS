@@ -326,23 +326,14 @@ class PrescriptionManagement extends BaseController
     }
 
     /**
-<<<<<<< HEAD
      * Get available doctors for prescription assignment
      * Admin can assign doctors, Nurses need doctors for draft approval
-=======
-     * Get available doctors for prescription assignment (admin only)
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
      */
     public function getAvailableDoctorsAPI()
     {
         try {
-<<<<<<< HEAD
             // Admin and nurses can access doctors list
             if (!in_array($this->userRole, ['admin', 'nurse'])) {
-=======
-            // Only admin can assign doctors
-            if ($this->userRole !== 'admin') {
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 return $this->response->setStatusCode(403)->setJSON([
                     'status' => 'error',
                     'message' => 'Access denied'
@@ -428,14 +419,10 @@ class PrescriptionManagement extends BaseController
 
     private function canCreatePrescription()
     {
-<<<<<<< HEAD
         // Doctors can create prescriptions (primary prescribers)
         // Nurses can create draft prescriptions (needs doctor approval)
         return $this->permissionManager->hasPermission($this->userRole, 'prescriptions', 'create') ||
                $this->permissionManager->hasPermission($this->userRole, 'prescriptions', 'create_draft');
-=======
-        return $this->permissionManager->hasPermission($this->userRole, 'prescriptions', 'create');
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     private function canEditPrescription()
@@ -529,12 +516,8 @@ class PrescriptionManagement extends BaseController
             ['status' => 'ready'],
             ['status' => 'completed'],
             ['status' => 'cancelled'],
-<<<<<<< HEAD
             ['status' => 'expired'],
             ['status' => 'draft'] // Draft status for nurse-created prescriptions
-=======
-            ['status' => 'expired']
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         ];
     }
 

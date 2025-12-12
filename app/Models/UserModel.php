@@ -31,11 +31,7 @@ class UserModel extends Model
                      staff.employee_id, staff.first_name, staff.last_name, staff.gender, 
                      staff.dob, staff.contact_no, staff.email as staff_email, 
                      staff.address, staff.department')
-<<<<<<< HEAD
             ->join('staff', 'staff.staff_id = users.staff_id', 'inner')
-=======
-            ->join('staff', 'staff.staff_id = users.staff_id', 'left')
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             ->where('users.user_id', $userId)
             ->first();
     }
@@ -45,11 +41,7 @@ class UserModel extends Model
     {
         return $this->select('users.user_id, users.username, users.email as email, users.role, users.status,
                               staff.employee_id, staff.first_name, staff.last_name, staff.department')
-<<<<<<< HEAD
                     ->join('staff', 'staff.staff_id = users.staff_id', 'inner')
-=======
-                    ->join('staff', 'staff.staff_id = users.staff_id', 'left')
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     ->orderBy('users.user_id', 'DESC')
                     ->findAll();
     }

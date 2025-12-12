@@ -226,12 +226,6 @@ const AddPatientModal = {
         // Clear errors when user interacts with form fields
         this.setupErrorClearing();
 
-<<<<<<< HEAD
-=======
-        // Add real-time contact number validation
-        this.setupContactValidation();
-
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         // Close modal when clicking outside
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
@@ -285,61 +279,6 @@ const AddPatientModal = {
     },
 
     /**
-<<<<<<< HEAD
-=======
-     * Setup real-time contact number validation
-     */
-    setupContactValidation() {
-        const contactFields = ['phone', 'emergency_contact_phone', 'guardian_contact'];
-        
-        contactFields.forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (field && !field.__boundContactValidation) {
-                field.__boundContactValidation = true;
-                field.addEventListener('input', () => {
-                    this.validateContactField(field, fieldId);
-                });
-                field.addEventListener('blur', () => {
-                    this.validateContactField(field, fieldId);
-                });
-            }
-        });
-    },
-
-    /**
-     * Validate a single contact field
-     */
-    validateContactField(field, fieldId) {
-        if (!field) return;
-        
-        const value = field.value.trim();
-        const errorElement = document.getElementById(`err_${fieldId}`);
-        
-        // Clear previous error
-        if (errorElement) {
-            errorElement.textContent = '';
-        }
-        field.classList.remove('is-invalid', 'error');
-        
-        // Only validate if field has value
-        if (!value) return;
-        
-        // Validate contact number format
-        const contactPattern = /^09\d{9}$/;
-        if (!contactPattern.test(value)) {
-            const errorMessage = value.startsWith('09') 
-                ? 'Contact number must be exactly 11 digits.'
-                : 'Contact number must start with 09.';
-            
-            if (errorElement) {
-                errorElement.textContent = errorMessage;
-            }
-            field.classList.add('is-invalid', 'error');
-        }
-    },
-
-    /**
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
      * Clear error for a specific field
      */
     clearFieldError(field) {
@@ -375,11 +314,8 @@ const AddPatientModal = {
             this.resetForm();
             this.switchTab('outpatientTab');
             await this.loadDoctors();
-<<<<<<< HEAD
             // Ensure all doctors are shown for outpatient form
             this.restoreDoctorOptions();
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
     },
 
@@ -425,11 +361,8 @@ const AddPatientModal = {
         this.admittingDoctorsCache = null;
         // Restore admitting doctor dropdown to show all doctors
         this.restoreAdmittingDoctorOptions();
-<<<<<<< HEAD
         // Restore all doctors for outpatient form
         this.restoreDoctorOptions();
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         this.resetAddressSelects();
         this.populateProvincesForAll();
     },
@@ -983,10 +916,7 @@ const AddPatientModal = {
 
     /**
      * Apply pediatric logic: for newborns, filter doctors to pediatricians and show previous pediatrician field
-<<<<<<< HEAD
      * For outpatients: always show all doctors regardless of age
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
      */
     applyPediatricLogic(ageYears) {
         const doctorSelect = document.getElementById('assigned_doctor');
@@ -1011,7 +941,6 @@ const AddPatientModal = {
             }));
         }
 
-<<<<<<< HEAD
         // For outpatients: always show all doctors regardless of age
         // Check if we're on the outpatient form by checking activeFormKey or form context
         const isOutpatientForm = this.activeFormKey === 'outpatient' || 
@@ -1024,8 +953,6 @@ const AddPatientModal = {
         }
 
         // For inpatients: apply pediatric filtering logic
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         // If not pediatric age, restore full list
         if (!isPediatricAge) {
             this.restoreDoctorOptions();
@@ -1268,19 +1195,11 @@ const AddPatientModal = {
                 gender: { required: true, label: 'Sex' },
                 date_of_birth: { required: true, label: 'Date of Birth' },
                 civil_status: { required: true, label: 'Civil Status' },
-<<<<<<< HEAD
                 phone: { required: true, label: 'Contact Number' },
                 address: { required: true, label: 'Address' },
                 emergency_contact_name: { required: true, label: 'Emergency Contact Name' },
                 emergency_contact_relationship: { required: true, label: 'Emergency Contact Relationship' },
                 emergency_contact_phone: { required: true, label: 'Emergency Contact Phone' },
-=======
-                phone: { required: true, label: 'Contact Number', pattern: /^09\d{9}$/, message: 'Contact number must start with 09 and be exactly 11 digits' },
-                address: { required: true, label: 'Address' },
-                emergency_contact_name: { required: true, label: 'Emergency Contact Name' },
-                emergency_contact_relationship: { required: true, label: 'Emergency Contact Relationship' },
-                emergency_contact_phone: { required: true, label: 'Emergency Contact Phone', pattern: /^09\d{9}$/, message: 'Emergency contact number must start with 09 and be exactly 11 digits' },
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 chief_complaint: { required: true, label: 'Chief Complaint' },
                 department: { required: true, label: 'Department' },
                 appointment_datetime: { required: true, label: 'Appointment Date & Time' },
@@ -1295,19 +1214,11 @@ const AddPatientModal = {
                 last_name: { required: true, label: 'Last Name' },
                 first_name: { required: true, label: 'First Name' },
                 gender: { required: true, label: 'Sex' },
-<<<<<<< HEAD
                 phone: { required: true, label: 'Contact Number' },
                 civil_status: { required: true, label: 'Civil Status' },
                 guardian_name: { required: true, label: 'Guardian Name' },
                 guardian_relationship: { required: true, label: 'Guardian Relationship' },
                 guardian_contact: { required: true, label: 'Guardian Contact' },
-=======
-                phone: { required: true, label: 'Contact Number', pattern: /^09\d{9}$/, message: 'Contact number must start with 09 and be exactly 11 digits' },
-                civil_status: { required: true, label: 'Civil Status' },
-                guardian_name: { required: true, label: 'Guardian Name' },
-                guardian_relationship: { required: true, label: 'Guardian Relationship' },
-                guardian_contact: { required: true, label: 'Guardian Contact', pattern: /^09\d{9}$/, message: 'Guardian contact number must start with 09 and be exactly 11 digits' },
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 admission_datetime: { required: true, label: 'Admission Date & Time' },
                 admission_type: { required: true, label: 'Admission Type' },
                 admitting_diagnosis: { required: true, label: 'Admitting Diagnosis' },
@@ -1444,13 +1355,10 @@ AddPatientModal.switchTab = function(targetPanelId) {
     const form = targetPanel.querySelector('form[data-form-type]');
     if (form) {
         this.setActiveFormByType(form.dataset.formType || 'outpatient');
-<<<<<<< HEAD
         // Restore all doctors when switching to outpatient tab
         if ((form.dataset.formType || 'outpatient').toLowerCase() === 'outpatient') {
             this.restoreDoctorOptions();
         }
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 };
 

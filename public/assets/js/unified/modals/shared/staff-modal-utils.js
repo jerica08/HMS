@@ -111,33 +111,6 @@ window.StaffModalUtils = {
     },
 
     /**
-<<<<<<< HEAD
-=======
-     * Validate contact number (must start with 09 and be 11 digits)
-     */
-    validateContactNumber(contactNo, errors, prefix = '') {
-        if (!contactNo || String(contactNo).trim().length === 0) {
-            // Contact number is optional, only validate if provided
-            return;
-        }
-
-        const cleanNumber = String(contactNo).trim();
-        
-        // Check if it starts with "09"
-        if (!cleanNumber.startsWith('09')) {
-            errors.contact_no = 'Contact number must start with 09.';
-            return;
-        }
-
-        // Check if it's exactly 11 digits
-        if (!/^\d{11}$/.test(cleanNumber)) {
-            errors.contact_no = 'Contact number must be exactly 11 digits.';
-            return;
-        }
-    },
-
-    /**
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
      * Setup modal close handlers
      */
     setupModalCloseHandlers(modal, closeFn) {

@@ -112,13 +112,7 @@
                 <?php endif; ?>
             </div>
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
             <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
->>>>>>> Stashed changes
             <br />
 
             <!-- Statistics Overview -->
@@ -293,13 +287,7 @@
                     </div>
                 <?php endif; ?>
             </div>
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
             <?php endif; ?>
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
->>>>>>> Stashed changes
 
             <!-- Search and Filter Section -->
             <div class="filters-section" style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">

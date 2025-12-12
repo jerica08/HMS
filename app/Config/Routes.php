@@ -80,6 +80,7 @@ $routes->get('receptionist/staff', 'StaffManagement::index', ['filter' => 'rolea
 $routes->get('staff/api', 'StaffManagement::getStaffAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('staff/(:num)', 'StaffManagement::getStaff/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('staff/next-employee-id', 'StaffManagement::getNextEmployeeId', ['filter' => 'roleauth:admin,it_staff']);
+$routes->get('staff/departments', 'StaffManagement::getDepartmentsByType', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->post('staff/create', 'StaffManagement::create', ['filter' => 'roleauth:admin,it_staff']);
 $routes->post('staff/update', 'StaffManagement::update', ['filter' => 'roleauth:admin,it_staff']);
 $routes->delete('staff/delete/(:num)', 'StaffManagement::delete/$1', ['filter' => 'roleauth:admin,it_staff']);
@@ -115,6 +116,12 @@ $routes->post('rooms/(:num)/delete', 'RoomManagement::deleteRoom/$1', ['filter' 
 
 $routes->get('admin/department-management', 'DepartmentManagement::index', ['filter' => 'roleauth:admin']);
 $routes->match(['get','post','options'], 'departments/create', 'Departments::create', ['filter' => 'roleauth:admin,it_staff']);
+$routes->match(['get','post','options'], 'departments/create-medical', 'Departments::createMedical', ['filter' => 'roleauth:admin,it_staff']);
+$routes->match(['get','post','options'], 'departments/create-non-medical', 'Departments::createNonMedical', ['filter' => 'roleauth:admin,it_staff']);
+
+// Temporary test routes without authentication for debugging
+$routes->match(['get','post','options'], 'test/departments/create-medical', 'Departments::createMedical');
+$routes->match(['get','post','options'], 'test/departments/create-non-medical', 'Departments::createNonMedical');
 
 // ===================================================================
 // UNIFIED SCHEDULE MANAGEMENT
@@ -164,20 +171,17 @@ $routes->get('pharmacist/patient-records', 'PatientManagement::patientRecords', 
 $routes->get('laboratorist/patient-records', 'PatientManagement::patientRecords', ['filter' => 'roleauth:laboratorist']);
 
 // Patient Management API Routes
-// Nurses can only add vital signs - they need minimal view access to select patients and view records
 $routes->get('patients/api', 'PatientManagement::getPatientsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('patients/(:num)', 'PatientManagement::getPatient/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
 $routes->get('patients/(:num)/records', 'PatientManagement::getPatientRecordsAPI/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,laboratorist,receptionist,accountant,it_staff']);
 $routes->get('patient-management/records/(:num)', 'PatientManagement::getPatientRecordsAPI/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,laboratorist,receptionist,accountant,it_staff']);
-// Only nurses, doctors, and admins can record vital signs
 $routes->post('patients/(:num)/vital-signs', 'PatientManagement::recordVitalSigns/$1', ['filter' => 'roleauth:admin,doctor,nurse']);
 $routes->post('patient-management/vital-signs', 'PatientManagement::recordVitalSigns', ['filter' => 'roleauth:admin,doctor,nurse']);
-$routes->get('patients/doctors', 'PatientManagement::getDoctorsAPI', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
-$routes->post('patients/create', 'PatientManagement::createPatient', ['filter' => 'roleauth:admin,receptionist,it_staff']);
+$routes->get('patients/doctors', 'PatientManagement::getDoctorsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist,it_staff']);
+$routes->post('patients/create', 'PatientManagement::createPatient', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
 $routes->put('patients/(:num)', 'PatientManagement::updatePatient/$1', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
 $routes->post('patients/(:num)', 'PatientManagement::updatePatient/$1', ['filter' => 'roleauth:admin,doctor,receptionist,it_staff']);
-// Removed nurse from patient status update - nurses can only add vital signs
-$routes->post('patients/(:num)/status', 'PatientManagement::updatePatientStatus/$1', ['filter' => 'roleauth:admin,doctor,it_staff']);
+$routes->post('patients/(:num)/status', 'PatientManagement::updatePatientStatus/$1', ['filter' => 'roleauth:admin,doctor,nurse,it_staff']);
 $routes->post('patients/(:num)/assign-doctor', 'PatientManagement::assignDoctor/$1', ['filter' => 'roleauth:admin,receptionist,it_staff']);
 $routes->delete('patients/(:num)', 'PatientManagement::deletePatient/$1', ['filter' => 'roleauth:admin,it_staff']);
 
@@ -193,19 +197,19 @@ $routes->get('api/geo/barangays', 'GeoDataController::barangays', ['filter' => '
 // Appointment Management Views - Role-specific entry points
 $routes->get('admin/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:admin']);
 $routes->get('doctor/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:doctor']);
+$routes->get('nurse/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:nurse']);
 $routes->get('receptionist/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:receptionist']);
-$routes->get('accountant/appointments', 'AppointmentManagement::index', ['filter' => 'roleauth:accountant']);
 
 // Appointment Management API Routes
-$routes->get('appointments/api', 'AppointmentManagement::getAppointmentsAPI', ['filter' => 'roleauth:admin,doctor,receptionist,accountant']);
+$routes->get('appointments/api', 'AppointmentManagement::getAppointmentsAPI', ['filter' => 'roleauth:admin,doctor,nurse,receptionist']);
 $routes->get('appointments/patients', 'AppointmentManagement::getPatientsList', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->get('appointments/doctors', 'AppointmentManagement::getDoctorsList', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->get('appointments/available-doctors', 'AppointmentManagement::getAvailableDoctorsByDate', ['filter' => 'roleauth:admin,doctor,receptionist']);
-$routes->get('appointments/(:num)', 'AppointmentManagement::getAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist,accountant']);
+$routes->get('appointments/(:num)', 'AppointmentManagement::getAppointment/$1', ['filter' => 'roleauth:admin,doctor,nurse,receptionist']);
 $routes->post('appointments/create', 'AppointmentManagement::createAppointment', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->put('appointments/(:num)', 'AppointmentManagement::updateAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
 $routes->post('appointments/(:num)', 'AppointmentManagement::updateAppointment/$1', ['filter' => 'roleauth:admin,doctor,receptionist']);
-$routes->post('appointments/(:num)/status', 'AppointmentManagement::updateAppointmentStatus/$1', ['filter' => 'roleauth:admin,doctor']);
+$routes->post('appointments/(:num)/status', 'AppointmentManagement::updateAppointmentStatus/$1', ['filter' => 'roleauth:admin,doctor,nurse']);
 $routes->post('appointments/(:num)/bill', 'AppointmentManagement::addToBilling/$1', ['filter' => 'roleauth:admin,accountant']);
 $routes->delete('appointments/(:num)', 'AppointmentManagement::deleteAppointment/$1', ['filter' => 'roleauth:admin']);
 
@@ -225,9 +229,9 @@ $routes->get('receptionist/prescriptions', 'PrescriptionManagement::index', ['fi
 $routes->get('prescriptions/api', 'PrescriptionManagement::getPrescriptionsAPI', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,receptionist,it_staff']);
 $routes->get('prescriptions/(:num)', 'PrescriptionManagement::getPrescription/$1', ['filter' => 'roleauth:admin,doctor,nurse,pharmacist,receptionist,it_staff']);
 $routes->get('prescriptions/available-patients', 'PrescriptionManagement::getAvailablePatientsAPI', ['filter' => 'roleauth:admin,doctor,it_staff']);
-$routes->get('prescriptions/available-doctors', 'PrescriptionManagement::getAvailableDoctorsAPI', ['filter' => 'roleauth:admin,nurse']);
+$routes->get('prescriptions/available-doctors', 'PrescriptionManagement::getAvailableDoctorsAPI', ['filter' => 'roleauth:admin']);
 $routes->get('prescriptions/available-medications', 'PrescriptionManagement::getAvailableMedicationsAPI', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
-$routes->post('prescriptions/create', 'PrescriptionManagement::create', ['filter' => 'roleauth:admin,doctor,nurse']);
+$routes->post('prescriptions/create', 'PrescriptionManagement::create', ['filter' => 'roleauth:admin,doctor,it_staff']);
 $routes->post('prescriptions/update', 'PrescriptionManagement::update', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);
 $routes->post('prescriptions/delete', 'PrescriptionManagement::delete', ['filter' => 'roleauth:admin,doctor']);
 $routes->post('prescriptions/(:num)/status', 'PrescriptionManagement::updateStatus/$1', ['filter' => 'roleauth:admin,doctor,pharmacist,it_staff']);

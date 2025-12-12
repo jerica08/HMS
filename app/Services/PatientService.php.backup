@@ -3,10 +3,6 @@
 namespace App\Services;
 
 use CodeIgniter\Database\ConnectionInterface;
-<<<<<<< HEAD
-use App\Libraries\PermissionManager;
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
 class PatientService
 {
@@ -54,39 +50,9 @@ class PatientService
         $this->db->transBegin();
 
         try {
-<<<<<<< HEAD
-            // Log data being inserted in development mode for debugging
-            if (ENVIRONMENT === 'development') {
-                log_message('debug', 'PatientService: Attempting to insert patient data: ' . json_encode($data));
-            }
-            
-            // Insert main patient record
-            $insertResult = $this->db->table($this->patientTable)->insert($data);
-            
-            if (!$insertResult) {
-                // Get database error
-                $error = $this->db->error();
-                $errorMessage = 'Unknown database error';
-                if (!empty($error)) {
-                    $errorMessage = is_array($error) 
-                        ? ($error['message'] ?? json_encode($error))
-                        : (string)$error;
-                }
-                log_message('error', 'PatientService: Insert failed - ' . $errorMessage);
-                throw new \RuntimeException('Failed to insert patient record: ' . $errorMessage);
-            }
-            
-            $newPatientId = (int) $this->db->insertID();
-            
-            if (!$newPatientId) {
-                log_message('error', 'PatientService: Insert succeeded but no patient ID returned');
-                throw new \RuntimeException('Failed to get inserted patient ID');
-            }
-=======
             // Insert main patient record
             $this->db->table($this->patientTable)->insert($data);
             $newPatientId = (int) $this->db->insertID();
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             // Create emergency contact record
             $this->createEmergencyContactRecord($newPatientId, $input);
@@ -119,31 +85,11 @@ class PatientService
                 $this->db->transRollback();
             }
 
-<<<<<<< HEAD
-            $errorMessage = $e->getMessage();
-            log_message('error', 'Failed to insert patient (transaction): ' . $errorMessage);
-            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-
-            // Return more detailed error message in development, generic in production
-            $message = ENVIRONMENT === 'development' 
-                ? 'Database error: ' . $errorMessage
-                : 'Database error: Unable to save patient. Please check the logs for details.';
-
-            return [
-                'status' => 'error',
-                'message' => $message,
-                'error_details' => ENVIRONMENT === 'development' ? [
-                    'message' => $errorMessage,
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                ] : null,
-=======
             log_message('error', 'Failed to insert patient (transaction): ' . $e->getMessage());
 
             return [
                 'status' => 'error',
                 'message' => 'Database error',
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             ];
         }
     }
@@ -166,42 +112,6 @@ class PatientService
                 $builder->select('p.*');
             }
 
-<<<<<<< HEAD
-            // Use PermissionManager to determine view scope
-            // Check if user has view permission for patients
-            if (!PermissionManager::hasAnyPermission($userRole, 'patients', ['view', 'view_all', 'view_assigned', 'view_own'])) {
-                $builder->where('1=0'); // No permission, show no patients
-            } elseif (PermissionManager::hasPermission($userRole, 'patients', 'view_all')) {
-                // Users with view_all can see all patients (admin, receptionist, nurse, it_staff)
-                // No additional filtering needed
-            } elseif (PermissionManager::hasPermission($userRole, 'patients', 'view_own')) {
-                // Doctors can see only their assigned patients
-                if ($hasPrimaryDoctor && $staffId) {
-                    // Get doctor_id from doctor table using staff_id
-                    $doctorInfo = $this->db->table('doctor')->where('staff_id', $staffId)->get()->getRowArray();
-                    $doctorId = $doctorInfo['doctor_id'] ?? null;
-                    
-                    if ($doctorId) {
-                        $builder->where('p.primary_doctor_id', $doctorId);
-                    } else {
-                        $builder->where('1=0'); // Show no patients if doctor record not found
-                    }
-                }
-            } else {
-                // For roles like pharmacist and laboratorist who have view but need specific filtering
-                if ($userRole === 'pharmacist') {
-                    // Pharmacists can see patients with prescriptions
-                    $builder->join('prescription pr', 'pr.patient_id = p.patient_id', 'inner')
-                           ->groupBy('p.patient_id');
-                } elseif ($userRole === 'laboratorist') {
-                    // Laboratorists can see patients with lab tests
-                    $builder->join('lab_test lt', 'lt.patient_id = p.patient_id', 'inner')
-                           ->groupBy('p.patient_id');
-                } else {
-                    // Other roles see no patients
-                    $builder->where('1=0');
-                }
-=======
             switch ($userRole) {
                 case 'admin':
                 case 'it_staff':
@@ -260,7 +170,6 @@ class PatientService
                 default:
                     // Other roles see no patients
                     $builder->where('1=0');
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             }
 
             $patients = $builder->orderBy('p.patient_id', 'DESC')
@@ -328,43 +237,6 @@ class PatientService
                 }
             }
 
-<<<<<<< HEAD
-            // Get current room assignment if patient is an inpatient
-            if ($this->db->tableExists('inpatient_room_assignments') && $this->db->tableExists('inpatient_admissions')) {
-                $assignmentBuilder = $this->db->table('inpatient_room_assignments ira')
-                    ->select('ira.room_type, ira.floor_number, ira.room_number, ira.bed_number, ira.daily_rate')
-                    ->join('inpatient_admissions ia', 'ia.admission_id = ira.admission_id', 'inner')
-                    ->where('ia.patient_id', $id);
-                
-                // Check for discharge column - try different possible column names
-                if ($this->db->fieldExists('discharge_datetime', 'inpatient_admissions')) {
-                    $assignmentBuilder->where('ia.discharge_datetime IS NULL', null, false);
-                } elseif ($this->db->fieldExists('discharge_date', 'inpatient_admissions')) {
-                    $assignmentBuilder->groupStart()
-                        ->where('ia.discharge_date IS NULL', null, false)
-                        ->orWhere('ia.discharge_date', '')
-                    ->groupEnd();
-                } elseif ($this->db->fieldExists('status', 'inpatient_admissions')) {
-                    $assignmentBuilder->where('ia.status', 'active');
-                }
-                // If no discharge/status column exists, just get the most recent (assume active)
-                
-                $currentAssignment = $assignmentBuilder
-                    ->orderBy('ira.room_assignment_id', 'DESC')
-                    ->get()
-                    ->getRowArray();
-
-                if ($currentAssignment) {
-                    $patient['room_type'] = $currentAssignment['room_type'] ?? null;
-                    $patient['floor_number'] = $currentAssignment['floor_number'] ?? null;
-                    $patient['room_number'] = $currentAssignment['room_number'] ?? null;
-                    $patient['bed_number'] = $currentAssignment['bed_number'] ?? null;
-                    $patient['daily_rate'] = $currentAssignment['daily_rate'] ?? null;
-                }
-            }
-
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             return [
                 'status' => 'success',
                 'patient' => $patient,
@@ -405,20 +277,11 @@ class PatientService
             'province' => $input['province'],
             'city' => $input['city'],
             'barangay' => $input['barangay'],
-<<<<<<< HEAD
-            'subdivision' => $input['subdivision'] ?? null,
-            'house_number' => $input['house_number'] ?? null,
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'zip_code' => $input['zip_code'],
             'insurance_provider' => $input['insurance_provider'] ?? null,
             'insurance_number' => $input['insurance_number'] ?? null,
             'emergency_contact' => $input['emergency_contact_name'],
             'emergency_phone' => $input['emergency_contact_phone'],
-<<<<<<< HEAD
-            'emergency_contact_relationship' => $input['emergency_contact_relationship'] ?? null,
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'patient_type' => ucfirst(strtolower($input['patient_type'] ?? 'Outpatient')),
             'blood_group' => $input['blood_group'] ?? null,
             'medical_notes' => $input['medical_notes'] ?? null,
@@ -518,15 +381,6 @@ class PatientService
                     break;
 
                 case 'nurse':
-<<<<<<< HEAD
-                    // Nurses can see all patients (view_all permission)
-                    $stats = [
-                        'total_patients' => $this->db->table($this->patientTable)->countAllResults(),
-                        'active_patients' => $this->countPatientFieldValue('status', 'Active'),
-                        'new_patients_today' => $this->db->table($this->patientTable)->where('date_registered', date('Y-m-d'))->countAllResults(),
-                        'new_patients_week' => $this->db->table($this->patientTable)->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))->countAllResults(),
-                    ];
-=======
                     $nurseInfo = $this->db->table('staff')->where('staff_id', $staffId)->get()->getRowArray();
                     $department = $nurseInfo['department'] ?? null;
 
@@ -545,7 +399,6 @@ class PatientService
                                 : 0,
                         ];
                     }
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     break;
 
                 case 'receptionist':
@@ -731,18 +584,7 @@ class PatientService
                 return $doctorRecord['doctor_id'] ?? null;
             }
 
-<<<<<<< HEAD
-            // Check patient type - do not auto-assign for outpatients
-            $patientType = strtolower($input['patient_type'] ?? 'outpatient');
-            if ($patientType === 'outpatient') {
-                // For outpatients, do not automatically assign a doctor
-                return null;
-            }
-
-            // Fallback to first available doctor from doctor table (for inpatients and other types)
-=======
             // Fallback to first available doctor from doctor table
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             $firstDoctor = $this->db->table('doctor d')
                 ->select('d.doctor_id')
                 ->join('staff s', 's.staff_id = d.staff_id', 'inner')
@@ -818,7 +660,7 @@ class PatientService
             'medical_notes' => $input['medical_notes'] ?? null,
             'date_registered' => date('Y-m-d'),
             'status' => ucfirst(strtolower($input['status'] ?? 'Active')),
-        ];
+        };
 
         // Include primary_doctor_id only if the column exists in the schema
         if ($this->patientTableHasColumn('primary_doctor_id')) {
@@ -903,142 +745,6 @@ class PatientService
         }
     }
 
-<<<<<<< HEAD
-    /**
-     * Persist insurance/HMO details to insurance_details table
-     */
-    private function persistInsuranceDetails(int $patientId, array $input): void
-    {
-        if (!$this->db->tableExists('insurance_details')) {
-            return;
-        }
-
-        // Check if we have any insurance information
-        $hasInsurance = (
-            !empty($input['insurance_provider'] ?? null) ||
-            !empty($input['insurance_number'] ?? null) ||
-            !empty($input['insurance_card_number'] ?? null) ||
-            !empty($input['hmo_member_id'] ?? null) ||
-            !empty($input['hmo_cardholder_name'] ?? null)
-        );
-
-        if (!$hasInsurance) {
-            return;
-        }
-
-        // Get patient name for card holder if not provided
-        $cardHolderName = $input['hmo_cardholder_name'] ?? 
-                         $input['insurance_cardholder_name'] ?? 
-                         trim(($input['first_name'] ?? '') . ' ' . ($input['last_name'] ?? ''));
-
-        if (empty($cardHolderName)) {
-            // Try to get from database
-            try {
-                $patientTable = $this->resolvePatientTableName();
-                $patient = $this->db->table($patientTable)
-                    ->select('first_name, last_name')
-                    ->where('patient_id', $patientId)
-                    ->get()
-                    ->getRowArray();
-                
-                if ($patient) {
-                    $cardHolderName = trim(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? ''));
-                }
-            } catch (\Throwable $e) {
-                log_message('error', 'Failed to fetch patient name for insurance details: ' . $e->getMessage());
-            }
-        }
-
-        // Determine provider
-        $provider = $input['insurance_provider'] ?? 
-                   $input['hmo_provider'] ?? 
-                   'Unknown';
-
-        // Determine membership number
-        $membershipNumber = $input['hmo_member_id'] ?? 
-                          $input['insurance_number'] ?? 
-                          $input['insurance_card_number'] ?? 
-                          '';
-
-        // Determine plan name (default if not provided)
-        $planName = $input['hmo_plan_name'] ?? 
-                   $input['insurance_plan'] ?? 
-                   'Standard Plan';
-
-        // Determine coverage type (JSON array)
-        $coverageType = null;
-        $patientType = strtolower($input['patient_type'] ?? 'outpatient');
-        if ($patientType === 'inpatient') {
-            $coverageType = json_encode(['inpatient']);
-        } else {
-            $coverageType = json_encode(['outpatient']);
-        }
-
-        // Determine dates
-        $hmoExpiryDate = $input['hmo_expiry_date'] ?? null;
-        $insuranceValidity = $input['insurance_validity'] ?? null;
-        $hmoStartDate = $input['hmo_start_date'] ?? null;
-        
-        // Calculate start date
-        if ($hmoStartDate) {
-            $startDate = $hmoStartDate;
-        } elseif ($insuranceValidity) {
-            $startDate = $insuranceValidity;
-        } elseif ($hmoExpiryDate) {
-            // If we only have expiry date, calculate start date as 1 year before
-            $startDate = date('Y-m-d', strtotime($hmoExpiryDate . ' -1 year'));
-        } else {
-            $startDate = date('Y-m-d');
-        }
-        
-        // Calculate end date
-        if ($hmoExpiryDate) {
-            $endDate = $hmoExpiryDate;
-        } elseif ($insuranceValidity) {
-            $endDate = $insuranceValidity;
-        } else {
-            $endDate = date('Y-m-d', strtotime('+1 year'));
-        }
-
-        // Prepare insurance detail data
-        $insuranceData = [
-            'patient_id' => $patientId,
-            'provider' => $provider,
-            'membership_number' => $membershipNumber ?: 'N/A',
-            'card_holder_name' => $cardHolderName ?: 'Unknown',
-            'member_type' => $input['hmo_member_type'] ?? 'Principal',
-            'relationship' => $input['hmo_relationship'] ?? null,
-            'plan_name' => $planName,
-            'coverage_type' => $coverageType,
-            'mbl' => $input['hmo_mbl'] ?? $input['mbl'] ?? null,
-            'pre_existing_coverage' => $input['pre_existing_coverage'] ?? null,
-            'start_date' => $startDate,
-            'end_date' => $endDate,
-            'card_status' => $input['card_status'] ?? 'Active',
-            'created_at' => date('Y-m-d H:i:s'),
-        ];
-
-        // Filter to only include columns that exist in the table
-        try {
-            $fields = $this->db->getFieldData('insurance_details');
-            $existingColumns = array_map(static fn($field) => $field->name ?? null, $fields);
-            $existingColumns = array_filter($existingColumns);
-            $insuranceData = array_intersect_key($insuranceData, array_flip($existingColumns));
-        } catch (\Throwable $e) {
-            log_message('warning', 'Failed to get insurance_details table columns: ' . $e->getMessage());
-        }
-
-        try {
-            $this->db->table('insurance_details')->insert($insuranceData);
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to insert insurance details for patient ' . $patientId . ': ' . $e->getMessage());
-            log_message('error', 'Insurance data attempted: ' . json_encode($insuranceData));
-            // Don't throw - insurance details are optional, so we continue even if this fails
-        }
-    }
-
-=======
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     private function persistRoleSpecificRecords(int $patientId, array $input): void
     {
         if (! $patientId) {
@@ -1267,248 +973,19 @@ class PatientService
             $roomType = $roomTypeMap[strtolower($roomType)] ?? null;
         }
 
-<<<<<<< HEAD
-        $roomNumber = $input['room_number'] ?? null;
-        $floorNumber = $input['floor_number'] ?? null;
-        $bedNumber = $input['bed_number'] ?? null;
-        $roomId = null;
-
-        // Look up room_id from room table if room_number is provided
-        if ($roomNumber && $this->db->tableExists('room')) {
-            $roomBuilder = $this->db->table('room')
-                ->where('room_number', $roomNumber);
-
-            // Match floor_number if provided
-            if ($floorNumber) {
-                $roomBuilder->where('floor_number', $floorNumber);
-            }
-
-            $room = $roomBuilder->get()->getRowArray();
-
-            if ($room && isset($room['room_id'])) {
-                $roomId = (int) $room['room_id'];
-
-                // Validate room is available or can be assigned
-                $roomStatus = $room['status'] ?? 'available';
-                if ($roomStatus === 'maintenance') {
-                    log_message('warning', "Attempted to assign patient to room {$roomNumber} which is under maintenance");
-                    // Continue anyway, but log the warning
-                }
-
-                // Update room status to 'occupied' if it's available
-                if ($roomStatus === 'available') {
-                    try {
-                        $this->db->table('room')
-                            ->where('room_id', $roomId)
-                            ->update(['status' => 'occupied']);
-                    } catch (\Throwable $e) {
-                        log_message('error', 'Failed to update room status to occupied: ' . $e->getMessage());
-                    }
-                }
-            } else {
-                log_message('warning', "Room {$roomNumber} on floor {$floorNumber} not found in room table");
-            }
-        }
-
-        $roomData = [
-            'admission_id' => $admissionId,
-            'room_id' => $roomId,
-            'room_type' => $roomType,
-            'floor_number' => $floorNumber,
-            'room_number' => $roomNumber,
-            'bed_number' => $bedNumber,
-=======
         $roomData = [
             'admission_id' => $admissionId,
             'room_type' => $roomType,
             'floor_number' => $input['floor_number'] ?? null,
             'room_number' => $input['room_number'] ?? null,
             'bed_number' => $input['bed_number'] ?? null,
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'daily_rate' => $normalizedDailyRate,
         ];
 
         try {
             $this->db->table('inpatient_room_assignments')->insert($roomData);
-<<<<<<< HEAD
-            $roomAssignmentId = (int) $this->db->insertID();
-
-            // Auto-add room charge to billing if room assignment was created successfully
-            if ($roomAssignmentId > 0 && (!empty($roomNumber) || !empty($roomType))) {
-                $this->addRoomChargeToBilling($admissionId, $roomAssignmentId, $normalizedDailyRate);
-            }
         } catch (\Throwable $e) {
             log_message('error', 'Failed to insert inpatient room assignment for admission ' . $admissionId . ': ' . $e->getMessage());
-            
-            // Rollback room status if assignment failed
-            if ($roomId && $this->db->tableExists('room')) {
-                try {
-                    $this->db->table('room')
-                        ->where('room_id', $roomId)
-                        ->update(['status' => 'available']);
-                } catch (\Throwable $rollbackError) {
-                    log_message('error', 'Failed to rollback room status: ' . $rollbackError->getMessage());
-                }
-            }
-=======
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to insert inpatient room assignment for admission ' . $admissionId . ': ' . $e->getMessage());
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
-        }
-    }
-
-    /**
-<<<<<<< HEAD
-     * Add room charge to billing account when patient is admitted with room assignment
-     */
-    private function addRoomChargeToBilling(int $admissionId, int $roomAssignmentId, ?float $dailyRate = null): void
-    {
-        try {
-            // Get patient ID from admission
-            $admission = $this->db->table('inpatient_admissions')
-                ->where('admission_id', $admissionId)
-                ->get()
-                ->getRowArray();
-
-            if (!$admission || empty($admission['patient_id'])) {
-                log_message('warning', "Cannot add room charge to billing: Admission {$admissionId} not found or has no patient_id");
-                return;
-            }
-
-            $patientId = (int) $admission['patient_id'];
-            $staffId = (int) (session()->get('staff_id') ?? 0);
-
-            // Check if FinancialService is available
-            if (!class_exists(\App\Services\FinancialService::class)) {
-                log_message('warning', 'FinancialService not available for auto-billing room charge');
-                return;
-            }
-
-            $financialService = new \App\Services\FinancialService();
-
-            // Get or create billing account for this patient and admission
-            $account = $financialService->getOrCreateBillingAccountForPatient($patientId, $admissionId, $staffId);
-            if (!$account || empty($account['billing_id'])) {
-                log_message('warning', "Failed to get/create billing account for patient {$patientId}, admission {$admissionId}");
-                return;
-            }
-
-            $billingId = (int) $account['billing_id'];
-
-            // Add room charge to billing (quantity = 1 day initially, can be updated on discharge)
-            $result = $financialService->addItemFromInpatientRoomAssignment(
-                $billingId,
-                $roomAssignmentId,
-                $dailyRate,
-                $staffId,
-                1 // Initial quantity: 1 day
-            );
-
-            if (!empty($result['success'])) {
-                log_message('info', "Room charge added to billing account {$billingId} for admission {$admissionId}");
-            } else {
-                log_message('warning', "Failed to add room charge to billing: " . ($result['message'] ?? 'Unknown error'));
-            }
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to add room charge to billing for admission ' . $admissionId . ': ' . $e->getMessage());
-=======
-     * Persist insurance/HMO details for a patient
-     */
-    private function persistInsuranceDetails(int $patientId, array $input): void
-    {
-        // Check if insurance details table exists
-        if (! $this->db->tableExists('insurance_details')) {
-            return;
-        }
-
-        // Get existing columns to avoid errors
-        $fields = $this->db->getFieldData('insurance_details');
-        $existingColumns = array_map(fn($field) => $field->name, $fields);
-
-        $hasInsurance = (
-            ! empty($input['insurance_provider'] ?? null) ||
-            ! empty($input['insurance_card_number'] ?? null) ||
-            ! empty($input['hmo_member_id'] ?? null) ||
-            ! empty($input['hmo_cardholder_name'] ?? null)
-        );
-
-        if (! $hasInsurance) {
-            return;
-        }
-
-        try {
-            $insuranceData = [
-                'patient_id' => $patientId,
-                'created_at' => date('Y-m-d H:i:s'),
-            ];
-
-            // Only add fields that exist in the database
-            if (in_array('insurance_provider', $existingColumns)) {
-                $insuranceData['insurance_provider'] = $input['insurance_provider'] ?? null;
-            }
-            if (in_array('policy_number', $existingColumns)) {
-                $insuranceData['policy_number'] = $input['insurance_number'] ?? ($input['insurance_card_number'] ?? null);
-            }
-            if (in_array('coverage_start_date', $existingColumns)) {
-                $insuranceData['coverage_start_date'] = !empty($input['validity_start_date']) ? date('Y-m-d', strtotime($input['validity_start_date'])) : null;
-            }
-            if (in_array('coverage_end_date', $existingColumns)) {
-                $insuranceData['coverage_end_date'] = !empty($input['validity_end_date']) ? date('Y-m-d', strtotime($input['validity_end_date'])) : null;
-            }
-            if (in_array('member_name', $existingColumns)) {
-                $insuranceData['member_name'] = $input['card_holder_name'] ?? ($input['hmo_cardholder_name'] ?? null);
-            }
-            if (in_array('hmo_member_id', $existingColumns)) {
-                $insuranceData['hmo_member_id'] = $input['membership_number'] ?? ($input['hmo_member_id'] ?? null);
-            }
-            if (in_array('hmo_approval_code', $existingColumns)) {
-                $insuranceData['hmo_approval_code'] = $input['hmo_approval_code'] ?? null;
-            }
-            if (in_array('hmo_cardholder_name', $existingColumns)) {
-                $insuranceData['hmo_cardholder_name'] = $input['card_holder_name'] ?? ($input['hmo_cardholder_name'] ?? null);
-            }
-            if (in_array('hmo_contact_person', $existingColumns)) {
-                $insuranceData['hmo_contact_person'] = $input['hmo_contact_person'] ?? null;
-            }
-            if (in_array('hmo_attachment', $existingColumns)) {
-                $insuranceData['hmo_attachment'] = $input['hmo_attachment'] ?? null;
-            }
-            if (in_array('coverage_type', $existingColumns)) {
-                $insuranceData['coverage_type'] = !empty($input['coverage_type']) ? strtolower($input['coverage_type']) : 'outpatient';
-            }
-            
-            // New fields from the insurance form
-            if (in_array('member_type', $existingColumns)) {
-                $insuranceData['member_type'] = $input['member_type'] ?? null;
-            }
-            if (in_array('relationship', $existingColumns)) {
-                $insuranceData['relationship'] = $input['relationship'] ?? null;
-            }
-            if (in_array('plan_name', $existingColumns)) {
-                $insuranceData['plan_name'] = $input['plan_name'] ?? null;
-            }
-            if (in_array('coverage_type_new', $existingColumns)) {
-                $insuranceData['coverage_type_new'] = !empty($input['coverage_type']) ? is_array($input['coverage_type']) ? implode(',', $input['coverage_type']) : $input['coverage_type'] : null;
-            }
-            if (in_array('pre_existing_coverage', $existingColumns)) {
-                $insuranceData['pre_existing_coverage'] = $input['pre_existing_coverage'] ?? null;
-            }
-            if (in_array('card_status', $existingColumns)) {
-                $insuranceData['card_status'] = $input['card_status'] ?? 'Active';
-            }
-
-            // Only keep fields that have values
-            $insuranceData = array_filter($insuranceData, function ($value) {
-                return $value !== null && $value !== '';
-            });
-
-            if (! empty($insuranceData)) {
-                $this->db->table('insurance_details')->insert($insuranceData);
-            }
-
-        } catch (\Exception $e) {
-            log_message('error', 'Failed to persist insurance details for patient ' . $patientId . ': ' . $e->getMessage());
->>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
     }
 

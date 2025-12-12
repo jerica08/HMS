@@ -5,7 +5,10 @@ namespace App\Controllers;
 use App\Models\FinancialTransactionModel;
 use App\Models\CategoryModel;
 use App\Services\FinancialService;
+<<<<<<< HEAD
 use App\Libraries\PermissionManager;
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
 class FinancialController extends BaseController
 {
@@ -41,6 +44,7 @@ class FinancialController extends BaseController
             $stats    = $this->financialService->getFinancialStats($userRole, $staffId);
             $accounts = $this->financialService->getBillingAccounts([], $userRole, $staffId);
 
+<<<<<<< HEAD
             // Simple permission flags for existing view structure using PermissionManager
             $permissions = [];
             if (PermissionManager::hasPermission($userRole, 'billing', 'create')) {
@@ -50,6 +54,15 @@ class FinancialController extends BaseController
                 $permissions[] = 'process_payment';
             }
             if (PermissionManager::hasPermission($userRole, 'billing', 'create')) {
+=======
+            // Simple permission flags for existing view structure
+            $permissions = [];
+            if (in_array($userRole, ['admin', 'accountant'])) {
+                $permissions[] = 'create_bill';
+                $permissions[] = 'process_payment';
+            }
+            if (in_array($userRole, ['admin', 'accountant'])) {
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 $permissions[] = 'create_expense';
             }
 

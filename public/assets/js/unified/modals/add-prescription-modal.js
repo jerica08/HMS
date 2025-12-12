@@ -46,6 +46,7 @@ window.AddPrescriptionModal = {
     getConfig() {
         const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+<<<<<<< HEAD
         const userRole = document.querySelector('meta[name="user-role"]')?.content || '';
         return { 
             baseUrl: baseUrl.replace(/\/$/, ''), 
@@ -56,6 +57,9 @@ window.AddPrescriptionModal = {
                 availableDoctors: `${baseUrl}prescriptions/available-doctors`
             } 
         };
+=======
+        return { baseUrl: baseUrl.replace(/\/$/, ''), csrfToken, endpoints: { create: `${baseUrl}prescriptions/create` } };
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     },
     
     async open() {
@@ -64,10 +68,13 @@ window.AddPrescriptionModal = {
             PrescriptionModalUtils.openModal('addPrescriptionModal');
             await this.loadAvailablePatients();
             await this.loadAvailableMedications();
+<<<<<<< HEAD
             // Load doctors for admin and nurses
             if (this.config.userRole === 'admin' || this.config.userRole === 'nurse') {
                 await this.loadAvailableDoctors();
             }
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
     },
     
@@ -77,10 +84,13 @@ window.AddPrescriptionModal = {
             PrescriptionModalUtils.openModal('addPrescriptionModal');
             await this.loadAvailablePatients();
             await this.loadAvailableMedications();
+<<<<<<< HEAD
             // Load doctors for admin and nurses
             if (this.config.userRole === 'admin' || this.config.userRole === 'nurse') {
                 await this.loadAvailableDoctors();
             }
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             this.populateForm(prescription);
         }
     },
@@ -92,13 +102,19 @@ window.AddPrescriptionModal = {
         const dateInput = document.getElementById('add_prescriptionDate');
         const statusSelect = document.getElementById('add_prescriptionStatus');
         const notesTextarea = document.getElementById('add_prescriptionNotes');
+<<<<<<< HEAD
         const doctorSelect = document.getElementById('add_doctorSelect');
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         
         if (patientSelect) patientSelect.value = prescription.patient_id || prescription.pat_id || '';
         if (dateInput) dateInput.value = prescription.created_at ? prescription.created_at.split('T')[0] : '';
         if (statusSelect) statusSelect.value = prescription.status || 'active';
         if (notesTextarea) notesTextarea.value = prescription.notes || '';
+<<<<<<< HEAD
         if (doctorSelect) doctorSelect.value = prescription.doctor_id || prescription.prescriber_id || '';
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         
         const medicinesBody = document.getElementById('addMedicinesTableBody');
         if (medicinesBody) {
@@ -243,6 +259,7 @@ window.AddPrescriptionModal = {
         this.populateAllMedicationSelects();
     },
     
+<<<<<<< HEAD
     async loadAvailableDoctors() {
         const doctorSelect = document.getElementById('add_doctorSelect');
         if (!doctorSelect) return;
@@ -279,6 +296,8 @@ window.AddPrescriptionModal = {
         }
     },
     
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     populateAllMedicationSelects() {
         const selects = document.querySelectorAll('#addMedicinesTableBody .medicine-medication-select');
         selects.forEach(select => this.populateMedicationSelect(select));

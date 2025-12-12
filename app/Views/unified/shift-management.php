@@ -26,8 +26,13 @@
             <?= esc($title ?? 'Schedule Management') ?>
         </h1>
         <div class="page-actions">
+<<<<<<< HEAD
             <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
                 <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift"><i class="fas fa-plus"></i> Add Schedule</button>
+=======
+            <button type="button" class="btn btn-primary" id="createShiftBtn" aria-label="Create New Shift"><i class="fas fa-plus"></i> Add Schedule</button>
+            <?php if (in_array($userRole ?? '', ['admin', 'it_staff'])): ?>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 <button type="button" class="btn btn-secondary" id="exportBtn" aria-label="Export Data"><i class="fas fa-download"></i> Export</button>
             <?php endif; ?>
         </div>
@@ -70,7 +75,11 @@
     </div>
 </div>
 
+<<<<<<< HEAD
         <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
+=======
+        
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         <br />
 
         <div class="dashboard-overview" role="region" aria-label="Dashboard Overview Cards">
@@ -244,7 +253,10 @@
                     </div>
                 <?php endif; ?>
         </div>
+<<<<<<< HEAD
         <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         <!-- Filters and Search -->
         <div class="controls-section" style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">

@@ -91,7 +91,10 @@
 
         <!-- Tab Content: Lab Orders -->
         <div id="tabLabOrders" class="lab-tab-content active">
+<<<<<<< HEAD
             <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             <div class="dashboard-overview">
                 <div class="overview-card">
                     <div class="card-header-modern">
@@ -117,7 +120,10 @@
                     </div>
                 </div>
             </div>
+<<<<<<< HEAD
             <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             <br />
 

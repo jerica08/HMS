@@ -246,6 +246,7 @@ class DashboardService
     {
         $stats = [];
         $today = date('Y-m-d');
+<<<<<<< HEAD
         $staffId = (int) $staffId; // Ensure it's an integer
 
         // Initialize schedule stats first (most important for the widget)
@@ -490,6 +491,63 @@ class DashboardService
             $stats['prescriptions_completed'] = 0;
             $stats['prescriptions_pending'] = 0;
         }
+=======
+
+        // Today's appointments
+        $stats['today_appointments'] = $this->db->table('appointments')
+            ->where('doctor_id', $staffId)
+            ->where('appointment_date', $today)
+            ->countAllResults();
+
+        $stats['completed_today'] = $this->db->table('appointments')
+            ->where('doctor_id', $staffId)
+            ->where('appointment_date', $today)
+            ->where('status', 'completed')
+            ->countAllResults();
+
+        $stats['pending_today'] = $this->db->table('appointments')
+            ->where('doctor_id', $staffId)
+            ->where('appointment_date', $today)
+            ->whereIn('status', ['scheduled', 'in-progress'])
+            ->countAllResults();
+
+        // Patient statistics
+        $stats['my_patients'] = $this->db->table('patient')
+            ->where('primary_doctor_id', $staffId)
+            ->countAllResults();
+
+        $stats['new_patients_week'] = $this->db->table('patient')
+            ->where('primary_doctor_id', $staffId)
+            ->where('date_registered >=', date('Y-m-d', strtotime('-7 days')))
+            ->countAllResults();
+
+        $stats['critical_patients'] = $this->db->table('patient')
+            ->where('primary_doctor_id', $staffId)
+            ->where('patient_type', 'emergency')
+            ->countAllResults();
+
+        // Prescriptions
+        $stats['prescriptions_pending'] = $this->db->table('prescriptions')
+            ->where('doctor_id', $staffId)
+            ->where('status', 'active')
+            ->countAllResults();
+
+        $stats['prescriptions_today'] = $this->db->table('prescriptions')
+            ->where('doctor_id', $staffId)
+            ->where('DATE(created_at)', $today)
+            ->countAllResults();
+
+        // Weekly stats
+        $stats['weekly_appointments'] = $this->db->table('appointments')
+            ->where('doctor_id', $staffId)
+            ->where('appointment_date >=', date('Y-m-d', strtotime('-7 days')))
+            ->countAllResults();
+
+        $stats['monthly_patients'] = $this->db->table('patient')
+            ->where('primary_doctor_id', $staffId)
+            ->where('date_registered >=', date('Y-m-d', strtotime('-30 days')))
+            ->countAllResults();
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         return $stats;
     }

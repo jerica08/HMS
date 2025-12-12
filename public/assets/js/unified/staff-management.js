@@ -105,7 +105,14 @@ class StaffManager {
         } catch (error) {
             console.error('Error loading staff:', error);
             StaffUtils.showError(tableBody, 'Failed to load staff. Please try again.');
+<<<<<<< HEAD
             StaffUtils.showNotification('Failed to load staff: ' + error.message, 'error');
+=======
+            // Only show notification for critical errors, not for loading issues
+            if (error.message && !error.message.includes('Failed to load staff')) {
+                StaffUtils.showNotification('Error: ' + error.message, 'error');
+            }
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
     }
 

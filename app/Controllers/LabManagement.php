@@ -97,6 +97,7 @@ class LabManagement extends BaseController
                 log_message('debug', 'Could not check patient_type field: ' . $e->getMessage());
             }
 
+<<<<<<< HEAD
             $builder = $db->table($tableName . ' p')
                 ->select($selectFields);
             
@@ -126,6 +127,11 @@ class LabManagement extends BaseController
             }
             
             $patients = $builder->orderBy('p.first_name', 'ASC')
+=======
+            $patients = $db->table($tableName . ' p')
+                ->select($selectFields)
+                ->orderBy('p.first_name', 'ASC')
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 ->orderBy('p.last_name', 'ASC')
                 ->get()
                 ->getResultArray();

@@ -44,7 +44,10 @@
                 <?php endif; ?>
             </div>
             
+<<<<<<< HEAD
             <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             <br />
 
             <!-- Statistics Overview -->
@@ -240,7 +243,10 @@
                     </div>
                 <?php endif; ?>
             </div>
+<<<<<<< HEAD
             <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             <!-- Filters and Search -->
             <div class="controls-section">

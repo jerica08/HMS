@@ -16,7 +16,11 @@
                         </select>
                         <small id="err_appointment_patient" style="color:#dc2626"></small>
                     </div>
+<<<<<<< HEAD
                     <?php if (in_array($userRole, ['admin', 'receptionist'])): ?>
+=======
+                    <?php if ($userRole === 'admin'): ?>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     <div>
                         <label class="form-label" for="appointment_doctor">Doctor*</label>
                         <select id="appointment_doctor" name="doctor_id" class="form-select" required>
@@ -46,9 +50,12 @@
                             <option value="Consultation">Consultation</option>
                             <option value="Follow-up">Follow-up</option>
                             <option value="Check-up">Check-up</option>
+<<<<<<< HEAD
                             <?php if (($userRole ?? '') === 'doctor'): ?>
                             <option value="Emergency">Emergency</option>
                             <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         </select>
                         <small id="err_appointment_type" style="color:#dc2626"></small>
                     </div>

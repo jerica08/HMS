@@ -12,23 +12,36 @@ class PermissionManager
             'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
             'resources' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'shifts' => ['view', 'create', 'edit', 'delete'],
+<<<<<<< HEAD
             'prescriptions' => ['view', 'create', 'edit', 'delete', 'view_all'], // Admin can create prescriptions
+=======
+            'prescriptions' => ['view', 'create', 'edit', 'delete', 'view_all'],
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'reports' => ['view', 'generate', 'export'],
             'system' => ['settings', 'backup', 'maintenance']
         ],
         'doctor' => [
+<<<<<<< HEAD
             'patients' => ['view', 'edit', 'view_assigned'],
+=======
+            'patients' => ['view', 'create', 'edit', 'view_assigned'],
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'appointments' => ['view', 'create', 'edit', 'reschedule', 'view_own'],
             'resources' => ['view', 'view_assigned'],
             'shifts' => ['view', 'edit', 'view_own', 'edit_own'],
             'prescriptions' => ['view', 'create', 'edit', 'view_own'],
+<<<<<<< HEAD
         
+=======
+            'reports' => ['view', 'generate_own']
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         ],
         'receptionist' => [
             'patients' => ['view', 'create', 'edit', 'assign_doctor', 'view_all'],
             'appointments' => ['view', 'create', 'edit', 'reschedule', 'view_all'],
             'resources' => ['view'],
             'shifts' => ['view', 'view_all'],
+<<<<<<< HEAD
            
         ],
         'nurse' => [
@@ -36,6 +49,16 @@ class PermissionManager
             'vital_signs' => ['create'], // Nurses can only add vital signs
             'resources' => ['view', 'view_all'],
             'shifts' => ['view', 'view_department'],
+=======
+            'reports' => ['view']
+        ],
+        'nurse' => [
+            'patients' => ['view', 'edit', 'view_assigned'],
+            'appointments' => ['view', 'view_assigned'],
+            'resources' => ['view', 'view_assigned'],
+            'shifts' => ['view', 'view_department'],
+            'prescriptions' => ['view', 'view_assigned']
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         ],
         'pharmacist' => [
             'prescriptions' => ['view', 'edit', 'fulfill', 'view_all'],
@@ -44,22 +67,38 @@ class PermissionManager
         ],
         'accountant' => [
             'patients' => ['view'],
+<<<<<<< HEAD
             'appointments' => ['view', 'view_all'], // View-only for billing purposes
+=======
+            'appointments' => ['view'],
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'billing' => ['view', 'create', 'edit', 'process'],
             'reports' => ['view', 'generate', 'export']
         ],
         'laboratorist' => [
             'patients' => ['view'],
+<<<<<<< HEAD
+=======
+            'appointments' => ['view'],
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'resources' => ['view', 'view_assigned'],
             'reports' => ['view', 'generate']
         ],
         'it_staff' => [
             'patients' => ['view', 'create', 'edit', 'delete', 'assign_doctor', 'view_all'],
+<<<<<<< HEAD
+=======
+            'appointments' => ['view', 'create', 'edit', 'delete', 'reschedule', 'view_all'],
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'staff' => ['view', 'create', 'edit', 'delete', 'manage_roles'],
             'users' => ['view', 'create', 'edit', 'delete', 'reset_password'],
             'resources' => ['view', 'create', 'edit', 'delete', 'view_all'],
             'shifts' => ['view', 'create', 'edit', 'delete'],
+<<<<<<< HEAD
             'prescriptions' => ['view', 'edit', 'delete', 'view_all'], // Removed 'create' - IT staff should not medically prescribe
+=======
+            'prescriptions' => ['view', 'create', 'edit', 'delete', 'view_all'],
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'reports' => ['view', 'generate', 'export'],
             'system' => ['settings', 'backup', 'maintenance', 'database_management']
         ]

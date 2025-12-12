@@ -187,7 +187,10 @@
             </div>
         </header>
 
+<<<<<<< HEAD
         <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         <section class="dashboard-overview" role="region" aria-label="dashboard overview cards">
             <article class="overview-card" tabindex="0">
                 <div class="card-header-modern">
@@ -232,7 +235,10 @@
                 </div>
             </article>
         </section>
+<<<<<<< HEAD
         <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
         <div class="patient-records-container">
             <!-- Patients List -->

@@ -52,6 +52,7 @@ class ResourceService
                 return ['success' => false, 'message' => 'Insufficient permissions'];
             }
 
+<<<<<<< HEAD
             $quantity = (int)($data['quantity'] ?? 1);
             
             // Don't allow creating resources with quantity 0 - they would be immediately deleted
@@ -63,6 +64,12 @@ class ResourceService
                 'equipment_name' => trim($data['equipment_name'] ?? ''),
                 'category' => $data['category'] ?? '',
                 'quantity' => $quantity,
+=======
+            $resourceData = [
+                'equipment_name' => trim($data['equipment_name'] ?? ''),
+                'category' => $data['category'] ?? '',
+                'quantity' => (int)($data['quantity'] ?? 1),
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 'status' => $data['status'] ?? 'Stock In',
                 'location' => trim($data['location'] ?? ''),
                 'batch_number' => trim($data['batch_number'] ?? ''),
@@ -148,6 +155,7 @@ class ResourceService
                 }
             }
 
+<<<<<<< HEAD
             // Automatically delete resource when quantity reaches 0 (unless assigned to staff)
             $currentQuantity = (int)($resource['quantity'] ?? 0);
             $newQuantity = isset($updateData['quantity']) ? (int)$updateData['quantity'] : $currentQuantity;
@@ -181,6 +189,8 @@ class ResourceService
                 }
             }
 
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             if (empty($updateData)) {
                 return ['success' => false, 'message' => 'No changes provided'];
             }
@@ -213,9 +223,15 @@ class ResourceService
                 return ['success' => false, 'message' => 'Resource not found'];
             }
 
+<<<<<<< HEAD
             // Resources with quantity 0 are automatically deleted, so manual deletion is only needed
             // for resources that are assigned to staff or have quantity > 0
             // Allow deletion of any resource (automatic deletion only happens when quantity reaches 0)
+=======
+            if (($resource['status'] ?? '') === 'Stock Out') {
+                return ['success' => false, 'message' => 'Cannot delete resource that is currently stock out'];
+            }
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             return $this->resourceModel->delete($resourceId)
                 ? ['success' => true, 'message' => 'Resource deleted successfully']

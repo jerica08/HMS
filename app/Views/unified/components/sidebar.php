@@ -51,8 +51,7 @@ $moduleMappings = [
     'shifts' => [
         'admin' => ['url' => 'admin/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule Management'],
         'doctor' => ['url' => 'doctor/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'My Schedule'],
-        'receptionist' => ['url' => 'admin/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule Management'],
-        'it_staff' => ['url' => 'admin/schedule', 'icon' => 'fas fa-calendar-days', 'label' => 'Schedule Management'],
+        
     ],
     'prescriptions' => [
         'admin' => ['url' => 'admin/prescriptions', 'icon' => 'fas fa-prescription-bottle', 'label' => 'Prescriptions'],

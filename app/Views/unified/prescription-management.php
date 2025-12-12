@@ -44,6 +44,13 @@
                 <?php endif; ?>
             </div>
             
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+            <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
+>>>>>>> Stashed changes
             <br />
 
             <!-- Statistics Overview -->
@@ -239,6 +246,13 @@
                     </div>
                 <?php endif; ?>
             </div>
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+            <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
+>>>>>>> Stashed changes
 
             <!-- Filters and Search -->
             <div class="controls-section">

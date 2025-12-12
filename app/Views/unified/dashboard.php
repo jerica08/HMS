@@ -33,12 +33,15 @@
             $stats = $dashboardStats ?? [];
             $userRole = $userRole ?? 'admin';
             
+<<<<<<< HEAD
             // Debug: Log stats for doctor role
             if ($userRole === 'doctor') {
                 log_message('debug', 'Doctor dashboard - Stats keys: ' . implode(', ', array_keys($stats)));
                 log_message('debug', 'Doctor dashboard - Schedule stats: total=' . ($stats['my_schedule_total'] ?? 'missing') . ', today=' . ($stats['my_schedule_today'] ?? 'missing') . ', week=' . ($stats['my_schedule_this_week'] ?? 'missing'));
             }
             
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             if ($userRole === 'admin' || $userRole === 'it_staff'): ?>
                 <!-- Total Patients Card -->
                 <div class="overview-card" tabindex="0">
@@ -196,6 +199,7 @@
 
             <?php elseif ($userRole === 'doctor'): ?>
                 <!-- Doctor Dashboard Cards -->
+<<<<<<< HEAD
                 <!-- DEBUG: User role is doctor, stats available: <?= isset($stats) ? 'yes' : 'no' ?> -->
                 
                 <!-- My Schedule Card - MOVED TO TOP FOR TESTING -->
@@ -236,6 +240,8 @@
                     </div>
                 </div>
                 
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
                         <div class="card-icon-modern blue" aria-hidden="true">
@@ -288,6 +294,7 @@
                     </div>
                 </div>
 
+<<<<<<< HEAD
                 <!-- My Prescriptions Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
@@ -297,20 +304,39 @@
                         <div class="card-info">
                             <h3 class="card-title-modern">My Prescriptions</h3>
                             <p class="card-subtitle">Issued prescriptions</p>
+=======
+                <div class="overview-card" tabindex="0">
+                    <div class="card-header-modern">
+                        <div class="card-icon-modern purple" aria-hidden="true">
+                            <i class="fas fa-prescription"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3 class="card-title-modern">Prescriptions</h3>
+                            <p class="card-subtitle">Prescription management</p>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
+<<<<<<< HEAD
                             <div class="metric-value blue"><?= esc($stats['prescriptions_total'] ?? 0) ?></div>
                             <div class="metric-label">Total</div>
                         </div>
                         <div class="metric">
                             <div class="metric-value orange"><?= esc($stats['prescriptions_today'] ?? 0) ?></div>
+=======
+                            <div class="metric-value blue"><?= esc($stats['prescriptions_pending'] ?? 0) ?></div>
+                            <div class="metric-label">Pending</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value green"><?= esc($stats['prescriptions_today'] ?? 0) ?></div>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             <div class="metric-label">Today</div>
                         </div>
                     </div>
                 </div>
 
+<<<<<<< HEAD
                 <!-- Prescription Status Card -->
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
@@ -334,6 +360,8 @@
                     </div>
                 </div>
 
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 <div class="overview-card" tabindex="0">
                     <div class="card-header-modern">
                         <div class="card-icon-modern orange" aria-hidden="true">
@@ -364,13 +392,21 @@
                             <i class="fas fa-hospital"></i>
                         </div>
                         <div class="card-info">
+<<<<<<< HEAD
                             <h3 class="card-title-modern">Patients</h3>
+=======
+                            <h3 class="card-title-modern">Department Patients</h3>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             <p class="card-subtitle">Patient overview</p>
                         </div>
                     </div>
                     <div class="card-metrics">
                         <div class="metric">
+<<<<<<< HEAD
                             <div class="metric-value blue"><?= esc($stats['total_patients'] ?? 0) ?></div>
+=======
+                            <div class="metric-value blue"><?= esc($stats['department_patients'] ?? 0) ?></div>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             <div class="metric-label">Total</div>
                         </div>
                         <div class="metric">

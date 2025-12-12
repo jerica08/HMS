@@ -187,6 +187,13 @@
             </div>
         </header>
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+        <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
+>>>>>>> Stashed changes
         <section class="dashboard-overview" role="region" aria-label="dashboard overview cards">
             <article class="overview-card" tabindex="0">
                 <div class="card-header-modern">
@@ -231,6 +238,13 @@
                 </div>
             </article>
         </section>
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+        <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
+>>>>>>> Stashed changes
 
         <div class="patient-records-container">
             <!-- Patients List -->

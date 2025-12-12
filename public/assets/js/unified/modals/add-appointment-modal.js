@@ -29,6 +29,7 @@ window.AddAppointmentModal = {
         
         const scheduleBtn = document.getElementById('scheduleAppointmentBtn');
         if (scheduleBtn) {
+<<<<<<< HEAD
             scheduleBtn.addEventListener('click', () => {
                 // Check permission before opening modal
                 if (this.canCreateAppointment()) {
@@ -37,12 +38,16 @@ window.AddAppointmentModal = {
                     alert('You do not have permission to create appointments. Only administrators, doctors, and receptionists can create appointments.');
                 }
             });
+=======
+            scheduleBtn.addEventListener('click', () => this.open());
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
     },
     
     getConfig() {
         const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+<<<<<<< HEAD
         const userRole = document.querySelector('meta[name="user-role"]')?.content || '';
         return { baseUrl: baseUrl.replace(/\/$/, ''), csrfToken, userRole, endpoints: { create: `${baseUrl}appointments/create`, update: `${baseUrl}appointments` } };
     },
@@ -50,6 +55,9 @@ window.AddAppointmentModal = {
     canCreateAppointment() {
         const userRole = this.config?.userRole || document.querySelector('meta[name="user-role"]')?.content || '';
         return ['admin', 'doctor', 'receptionist'].includes(userRole);
+=======
+        return { baseUrl: baseUrl.replace(/\/$/, ''), csrfToken, endpoints: { create: `${baseUrl}appointments/create`, update: `${baseUrl}appointments` } };
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     },
     
     open() {
@@ -150,6 +158,7 @@ window.AddAppointmentModal = {
     async handleSubmit(e) {
         e.preventDefault();
         const form = e.target;
+<<<<<<< HEAD
         let data = AppointmentModalUtils.collectFormData(form);
         
         // Map fields for doctor role (backend expects different field names, with defaults like admin)
@@ -163,6 +172,9 @@ window.AddAppointmentModal = {
                 reason: data.notes || data.reason || ''
             };
         }
+=======
+        const data = AppointmentModalUtils.collectFormData(form);
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         
         try {
             this.showLoading(true);
@@ -186,6 +198,7 @@ window.AddAppointmentModal = {
             } else {
                 this.showNotification(result.message || 'Failed to save appointment', 'error');
                 if (result.errors) {
+<<<<<<< HEAD
                     // Map backend field names to form field names for display
                     const mappedErrors = {};
                     for (const [field, message] of Object.entries(result.errors)) {
@@ -200,6 +213,9 @@ window.AddAppointmentModal = {
                         mappedErrors[formField] = message;
                     }
                     AppointmentModalUtils.displayErrors(mappedErrors, 'appointment_');
+=======
+                    AppointmentModalUtils.displayErrors(result.errors, 'appointment_');
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 }
             }
         } catch (error) {

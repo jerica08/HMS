@@ -41,6 +41,20 @@ window.AddStaffModal = {
                     if (dobErrEl) dobErrEl.textContent = dobErrors.date_of_birth || '';
                 });
             }
+<<<<<<< HEAD
+=======
+
+            const contactEl = document.getElementById('contact_no');
+            if (contactEl && !contactEl.__boundContactValidation) {
+                contactEl.__boundContactValidation = true;
+                contactEl.addEventListener('input', () => {
+                    const contactErrors = {};
+                    StaffModalUtils.validateContactNumber(contactEl.value, contactErrors);
+                    const contactErrEl = document.getElementById('err_contact_no');
+                    if (contactErrEl) contactErrEl.textContent = contactErrors.contact_no || '';
+                });
+            }
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
         
         StaffModalUtils.setupModalCloseHandlers(this.modal, () => this.close());
@@ -142,6 +156,10 @@ window.AddStaffModal = {
                 clientErrors.designation = 'Designation is required.';
             }
             StaffModalUtils.validateRoleFields(formData, clientErrors);
+<<<<<<< HEAD
+=======
+            StaffModalUtils.validateContactNumber(formData.contact_no, clientErrors);
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             
             if (Object.keys(clientErrors).length) {
                 StaffModalUtils.displayErrors(clientErrors);
@@ -253,8 +271,63 @@ window.AddStaffModal = {
         }
     },
     
+<<<<<<< HEAD
+=======
+    // Load departments based on selected type
+    async loadDepartmentsByType(prefix = '') {
+        const typeSelect = document.getElementById(prefix + 'department_type');
+        const deptSelect = document.getElementById(prefix + 'department');
+        const deptIdInput = document.getElementById('department_id');
+        
+        if (!typeSelect || !deptSelect) return;
+        
+        const selectedType = typeSelect.value;
+        
+        // Reset department dropdown
+        deptSelect.innerHTML = '<option value="">Select department</option>';
+        deptSelect.disabled = !selectedType;
+        
+        if (deptIdInput) deptIdInput.value = '';
+        
+        if (!selectedType) return;
+        
+        try {
+            // Load departments from the existing data in the page or fetch via API
+            const departments = await this.fetchDepartmentsByType(selectedType);
+            
+            departments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept.name;
+                option.textContent = dept.name;
+                option.setAttribute('data-id', dept.department_id);
+                option.setAttribute('data-type', dept.department_type);
+                deptSelect.appendChild(option);
+            });
+            
+        } catch (error) {
+            console.error('Failed to load departments:', error);
+            StaffUtils.showNotification('Failed to load departments', 'error');
+        }
+    },
+    
+    // Fetch departments by type from API
+    async fetchDepartmentsByType(type) {
+        const url = StaffConfig.getUrl('staff/departments') + '?type=' + encodeURIComponent(type);
+        const response = await StaffUtils.makeRequest(url);
+        
+        if (response.status === 'success') {
+            return response.data || [];
+        } else {
+            throw new Error(response.message || 'Failed to fetch departments');
+        }
+    },
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 };
 
 // Global functions for backward compatibility
 window.openAddStaffModal = () => window.AddStaffModal?.open();
 window.closeAddStaffModal = () => window.AddStaffModal?.close();
+<<<<<<< HEAD
+=======
+window.loadDepartmentsByType = (prefix = '') => window.AddStaffModal?.loadDepartmentsByType(prefix);
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)

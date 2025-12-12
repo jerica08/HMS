@@ -7,7 +7,10 @@
         </div>
         
         <form id="addPrescriptionForm">
+<<<<<<< HEAD
             <input type="hidden" id="edit_prescription_id" name="prescription_id" value="">
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             <div class="hms-modal-body">
                 <div class="form-grid">
                     <div>
@@ -22,6 +25,7 @@
                         <input type="date" id="add_prescriptionDate" name="date_issued" class="form-input" required value="<?= date('Y-m-d') ?>">
                         <small id="err_add_prescriptionDate" style="color:#dc2626"></small>
                     </div>
+<<<<<<< HEAD
                     <?php if (($userRole ?? '') === 'nurse'): ?>
                     <div>
                         <label class="form-label" for="add_doctorSelect">Assign Doctor*</label>
@@ -41,6 +45,8 @@
                         <small id="err_add_doctorSelect" style="color:#dc2626"></small>
                     </div>
                     <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     
                     <div class="full">
                         <label class="form-label">Medicines*</label>
@@ -87,6 +93,7 @@
                             <button type="button" class="btn btn-secondary" id="addMedicineRowBtn"><i class="fas fa-plus"></i> Add Medicine</button>
                         </div>
                     </div>
+<<<<<<< HEAD
                     <?php if (($userRole ?? '') !== 'nurse'): ?>
                     <div>
                         <label class="form-label" for="add_prescriptionStatus">Status</label>
@@ -95,10 +102,17 @@
                             $defaultStatuses = [['status' => 'active'], ['status' => 'pending'], ['status' => 'ready'], ['status' => 'completed'], ['status' => 'cancelled']];
                             foreach ($statuses ?? $defaultStatuses as $status): 
                             ?>
+=======
+                    <div>
+                        <label class="form-label" for="add_prescriptionStatus">Status</label>
+                        <select id="add_prescriptionStatus" name="status" class="form-select">
+                            <?php foreach ($statuses ?? [['status' => 'active'], ['status' => 'pending'], ['status' => 'ready'], ['status' => 'completed'], ['status' => 'cancelled']] as $status): ?>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                 <option value="<?= esc($status['status']) ?>" <?= ($status['status'] === 'active') ? 'selected' : '' ?>><?= esc(ucfirst($status['status'])) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
+<<<<<<< HEAD
                     <?php else: ?>
                     <input type="hidden" id="add_prescriptionStatus" name="status" value="draft">
                     <div>
@@ -107,6 +121,8 @@
                         <small class="form-text" style="color:#6b7280">Nurse-created prescriptions are automatically set to draft status</small>
                     </div>
                     <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     <div class="full">
                         <label class="form-label" for="add_prescriptionNotes">Notes</label>
                         <textarea id="add_prescriptionNotes" name="notes" class="form-input" rows="3" placeholder="Additional instructions or notes..."></textarea>

@@ -528,12 +528,15 @@ class FinancialService
 
         try {
             $this->db->table('billing_accounts')->where('billing_id', $billingId)->update(['status' => $status]);
+<<<<<<< HEAD
             
             // If status is being set to 'paid', automatically update lab order status from 'ordered' to 'in_progress'
             if (strtolower($status) === 'paid') {
                 $this->updateLabOrderStatusAfterPayment($billingId);
             }
             
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             return $this->db->affectedRows() > 0
                 ? ['success' => true, 'message' => 'Billing account status updated']
                 : ['success' => false, 'message' => 'Billing account not found or status unchanged'];
@@ -542,6 +545,7 @@ class FinancialService
             return ['success' => false, 'message' => 'Error updating billing account status'];
         }
     }
+<<<<<<< HEAD
     
     /**
      * Update lab order status from 'ordered' to 'in_progress' after payment is completed
@@ -595,6 +599,8 @@ class FinancialService
             log_message('error', 'FinancialService::updateLabOrderStatusAfterPayment error: ' . $e->getMessage());
         }
     }
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
     /**
      * Convenience wrapper to mark an account as paid.
@@ -859,6 +865,7 @@ class FinancialService
         }
     }
 
+<<<<<<< HEAD
     /**
      * Add billing item from inpatient room assignment (inpatient_room_assignments table)
      * This is used when patients are admitted with room assignments
@@ -955,6 +962,8 @@ class FinancialService
         }
     }
 
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     private function insertBillingItem(array $itemData, ?int $createdByStaffId): void
     {
         $itemData['line_total'] = $itemData['quantity'] * $itemData['unit_price'];

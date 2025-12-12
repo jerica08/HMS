@@ -43,7 +43,43 @@
             const formData = new FormData(form);
             const payload = Object.fromEntries(formData.entries());
 
+<<<<<<< HEAD
             const response = await fetch(`${baseUrl}/departments/create`, {
+=======
+            // Validate required fields
+            const errors = {};
+            if (!payload.name || payload.name.trim() === '') {
+                errors.name = 'Department name is required.';
+            }
+            if (!payload.department_category) {
+                errors.department_category = 'Department category is required.';
+            }
+            if (payload.department_category === 'non_medical' && !payload.non_medical_function) {
+                errors.non_medical_function = 'Function is required for non-medical departments.';
+            }
+
+            // Validate contact number if provided
+            if (payload.contact_number && payload.contact_number.trim() !== '') {
+                const contactPattern = /^09\d{9}$/;
+                if (!contactPattern.test(payload.contact_number.trim())) {
+                    errors.contact_number = payload.contact_number.startsWith('09') 
+                        ? 'Contact number must be exactly 11 digits.'
+                        : 'Contact number must start with 09.';
+                }
+            }
+
+            if (Object.keys(errors).length > 0) {
+                utils.displayErrors(errors, 'err_');
+                return;
+            }
+
+            // Determine which endpoint to use based on category
+            const endpoint = payload.department_category === 'medical' 
+                ? `${baseUrl}/test/departments/create-medical`  // Temporary test endpoint without auth
+                : `${baseUrl}/test/departments/create-non-medical`;  // Temporary test endpoint without auth
+
+            const response = await fetch(endpoint, {
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

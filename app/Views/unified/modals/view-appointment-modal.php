@@ -14,7 +14,11 @@
                             <option value="">Select Patient...</option>
                         </select>
                     </div>
+<<<<<<< HEAD
                     <?php if (in_array($userRole, ['admin', 'receptionist'])): ?>
+=======
+                    <?php if ($userRole === 'admin'): ?>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     <div>
                         <label class="form-label" for="view_appointment_doctor">Doctor*</label>
                         <select id="view_appointment_doctor" class="form-select" disabled>

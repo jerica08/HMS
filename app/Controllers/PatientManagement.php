@@ -85,9 +85,17 @@ class PatientManagement extends BaseController
         $permissions = PermissionManager::getRolePermissions($this->userRole);
 
         $departments = [];
+<<<<<<< HEAD
         if ($this->db->tableExists('department')) {
             $departments = $this->db->table('department')
                 ->select('department_id, name')
+=======
+        // Load medical departments for patient forms
+        if ($this->db->tableExists('medical_departments')) {
+            $departments = $this->db->table('medical_departments')
+                ->select('medical_department_id as department_id, name')
+                ->where('status', 'Active')
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 ->orderBy('name','ASC')
                 ->get()
                 ->getResultArray();
@@ -210,6 +218,7 @@ class PatientManagement extends BaseController
                 ]);
             }
 
+<<<<<<< HEAD
             // Get nurse_id if user is a nurse - connect to nurse table via staff_id
             $nurseId = null;
             if ($this->userRole === 'nurse' && $this->staffId) {
@@ -229,6 +238,14 @@ class PatientManagement extends BaseController
                     $nurseId = $nurse['nurse_id'] ?? null;
                 }
                 // If table doesn't exist or nurse record not found, nurse_id will remain null
+=======
+            // Get nurse_id if user is a nurse
+            $nurseId = null;
+            if ($this->userRole === 'nurse' && $this->staffId) {
+                $nurseModel = new \App\Models\NurseModel();
+                $nurse = $nurseModel->getNurseByStaffId($this->staffId);
+                $nurseId = $nurse['nurse_id'] ?? null;
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             }
 
             // Prepare vital signs data
@@ -278,8 +295,14 @@ class PatientManagement extends BaseController
                 ]);
             }
 
+<<<<<<< HEAD
             // Insert vital signs directly (nurse_id can be NULL if nurses table doesn't exist)
             $result = $this->db->table('vital_signs')->insert($vitalData);
+=======
+            // Insert vital signs
+            $nurseModel = new \App\Models\NurseModel();
+            $result = $nurseModel->recordVitals($vitalData);
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             if ($result) {
                 return $this->response->setJSON([

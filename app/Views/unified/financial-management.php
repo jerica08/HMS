@@ -65,6 +65,10 @@
 
             <br>
 
+<<<<<<< HEAD
+            <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             <!-- ============================
                  DASHBOARD CARDS 
             ============================== -->
@@ -184,6 +188,10 @@
                 </div>
 
             </div>
+<<<<<<< HEAD
+            <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             <!-- Search + Filters -->
             <div class="controls-section">

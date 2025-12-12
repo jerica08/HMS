@@ -11,12 +11,15 @@
     <link rel="stylesheet" href="<?= base_url('assets/css/unified/analytics-reports.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<<<<<<< HEAD
     <script>
         // Ensure Chart.js is loaded before initializing
         if (typeof Chart === 'undefined') {
             console.error('Chart.js library failed to load');
         }
     </script>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 </head>
 <body class="<?= esc($userRole) ?>">
 
@@ -37,16 +40,28 @@
             </h1>
             <div class="page-actions">
                 <?php if (in_array('generate_reports', $permissions)): ?>
+<<<<<<< HEAD
                     <button type="button" class="btn btn-primary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.openReportModal();}">
+=======
+                    <button class="btn btn-primary" onclick="AnalyticsManager.openReportModal()">
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         <i class="fas fa-file-pdf"></i> Generate Report
                     </button>
                 <?php endif; ?>
                 <?php if (in_array('export', $permissions)): ?>
+<<<<<<< HEAD
                     <button type="button" class="btn btn-secondary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.exportData();}">
                         <i class="fas fa-download"></i> Export
                     </button>
                 <?php endif; ?>
                 <button type="button" class="btn btn-secondary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.refreshData();}">
+=======
+                    <button class="btn btn-secondary" onclick="AnalyticsManager.exportData()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                <?php endif; ?>
+                <button class="btn btn-secondary" onclick="AnalyticsManager.refreshData()">
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
@@ -76,27 +91,43 @@
                         <input type="date" id="endDate" class="form-input">
                     </div>
                     
+<<<<<<< HEAD
                     <button type="button" id="applyFilters" class="btn btn-primary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.applyFilters();}">
+=======
+                    <button type="button" id="applyFilters" class="btn btn-primary" onclick="AnalyticsManager.applyFilters()">
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         <i class="fas fa-filter"></i> Apply
                     </button>
                 </div>
             </div>
 
+<<<<<<< HEAD
+            <?php if (in_array($userRole ?? '', ['admin', 'doctor'])): ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             <!-- Statistics Overview -->
             <div class="dashboard-overview">
                 <?php if ($userRole === 'admin' || $userRole === 'accountant' || $userRole === 'it_staff'): ?>
                     <!-- Total Patients Card -->
+<<<<<<< HEAD
                     <div class="overview-card enhanced-card">
+=======
+                    <div class="overview-card">
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         <div class="card-header-modern">
                             <div class="card-icon-modern blue"><i class="fas fa-users"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Patients</h3>
+<<<<<<< HEAD
                                 <p class="card-subtitle">All registered patients</p>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
                                 <div class="metric-value"><?= number_format($analytics['patient_analytics']['total_patients'] ?? 0) ?></div>
+<<<<<<< HEAD
                                 <div class="metric-trend">
                                     <span class="trend-indicator positive">
                                         <i class="fas fa-arrow-up"></i> <?= number_format($analytics['patient_analytics']['new_patients'] ?? 0) ?> new
@@ -108,22 +139,32 @@
                                     <span class="breakdown-label">Active</span>
                                     <span class="breakdown-value"><?= number_format($analytics['patient_analytics']['active_patients'] ?? 0) ?></span>
                                 </div>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             </div>
                         </div>
                     </div>
                     
                     <!-- Total Appointments Card -->
+<<<<<<< HEAD
                     <div class="overview-card enhanced-card">
+=======
+                    <div class="overview-card">
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         <div class="card-header-modern">
                             <div class="card-icon-modern purple"><i class="fas fa-calendar-check"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Appointments</h3>
+<<<<<<< HEAD
                                 <p class="card-subtitle">This period</p>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
                                 <div class="metric-value"><?= number_format($analytics['appointment_analytics']['total_appointments'] ?? 0) ?></div>
+<<<<<<< HEAD
                                 <?php 
                                 $appointmentsByStatus = $analytics['appointment_analytics']['appointments_by_status'] ?? [];
                                 $completedCount = 0;
@@ -142,22 +183,32 @@
                                         <i class="fas fa-check-circle"></i> <?= $completionRate ?>% completed
                                     </span>
                                 </div>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             </div>
                         </div>
                     </div>
                     
                     <!-- Total Revenue Card -->
+<<<<<<< HEAD
                     <div class="overview-card enhanced-card">
+=======
+                    <div class="overview-card">
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         <div class="card-header-modern">
                             <div class="card-icon-modern green"><i class="fas fa-dollar-sign"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Total Revenue</h3>
+<<<<<<< HEAD
                                 <p class="card-subtitle">This period</p>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
                                 <div class="metric-value">₱<?= number_format($analytics['financial_analytics']['total_revenue'] ?? 0, 2) ?></div>
+<<<<<<< HEAD
                                 <div class="metric-trend">
                                     <span class="trend-indicator positive">
                                         <i class="fas fa-arrow-up"></i> Net: ₱<?= number_format($analytics['financial_analytics']['net_profit'] ?? 0, 2) ?>
@@ -172,20 +223,31 @@
                                 </div>
                             </div>
                             <?php endif; ?>
+=======
+                            </div>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         </div>
                     </div>
                     
                     <!-- Active Staff Card -->
+<<<<<<< HEAD
                     <div class="overview-card enhanced-card">
+=======
+                    <div class="overview-card">
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         <div class="card-header-modern">
                             <div class="card-icon-modern orange"><i class="fas fa-user-md"></i></div>
                             <div class="card-info">
                                 <h3 class="card-title-modern">Active Staff</h3>
+<<<<<<< HEAD
                                 <p class="card-subtitle">Currently working</p>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
+<<<<<<< HEAD
                                 <div class="metric-value"><?= number_format($analytics['staff_analytics']['total_staff'] ?? $analytics['staff_analytics']['active_staff'] ?? 0) ?></div>
                             </div>
                         </div>
@@ -319,6 +381,12 @@
                         </div>
                     </div>
                     <?php endif; ?>
+=======
+                                <div class="metric-value"><?= number_format($analytics['staff_analytics']['active_staff'] ?? 0) ?></div>
+                            </div>
+                        </div>
+                    </div>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 <?php elseif ($userRole === 'doctor'): ?>
                     <!-- My Patients Card -->
                     <div class="overview-card">
@@ -379,22 +447,38 @@
                         </div>
                     </div>
                 <?php elseif ($userRole === 'nurse'): ?>
+<<<<<<< HEAD
                     <!-- Patients Card -->
+=======
+                    <!-- Department Patients Card -->
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     <div class="overview-card">
                         <div class="card-header-modern">
                             <div class="card-icon-modern blue"><i class="fas fa-hospital"></i></div>
                             <div class="card-info">
+<<<<<<< HEAD
                                 <h3 class="card-title-modern">Patients</h3>
+=======
+                                <h3 class="card-title-modern">Department Patients</h3>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                 <p class="card-subtitle">Patient care</p>
                             </div>
                         </div>
                         <div class="card-metrics">
                             <div class="metric">
+<<<<<<< HEAD
                                 <div class="metric-value blue"><?= $analytics['patients']['total'] ?? 0 ?></div>
                                 <div class="metric-label">Total</div>
                             </div>
                             <div class="metric">
                                 <div class="metric-value green"><?= $analytics['patients']['active'] ?? 0 ?></div>
+=======
+                                <div class="metric-value blue"><?= $analytics['department_patients']['total'] ?? 0 ?></div>
+                                <div class="metric-label">Total</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value green"><?= $analytics['department_patients']['active'] ?? 0 ?></div>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                                 <div class="metric-label">Active</div>
                             </div>
                         </div>
@@ -461,12 +545,17 @@
                 <?php endif; ?>
 
             </div>
+<<<<<<< HEAD
+            <?php endif; ?>
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             <!-- Charts Section -->
                 <?php if ($userRole === 'admin' || $userRole === 'accountant' || $userRole === 'it_staff'): ?>
                 <div class="charts-section">
                     <!-- Full Width Chart -->
                     <div class="chart-container full-width">
+<<<<<<< HEAD
                         <div class="chart-header">
                             <div>
                                 <h3 class="chart-title">Appointment Trends</h3>
@@ -491,11 +580,16 @@
                         <div style="position: relative; height: 350px;">
                             <canvas id="revenueTrendChart"></canvas>
                         </div>
+=======
+                        <div class="chart-header"></div>
+                        <canvas id="appointmentTrendsChart" height="80"></canvas>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     </div>
 
                     <!-- Two Column Charts -->
                     <div class="charts-row">
                         <div class="chart-container">
+<<<<<<< HEAD
                             <div class="chart-header">
                                 <div>
                                     <h3 class="chart-title">Patient Distribution</h3>
@@ -653,6 +747,17 @@
                     </div>
                     <?php endif; ?>
 
+=======
+                            <div class="chart-header"></div>
+                            <canvas id="patientTypeChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-header"></div>
+                            <canvas id="appointmentStatusChart"></canvas>
+                        </div>
+                    </div>
+
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 </div>
                 <?php elseif ($userRole === 'doctor'): ?>
                 <div class="charts-section">
@@ -661,17 +766,25 @@
                             <div class="chart-header">
                                 <h3 class="chart-title">My Appointments</h3>
                             </div>
+<<<<<<< HEAD
                             <div style="position: relative; height: 300px;">
                                 <canvas id="doctorAppointmentsChart"></canvas>
                             </div>
+=======
+                            <canvas id="doctorAppointmentsChart"></canvas>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         </div>
                         <div class="chart-container">
                             <div class="chart-header">
                                 <h3 class="chart-title">Patient Growth</h3>
                             </div>
+<<<<<<< HEAD
                             <div style="position: relative; height: 300px;">
                                 <canvas id="patientGrowthChart"></canvas>
                             </div>
+=======
+                            <canvas id="patientGrowthChart"></canvas>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                         </div>
                     </div>
                 </div>
@@ -687,7 +800,11 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Generate Report</h2>
+<<<<<<< HEAD
                 <button type="button" class="close-btn" onclick="if(window.AnalyticsManager){window.AnalyticsManager.closeReportModal();}">&times;</button>
+=======
+                <button class="close-btn" onclick="AnalyticsManager.closeReportModal()">&times;</button>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             </div>
             <div class="modal-body">
                 <form id="reportForm">
@@ -698,11 +815,16 @@
                             <option value="patient_summary">Patient Summary</option>
                             <option value="appointment_summary">Appointment Summary</option>
                             <option value="financial_summary">Financial Summary</option>
+<<<<<<< HEAD
                             <option value="lab_summary">Lab Test Summary</option>
                             <option value="prescription_summary">Prescription Summary</option>
                             <?php if ($userRole === 'admin' || $userRole === 'it_staff'): ?>
                             <option value="staff_performance">Staff Performance</option>
                             <option value="room_utilization">Room Utilization</option>
+=======
+                            <?php if ($userRole === 'admin' || $userRole === 'it_staff'): ?>
+                            <option value="staff_performance">Staff Performance</option>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                             <?php endif; ?>
                             <?php if ($userRole === 'doctor'): ?>
                             <option value="doctor_performance">My Performance</option>
@@ -729,8 +851,13 @@
                 </form>
             </div>
             <div class="modal-footer">
+<<<<<<< HEAD
                 <button type="button" class="btn btn-secondary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.closeReportModal();}">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="if(window.AnalyticsManager){window.AnalyticsManager.generateReport();}">
+=======
+                <button class="btn btn-secondary" onclick="AnalyticsManager.closeReportModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="AnalyticsManager.generateReport()">
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                     <i class="fas fa-file-pdf"></i> Generate
                 </button>
             </div>
@@ -770,6 +897,7 @@
                 container.style.display = 'none';
             }
         }
+<<<<<<< HEAD
 
         // Pass analytics data from PHP to JavaScript
         window.analyticsData = <?= json_encode($analytics ?? []) ?>;
@@ -800,6 +928,10 @@
         });
     </script>
     <script src="<?= base_url('assets/js/unified/analytics-reports.js') ?>" defer></script>
+=======
+    </script>
+    <script src="<?= base_url('assets/js/unified/analytics-reports.js') ?>"></script>
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
     <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')): ?>
         <script>

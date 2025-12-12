@@ -18,11 +18,24 @@ class StaffService
      */
     private function buildStaffQuery($includeId = false)
     {
+<<<<<<< HEAD
         $select = 's.*, s.department_id, dpt.name as department, CONCAT(s.first_name, " ", s.last_name) as full_name, TIMESTAMPDIFF(YEAR, s.dob, CURDATE()) as age, DATE_FORMAT(s.date_joined, "%M %d, %Y") as formatted_date_joined, d.specialization as doctor_specialization, d.license_no as doctor_license_no, n.license_no as nurse_license_no, p.license_no as pharmacist_license_no, l.license_no as laboratorist_license_no, l.specialization as laboratorist_specialization, a.license_no as accountant_license_no, r.desk_no as receptionist_desk_no, i.expertise as it_expertise, s.role_id, rl.slug as role_slug, rl.name as role_name';
         if ($includeId) $select = 's.staff_id as id, ' . $select;
         
         return $this->db->table('staff s')->select($select)
             ->join('department dpt', 'dpt.department_id = s.department_id', 'left')
+=======
+        $select = 's.*, s.department_id, dpt.name as department, dpt.department_type, CONCAT(s.first_name, " ", s.last_name) as full_name, TIMESTAMPDIFF(YEAR, s.dob, CURDATE()) as age, DATE_FORMAT(s.date_joined, "%M %d, %Y") as formatted_date_joined, d.specialization as doctor_specialization, d.license_no as doctor_license_no, n.license_no as nurse_license_no, p.license_no as pharmacist_license_no, l.license_no as laboratorist_license_no, l.specialization as laboratorist_specialization, a.license_no as accountant_license_no, r.desk_no as receptionist_desk_no, i.expertise as it_expertise, s.role_id, rl.slug as role_slug, rl.name as role_name';
+        if ($includeId) $select = 's.staff_id as id, ' . $select;
+        
+        // Build department subquery to handle both medical and non-medical departments
+        $departmentSubquery = "(SELECT medical_department_id as department_id, name, 'Medical' as department_type FROM medical_departments WHERE status = 'Active'
+                                UNION ALL
+                                SELECT non_medical_department_id as department_id, name, 'Non-Medical' as department_type FROM non_medical_departments WHERE status = 'Active')";
+        
+        return $this->db->table('staff s')->select($select)
+            ->join("($departmentSubquery) dpt", 'dpt.department_id = s.department_id', 'left')
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             ->join('doctor d', 'd.staff_id = s.staff_id', 'left')
             ->join('nurse n', 'n.staff_id = s.staff_id', 'left')
             ->join('pharmacist p', 'p.staff_id = s.staff_id', 'left')
@@ -212,9 +225,27 @@ class StaffService
 
     try {
         if (!empty($input['department'])) {
+<<<<<<< HEAD
             $this->ensureDepartmentExists($input['department']);
             $deptRow = $this->db->table('department')->where('name', $input['department'])->get()->getRowArray();
             $input['department_id'] = $deptRow['department_id'] ?? null;
+=======
+            $departmentType = $input['department_type'] ?? null;
+            $this->ensureDepartmentExists($input['department'], $departmentType);
+            
+            // Get department_id from the appropriate table
+            if ($departmentType === 'Medical' && $this->db->tableExists('medical_departments')) {
+                $deptRow = $this->db->table('medical_departments')->where('name', $input['department'])->get()->getRowArray();
+                $input['department_id'] = $deptRow['medical_department_id'] ?? null;
+            } elseif ($departmentType === 'Non-Medical' && $this->db->tableExists('non_medical_departments')) {
+                $deptRow = $this->db->table('non_medical_departments')->where('name', $input['department'])->get()->getRowArray();
+                $input['department_id'] = $deptRow['non_medical_department_id'] ?? null;
+            } else {
+                // Fallback to old department table
+                $deptRow = $this->db->table('department')->where('name', $input['department'])->get()->getRowArray();
+                $input['department_id'] = $deptRow['department_id'] ?? null;
+            }
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         } else {
             $input['department_id'] = null;
         }
@@ -262,9 +293,27 @@ class StaffService
 
         // Handle department and department_id
         if (!empty($input['department'])) {
+<<<<<<< HEAD
             $this->ensureDepartmentExists($input['department']);
             $deptRow = $this->db->table('department')->where('name', $input['department'])->get()->getRowArray();
             $input['department_id'] = $deptRow['department_id'] ?? ($existing['department_id'] ?? null);
+=======
+            $departmentType = $input['department_type'] ?? null;
+            $this->ensureDepartmentExists($input['department'], $departmentType);
+            
+            // Get department_id from the appropriate table
+            if ($departmentType === 'Medical' && $this->db->tableExists('medical_departments')) {
+                $deptRow = $this->db->table('medical_departments')->where('name', $input['department'])->get()->getRowArray();
+                $input['department_id'] = $deptRow['medical_department_id'] ?? ($existing['department_id'] ?? null);
+            } elseif ($departmentType === 'Non-Medical' && $this->db->tableExists('non_medical_departments')) {
+                $deptRow = $this->db->table('non_medical_departments')->where('name', $input['department'])->get()->getRowArray();
+                $input['department_id'] = $deptRow['non_medical_department_id'] ?? ($existing['department_id'] ?? null);
+            } else {
+                // Fallback to old department table
+                $deptRow = $this->db->table('department')->where('name', $input['department'])->get()->getRowArray();
+                $input['department_id'] = $deptRow['department_id'] ?? ($existing['department_id'] ?? null);
+            }
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         } elseif (!isset($input['department_id'])) {
             $input['department_id'] = $existing['department_id'] ?? null;
         }
@@ -319,6 +368,7 @@ class StaffService
                 }
             }
 
+<<<<<<< HEAD
             // Delete associated user account if it exists
             $userDeleted = $this->db->table('users')->where('staff_id', $id)->delete();
             if ($userDeleted) {
@@ -326,6 +376,8 @@ class StaffService
             }
 
             // Delete the staff member
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             $result = $this->db->table('staff')->where('staff_id', $id)->delete();
             $this->db->transComplete();
 
@@ -333,12 +385,16 @@ class StaffService
                 return ['success' => false, 'message' => 'Failed to delete staff member'];
             }
 
+<<<<<<< HEAD
             $message = 'Staff member deleted successfully';
             if ($userDeleted) {
                 $message .= ' (associated user account also deleted)';
             }
 
             return ['success' => true, 'message' => $message];
+=======
+            return ['success' => true, 'message' => 'Staff member deleted successfully'];
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         } catch (\Throwable $e) {
             log_message('error', 'Failed to delete staff: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
@@ -561,17 +617,50 @@ class StaffService
         }
     }
 
+<<<<<<< HEAD
     private function ensureDepartmentExists($name)
+=======
+    private function ensureDepartmentExists($name, $type = null)
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     {
         $dept = trim((string)$name);
         if ($dept === '') {
             return;
         }
+<<<<<<< HEAD
         $exists = $this->db->table('department')->where('name', $dept)->get()->getRowArray();
         if (!$exists) {
             $this->db->table('department')->insert([
                 'name' => $dept,
             ]);
+=======
+        
+        // Check if department exists in the appropriate table based on type
+        if ($type === 'Medical' && $this->db->tableExists('medical_departments')) {
+            $exists = $this->db->table('medical_departments')->where('name', $dept)->get()->getRowArray();
+            if (!$exists) {
+                $this->db->table('medical_departments')->insert([
+                    'name' => $dept,
+                    'status' => 'Active',
+                ]);
+            }
+        } elseif ($type === 'Non-Medical' && $this->db->tableExists('non_medical_departments')) {
+            $exists = $this->db->table('non_medical_departments')->where('name', $dept)->get()->getRowArray();
+            if (!$exists) {
+                $this->db->table('non_medical_departments')->insert([
+                    'name' => $dept,
+                    'status' => 'Active',
+                ]);
+            }
+        } else {
+            // Fallback to old department table for backward compatibility
+            $exists = $this->db->table('department')->where('name', $dept)->get()->getRowArray();
+            if (!$exists) {
+                $this->db->table('department')->insert([
+                    'name' => $dept,
+                ]);
+            }
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         }
     }
 

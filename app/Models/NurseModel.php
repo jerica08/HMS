@@ -19,6 +19,7 @@ class NurseModel extends Model
     // Get nurse by staff ID
     public function getNurseByStaffId($staffId)
     {
+<<<<<<< HEAD
         // Check if table exists (could be 'nurse' or 'nurses')
         $tableName = null;
         if ($this->db->tableExists('nurse')) {
@@ -45,6 +46,9 @@ class NurseModel extends Model
             $this->table = $originalTable; // Restore original
             return null;
         }
+=======
+        return $this->where('staff_id', $staffId)->first();
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
     }
 
     // Get assigned patients for a nurse

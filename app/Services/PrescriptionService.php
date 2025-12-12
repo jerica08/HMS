@@ -126,12 +126,18 @@ class PrescriptionService
     public function createPrescription($data, $userRole, $staffId = null)
     {
         try {
+<<<<<<< HEAD
             // Validate permissions - admin, doctors can create, nurses can create drafts
             $canCreate = $this->permissionManager->hasPermission($userRole, 'prescriptions', 'create');
             $canCreateDraft = $this->permissionManager->hasPermission($userRole, 'prescriptions', 'create_draft');
             
             if (!$canCreate && !$canCreateDraft) {
                 return ['success' => false, 'message' => 'Permission denied. Only administrators, doctors, and nurses can create prescriptions.'];
+=======
+            // Validate permissions
+            if (!$this->permissionManager->hasPermission($userRole, 'prescriptions', 'create')) {
+                return ['success' => false, 'message' => 'Permission denied'];
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             }
 
             // Basic header validation
@@ -150,6 +156,7 @@ class PrescriptionService
                 ];
             }
 
+<<<<<<< HEAD
             // For doctors: validate that patient is assigned to them
             if ($userRole === 'doctor' && $staffId) {
                 if (!$this->isPatientAssignedToDoctor($data['patient_id'], $staffId)) {
@@ -161,6 +168,8 @@ class PrescriptionService
                 }
             }
 
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             // Validate items array for multi-medicine support
             if (empty($data['items']) || !is_array($data['items'])) {
                 return [
@@ -224,6 +233,7 @@ class PrescriptionService
             
             $patientName = $patient ? ($patient['first_name'] . ' ' . $patient['last_name']) : 'Unknown';
 
+<<<<<<< HEAD
             // Get prescriber/doctor information
             // For admin and doctors: use their own staff_id or specified doctor_id
             // For nurses: require doctor_id to be specified (for draft approval)
@@ -246,6 +256,10 @@ class PrescriptionService
                 $prescriberId = $data['doctor_id'] ?? $staffId;
             }
             
+=======
+            // Get prescriber name
+            $prescriberId = ($userRole === 'doctor') ? $staffId : ($data['doctor_id'] ?? $staffId);
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             $prescriber = $this->db->table('staff')
                 ->select('first_name, last_name')
                 ->where('staff_id', $prescriberId)
@@ -268,6 +282,7 @@ class PrescriptionService
             // logic disabled here to avoid incorrect reservations. It can be
             // reworked later on a per-item basis if needed.
 
+<<<<<<< HEAD
             // Determine status based on role:
             // - Admin and Doctors create active prescriptions (primary prescribers)
             // - Nurses create draft prescriptions (needs doctor approval)
@@ -278,6 +293,9 @@ class PrescriptionService
             if ($userRole === 'nurse' && $status !== 'draft') {
                 $status = 'draft';
             }
+=======
+            $status = $this->mapStatus($data['status'] ?? 'active');
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             // Use first item to build a legacy summary for list views
             $firstItem          = $items[0];
@@ -298,7 +316,10 @@ class PrescriptionService
 
             // Check if prescription_id column exists (legacy support) and set it to avoid unique constraint violation
             $hasPrescriptionIdColumn = $this->db->fieldExists('prescription_id', 'prescriptions');
+<<<<<<< HEAD
             $hasDoctorIdColumn = $this->db->fieldExists('doctor_id', 'prescriptions');
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             
             $prescriptionData = [
                 'rx_number'    => trim($rxNumber),
@@ -324,11 +345,14 @@ class PrescriptionService
             if ($hasPrescriptionIdColumn) {
                 $prescriptionData['prescription_id'] = trim($rxNumber);
             }
+<<<<<<< HEAD
             
             // Set doctor_id if column exists (for doctor assignment, especially for nurse drafts)
             if ($hasDoctorIdColumn) {
                 $prescriptionData['doctor_id'] = $prescriberId;
             }
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 
             // Insert header + items in a transaction
             $this->db->transBegin();
@@ -563,7 +587,11 @@ class PrescriptionService
             }
 
             $dbStatus = $this->mapStatus($status);
+<<<<<<< HEAD
             $validStatuses = ['in_progress', 'queued', 'verifying', 'ready', 'dispensed', 'cancelled'];
+=======
+            $validStatuses = ['queued', 'verifying', 'ready', 'dispensed', 'cancelled'];
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             
             if (!in_array($dbStatus, $validStatuses)) {
                 return ['success' => false, 'message' => 'Invalid status'];
@@ -624,6 +652,7 @@ class PrescriptionService
                 $selectFields[] = 'p.patient_type';
             }
             
+<<<<<<< HEAD
             $builder = $this->db->table($tableName . ' p')
                 ->select($selectFields);
             
@@ -650,6 +679,11 @@ class PrescriptionService
             }
             
             $patients = $builder->orderBy('p.first_name', 'ASC')
+=======
+            $patients = $this->db->table($tableName . ' p')
+                ->select($selectFields)
+                ->orderBy('p.first_name', 'ASC')
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
                 ->get()
                 ->getResultArray();
             
@@ -867,16 +901,26 @@ class PrescriptionService
     private function mapStatus($status)
     {
         $statusMap = [
+<<<<<<< HEAD
             'active' => 'in_progress',
             'pending' => 'in_progress',
+=======
+            'active' => 'queued',
+            'pending' => 'queued',
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
             'ready' => 'ready',
             'completed' => 'dispensed',
             'cancelled' => 'cancelled',
             'verifying' => 'verifying',
+<<<<<<< HEAD
             'queued' => 'in_progress',
             'in_progress' => 'in_progress',
             'dispensed' => 'dispensed',
             'draft' => 'draft' // Draft status for nurse-created prescriptions awaiting doctor approval
+=======
+            'queued' => 'queued',
+            'dispensed' => 'dispensed'
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
         ];
         return $statusMap[$status] ?? $status;
     }
@@ -1115,6 +1159,7 @@ class PrescriptionService
             return null;
         }
     }
+<<<<<<< HEAD
 
     /**
      * Check if a patient is assigned to a doctor
@@ -1164,4 +1209,6 @@ class PrescriptionService
             return false;
         }
     }
+=======
+>>>>>>> 03d4e70 (COMMITenter the commit message for your changes. Lines starting)
 }
